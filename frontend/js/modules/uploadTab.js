@@ -104,13 +104,19 @@ export const uploadTab = {
   },
 
   handleFileChosen(file) {
-    const ext = file.name.split('.').pop().toUpperCase();
+    const ext = file.name.split('.').pop().toLowerCase();
+    const allowed = ['pdf', 'md', 'txt'];
+    if (!allowed.includes(ext)) {
+      alert(`Formato de archivo no soportado (.${ext}). Solo se admiten archivos PDF, Markdown (.md) y TXT.`);
+      return;
+    }
+
     const sizeMb = (file.size / (1024 * 1024)).toFixed(2);
 
     const fileData = {
       name: file.name,
       size: `${sizeMb} MB`,
-      format: ext,
+      format: ext.toUpperCase(),
       sampleKey: null,
       rawFile: file
     };
@@ -201,9 +207,17 @@ export const uploadTab = {
 
     try {
       if (apiMode === 'real' && selectedFile.rawFile) {
-        // Modo Real: Intenta subir el archivo al backend FastAPI
-        this.setStepActive(this.elements.stepOci, 'Subiendo archivo al backend FastAPI...');
-        await apiClient.uploadFile(selectedFile.rawFile);
+        // Modo Real: Envía el archivo al backend FastAPI (POST /api/v1/documents)
+        this.setStepActive(this.elements.stepOci, 'Subiendo archivo al backend FastAPI (POST /api/v1/documents)...');
+        const uploadResult = await apiClient.uploadFile(selectedFile.rawFile);
+        console.log('[Backend API /documents] Respuesta recibida:', uploadResult);
+
+        // Guardar metadatos del documento (soporta tanto document_id como filename/original_filename)
+        const docId = uploadResult.document_id || uploadResult.filename || selectedFile.name;
+        state.set({
+          backendDocument: uploadResult,
+          currentDocId: docId
+        });
         this.setStepCompleted(this.elements.stepOci, this.elements.line1);
 
         this.setStepActive(this.elements.stepChroma, 'Indexando chunks en vector store...');

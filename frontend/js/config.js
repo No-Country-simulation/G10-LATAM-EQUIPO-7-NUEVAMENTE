@@ -14,7 +14,7 @@ export const CONFIG = {
     V1_PREFIX: '/api/v1',
     ENDPOINTS: {
       HEALTH: '/health',
-      UPLOAD_FILE: '/files/upload',
+      UPLOAD_FILE: '/documents',
       ADAPT_RAG: '/adaptar' // Endpoint de pipeline RAG
     },
     TIMEOUT_MS: 30000
@@ -23,7 +23,7 @@ export const CONFIG = {
   // Restricciones de carga de documentos
   UPLOAD: {
     MAX_SIZE_MB: 25,
-    ALLOWED_EXTENSIONS: ['pdf', 'docx', 'txt', 'md']
+    ALLOWED_EXTENSIONS: ['pdf', 'md', 'txt']
   },
 
   // Almacenamiento local

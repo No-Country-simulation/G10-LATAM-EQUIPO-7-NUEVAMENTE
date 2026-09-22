@@ -336,20 +336,26 @@
   to { opacity: 1; transform: scale(1); }
 }
 
-/* El Cuaderno Abierto de Doble Página */
+/* El Cuaderno Abierto de Doble Página (Diseño Editorial Realista sin mesa externa) */
 .open-notebook-spread {
   width: 100%;
-  max-width: 1100px;
-  min-height: 560px;
-  background: #131a26;
-  border: 2px solid rgba(245, 158, 11, 0.35);
-  border-radius: 20px;
-  box-shadow: 0 35px 80px rgba(0, 0, 0, 0.95), 0 0 40px rgba(245, 158, 11, 0.2);
+  max-width: 1060px;
+  min-height: 580px;
+  background: #fbf7ee;
+  border-radius: 14px;
+  border: 1px solid #d4c39c;
+  box-shadow: 
+    0 0 0 7px #2e1c12,                          /* Tapa exterior de cuero */
+    0 0 0 9px #d4a34b,                          /* Ribete dorado */
+    4px 4px 0 #ede4cc,                          /* Grosor de hojas apiladas */
+    8px 8px 0 #e4d7b8,                          /* Grosor de hojas apiladas nivel 2 */
+    0 35px 90px rgba(0, 0, 0, 0.95),            /* Sombra profunda sobre la biblioteca */
+    0 0 40px rgba(245, 158, 11, 0.2);           /* Aura cálida */
   display: grid;
   grid-template-columns: 1fr 1fr;
   position: relative;
   overflow: hidden;
-  animation: bookOpenSpread 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  animation: bookOpenSpread 0.45s cubic-bezier(0.16, 1, 0.3, 1) forwards;
 }
 
 @keyframes bookOpenSpread {
@@ -363,17 +369,40 @@
   }
 }
 
-/* Costura central de encuadernación (Gutter) */
+/* Lomo y hendidura central del cuaderno */
 .open-notebook-spread::before {
   content: '';
   position: absolute;
   top: 0;
   bottom: 0;
   left: 50%;
-  width: 30px;
+  width: 36px;
   transform: translateX(-50%);
-  background: linear-gradient(to right, rgba(0, 0, 0, 0.6), rgba(0, 0, 0, 0.1) 40%, rgba(0, 0, 0, 0.1) 60%, rgba(0, 0, 0, 0.6));
-  z-index: 2;
+  background: linear-gradient(to right, 
+    rgba(0, 0, 0, 0.16) 0%, 
+    rgba(0, 0, 0, 0.05) 35%, 
+    rgba(0, 0, 0, 0.01) 50%, 
+    rgba(0, 0, 0, 0.05) 65%, 
+    rgba(0, 0, 0, 0.16) 100%);
+  box-shadow: inset 0 0 8px rgba(0, 0, 0, 0.08);
+  z-index: 15;
+  pointer-events: none;
+}
+
+/* Cinta marcapáginas de seda roja en el lomo */
+.open-notebook-spread::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 14px;
+  height: 48px;
+  background: linear-gradient(135deg, #b91c1c, #dc2626);
+  border-radius: 0 0 4px 4px;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.35);
+  clip-path: polygon(0 0, 100% 0, 100% 85%, 50% 100%, 0 85%);
+  z-index: 20;
   pointer-events: none;
 }
 
@@ -383,80 +412,91 @@
     max-height: 90vh;
     overflow-y: auto;
   }
-  .open-notebook-spread::before {
+  .open-notebook-spread::before,
+  .open-notebook-spread::after {
     display: none;
   }
 }
 
-/* Hoja Izquierda: Ficha del Documento */
+/* Hoja Izquierda: Ficha del Documento sobre Pergamino */
 .notebook-page-left {
-  padding: 2.75rem 2.75rem 2.5rem;
+  padding: 2.75rem 2.75rem 2.5rem 3rem;
   display: flex;
   flex-direction: column;
   justify-content: space-between;
-  gap: 1.5rem;
-  background: linear-gradient(145deg, #141b27, #0e141e);
-  border-right: 1px solid rgba(255, 255, 255, 0.06);
+  gap: 1.25rem;
+  background: linear-gradient(to right, #faf5ea 0%, #f7f0e0 94%, #ede2cb 100%);
+  border-right: 1px solid rgba(0, 0, 0, 0.06);
+  position: relative;
+  z-index: 5;
 }
 
 .doc-badge-row {
   display: flex;
   justify-content: space-between;
   align-items: center;
+  gap: 0.5rem;
 }
 
 .opened-doc-title {
-  font-size: 1.7rem;
+  font-size: 1.65rem;
   font-weight: 800;
   line-height: 1.25;
   letter-spacing: -0.02em;
-  background: var(--gradient-brand);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
+  color: #0f172a;
+  background: none;
+  -webkit-background-clip: initial;
+  -webkit-text-fill-color: initial;
 }
 
 .opened-doc-summary {
-  font-size: 0.94rem;
+  font-size: 0.92rem;
   line-height: 1.6;
-  color: var(--text-secondary);
+  color: #334155;
+  font-weight: 500;
 }
 
 .doc-rag-metrics-box {
-  background: rgba(255, 255, 255, 0.03);
-  border: 1px solid var(--border-ui);
+  background: #ffffff;
+  border: 1px solid rgba(212, 163, 75, 0.45);
   border-radius: 12px;
-  padding: 0.9rem 1.1rem;
+  padding: 0.85rem 1.1rem;
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 0.6rem;
-  font-size: 0.8rem;
-  color: var(--text-secondary);
+  font-size: 0.82rem;
+  color: #475569;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
 }
 
 .doc-rag-metrics-box strong {
-  color: var(--text-main);
+  color: #0f172a;
+  font-weight: 700;
 }
 
-/* Hoja Derecha: Opciones de Estudio Interactivas */
+/* Hoja Derecha: Opciones de Estudio Interactivas sobre Pergamino */
 .notebook-page-right {
-  padding: 2.75rem 2.75rem 2.5rem;
+  padding: 2.75rem 3rem 2.5rem 2.75rem;
   display: flex;
   flex-direction: column;
   justify-content: space-between;
-  gap: 1.5rem;
-  background: linear-gradient(145deg, #161f2e, #101622);
+  gap: 1.25rem;
+  background: linear-gradient(to right, #ede2cb 0%, #f7f0e0 6%, #faf5ea 100%);
+  position: relative;
+  z-index: 5;
 }
 
 .study-choice-header h4 {
-  font-size: 1.15rem;
+  font-size: 1.25rem;
   font-weight: 800;
-  color: var(--text-main);
-  margin-bottom: 0.3rem;
+  color: #0f172a;
+  margin-bottom: 0.25rem;
 }
 
 .study-choice-header p {
-  font-size: 0.84rem;
-  color: var(--text-muted);
+  font-size: 0.85rem;
+  color: #64748b;
+  font-weight: 500;
 }
 
 /* Grilla de las 4 Opciones de Estudio en el Cuaderno */
@@ -467,23 +507,30 @@
 }
 
 .btn-study-choice-card {
-  background: var(--surface-ui);
-  border: 1px solid var(--border-ui);
+  background: rgba(255, 255, 255, 0.82);
+  border: 1px solid rgba(138, 90, 30, 0.32);
   border-radius: 12px;
-  padding: 1rem 0.85rem;
+  padding: 0.95rem 0.85rem;
   cursor: pointer;
   text-align: left;
   display: flex;
   align-items: center;
   gap: 0.75rem;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
   transition: all var(--transition-normal);
 }
 
 .btn-study-choice-card:hover {
-  border-color: var(--accent-gold);
-  background: var(--surface-elevated);
+  border-color: #b45309;
+  background: #ffffff;
   transform: translateY(-2px);
-  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.4);
+  box-shadow: 0 8px 24px rgba(180, 83, 9, 0.28);
+}
+
+.btn-study-choice-card.selected {
+  background: #fffbeb;
+  border-color: #b45309;
+  box-shadow: 0 0 0 2px #b45309;
 }
 
 .choice-icon {
@@ -493,13 +540,15 @@
 .choice-info strong {
   display: block;
   font-size: 0.88rem;
-  color: var(--text-main);
+  color: #1e1b18;
   margin-bottom: 0.15rem;
+  font-weight: 800;
 }
 
 .choice-info span {
   font-size: 0.72rem;
-  color: var(--text-muted);
+  color: #5c4e42;
+  font-weight: 600;
 }
 
 /* Botones de Acción al Pie del Cuaderno */
@@ -507,15 +556,15 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
-  border-top: 1px solid var(--border-ui);
+  border-top: 1px solid rgba(138, 90, 30, 0.25);
   padding-top: 1.1rem;
   gap: 1rem;
 }
 
 .btn-close-notebook-shelf {
-  background: transparent;
-  border: 1px solid var(--border-ui);
-  color: var(--text-secondary);
+  background: rgba(255, 255, 255, 0.82);
+  border: 1px solid rgba(30, 27, 24, 0.25);
+  color: #383129;
   font-size: 0.84rem;
   font-weight: 700;
   padding: 0.55rem 1.1rem;
@@ -525,9 +574,9 @@
 }
 
 .btn-close-notebook-shelf:hover {
-  background: rgba(239, 68, 68, 0.15);
-  border-color: var(--accent-red);
-  color: var(--accent-red);
+  background: #fee2e2;
+  border-color: #ef4444;
+  color: #b91c1c;
 }
 
 /* ==========================================================================
@@ -561,27 +610,12 @@
 }
 
 [data-theme="light"] .open-notebook-spread {
-  background: #fdfbf7;
-  border-color: rgba(180, 83, 9, 0.35);
-  box-shadow: 0 25px 60px rgba(15, 23, 42, 0.25), 0 0 35px rgba(180, 83, 9, 0.15);
-}
-
-[data-theme="light"] .notebook-page-left {
-  background: linear-gradient(145deg, #faf6ee, #f3ece0);
-  border-right: 1px solid rgba(0, 0, 0, 0.08);
-}
-
-[data-theme="light"] .notebook-page-right {
-  background: linear-gradient(145deg, #f8f3e6, #eee5d4);
-}
-
-[data-theme="light"] .open-notebook-spread::before {
-  background: linear-gradient(to right, rgba(0, 0, 0, 0.12), rgba(0, 0, 0, 0.02) 40%, rgba(0, 0, 0, 0.02) 60%, rgba(0, 0, 0, 0.12));
+  box-shadow: 0 25px 70px rgba(15, 23, 42, 0.4), 0 0 35px rgba(180, 83, 9, 0.2);
 }
 
 [data-theme="light"] .doc-rag-metrics-box {
-  background: rgba(0, 0, 0, 0.04);
-  border-color: rgba(0, 0, 0, 0.08);
+  background: rgba(255, 255, 255, 0.75);
+  border-color: rgba(180, 83, 9, 0.25);
 }
 
 [data-theme="light"] .btn-study-choice-card {
