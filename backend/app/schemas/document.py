@@ -8,8 +8,8 @@ from app.domain.enums import DocumentStatus
 from app.schemas.common import BaseSchema
 
 
-class DocumentCreatedResponse(BaseSchema):
-    """Respuesta después de identificar correctamente un documento."""
+class DocumentBaseResponse(BaseSchema):
+    """Información común expuesta de un documento."""
 
     document_id: str = Field(
         min_length=1,
@@ -22,13 +22,18 @@ class DocumentCreatedResponse(BaseSchema):
     status: DocumentStatus = Field(
         description="Estado actual del documento.",
     )
+
+
+class DocumentCreatedResponse(DocumentBaseResponse):
+    """Respuesta después de identificar correctamente un documento."""
+
     duplicate: bool = Field(
         default=False,
         description="Indica si el contenido ya estaba registrado.",
     )
 
 
-class DocumentResponse(DocumentCreatedResponse):
+class DocumentResponse(DocumentBaseResponse):
     """Información pública detallada de un documento."""
 
     content_type: str | None = Field(

@@ -12,9 +12,8 @@ from app.application.document_service import DocumentService
 from app.core.config import settings
 from app.core.exceptions import register_exception_handlers
 from app.core.logging import setup_logging
-from app.infrastructure.persistence.database import SQLiteDatabase
-from app.infrastructure.persistence.sqlite_document_repository import (
-    SQLiteDocumentRepository,
+from app.infrastructure.persistence.repository_factory import (
+    create_document_repository,
 )
 from app.schemas.common import ErrorResponse
 
@@ -24,13 +23,8 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     """Inicializa y libera recursos utilizados por BackendAPI."""
     setup_logging()
 
-    database = SQLiteDatabase(
+    document_repository = create_document_repository(
         settings.DATABASE_URL
-    )
-    database.initialize()
-
-    document_repository = SQLiteDocumentRepository(
-        database
     )
 
     app.state.document_service = DocumentService(

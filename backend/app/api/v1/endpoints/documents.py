@@ -14,9 +14,15 @@ from fastapi import (
 )
 
 from app.api.dependencies import get_document_service
-from app.application.document_service import DocumentService
+from app.application.document_service import (
+    DocumentNotFoundError,
+    DocumentService,
+)
 from app.core.config import settings
-from app.schemas.document import DocumentCreatedResponse
+from app.schemas.document import (
+    DocumentCreatedResponse,
+    DocumentResponse,
+)
 from app.services.storage import FileTooLargeError, save_upload
 
 router = APIRouter(
@@ -174,4 +180,47 @@ async def upload_document(
         filename=document.original_filename,
         status=document.status,
         duplicate=not registration.created,
+    )
+
+@router.get(
+    "/{document_id}",
+    response_model=DocumentResponse,
+    status_code=status.HTTP_200_OK,
+    summary="Consultar documento",
+    description=(
+        "Consulta la metadata y el estado actual de "
+        "un documento mediante su document_id."
+    ),
+    responses={
+        404: {
+            "description": "Documento no encontrado.",
+        },
+    },
+)
+async def get_document(
+    document_id: str,
+    document_service: Annotated[
+        DocumentService,
+        Depends(get_document_service),
+    ],
+) -> DocumentResponse:
+    """Consulta un documento previamente registrado."""
+    try:
+        document = document_service.get_document(
+            document_id
+        )
+    except DocumentNotFoundError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=str(exc),
+        ) from exc
+
+    return DocumentResponse(
+        document_id=document.document_id,
+        filename=document.original_filename,
+        status=document.status,
+        content_type=document.content_type,
+        size_bytes=document.size_bytes,
+        created_at=document.created_at,
+        updated_at=document.updated_at,
     )

@@ -2,7 +2,7 @@
 
 Backend de **NuevaMente**, desarrollado con **FastAPI** y **Pydantic v2**.
 
-BackendAPI gestiona la recepción técnica de documentos, su validación, identificación, persistencia de metadata y los contratos de integración con almacenamiento, RAG y Agentes.
+BackendAPI gestiona la recepción técnica de documentos, su validación, identificación, persistencia de metadata y estado, además de los contratos de integración con almacenamiento, RAG y Agentes.
 
 El frontend se encuentra en [`../frontend`](../frontend).
 
@@ -26,7 +26,10 @@ Actualmente están implementados:
 - Detección de contenido duplicado mediante SHA-256.
 - Generación de `document_id` para documentos nuevos.
 - Recuperación del mismo `document_id` cuando el contenido ya había sido registrado.
-- Persistencia SQLite utilizada por el flujo de identificación.
+- Persistencia de metadata y estado mediante una capa de repositorio desacoplada.
+- Implementación actual del repositorio mediante SQLite.
+- Consulta de metadata mediante `GET /api/v1/documents/{document_id}`.
+- Selección centralizada del repositorio mediante `repository_factory.py`.
 - Dominio y estados de documentos y procesos.
 - Puertos para persistencia, Object Storage, RAG y Agentes.
 - Pruebas unitarias y de integración.
@@ -34,12 +37,12 @@ Actualmente están implementados:
 
 Pendiente de implementación funcional:
 
-- Completar el flujo de persistencia de metadata y estados del documento.
 - OCI Object Storage.
 - Recuperación de documentos desde OCI.
 - Integración real con RAG.
 - Integración real con Agentes.
 - Endpoints funcionales de adaptaciones y procesos.
+- Implementación futura de otro motor de persistencia, por ejemplo PostgreSQL/Supabase, si el despliegue lo requiere.
 
 ---
 
@@ -52,7 +55,8 @@ Pendiente de implementación funcional:
 | Validación | Pydantic v2 |
 | Configuración | Pydantic Settings |
 | Uploads | python-multipart |
-| Persistencia local | SQLite |
+| Persistencia actual | SQLite |
+| Persistencia futura posible | PostgreSQL / Supabase |
 | Testing | pytest / httpx |
 | Calidad | Ruff |
 | Almacenamiento permanente previsto | OCI Object Storage |
@@ -75,17 +79,17 @@ Infrastructure implementa los Ports
 
 | Capa | Responsabilidad |
 |---|---|
-| `api/` | Endpoints HTTP, dependencias de FastAPI y composición en el borde HTTP |
+| `api/` | Endpoints HTTP y dependencias de FastAPI |
 | `schemas/` | Contratos externos de entrada y salida |
 | `domain/` | Entidades, estados y reglas del dominio |
 | `application/` | Casos de uso y orquestación |
-| `ports/` | Interfaces hacia persistencia e integraciones |
+| `ports/` | Contratos hacia persistencia e integraciones |
 | `infrastructure/` | Implementaciones concretas |
 | `core/` | Configuración, logging, errores y utilidades |
 | `rag/` | Espacio reservado para el equipo RAG |
 | `agents/` | Espacio reservado para RAG/Agentes |
 
-El endpoint HTTP no conoce directamente la implementación SQLite. `DocumentService` depende de `DocumentRepository`, mientras que `main.py` compone la implementación concreta utilizada por la aplicación.
+El endpoint HTTP no conoce directamente el motor de base de datos. `DocumentService` depende del contrato `DocumentRepository`.
 
 ```text
 documents.py
@@ -95,38 +99,17 @@ DocumentService
 DocumentRepository
      ↑
 SQLiteDocumentRepository
+     ↓
+SQLite
 ```
 
----
-
-## Cambios respecto a la arquitectura anterior
-
-La arquitectura inicial concentraba la carga en:
+La selección concreta del repositorio se centraliza en:
 
 ```text
-API
- ↓
-services/storage.py
- ↓
-filesystem
+infrastructure/persistence/repository_factory.py
 ```
 
-La refactorización introduce:
-
-| Antes | Ahora |
-|---|---|
-| `services/` concentraba almacenamiento | Responsabilidades separadas entre `application/`, `ports/` e `infrastructure/` |
-| Endpoints acoplados al almacenamiento | Los casos de uso se delegan progresivamente a `application/` |
-| Sin capa de dominio | `domain/` contiene entidades y estados |
-| Sin contratos internos | `ports/` define interfaces para BD, almacenamiento, RAG y Agentes |
-| Sin repositorio de documentos | `DocumentRepository` + `SQLiteDocumentRepository` |
-| Identidad ligada al flujo de carga | SHA-256 identifica el contenido y permite detectar duplicados |
-| Sin composición explícita de dependencias | `main.py` inicializa SQLite y `DocumentService` |
-| Dependencias construidas dentro del flujo | `api/dependencies.py` expone servicios ya configurados |
-| Tests concentrados en raíz | Organización en `unit/` e `integration/` |
-| Solo `/files/upload` | `POST /api/v1/documents` valida, identifica y registra documentos |
-
-`services/`, `files.py` y `schemas/file.py` permanecen únicamente como compatibilidad temporal y serán retirados cuando el flujo de `/documents` sustituya completamente al endpoint legacy.
+Esto permite incorporar posteriormente otra implementación, por ejemplo PostgreSQL/Supabase, sin modificar los endpoints ni los casos de uso.
 
 ---
 
@@ -169,6 +152,7 @@ backend/
 │   │   ├── persistence/
 │   │   │   ├── database.py
 │   │   │   ├── models.py
+│   │   │   ├── repository_factory.py
 │   │   │   └── sqlite_document_repository.py
 │   │   ├── storage/
 │   │   │   ├── local_storage.py
@@ -219,6 +203,34 @@ Formatos admitidos:
 .txt
 ```
 
+### Contrato Frontend → BackendAPI
+
+La solicitud debe enviarse como:
+
+```text
+Content-Type: multipart/form-data
+Campo: file
+```
+
+No se debe enviar el archivo en Base64 ni dentro de JSON.
+
+Ejemplo:
+
+```javascript
+const formData = new FormData();
+formData.append("file", file);
+
+const response = await fetch(
+  "http://localhost:8000/api/v1/documents",
+  {
+    method: "POST",
+    body: formData
+  }
+);
+```
+
+No se debe configurar manualmente el header `Content-Type` al utilizar `FormData`; el navegador agrega automáticamente el `boundary`.
+
 ### Validaciones actuales
 
 El flujo valida:
@@ -227,7 +239,7 @@ El flujo valida:
 - MIME type declarado compatible con el formato;
 - tamaño máximo configurado;
 - archivo no vacío;
-- nombre de archivo apto para almacenamiento temporal.
+- nombre apto para almacenamiento temporal.
 
 Los archivos con extensión o MIME no soportado son rechazados con `415 Unsupported Media Type`.
 
@@ -297,7 +309,138 @@ La ruta física del archivo temporal no se expone en el contrato HTTP. Cuando un
 
 ---
 
-## Gestión de documentos
+## Persistencia de metadata y estado
+
+La metadata interna de un documento se guarda en una base de datos separada del archivo original.
+
+Actualmente se persisten:
+
+```text
+document_id
+original_filename
+sha256
+content_type
+size_bytes
+status
+oci_object_name
+created_at
+updated_at
+```
+
+El archivo original no se almacena en SQLite. Su persistencia definitiva se realizará mediante OCI Object Storage.
+
+### Contrato de repositorio
+
+La aplicación depende de:
+
+```text
+DocumentRepository
+```
+
+que define las operaciones necesarias:
+
+```text
+create(document)
+find_by_id(document_id)
+find_by_sha256(sha256)
+update(document)
+```
+
+La implementación actual es:
+
+```text
+SQLiteDocumentRepository
+```
+
+El desacoplamiento permite implementar posteriormente:
+
+```text
+PostgreSQLDocumentRepository
+```
+
+o una integración basada en Supabase, sin cambiar los endpoints ni `DocumentService`.
+
+### Conversión dominio ↔ persistencia
+
+La capa de aplicación trabaja con:
+
+```text
+domain.Document
+```
+
+La infraestructura convierte esa entidad a:
+
+```text
+DocumentRecord
+```
+
+mediante:
+
+```text
+DocumentRecord.from_domain(document)
+```
+
+Al consultar desde SQLite ocurre el proceso inverso:
+
+```text
+SQLite Row
+   ↓
+DocumentRecord.from_row(...)
+   ↓
+DocumentRecord.to_domain()
+   ↓
+domain.Document
+```
+
+De esta forma, `DocumentService` nunca depende de filas SQLite ni de modelos específicos del motor de base de datos.
+
+### Configuración actual
+
+```env
+DATABASE_URL=sqlite:///storage/nuevamente.db
+```
+
+La selección del repositorio se realiza a partir de `DATABASE_URL`.
+
+Actualmente solo está implementado SQLite. Si se configura un motor no soportado, BackendAPI genera un error explícito.
+
+---
+
+## Consulta de documentos
+
+El endpoint:
+
+```text
+GET /api/v1/documents/{document_id}
+```
+
+consulta la metadata y el estado actual de un documento previamente registrado.
+
+Ejemplo:
+
+```json
+{
+  "document_id": "doc_8edfc38a084147fd9ca2991b3cc0829e",
+  "filename": "prueba_persistencia.txt",
+  "status": "validated",
+  "content_type": "text/plain",
+  "size_bytes": 49,
+  "created_at": "2026-09-22T20:04:51.813647Z",
+  "updated_at": "2026-09-22T20:04:51.813655Z"
+}
+```
+
+Si el documento no existe:
+
+```text
+404 Not Found
+```
+
+con una respuesta controlada.
+
+---
+
+## Gestión de estados
 
 La identidad de un documento se determina mediante **SHA-256 de su contenido**, no por su nombre.
 
@@ -329,33 +472,19 @@ BackendAPI administra principalmente:
 RECEIVED → VALIDATED → STORING → STORED
 ```
 
-La tarjeta actual de validación e identificación deja el documento en:
+Actualmente, después de validar e identificar el documento, el estado queda en:
 
 ```text
 VALIDATED
 ```
 
-### Persistencia
+Las actualizaciones de estado son responsabilidad de los casos de uso internos y utilizan:
 
 ```text
-Application
-     ↓
-DocumentRepository
-     ↑
-SQLiteDocumentRepository
-     ↓
-SQLite
+DocumentRepository.update(document)
 ```
 
-La base local se configura en:
-
-```text
-storage/nuevamente.db
-```
-
-SQLite permite actualmente conservar la relación entre SHA-256 y `document_id`, necesaria para reconocer contenido duplicado entre solicitudes.
-
-La ampliación del manejo de metadata y estados forma parte del siguiente paso del backend.
+No se expone un endpoint genérico para permitir que el frontend modifique libremente el estado de un documento.
 
 ---
 
@@ -410,7 +539,8 @@ BackendAPI no implementa directamente extracción de texto, chunking, embeddings
 |---|---|---|
 | `GET` | `/` | Implementado |
 | `GET` | `/api/v1/health` | Implementado |
-| `POST` | `/api/v1/documents` | Implementado: carga, valida, identifica y detecta duplicados |
+| `POST` | `/api/v1/documents` | Implementado: carga, valida, identifica y persiste metadata |
+| `GET` | `/api/v1/documents/{document_id}` | Implementado: consulta metadata y estado |
 | `POST` | `/api/v1/files/upload` | Implementado — legacy |
 
 ### Respuestas de `POST /api/v1/documents`
@@ -424,12 +554,18 @@ BackendAPI no implementa directamente extracción de texto, chunking, embeddings
 | `415` | Formato o MIME type no soportado |
 | `422` | Error de validación de la petición |
 
+### Respuestas de `GET /api/v1/documents/{document_id}`
+
+| Código | Significado |
+|---|---|
+| `200` | Documento encontrado |
+| `404` | Documento no encontrado |
+
 Los routers de adaptaciones y procesos existen, pero todavía no exponen operaciones funcionales.
 
 Próximos contratos:
 
 ```text
-GET  /api/v1/documents/{document_id}
 POST /api/v1/adaptations
 GET  /api/v1/processes/{process_id}
 ```
@@ -516,6 +652,12 @@ python -m pytest
 python -m ruff check app tests
 ```
 
+Estado actual validado:
+
+```text
+40 passed
+```
+
 La suite incluye pruebas de:
 
 - dominio;
@@ -523,6 +665,12 @@ La suite incluye pruebas de:
 - hashing;
 - servicios de aplicación;
 - repositorio SQLite;
+- creación de documentos;
+- consulta por `document_id`;
+- consulta por SHA-256;
+- actualización de metadata y estado;
+- selección del repositorio mediante factory;
+- motor de base de datos no soportado;
 - almacenamiento local;
 - salud del servicio;
 - carga de PDF, Markdown y TXT;
@@ -532,6 +680,7 @@ La suite incluye pruebas de:
 - límite de tamaño;
 - identificación mediante `document_id`;
 - detección de duplicados;
+- respuesta `404` para documentos inexistentes;
 - compatibilidad del endpoint legacy.
 
 Las pruebas de integración utilizan una base SQLite temporal para evitar modificar la base local de desarrollo.

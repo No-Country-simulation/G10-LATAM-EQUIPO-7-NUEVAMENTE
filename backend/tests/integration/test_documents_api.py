@@ -195,3 +195,55 @@ def test_upload_requires_document(
 
     assert response.status_code == 422
     assert response.json()["errors"][0]["field"] == "file"
+
+def test_get_registered_document(
+    client: TestClient,
+    api_prefix: str,
+    temporary_upload_directory: Path,
+) -> None:
+    create_response = client.post(
+        f"{api_prefix}/documents",
+        files={
+            "file": (
+                "manual.txt",
+                b"contenido persistido",
+                "text/plain",
+            )
+        },
+    )
+
+    assert create_response.status_code == 201
+
+    document_id = create_response.json()["document_id"]
+
+    response = client.get(
+        f"{api_prefix}/documents/{document_id}"
+    )
+
+    assert response.status_code == 200
+
+    body = response.json()
+
+    assert body["document_id"] == document_id
+    assert body["filename"] == "manual.txt"
+    assert body["status"] == "validated"
+    assert body["content_type"] == "text/plain"
+    assert body["size_bytes"] == len(
+        b"contenido persistido"
+    )
+    assert "created_at" in body
+    assert "updated_at" in body
+    
+def test_get_unknown_document_returns_404(
+    client: TestClient,
+    api_prefix: str,
+) -> None:
+    response = client.get(
+        f"{api_prefix}/documents/doc_inexistente"
+    )
+
+    assert response.status_code == 404
+    assert (
+        response.json()["detail"]
+        == "No existe el documento doc_inexistente."
+    )
