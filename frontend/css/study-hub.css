@@ -1,0 +1,563 @@
+/* ==========================================================================
+   CENTRO DE ESTUDIO MULTI-FORMATO — NUEVAMENTE
+   Flashcards 3D, Quiz Interactivo, Video Didáctico y Síntesis RAG
+   ========================================================================== */
+
+.study-view-container {
+  width: 100%;
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: 1.5rem 2rem 4rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1.75rem;
+  flex: 1;
+}
+
+/* Encabezado del Hub de Estudio */
+.study-hub-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: var(--surface-glass);
+  border: 1px solid var(--border-ui);
+  border-radius: 16px;
+  padding: 1.25rem 1.75rem;
+  backdrop-filter: blur(12px);
+  box-shadow: var(--shadow-sm);
+}
+
+.study-topic-meta {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+}
+
+.topic-badge-pill {
+  display: inline-block;
+  font-size: 0.74rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--accent-gold);
+}
+
+.study-topic-title {
+  font-size: 1.45rem;
+  font-weight: 900;
+  background: linear-gradient(135deg, #ffffff 0%, #fffbeb 25%, #fde047 65%, #f59e0b 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  filter: drop-shadow(0 0 12px rgba(254, 240, 138, 0.35));
+}
+
+.study-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.btn-inspect-json {
+  background: var(--surface-elevated);
+  border: 1px solid var(--border-ui);
+  color: var(--accent-cyan);
+  font-family: monospace;
+  font-size: 0.82rem;
+  font-weight: 700;
+  padding: 0.45rem 0.9rem;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.btn-inspect-json:hover {
+  background: rgba(6, 182, 212, 0.15);
+  border-color: var(--accent-cyan);
+}
+
+/* Barra de Formatos Pedagógicos (4 Pestañas) */
+.format-tabs-bar {
+  display: flex;
+  gap: 0.5rem;
+  background: var(--surface-subtle);
+  border: 1px solid var(--border-ui);
+  border-radius: 12px;
+  padding: 0.4rem;
+}
+
+.format-tab-btn {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  background: transparent;
+  border: none;
+  color: var(--text-secondary);
+  font-size: 0.88rem;
+  font-weight: 700;
+  padding: 0.7rem 1rem;
+  border-radius: 9px;
+  cursor: pointer;
+  transition: all var(--transition-normal);
+}
+
+.format-tab-btn:hover {
+  color: var(--text-main);
+  background: var(--surface-subtle);
+}
+
+.format-tab-btn.active {
+  background: var(--surface-elevated);
+  color: var(--accent-gold);
+  box-shadow: var(--shadow-sm);
+  border: 1px solid var(--border-ui);
+}
+
+/* Vistas de los Formatos */
+.format-view {
+  display: none;
+  animation: fadeInView 0.25s ease forwards;
+}
+
+.format-view.active {
+  display: block;
+}
+
+/* --------------------------------------------------------------------------
+   FORMATO 1: FLASHCARDS 3D
+   -------------------------------------------------------------------------- */
+.flashcard-wrapper {
+  perspective: 1200px;
+  width: 100%;
+  max-width: 680px;
+  height: 380px;
+  margin: 0 auto;
+}
+
+.flashcard {
+  width: 100%;
+  height: 100%;
+  position: relative;
+  transform-style: preserve-3d;
+  transition: transform 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+  cursor: pointer;
+  border-radius: 20px;
+}
+
+.flashcard.flipped {
+  transform: rotateY(180deg);
+}
+
+.card-face {
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
+  border-radius: 20px;
+  padding: 2.2rem 2.5rem;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  border: 1px solid var(--border-ui);
+  box-shadow: var(--shadow-card);
+}
+
+.card-face-front {
+  background: var(--card-front-bg);
+}
+
+.card-face-back {
+  background: var(--card-back-bg);
+  transform: rotateY(180deg);
+}
+
+.card-top-tag {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 0.78rem;
+  color: var(--text-muted);
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+.card-body {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 1.25rem;
+  flex: 1;
+}
+
+.card-question {
+  font-size: 1.35rem;
+  font-weight: 700;
+  line-height: 1.45;
+  color: var(--text-main);
+}
+
+.card-answer {
+  font-size: 1.05rem;
+  line-height: 1.6;
+  color: var(--text-secondary);
+}
+
+.card-hint-box {
+  background: var(--hint-bg);
+  border-left: 3px solid var(--hint-border);
+  padding: 0.75rem 1rem;
+  border-radius: 0 8px 8px 0;
+}
+
+.hint-label {
+  font-size: 0.72rem;
+  font-weight: 800;
+  color: var(--hint-border);
+  text-transform: uppercase;
+  display: block;
+  margin-bottom: 0.2rem;
+}
+
+.card-hint-box p {
+  font-size: 0.85rem;
+  color: var(--hint-text);
+  line-height: 1.4;
+}
+
+.card-footer-tip {
+  font-size: 0.78rem;
+  color: var(--text-muted);
+  text-align: center;
+}
+
+.card-dialog-controls {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 1.25rem;
+  margin-top: 1.5rem;
+}
+
+.control-btn {
+  background: var(--surface-ui);
+  border: 1px solid var(--border-ui);
+  color: var(--text-main);
+  padding: 0.6rem 1.4rem;
+  border-radius: 10px;
+  font-size: 0.88rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.control-btn:hover:not(:disabled) {
+  background: var(--surface-elevated);
+  border-color: var(--accent-gold);
+  color: var(--accent-gold);
+}
+
+.control-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.card-counter-indicator {
+  font-size: 0.86rem;
+  font-weight: 700;
+  color: var(--text-secondary);
+}
+
+/* --------------------------------------------------------------------------
+   FORMATO 2: SÍNTESIS / RESUMEN RAG
+   -------------------------------------------------------------------------- */
+.sintesis-container {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1.5rem;
+}
+
+@media (max-width: 800px) {
+  .sintesis-container {
+    grid-template-columns: 1fr;
+  }
+}
+
+.sintesis-card {
+  background: var(--surface-glass);
+  border: 1px solid var(--border-ui);
+  border-radius: 16px;
+  padding: 1.75rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.sintesis-card h4 {
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: var(--accent-gold);
+}
+
+.sintesis-card p {
+  font-size: 0.95rem;
+  line-height: 1.65;
+  color: var(--text-secondary);
+}
+
+.sintesis-details {
+  background: var(--surface-glass);
+  border: 1px solid var(--border-ui);
+  border-radius: 16px;
+  padding: 1.75rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+}
+
+.sintesis-details h4 {
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: var(--accent-cyan);
+}
+
+.sintesis-details ul {
+  padding-left: 1.25rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+}
+
+.sintesis-details li {
+  font-size: 0.9rem;
+  color: var(--text-secondary);
+  line-height: 1.5;
+}
+
+/* --------------------------------------------------------------------------
+   FORMATO 3: VIDEO / GUION DIDÁCTICO
+   -------------------------------------------------------------------------- */
+.video-container {
+  display: grid;
+  grid-template-columns: 1.1fr 1fr;
+  gap: 1.5rem;
+}
+
+@media (max-width: 800px) {
+  .video-container {
+    grid-template-columns: 1fr;
+  }
+}
+
+.video-mockup-player {
+  background: linear-gradient(135deg, #0f172a, #1e293b);
+  border: 1px solid var(--border-ui);
+  border-radius: 16px;
+  padding: 2.5rem 1.5rem;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  gap: 1rem;
+  min-height: 280px;
+}
+
+.video-play-icon {
+  width: 64px;
+  height: 64px;
+  border-radius: 50%;
+  background: var(--gradient-primary-btn);
+  color: #0f172a;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.5rem;
+  box-shadow: 0 8px 25px rgba(245, 158, 11, 0.4);
+  cursor: pointer;
+  transition: all var(--transition-normal);
+}
+
+.video-play-icon:hover {
+  transform: scale(1.1);
+}
+
+.video-script-box {
+  background: var(--surface-glass);
+  border: 1px solid var(--border-ui);
+  border-radius: 16px;
+  padding: 1.75rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.video-script-box h4 {
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: var(--accent-gold);
+}
+
+.video-script-box ul {
+  padding-left: 1.25rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.65rem;
+}
+
+.video-script-box li {
+  font-size: 0.9rem;
+  color: var(--text-secondary);
+  line-height: 1.5;
+}
+
+/* --------------------------------------------------------------------------
+   FORMATO 4: QUIZ INTERACTIVO
+   -------------------------------------------------------------------------- */
+.quiz-container {
+  background: var(--surface-glass);
+  border: 1px solid var(--border-ui);
+  border-radius: 16px;
+  padding: 2rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.quiz-question-title {
+  font-size: 1.2rem;
+  font-weight: 700;
+  color: var(--text-main);
+  line-height: 1.45;
+}
+
+.quiz-options-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.quiz-option-btn {
+  background: var(--surface-ui);
+  border: 1px solid var(--border-ui);
+  border-radius: 12px;
+  padding: 1rem 1.25rem;
+  color: var(--text-main);
+  font-size: 0.92rem;
+  text-align: left;
+  cursor: pointer;
+  transition: all var(--transition-fast);
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.quiz-option-btn:hover:not(:disabled) {
+  border-color: var(--accent-gold);
+  background: var(--surface-elevated);
+}
+
+.quiz-option-btn.correct {
+  border-color: var(--accent-green);
+  background: rgba(16, 185, 129, 0.15);
+  color: #10b981;
+}
+
+.quiz-option-btn.incorrect {
+  border-color: var(--accent-red);
+  background: rgba(239, 68, 68, 0.15);
+  color: #ef4444;
+}
+
+.quiz-feedback-box {
+  background: var(--surface-elevated);
+  border: 1px solid var(--border-ui);
+  border-radius: 12px;
+  padding: 1.25rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+  animation: fadeInView 0.25s ease;
+}
+
+.feedback-badge {
+  display: inline-flex;
+  font-size: 0.76rem;
+  font-weight: 800;
+  padding: 0.2rem 0.6rem;
+  border-radius: 6px;
+  width: fit-content;
+}
+
+.feedback-badge.correct {
+  background: rgba(16, 185, 129, 0.2);
+  color: var(--accent-green);
+}
+
+.feedback-badge.incorrect {
+  background: rgba(239, 68, 68, 0.2);
+  color: var(--accent-red);
+}
+
+/* ==========================================================================
+   ADAPTACIÓN A MODO CLARO (LIGHT MODE) — CENTRO DE ESTUDIO
+   ========================================================================== */
+
+[data-theme="light"] .study-hub-header {
+  background: rgba(255, 255, 255, 0.92);
+  border-color: rgba(15, 23, 42, 0.09);
+  box-shadow: 0 4px 20px rgba(15, 23, 42, 0.05);
+}
+
+[data-theme="light"] .format-tabs-bar {
+  background: rgba(15, 23, 42, 0.05);
+  border-color: rgba(15, 23, 42, 0.08);
+}
+
+[data-theme="light"] .format-tab-btn {
+  color: #475569;
+}
+
+[data-theme="light"] .format-tab-btn:hover {
+  color: #0f172a;
+  background: rgba(0, 0, 0, 0.04);
+}
+
+[data-theme="light"] .format-tab-btn.active {
+  background: #ffffff;
+  color: #b45309;
+  border-color: rgba(180, 83, 9, 0.3);
+  box-shadow: 0 2px 8px rgba(15, 23, 42, 0.06);
+}
+
+[data-theme="light"] .card-face {
+  box-shadow: 0 20px 50px rgba(15, 23, 42, 0.12), 0 0 25px rgba(180, 83, 9, 0.08);
+}
+
+[data-theme="light"] .summary-card,
+[data-theme="light"] .video-guide-card,
+[data-theme="light"] .quiz-card {
+  background: rgba(255, 255, 255, 0.92);
+  border-color: rgba(15, 23, 42, 0.09);
+  box-shadow: 0 4px 20px rgba(15, 23, 42, 0.05);
+}
+
+[data-theme="light"] .quiz-option-btn {
+  background: #ffffff;
+  border-color: rgba(15, 23, 42, 0.12);
+}
+
+[data-theme="light"] .quiz-option-btn:hover {
+  background: #fffbeb;
+  border-color: #b45309;
+}
+
+[data-theme="light"] .study-topic-title {
+  background: linear-gradient(135deg, #1e293b 0%, #78350f 35%, #b45309 70%, #d97706 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  filter: none;
+}
+
+
