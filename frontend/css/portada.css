@@ -70,17 +70,12 @@
   50% { transform: translateY(-7px); }
 }
 
-/* Emblema superior flotante */
+/* Emblema superior flotante (Badge de Hackathon) */
 .portada-crest {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 0.6rem;
-}
-
-.crest-icon {
-  font-size: 3.5rem;
-  filter: drop-shadow(0 4px 18px rgba(0, 0, 0, 0.95)) drop-shadow(0 0 25px rgba(245, 158, 11, 0.6));
+  margin-bottom: 0.25rem;
 }
 
 .crest-badge {
@@ -97,23 +92,38 @@
   box-shadow: 0 4px 16px rgba(0, 0, 0, 0.65);
 }
 
-/* Título de Bienvenida Flotante y Radiante (Blanco a Dorado Brillante) */
+/* Título de Bienvenida con Logo Protagonista */
 .portada-title {
-  font-size: 3.8rem;
-  font-weight: 900;
-  letter-spacing: -0.02em;
-  color: #ffffff;
-  line-height: 1.15;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.6rem;
   margin: 0;
-  text-shadow: 0 2px 12px rgba(0, 0, 0, 0.55), 0 0 30px rgba(254, 240, 138, 0.25);
+  text-align: center;
 }
 
-.portada-gold-text {
-  background: linear-gradient(135deg, #ffffff 0%, #fffbeb 25%, #fde047 65%, #f59e0b 100%);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  display: inline-block;
-  filter: drop-shadow(0 0 22px rgba(254, 240, 138, 0.7));
+.portada-welcome-prefix {
+  font-size: 2.2rem;
+  font-weight: 800;
+  letter-spacing: -0.01em;
+  color: #ffffff;
+  line-height: 1.15;
+  text-shadow: 0 3px 14px rgba(0, 0, 0, 0.85), 0 0 25px rgba(254, 240, 138, 0.3);
+}
+
+.portada-title-logo {
+  max-width: 520px;
+  width: 90%;
+  height: auto;
+  object-fit: contain;
+  filter: drop-shadow(0 10px 32px rgba(0, 0, 0, 0.85)) drop-shadow(0 0 35px rgba(6, 182, 212, 0.4));
+  transition: transform 0.35s ease, filter 0.35s ease;
+}
+
+.portada-title-logo:hover {
+  transform: scale(1.025);
+  filter: drop-shadow(0 14px 44px rgba(0, 0, 0, 0.95)) drop-shadow(0 0 45px rgba(6, 182, 212, 0.6));
 }
 
 /* Descripción Flotante */
@@ -232,8 +242,13 @@
 
 /* Responsividad para pantallas móviles y tablets */
 @media (max-width: 768px) {
-  .portada-title {
-    font-size: 2.4rem;
+  .portada-welcome-prefix {
+    font-size: 1.75rem;
+  }
+
+  .portada-title-logo {
+    max-width: 320px;
+    width: 92%;
   }
 
   .portada-description {

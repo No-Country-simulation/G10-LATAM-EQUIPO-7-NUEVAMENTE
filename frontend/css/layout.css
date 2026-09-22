@@ -64,14 +64,21 @@ body {
   user-select: none;
 }
 
-.brand h1 {
-  font-size: 1.4rem;
-  font-weight: 800;
-  letter-spacing: -0.02em;
-  background: linear-gradient(135deg, #ffffff 0%, #fffbeb 25%, #fde047 65%, #f59e0b 100%);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  filter: drop-shadow(0 0 12px rgba(245, 158, 11, 0.35));
+.header-brand-logo {
+  height: 38px;
+  width: auto;
+  max-width: 175px;
+  object-fit: contain;
+  transition: transform 0.25s ease, filter 0.25s ease;
+  filter: drop-shadow(0 2px 8px rgba(0, 0, 0, 0.4));
+}
+
+.brand:hover .header-brand-logo {
+  transform: scale(1.03);
+}
+
+[data-theme="light"] .header-brand-logo {
+  filter: drop-shadow(0 1px 4px rgba(0, 0, 0, 0.08));
 }
 
 .brand .badge {
