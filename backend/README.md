@@ -2,7 +2,7 @@
 
 Backend de **NuevaMente**, desarrollado con **FastAPI** y **Pydantic v2**.
 
-BackendAPI gestiona la recepción técnica de documentos, su identificación, persistencia de metadata y los contratos de integración con almacenamiento, RAG y Agentes.
+BackendAPI gestiona la recepción técnica de documentos, su validación, identificación, persistencia de metadata y los contratos de integración con almacenamiento, RAG y Agentes.
 
 El frontend se encuentra en [`../frontend`](../frontend).
 
@@ -18,18 +18,23 @@ Actualmente están implementados:
 - Endpoint de salud.
 - `POST /api/v1/documents` para cargar documentos mediante `multipart/form-data`.
 - Admisión de archivos PDF, Markdown (`.md`) y TXT.
-- Rechazo de extensiones no soportadas.
-- Almacenamiento temporal local por bloques con límite de tamaño.
-- Identificación de documentos mediante SHA-256 en la capa de aplicación.
+- Validación de extensión y MIME type declarado.
+- Rechazo de archivos vacíos.
+- Control de tamaño máximo de carga.
+- Saneamiento del nombre utilizado para almacenamiento temporal.
+- Identificación de documentos mediante SHA-256.
+- Detección de contenido duplicado mediante SHA-256.
+- Generación de `document_id` para documentos nuevos.
+- Recuperación del mismo `document_id` cuando el contenido ya había sido registrado.
+- Persistencia SQLite utilizada por el flujo de identificación.
 - Dominio y estados de documentos y procesos.
-- Persistencia de documentos mediante SQLite.
 - Puertos para persistencia, Object Storage, RAG y Agentes.
 - Pruebas unitarias y de integración.
 - Endpoint legacy `/api/v1/files/upload`, mantenido temporalmente por compatibilidad.
 
 Pendiente de implementación funcional:
 
-- Integrar `POST /api/v1/documents` con identificación y persistencia del documento.
+- Completar el flujo de persistencia de metadata y estados del documento.
 - OCI Object Storage.
 - Recuperación de documentos desde OCI.
 - Integración real con RAG.
@@ -70,7 +75,7 @@ Infrastructure implementa los Ports
 
 | Capa | Responsabilidad |
 |---|---|
-| `api/` | Endpoints HTTP y FastAPI |
+| `api/` | Endpoints HTTP, dependencias de FastAPI y composición en el borde HTTP |
 | `schemas/` | Contratos externos de entrada y salida |
 | `domain/` | Entidades, estados y reglas del dominio |
 | `application/` | Casos de uso y orquestación |
@@ -79,6 +84,18 @@ Infrastructure implementa los Ports
 | `core/` | Configuración, logging, errores y utilidades |
 | `rag/` | Espacio reservado para el equipo RAG |
 | `agents/` | Espacio reservado para RAG/Agentes |
+
+El endpoint HTTP no conoce directamente la implementación SQLite. `DocumentService` depende de `DocumentRepository`, mientras que `main.py` compone la implementación concreta utilizada por la aplicación.
+
+```text
+documents.py
+     ↓
+DocumentService
+     ↓
+DocumentRepository
+     ↑
+SQLiteDocumentRepository
+```
 
 ---
 
@@ -103,9 +120,11 @@ La refactorización introduce:
 | Sin capa de dominio | `domain/` contiene entidades y estados |
 | Sin contratos internos | `ports/` define interfaces para BD, almacenamiento, RAG y Agentes |
 | Sin repositorio de documentos | `DocumentRepository` + `SQLiteDocumentRepository` |
-| Identidad ligada al flujo de carga | SHA-256 para identificar contenido y detectar duplicados |
+| Identidad ligada al flujo de carga | SHA-256 identifica el contenido y permite detectar duplicados |
+| Sin composición explícita de dependencias | `main.py` inicializa SQLite y `DocumentService` |
+| Dependencias construidas dentro del flujo | `api/dependencies.py` expone servicios ya configurados |
 | Tests concentrados en raíz | Organización en `unit/` e `integration/` |
-| Solo `/files/upload` | Nuevo `POST /api/v1/documents` para documentos |
+| Solo `/files/upload` | `POST /api/v1/documents` valida, identifica y registra documentos |
 
 `services/`, `files.py` y `schemas/file.py` permanecen únicamente como compatibilidad temporal y serán retirados cuando el flujo de `/documents` sustituya completamente al endpoint legacy.
 
@@ -118,6 +137,7 @@ backend/
 ├── app/
 │   ├── main.py
 │   ├── api/
+│   │   ├── dependencies.py
 │   │   └── v1/
 │   │       ├── router.py
 │   │       └── endpoints/
@@ -181,7 +201,7 @@ backend/
 
 ---
 
-## Carga de documentos
+## Carga, validación e identificación de documentos
 
 El endpoint:
 
@@ -199,36 +219,81 @@ Formatos admitidos:
 .txt
 ```
 
-Los archivos con extensiones no soportadas son rechazados con `415 Unsupported Media Type`.
+### Validaciones actuales
 
-Flujo actual:
+El flujo valida:
+
+- extensión permitida;
+- MIME type declarado compatible con el formato;
+- tamaño máximo configurado;
+- archivo no vacío;
+- nombre de archivo apto para almacenamiento temporal.
+
+Los archivos con extensión o MIME no soportado son rechazados con `415 Unsupported Media Type`.
+
+Los archivos vacíos son rechazados con `400 Bad Request`.
+
+Los archivos que superan el tamaño máximo configurado son rechazados con `413 Content Too Large`.
+
+### Flujo actual
 
 ```text
 UploadFile
    ↓
-validación de extensión
+validación de extensión y MIME
    ↓
 LocalFileStorage
+   ├─ saneamiento de nombre temporal
+   └─ control de tamaño
    ↓
-storage/uploads/
+validación de archivo no vacío
    ↓
-respuesta HTTP 201
+SHA-256 del contenido
+   ↓
+DocumentRepository.find_by_sha256()
+   │
+   ├─ existe → recuperar document_id → duplicate = true → HTTP 200
+   │
+   └─ no existe → generar document_id → registrar → VALIDATED → HTTP 201
 ```
 
-La respuesta expone:
+### Documento nuevo
 
 ```json
 {
-  "filename": "uuid_nombre_saneado.txt",
-  "original_filename": "nombre_original.txt",
-  "content_type": "text/plain",
-  "size_bytes": 123
+  "document_id": "doc_69f7bfab0d9d410690662cc6a376d509",
+  "filename": "manual.txt",
+  "status": "validated",
+  "duplicate": false
 }
 ```
 
-La ruta física del archivo temporal no se expone en el contrato HTTP.
+Código HTTP:
 
-El siguiente paso del flujo será conectar este endpoint con la identificación SHA-256 y la persistencia de metadata.
+```text
+201 Created
+```
+
+### Documento duplicado
+
+```json
+{
+  "document_id": "doc_69f7bfab0d9d410690662cc6a376d509",
+  "filename": "manual.txt",
+  "status": "validated",
+  "duplicate": true
+}
+```
+
+Código HTTP:
+
+```text
+200 OK
+```
+
+El documento duplicado conserva el mismo `document_id`.
+
+La ruta física del archivo temporal no se expone en el contrato HTTP. Cuando una carga corresponde a contenido ya registrado, la nueva copia temporal se elimina.
 
 ---
 
@@ -264,6 +329,12 @@ BackendAPI administra principalmente:
 RECEIVED → VALIDATED → STORING → STORED
 ```
 
+La tarjeta actual de validación e identificación deja el documento en:
+
+```text
+VALIDATED
+```
+
 ### Persistencia
 
 ```text
@@ -282,13 +353,17 @@ La base local se configura en:
 storage/nuevamente.db
 ```
 
+SQLite permite actualmente conservar la relación entre SHA-256 y `document_id`, necesaria para reconocer contenido duplicado entre solicitudes.
+
+La ampliación del manejo de metadata y estados forma parte del siguiente paso del backend.
+
 ---
 
 ## Almacenamiento
 
 ### Temporal local
 
-`LocalFileStorage` escribe los archivos por bloques, sanea el nombre y controla el tamaño máximo configurado.
+`LocalFileStorage` escribe los archivos por bloques, sanea el nombre utilizado para almacenamiento temporal y controla el tamaño máximo configurado.
 
 ### OCI Object Storage
 
@@ -335,8 +410,19 @@ BackendAPI no implementa directamente extracción de texto, chunking, embeddings
 |---|---|---|
 | `GET` | `/` | Implementado |
 | `GET` | `/api/v1/health` | Implementado |
-| `POST` | `/api/v1/documents` | Implementado |
+| `POST` | `/api/v1/documents` | Implementado: carga, valida, identifica y detecta duplicados |
 | `POST` | `/api/v1/files/upload` | Implementado — legacy |
+
+### Respuestas de `POST /api/v1/documents`
+
+| Código | Significado |
+|---|---|
+| `200` | Documento previamente registrado |
+| `201` | Documento nuevo registrado |
+| `400` | Documento vacío o inválido |
+| `413` | Documento demasiado grande |
+| `415` | Formato o MIME type no soportado |
+| `422` | Error de validación de la petición |
 
 Los routers de adaptaciones y procesos existen, pero todavía no exponen operaciones funcionales.
 
@@ -430,7 +516,25 @@ python -m pytest
 python -m ruff check app tests
 ```
 
-La suite incluye pruebas de dominio, schemas, hashing, servicios de aplicación, SQLite, almacenamiento local, salud, carga de documentos y compatibilidad legacy.
+La suite incluye pruebas de:
+
+- dominio;
+- schemas;
+- hashing;
+- servicios de aplicación;
+- repositorio SQLite;
+- almacenamiento local;
+- salud del servicio;
+- carga de PDF, Markdown y TXT;
+- extensión no soportada;
+- MIME type incompatible;
+- archivo vacío;
+- límite de tamaño;
+- identificación mediante `document_id`;
+- detección de duplicados;
+- compatibilidad del endpoint legacy.
+
+Las pruebas de integración utilizan una base SQLite temporal para evitar modificar la base local de desarrollo.
 
 ---
 

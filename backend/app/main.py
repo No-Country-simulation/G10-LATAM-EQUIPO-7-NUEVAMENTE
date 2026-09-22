@@ -8,16 +8,35 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.api.v1.router import api_router
+from app.application.document_service import DocumentService
 from app.core.config import settings
 from app.core.exceptions import register_exception_handlers
 from app.core.logging import setup_logging
+from app.infrastructure.persistence.database import SQLiteDatabase
+from app.infrastructure.persistence.sqlite_document_repository import (
+    SQLiteDocumentRepository,
+)
 from app.schemas.common import ErrorResponse
 
 
 @asynccontextmanager
-async def lifespan(_: FastAPI) -> AsyncIterator[None]:
-    """Arranque y apagado: aquí van conexiones a BD, colas, caches, etc."""
+async def lifespan(app: FastAPI) -> AsyncIterator[None]:
+    """Inicializa y libera recursos utilizados por BackendAPI."""
     setup_logging()
+
+    database = SQLiteDatabase(
+        settings.DATABASE_URL
+    )
+    database.initialize()
+
+    document_repository = SQLiteDocumentRepository(
+        database
+    )
+
+    app.state.document_service = DocumentService(
+        document_repository
+    )
+
     yield
 
 

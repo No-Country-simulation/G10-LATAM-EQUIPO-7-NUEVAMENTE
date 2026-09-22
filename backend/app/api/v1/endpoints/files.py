@@ -31,7 +31,7 @@ async def upload_file(
         return await save_upload(file)
     except FileTooLargeError as exc:
         raise HTTPException(
-            status_code=status.HTTP_413_REQUEST_ENTITY_TOO_LARGE,
+            status_code=status.HTTP_413_CONTENT_TOO_LARGE,
             detail=(
                 "El archivo supera el máximo de "
                 f"{settings.MAX_UPLOAD_SIZE_MB} MB."

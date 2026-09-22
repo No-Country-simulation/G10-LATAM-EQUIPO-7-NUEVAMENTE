@@ -31,17 +31,14 @@ class DocumentRegistrationResult:
     document: Document
     created: bool
 
-
 class DocumentService:
     """Orquesta los casos de uso asociados a documentos."""
 
     def __init__(
         self,
         repository: DocumentRepository,
-        object_storage: ObjectStoragePort,
     ) -> None:
         self._repository = repository
-        self._object_storage = object_storage
 
     def register_document(
         self,
@@ -96,6 +93,7 @@ class DocumentService:
         *,
         document_id: str,
         local_path: Path,
+        object_storage: ObjectStoragePort,
     ) -> Document:
         """Almacena permanentemente un documento previamente registrado."""
         document = self.get_document(document_id)
@@ -106,7 +104,7 @@ class DocumentService:
         self._repository.update(document)
 
         try:
-            self._object_storage.upload_file(
+            object_storage.upload_file(
                 local_path=local_path,
                 object_name=object_name,
                 content_type=document.content_type,

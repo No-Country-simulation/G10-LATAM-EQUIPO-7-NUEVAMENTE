@@ -10,8 +10,20 @@ from app.core.config import settings
 from app.main import create_app
 
 
-@pytest.fixture(scope="session")
-def client() -> Iterator[TestClient]:
+@pytest.fixture
+def client(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> Iterator[TestClient]:
+    """Crea un cliente con una base SQLite aislada por prueba."""
+    database_path = tmp_path / "nuevamente_test.db"
+
+    monkeypatch.setattr(
+        settings,
+        "DATABASE_URL",
+        f"sqlite:///{database_path.as_posix()}",
+    )
+
     with TestClient(create_app()) as test_client:
         yield test_client
 
@@ -26,7 +38,7 @@ def temporary_upload_directory(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
 ) -> Path:
-    """Redirige las cargas a un directorio temporal durante las pruebas."""
+    """Redirige las cargas a un directorio temporal."""
     upload_directory = tmp_path / "uploads"
 
     monkeypatch.setattr(
