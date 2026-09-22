@@ -2,27 +2,7 @@
 
 from pathlib import Path
 
-import pytest
 from fastapi.testclient import TestClient
-
-from app.core.config import settings
-
-
-@pytest.fixture
-def temporary_upload_directory(
-    tmp_path: Path,
-    monkeypatch: pytest.MonkeyPatch,
-) -> Path:
-    """Redirige el almacenamiento legacy a un directorio temporal."""
-    upload_directory = tmp_path / "uploads"
-
-    monkeypatch.setattr(
-        settings,
-        "UPLOAD_DIR",
-        str(upload_directory),
-    )
-
-    return upload_directory
 
 
 def test_upload_file(
