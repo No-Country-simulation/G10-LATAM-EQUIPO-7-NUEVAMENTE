@@ -2,41 +2,39 @@
 
 Backend de **NuevaMente**, desarrollado con **FastAPI** y **Pydantic v2**.
 
-BackendAPI concentra la recepción y gestión técnica de documentos, la persistencia de metadata y los contratos de integración con los módulos de RAG y Agentes.
+BackendAPI gestiona la recepción técnica de documentos, su identificación, persistencia de metadata y los contratos de integración con almacenamiento, RAG y Agentes.
 
-El frontend del proyecto se encuentra en [`../frontend`](../frontend).
+El frontend se encuentra en [`../frontend`](../frontend).
 
-> Todos los comandos de este documento se ejecutan desde `backend/`.
+> Los comandos de este documento se ejecutan desde `backend/`.
 
 ---
 
 ## Estado actual
 
-La arquitectura base del backend está organizada por responsabilidades.
-
 Actualmente están implementados:
 
 - API FastAPI y configuración central.
 - Endpoint de salud.
-- Endpoint legacy de carga local de archivos.
-- Almacenamiento temporal local.
-- Identificación de documentos mediante SHA-256.
+- `POST /api/v1/documents` para cargar documentos mediante `multipart/form-data`.
+- Admisión de archivos PDF, Markdown (`.md`) y TXT.
+- Rechazo de extensiones no soportadas.
+- Almacenamiento temporal local por bloques con límite de tamaño.
+- Identificación de documentos mediante SHA-256 en la capa de aplicación.
 - Dominio y estados de documentos y procesos.
 - Persistencia de documentos mediante SQLite.
-- Casos de uso para documentos, adaptaciones y procesos.
 - Puertos para persistencia, Object Storage, RAG y Agentes.
-- Schemas Pydantic.
 - Pruebas unitarias y de integración.
+- Endpoint legacy `/api/v1/files/upload`, mantenido temporalmente por compatibilidad.
 
-Se encuentran preparados, pero aún no implementados completamente:
+Pendiente de implementación funcional:
 
-- `POST /api/v1/documents`.
-- Endpoints de adaptaciones y procesos.
+- Integrar `POST /api/v1/documents` con identificación y persistencia del documento.
 - OCI Object Storage.
+- Recuperación de documentos desde OCI.
 - Integración real con RAG.
 - Integración real con Agentes.
-
-El endpoint `/api/v1/files/upload` se mantiene temporalmente por compatibilidad.
+- Endpoints funcionales de adaptaciones y procesos.
 
 ---
 
@@ -60,8 +58,6 @@ El proyecto soporta **Python 3.11 o superior**.
 
 ## Arquitectura
 
-BackendAPI utiliza separación entre API, aplicación, dominio, contratos e infraestructura.
-
 ```text
 API
  ↓
@@ -71,10 +67,6 @@ Ports
  ↑
 Infrastructure implementa los Ports
 ```
-
-Esto permite cambiar tecnologías de persistencia, almacenamiento o integraciones sin acoplar los casos de uso a implementaciones concretas.
-
-### Responsabilidad de cada capa
 
 | Capa | Responsabilidad |
 |---|---|
@@ -92,7 +84,7 @@ Esto permite cambiar tecnologías de persistencia, almacenamiento o integracione
 
 ## Cambios respecto a la arquitectura anterior
 
-La arquitectura inicial concentraba la mayor parte del flujo de carga en:
+La arquitectura inicial concentraba la carga en:
 
 ```text
 API
@@ -102,23 +94,20 @@ services/storage.py
 filesystem
 ```
 
-Además, los endpoints dependían directamente del servicio de almacenamiento y el backend no contaba con capas explícitas para dominio, casos de uso, contratos o infraestructura.
-
-La refactorización introduce los siguientes cambios:
+La refactorización introduce:
 
 | Antes | Ahora |
 |---|---|
-| `services/` concentraba lógica de almacenamiento | La lógica se separa entre `application/`, `ports/` e `infrastructure/` |
-| Los endpoints dependían directamente del almacenamiento | Los endpoints delegarán los casos de uso a `application/` |
-| No existía una capa de dominio | `domain/` contiene entidades, estados y reglas |
-| No existían contratos internos | `ports/` define interfaces para BD, almacenamiento, RAG y Agentes |
-| El almacenamiento local estaba acoplado al servicio | `LocalFileStorage` queda encapsulado en `infrastructure/storage/` |
-| No existía repositorio de documentos | `DocumentRepository` y `SQLiteDocumentRepository` separan contrato e implementación |
-| La identidad del documento dependía del flujo de carga | Se incorpora SHA-256 para identificar contenido y detectar duplicados |
-| Las pruebas estaban concentradas en la raíz | Se organizan en `unit/` e `integration/` |
-| `schemas/health.py` y otros contratos estaban dispersos | Los schemas se reorganizan por recurso y contratos comunes |
+| `services/` concentraba almacenamiento | Responsabilidades separadas entre `application/`, `ports/` e `infrastructure/` |
+| Endpoints acoplados al almacenamiento | Los casos de uso se delegan progresivamente a `application/` |
+| Sin capa de dominio | `domain/` contiene entidades y estados |
+| Sin contratos internos | `ports/` define interfaces para BD, almacenamiento, RAG y Agentes |
+| Sin repositorio de documentos | `DocumentRepository` + `SQLiteDocumentRepository` |
+| Identidad ligada al flujo de carga | SHA-256 para identificar contenido y detectar duplicados |
+| Tests concentrados en raíz | Organización en `unit/` e `integration/` |
+| Solo `/files/upload` | Nuevo `POST /api/v1/documents` para documentos |
 
-La carpeta `services/` permanece únicamente como compatibilidad temporal del endpoint legacy y será retirada cuando `POST /api/v1/documents` sustituya completamente `/api/v1/files/upload`.
+`services/`, `files.py` y `schemas/file.py` permanecen únicamente como compatibilidad temporal y serán retirados cuando el flujo de `/documents` sustituya completamente al endpoint legacy.
 
 ---
 
@@ -128,7 +117,6 @@ La carpeta `services/` permanece únicamente como compatibilidad temporal del en
 backend/
 ├── app/
 │   ├── main.py
-│   │
 │   ├── api/
 │   │   └── v1/
 │   │       ├── router.py
@@ -137,31 +125,26 @@ backend/
 │   │           ├── documents.py
 │   │           ├── adaptations.py
 │   │           ├── processes.py
-│   │           └── files.py              # legacy temporal
-│   │
+│   │           └── files.py              # legacy
 │   ├── schemas/
 │   │   ├── common.py
 │   │   ├── document.py
 │   │   ├── adaptation.py
 │   │   ├── process.py
-│   │   └── file.py                       # legacy temporal
-│   │
+│   │   └── file.py                       # legacy
 │   ├── domain/
 │   │   ├── document.py
 │   │   ├── process.py
 │   │   └── enums.py
-│   │
 │   ├── application/
 │   │   ├── document_service.py
 │   │   ├── adaptation_service.py
 │   │   └── process_service.py
-│   │
 │   ├── ports/
 │   │   ├── document_repository.py
 │   │   ├── object_storage.py
 │   │   ├── rag.py
 │   │   └── agents.py
-│   │
 │   ├── infrastructure/
 │   │   ├── persistence/
 │   │   │   ├── database.py
@@ -173,25 +156,20 @@ backend/
 │   │   └── integrations/
 │   │       ├── rag_adapter.py
 │   │       └── agents_adapter.py
-│   │
 │   ├── core/
 │   │   ├── config.py
 │   │   ├── exceptions.py
 │   │   ├── logging.py
 │   │   └── hashing.py
-│   │
 │   ├── services/
 │   │   └── storage.py                    # compatibilidad legacy
-│   │
 │   ├── rag/
 │   └── agents/
-│
 ├── tests/
 │   ├── conftest.py
 │   ├── test_health.py
 │   ├── unit/
 │   └── integration/
-│
 ├── storage/                               # local, ignorado por Git
 ├── .env.example
 ├── .gitignore
@@ -203,11 +181,60 @@ backend/
 
 ---
 
+## Carga de documentos
+
+El endpoint:
+
+```text
+POST /api/v1/documents
+```
+
+recibe un archivo mediante `multipart/form-data`.
+
+Formatos admitidos:
+
+```text
+.pdf
+.md
+.txt
+```
+
+Los archivos con extensiones no soportadas son rechazados con `415 Unsupported Media Type`.
+
+Flujo actual:
+
+```text
+UploadFile
+   ↓
+validación de extensión
+   ↓
+LocalFileStorage
+   ↓
+storage/uploads/
+   ↓
+respuesta HTTP 201
+```
+
+La respuesta expone:
+
+```json
+{
+  "filename": "uuid_nombre_saneado.txt",
+  "original_filename": "nombre_original.txt",
+  "content_type": "text/plain",
+  "size_bytes": 123
+}
+```
+
+La ruta física del archivo temporal no se expone en el contrato HTTP.
+
+El siguiente paso del flujo será conectar este endpoint con la identificación SHA-256 y la persistencia de metadata.
+
+---
+
 ## Gestión de documentos
 
-La identidad de un documento se determina mediante el hash **SHA-256 de su contenido**, no mediante su nombre.
-
-El dominio contempla el siguiente ciclo de vida:
+La identidad de un documento se determina mediante **SHA-256 de su contenido**, no por su nombre.
 
 ```text
 RECEIVED
@@ -237,11 +264,7 @@ BackendAPI administra principalmente:
 RECEIVED → VALIDATED → STORING → STORED
 ```
 
-Los estados asociados a indexación corresponden a la integración con RAG.
-
 ### Persistencia
-
-Actualmente existe una implementación de `DocumentRepository` sobre SQLite:
 
 ```text
 Application
@@ -253,45 +276,31 @@ SQLiteDocumentRepository
 SQLite
 ```
 
-La base local se configura por defecto en:
+La base local se configura en:
 
 ```text
 storage/nuevamente.db
 ```
 
-El directorio `/storage/` está excluido del control de versiones.
-
 ---
 
 ## Almacenamiento
 
-### Local
+### Temporal local
 
-`LocalFileStorage` permite guardar temporalmente archivos por bloques y controlar el tamaño máximo configurado.
-
-El flujo legacy utiliza:
-
-```text
-POST /files/upload
-        ↓
-services/storage.py
-        ↓
-LocalFileStorage
-        ↓
-storage/uploads/
-```
+`LocalFileStorage` escribe los archivos por bloques, sanea el nombre y controla el tamaño máximo configurado.
 
 ### OCI Object Storage
 
-Existe el contrato `ObjectStoragePort` y el módulo:
+Existe `ObjectStoragePort` y el módulo:
 
 ```text
 infrastructure/storage/oci_object_storage.py
 ```
 
-La integración concreta con OCI todavía está pendiente.
+La implementación concreta con OCI está pendiente.
 
-La convención prevista para documentos originales es:
+Convención prevista:
 
 ```text
 documents/{document_id}/original.pdf
@@ -301,7 +310,7 @@ documents/{document_id}/original.txt
 
 ---
 
-## Integración con RAG y Agentes
+## RAG y Agentes
 
 BackendAPI define contratos desacoplados mediante:
 
@@ -310,52 +319,40 @@ RagPort
 AgentsPort
 ```
 
-y mantiene adapters separados en:
+Los adapters se ubican en:
 
 ```text
 infrastructure/integrations/
 ```
 
-Los contratos son provisionales mientras se completa la integración entre equipos.
-
-BackendAPI no implementa directamente extracción de texto, chunking, embeddings, vector store, retrieval semántico, prompts, LangGraph ni generación/revisión mediante agentes.
-
-Estas responsabilidades corresponden al módulo de **RAG y Agentes**.
+BackendAPI no implementa directamente extracción de texto, chunking, embeddings, vector store, retrieval semántico, prompts ni orquestación de agentes.
 
 ---
 
 ## Endpoints
 
-### Disponibles actualmente
-
 | Método | Ruta | Estado |
 |---|---|---|
 | `GET` | `/` | Implementado |
 | `GET` | `/api/v1/health` | Implementado |
+| `POST` | `/api/v1/documents` | Implementado |
 | `POST` | `/api/v1/files/upload` | Implementado — legacy |
 
-Los routers para documentos, adaptaciones y procesos ya existen, pero todavía no exponen operaciones funcionales.
+Los routers de adaptaciones y procesos existen, pero todavía no exponen operaciones funcionales.
 
-### Próximos contratos
+Próximos contratos:
 
 ```text
-POST /api/v1/documents
 GET  /api/v1/documents/{document_id}
-
 POST /api/v1/adaptations
-
 GET  /api/v1/processes/{process_id}
 ```
-
-Estos contratos pueden evolucionar mientras se completa la integración con Frontend, OCI, RAG y Agentes.
 
 ---
 
 ## Configuración
 
 Crear `.env` a partir de `.env.example`.
-
-Variables principales:
 
 ```env
 PROJECT_NAME="NuevaMente API"
@@ -428,44 +425,23 @@ Swagger y OpenAPI se deshabilitan cuando `ENVIRONMENT=production`.
 
 ## Tests y calidad
 
-Ejecutar:
-
 ```bash
 python -m pytest
 python -m ruff check app tests
 ```
 
-La suite está organizada en:
-
-```text
-tests/
-├── unit/
-├── integration/
-└── test_health.py
-```
-
-Actualmente existen pruebas para dominio, schemas, hashing, casos de uso, SQLite, almacenamiento local, salud y el endpoint legacy de archivos.
+La suite incluye pruebas de dominio, schemas, hashing, servicios de aplicación, SQLite, almacenamiento local, salud, carga de documentos y compatibilidad legacy.
 
 ---
 
 ## Lineamientos de desarrollo
 
 - Mantener módulos y funciones con una responsabilidad clara.
-- Separar HTTP, lógica de aplicación, dominio, persistencia e integraciones.
-- Evitar que `application/` dependa directamente de implementaciones concretas de `infrastructure/`.
-- Usar `ports/` como contratos entre aplicación e infraestructura.
-- Mantener las integraciones externas encapsuladas.
+- Separar HTTP, aplicación, dominio, persistencia e integraciones.
+- Evitar dependencias directas de `application/` hacia implementaciones concretas de `infrastructure/`.
+- Usar `ports/` como contratos entre capas.
+- Encapsular integraciones externas.
 - Manejar errores explícitamente.
 - Evitar duplicación y abstracciones innecesarias.
-- Documentar contratos y decisiones técnicas relevantes.
+- Documentar contratos y decisiones relevantes.
 - Acompañar nuevas funcionalidades con pruebas.
-
-El objetivo es poder evolucionar de:
-
-```text
-SQLite        → PostgreSQL / Supabase
-Local Storage → OCI Object Storage
-Ports         → integraciones reales de RAG y Agentes
-```
-
-sin modificar innecesariamente la lógica de aplicación ni los contratos HTTP.
