@@ -1,1 +1,0 @@
-"""Casos de uso y orquestación de BackendAPI."""
