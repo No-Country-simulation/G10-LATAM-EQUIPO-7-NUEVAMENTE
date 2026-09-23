@@ -2,6 +2,8 @@
 
 from pathlib import Path
 
+from app.ports.object_storage import ObjectStorageError
+
 
 class FakeObjectStorage:
     """Almacenamiento en memoria para pruebas."""
@@ -37,7 +39,7 @@ class FakeObjectStorage:
 
 
 class FailingObjectStorage(FakeObjectStorage):
-    """Simula un fallo del proveedor de objetos."""
+    """Simula un fallo durante la escritura en Object Storage."""
 
     def upload_file(
         self,
@@ -48,4 +50,16 @@ class FailingObjectStorage(FakeObjectStorage):
     ) -> None:
         raise RuntimeError(
             "Fallo simulado de Object Storage."
+        )
+
+
+class FailingDownloadObjectStorage(FakeObjectStorage):
+    """Simula un fallo durante la lectura desde Object Storage."""
+
+    def download_file(
+        self,
+        object_name: str,
+    ) -> bytes:
+        raise ObjectStorageError(
+            f"Fallo simulado al recuperar {object_name}."
         )

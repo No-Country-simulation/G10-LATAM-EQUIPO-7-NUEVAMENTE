@@ -2,9 +2,20 @@
 
 from pathlib import Path
 
-from app.application.document_service import DocumentService
+import pytest
+
+from app.application.document_service import (
+    DocumentNotFoundError,
+    DocumentNotStoredError,
+    DocumentRetrievalError,
+    DocumentService,
+)
 from app.domain.document import Document
 from app.domain.enums import DocumentStatus
+from tests.fakes import (
+    FailingDownloadObjectStorage,
+    FakeObjectStorage,
+)
 
 
 class FakeDocumentRepository:
@@ -35,28 +46,6 @@ class FakeDocumentRepository:
         return document
 
 
-class FakeObjectStorage:
-    """Almacenamiento falso para pruebas del caso de uso."""
-
-    def __init__(self) -> None:
-        self.uploaded_objects: dict[str, bytes] = {}
-
-    def upload_file(
-        self,
-        *,
-        local_path: Path,
-        object_name: str,
-        content_type: str | None = None,
-    ) -> None:
-        self.uploaded_objects[object_name] = local_path.read_bytes()
-
-    def download_file(self, object_name: str) -> bytes:
-        return self.uploaded_objects[object_name]
-
-    def delete_object(self, object_name: str) -> None:
-        self.uploaded_objects.pop(object_name, None)
-
-
 def test_register_document(tmp_path: Path) -> None:
     file_path = tmp_path / "manual.pdf"
     file_path.write_bytes(b"contenido")
@@ -76,7 +65,9 @@ def test_register_document(tmp_path: Path) -> None:
     assert result.document.status == DocumentStatus.VALIDATED
 
 
-def test_register_duplicate_reuses_document(tmp_path: Path) -> None:
+def test_register_duplicate_reuses_document(
+    tmp_path: Path,
+) -> None:
     file_path = tmp_path / "manual.pdf"
     file_path.write_bytes(b"contenido")
 
@@ -98,7 +89,10 @@ def test_register_duplicate_reuses_document(tmp_path: Path) -> None:
         size_bytes=file_path.stat().st_size,
     )
 
-    assert first.document.document_id == second.document.document_id
+    assert (
+        first.document.document_id
+        == second.document.document_id
+    )
     assert second.created is False
 
 
@@ -126,4 +120,151 @@ def test_store_document(tmp_path: Path) -> None:
 
     assert document.status == DocumentStatus.STORED
     assert document.oci_object_name is not None
-    assert document.oci_object_name in storage.uploaded_objects
+    assert (
+        document.oci_object_name
+        in storage.uploaded_objects
+    )
+
+
+def test_retrieve_document_returns_original_content(
+    tmp_path: Path,
+) -> None:
+    """Recupera exactamente el contenido almacenado."""
+    original_content = (
+        b"contenido original recuperado desde object storage"
+    )
+
+    file_path = tmp_path / "manual.pdf"
+    file_path.write_bytes(original_content)
+
+    repository = FakeDocumentRepository()
+    storage = FakeObjectStorage()
+
+    service = DocumentService(repository)
+
+    registration = service.register_document(
+        local_path=file_path,
+        original_filename="manual.pdf",
+        content_type="application/pdf",
+        size_bytes=file_path.stat().st_size,
+    )
+
+    stored_document = service.store_document(
+        document_id=registration.document.document_id,
+        local_path=file_path,
+        object_storage=storage,
+    )
+
+    retrieved_document = service.retrieve_document(
+        document_id=stored_document.document_id,
+        object_storage=storage,
+    )
+
+    assert (
+        retrieved_document.document_id
+        == stored_document.document_id
+    )
+    assert retrieved_document.filename == "manual.pdf"
+    assert (
+        retrieved_document.content_type
+        == "application/pdf"
+    )
+    assert retrieved_document.content == original_content
+
+
+def test_retrieve_unknown_document_raises_error() -> None:
+    """Un document_id inexistente se controla explícitamente."""
+    repository = FakeDocumentRepository()
+    storage = FakeObjectStorage()
+
+    service = DocumentService(repository)
+
+    with pytest.raises(
+        DocumentNotFoundError,
+        match="No existe el documento doc_inexistente.",
+    ):
+        service.retrieve_document(
+            document_id="doc_inexistente",
+            object_storage=storage,
+        )
+
+
+def test_retrieve_document_without_object_raises_error(
+    tmp_path: Path,
+) -> None:
+    """Un documento registrado pero no almacenado no puede recuperarse."""
+    file_path = tmp_path / "manual.pdf"
+    file_path.write_bytes(b"contenido")
+
+    repository = FakeDocumentRepository()
+    storage = FakeObjectStorage()
+
+    service = DocumentService(repository)
+
+    registration = service.register_document(
+        local_path=file_path,
+        original_filename="manual.pdf",
+        content_type="application/pdf",
+        size_bytes=file_path.stat().st_size,
+    )
+
+    document_id = registration.document.document_id
+
+    with pytest.raises(
+        DocumentNotStoredError,
+        match=(
+            f"El documento {document_id} no tiene "
+            "un objeto almacenado asociado."
+        ),
+    ):
+        service.retrieve_document(
+            document_id=document_id,
+            object_storage=storage,
+        )
+
+
+def test_retrieve_document_handles_object_storage_error(
+    tmp_path: Path,
+) -> None:
+    """Los fallos de Object Storage se traducen a error de aplicación."""
+    file_path = tmp_path / "manual.pdf"
+    file_path.write_bytes(b"contenido")
+
+    repository = FakeDocumentRepository()
+    working_storage = FakeObjectStorage()
+
+    service = DocumentService(repository)
+
+    registration = service.register_document(
+        local_path=file_path,
+        original_filename="manual.pdf",
+        content_type="application/pdf",
+        size_bytes=file_path.stat().st_size,
+    )
+
+    stored_document = service.store_document(
+        document_id=registration.document.document_id,
+        local_path=file_path,
+        object_storage=working_storage,
+    )
+
+    failing_storage = FailingDownloadObjectStorage()
+
+    with pytest.raises(
+        DocumentRetrievalError,
+        match=(
+            "No fue posible recuperar el documento "
+            f"{stored_document.document_id}."
+        ),
+    ):
+        service.retrieve_document(
+            document_id=stored_document.document_id,
+            object_storage=failing_storage,
+        )
+
+    persisted_document = repository.find_by_id(
+        stored_document.document_id
+    )
+
+    assert persisted_document is not None
+    assert persisted_document.status == DocumentStatus.STORED
