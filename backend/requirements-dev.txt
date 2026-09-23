@@ -1,0 +1,8 @@
+-r requirements.txt
+
+# --- Testing ---
+pytest==8.4.2
+httpx==0.28.1
+
+# --- Calidad de código ---
+ruff==0.13.1

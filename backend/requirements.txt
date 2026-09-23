@@ -1,0 +1,12 @@
+# --- Framework Web & API ---
+fastapi==0.118.0
+uvicorn[standard]==0.37.0
+python-multipart==0.0.20
+python-dotenv==1.1.1
+
+# --- Validación & Tipado ---
+pydantic==2.13.5
+pydantic-settings==2.13.1
+
+# --- Oracle Cloud Infrastructure ---
+oci==2.186.0

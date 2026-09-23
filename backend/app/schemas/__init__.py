@@ -1,0 +1,1 @@
+"""Contratos de entrada y salida de BackendAPI."""
