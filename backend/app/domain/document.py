@@ -76,3 +76,8 @@ class Document:
 
         self.oci_object_name = object_name
         self.updated_at = datetime.now(UTC)
+
+    def clear_oci_object(self) -> None:
+        """Retira la referencia al objeto OCI durante una compensación."""
+        self.oci_object_name = None
+        self.updated_at = datetime.now(UTC)
