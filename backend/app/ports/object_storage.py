@@ -4,6 +4,13 @@ from pathlib import Path
 from typing import Protocol
 
 
+class ObjectStorageError(Exception):
+    """Error general al acceder al almacenamiento de objetos."""
+
+
+class ObjectStorageConfigurationError(ObjectStorageError):
+    """La configuración del proveedor de objetos es inválida."""
+
 class ObjectStoragePort(Protocol):
     """Define las operaciones requeridas sobre almacenamiento de objetos."""
 

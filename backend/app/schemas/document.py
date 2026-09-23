@@ -8,28 +8,8 @@ from app.domain.enums import DocumentStatus
 from app.schemas.common import BaseSchema
 
 
-class DocumentUploadResponse(BaseSchema):
-    """Respuesta después de recibir temporalmente un documento."""
-
-    filename: str = Field(
-        min_length=1,
-        description="Nombre saneado utilizado para el almacenamiento temporal.",
-    )
-    original_filename: str = Field(
-        min_length=1,
-        description="Nombre original recibido desde el cliente.",
-    )
-    content_type: str | None = Field(
-        default=None,
-        description="Tipo MIME informado durante la carga.",
-    )
-    size_bytes: int = Field(
-        ge=0,
-        description="Tamaño recibido del documento en bytes.",
-    )
-
-class DocumentCreatedResponse(BaseSchema):
-    """Respuesta después de registrar correctamente un documento."""
+class DocumentBaseResponse(BaseSchema):
+    """Información común expuesta de un documento."""
 
     document_id: str = Field(
         min_length=1,
@@ -44,7 +24,16 @@ class DocumentCreatedResponse(BaseSchema):
     )
 
 
-class DocumentResponse(DocumentCreatedResponse):
+class DocumentCreatedResponse(DocumentBaseResponse):
+    """Respuesta después de identificar correctamente un documento."""
+
+    duplicate: bool = Field(
+        default=False,
+        description="Indica si el contenido ya estaba registrado.",
+    )
+
+
+class DocumentResponse(DocumentBaseResponse):
     """Información pública detallada de un documento."""
 
     content_type: str | None = Field(

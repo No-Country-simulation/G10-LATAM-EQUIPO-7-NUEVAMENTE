@@ -62,9 +62,8 @@ def test_register_document(tmp_path: Path) -> None:
     file_path.write_bytes(b"contenido")
 
     repository = FakeDocumentRepository()
-    storage = FakeObjectStorage()
 
-    service = DocumentService(repository, storage)
+    service = DocumentService(repository)
 
     result = service.register_document(
         local_path=file_path,
@@ -82,9 +81,8 @@ def test_register_duplicate_reuses_document(tmp_path: Path) -> None:
     file_path.write_bytes(b"contenido")
 
     repository = FakeDocumentRepository()
-    storage = FakeObjectStorage()
 
-    service = DocumentService(repository, storage)
+    service = DocumentService(repository)
 
     first = service.register_document(
         local_path=file_path,
@@ -111,7 +109,7 @@ def test_store_document(tmp_path: Path) -> None:
     repository = FakeDocumentRepository()
     storage = FakeObjectStorage()
 
-    service = DocumentService(repository, storage)
+    service = DocumentService(repository)
 
     registration = service.register_document(
         local_path=file_path,
@@ -123,6 +121,7 @@ def test_store_document(tmp_path: Path) -> None:
     document = service.store_document(
         document_id=registration.document.document_id,
         local_path=file_path,
+        object_storage=storage,
     )
 
     assert document.status == DocumentStatus.STORED

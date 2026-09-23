@@ -8,6 +8,9 @@ requires-python = ">=3.11"
 testpaths = ["tests"]
 pythonpath = ["."]
 addopts = "-q"
+filterwarnings = [
+    'ignore:The anyio\.abc\.BlockingPortal alias is deprecated.*:DeprecationWarning:starlette\.testclient',
+]
 
 [tool.ruff]
 line-length = 100
