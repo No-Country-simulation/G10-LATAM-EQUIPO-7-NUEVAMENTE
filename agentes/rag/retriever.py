@@ -118,7 +118,11 @@ class RetrieverService:
     def __init__(self, vector_store: VectorStore):
         self.vector_store = vector_store
 
-    def retrieve(self, query: str, case_id: str = "CLD-ES-001-Q01", top_k: int = 5) -> dict:
+    def retrieve(self, query: str, case_id: str, top_k: int = 5) -> dict:
+        """
+        Servicio de recuperación actualizado: case_id ya no tiene valor por defecto
+        para evitar duplicidades y obligar a enviarlo desde las pruebas.
+        """
         try:
             raw_results = self.vector_store.search(query=query, top_k=top_k)
             
@@ -136,11 +140,12 @@ class RetrieverService:
 
             formatted_results = []
             for rank, res in enumerate(raw_results, start=1):
+                # Aseguramos que use el ID canónico que viene en los metadatos
                 doc_id = res.metadata.get("document_id", res.metadata.get("source", "unknown"))
                 
                 formatted_results.append({
                     "rank": rank,
-                    "chunk_id": res.chunk_id,
+                    "chunk_id": res.chunk_id, # Asegúrate que este ID coincida con el formato de su CSV
                     "document_id": doc_id,
                     "score": round(res.score, 4),
                     "text": res.text,
@@ -149,7 +154,7 @@ class RetrieverService:
 
             return {
                 "contract_version": "1.0",
-                "case_id": case_id,
+                "case_id": case_id, # <--- Obligatorio aquí también
                 "query": query,
                 "top_k": top_k,
                 "score_type": "cosine_similarity",
