@@ -13,9 +13,7 @@ def extract_document(path: str) -> list[Document]:
     file_path = Path(path)
 
     if not file_path.exists():
-        raise FileNotFoundError(
-            f"No se encontró el archivo: {path}"
-        )
+        raise FileNotFoundError(f"No se encontró el archivo: {path}")
 
     suffix = file_path.suffix.lower()
 
@@ -24,9 +22,7 @@ def extract_document(path: str) -> list[Document]:
     elif suffix in (".md", ".txt"):
         return _extract_plain_text(file_path, suffix)
     else:
-        raise ValueError(
-            f"Formato no soportado: {suffix}"
-        )
+        raise ValueError(f"Formato no soportado: {suffix}")
 
 
 def _extract_pdf(file_path: Path) -> list[Document]:
@@ -40,7 +36,6 @@ def _extract_pdf(file_path: Path) -> list[Document]:
     documents = []
 
     for page_number, page in enumerate(reader.pages, start=1):
-
         text = page.extract_text() or ""
 
         documents.append(
@@ -57,13 +52,9 @@ def _extract_pdf(file_path: Path) -> list[Document]:
     return documents
 
 
-def _extract_plain_text(
-    file_path: Path,
-    suffix: str
-) -> list[Document]:
+def _extract_plain_text(file_path: Path, suffix: str) -> list[Document]:
 
     text = file_path.read_text(encoding="utf-8")
-
     file_type = "markdown" if suffix == ".md" else "text"
 
     return [

@@ -1,122 +1,125 @@
-NuevaMente - Agentes
-Agent V1 + RAG Core
+# NuevaMente - Agentes: Agent V1 + RAG Core
 
-Módulo de Ingestión y Recuperación de Conocimiento
-La responsabilidad de esta rama es construir la base de conocimiento del agente V1, encargada de:
+Módulo de ingestión, recuperación de conocimiento y contrato de
+retrieval v1.0 para el hackathon **NuevaMente** (G10-LATAM-EQUIPO-7).
 
-Extraer información de documentos.
-Limpiar y normalizar el contenido.
-Dividir el contenido en chunks.
-Generar embeddings multilingües.
-Almacenar los embeddings en un Vector Store.
-Recuperar información relevante mediante consultas.
-Proporcionar una interfaz desacoplada para que el agente pueda consumir el conocimiento.
-COMPONENTES
+## Estructura real
 
-agent/agent_v1.py
-Contiene la estructura inicial del agente.
+```text
+agentes/
+├── agent_v1.py
+├── requirements.txt
+├── rag/
+│   ├── config.py         # configuración centralizada (chunk_size, top_k, modelo, rutas)
+│   ├── models.py         # Document, Chunk, SearchResult
+│   ├── cleaner.py         # limpieza conservadora (no toca indentación)
+│   ├── extractor.py       # extrae .pdf/.md/.txt para documentos NUEVOS
+│   ├── chunker.py         # chunking para documentos NUEVOS (900/150)
+│   ├── chunks_loader.py   # carga chunks_v1.csv tal cual (Ground Truth v1)
+│   ├── embeddings.py      # MultilingualEmbedding (sentence-transformers)
+│   ├── vector_store.py    # VectorStore (ChromaDB, espacio coseno explícito)
+│   ├── retriever.py       # RetrieverService: retrieve() y retrieve_for_evaluation()
+│   └── contract.py        # builders del contrato de retrieval v1.0
+└── tests/
+    └── test_rag.py
+```
 
-Su responsabilidad es coordinar el acceso al conocimiento.
+No existen `agent/agent_v1.py` ni `api/files.py` — esas rutas quedaron
+del README original y no corresponden a la estructura real.
 
-utiliza servicios retriever.retrieve(...) ||| Esto permite mantener el agente desacoplado de la implementación interna del RAG. |||
+## Dos formas de cargar el Vector Store
 
-rag/models.py
-Contiene los modelos de datos utilizados por el módulo.
+**1. Corpus congelado de Ground Truth v1 (`chunks_v1.csv`)** — usar
+siempre que se necesite evaluar contra el Ground Truth de Data/IA:
 
-El objetivo es mantener estructuras comunes entre los diferentes componentes.
+```python
+from agentes.rag.vector_store import VectorStore
+from agentes.rag.embeddings import MultilingualEmbedding
+from agentes.rag.pipeline import ingest_ground_truth_v1
 
-rag/extractor.py
-Responsable de extraer el contenido de: .pdf .md .txt
+vector_store = VectorStore(
+    path="./chroma_db",
+    collection_name="nuevamente_v1",
+    embedding_service=MultilingualEmbedding()
+)
 
-Cada página se trata como una unidad documental inicial.
+ingest_ground_truth_v1("./Data_IA/data/evaluation/chunks_v1.csv", vector_store)
+```
 
-Ejemplo:
+Esto preserva exactamente `chunk_id`, `document_id`, texto y límites
+de cada chunk tal como los definió Data/IA. **No pasa por
+extractor/cleaner/chunker.**
 
-manual.pdf ↓ Página 1 Página 2 Página 3 ...
+**2. Documentos nuevos**, fuera del corpus congelado (para v2 o
+contenido adicional):
 
-Cada página conserva metadata:
+```python
+from agentes.rag.pipeline import ingest_file
 
-{ "source": "manual.pdf", "page": 3, "file_type": "pdf" }
+ingest_file("manual.pdf", vector_store)
+```
 
-Esto permite mantener trazabilidad durante las etapas posteriores.
+## Uso del Agente y el contrato de retrieval v1.0
 
-rag/cleaner.py
-Responsable de normalizar el texto.
+```python
+from agentes.agent_v1 import AgentV1
 
-Entre las operaciones realizadas: Normalización Unicode ↓ Normalización de saltos de línea ↓ Eliminación de espacios innecesarios ↓ Texto limpio
+agent = AgentV1(vector_store)
 
-La limpieza debe intentar reducir ruido sin eliminar información importante.
+# Uso normal (dentro del propio agente)
+results = agent.answer(query="¿Qué es Kubernetes?", top_k=5)
 
-rag/chunker.py
-Divide el texto en fragmentos pequeños.
+# Para evaluación con Data/IA (Recall@k, Precision@k)
+response = agent.answer_for_evaluation(
+    case_id="CLD-ES-001-Q01",
+    query="¿Qué es Kubernetes?",
+    top_k=5
+)
+```
 
-Cada chunk mantiene la información del documento del que proviene.
+`answer_for_evaluation` devuelve el contrato acordado:
 
-Ejemplo:
+```json
+{
+  "contract_version": "1.0",
+  "case_id": "CLD-ES-001-Q01",
+  "query": "¿Qué es Kubernetes?",
+  "top_k": 5,
+  "score_type": "cosine_similarity",
+  "status": "success",
+  "results": [
+    {
+      "rank": 1,
+      "chunk_id": "CLD-ES-001_CH_001",
+      "document_id": "CLD-ES-001",
+      "score": 0.91,
+      "text": "Kubernetes es...",
+      "metadata": {"categoria": "Cloud/DevOps", "titulo_documento": "..."}
+    }
+  ]
+}
+```
 
-{ "chunk_id": "manual_3_2", "source": "manual.pdf", "page": 3, "chunk_index": 2 }
+Si no hay resultados: `status: "no_results"`, `results: []`.
+Si falla la búsqueda vectorial: `status: "error"` con `error.code` /
+`error.message`. `case_id` es obligatorio — no tiene valor por
+defecto, para evitar IDs duplicados en las corridas de evaluación.
 
-rag/embeddings.py
-Convierte el contenido textual en vectores numéricos.
+## Instalación y pruebas
 
-Texto ↓ Embedding Model ↓ Vector
+```bash
+python -m venv venv
+source venv/bin/activate   # Windows: venv\Scripts\activate
+pip install -r requirements.txt
+pytest agentes/tests/
+```
 
-La implementación utiliza embeddings multilingües para permitir que el sistema trabaje con contenido y consultas en distintos idiomas.
+## Pendiente / próximos pasos
 
-rag/vector_store.py
-Se encarga de almacenar:
-
-Chunks Embeddings Metadata
-
-y posteriormente realizar búsquedas semánticas.
-
-Actualmente el Vector Store utilizado es:
-
-ChromaDB
-
-El resto del sistema no debería depender directamente de ChromaDB.
-
-Por ejemplo:
-
-vector_store.search( query="¿Qué es una VCN?", top_k=5 )
-
-rag/retriever.py
-Este componente proporciona la interfaz principal de recuperación.
-
-Ejemplo:
-
-results = retriever.retrieve( query="¿Qué es una VCN?", top_k=5 )
-
-Devuelve:
-
-[
-      SearchResult(
-         chunk_id="manual_12_3",
-         text="Una VCN es...",
-         score=0.91,
-         metadata={
-            "source": "manual.pdf",
-            "page": 12
-         }
-       }   
- }
-El agente utiliza este componente para obtener el contexto relevante.
-
-rag/pipeline.py
-Coordina el flujo completo de ingestión.
-
-Archivo ↓ Extractor ↓ Cleaner ↓ Chunker ↓ Embedding ↓ Vector Store
-
-api/files.py
-Este módulo contiene la funcionalidad relacionada con la recuperación de archivos mediante API.
-
-La idea es desacoplar el agente del proveedor de almacenamiento.
-
-Arquitectura:
-
-Agent ↓ File Provider ↓ API ↓ Archivo
-
-El agente no necesita conocer directamente cómo funciona la API.
-
-Flujo de recuperación
-Pregunta ↓ Retriever ↓ Embedding de consulta ↓ Vector Store ↓ Top K resultados ↓ Score + Metadata ↓ Agent V1
+- **Integración con Backend**: falta adaptar la ingestión para
+  recibir el documento y su `document_id` desde Backend (quien lo
+  recupera de OCI Object Storage), y habilitar retrieval filtrado
+  por `document_id`.
+- Confirmar con Data/IA si, además de `chunks_v1.csv`, habrá un
+  `chunks_v2.csv` cuando se agreguen documentos nuevos fuera del
+  corpus congelado.

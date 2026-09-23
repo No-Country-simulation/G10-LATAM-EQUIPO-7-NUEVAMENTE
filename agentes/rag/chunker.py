@@ -3,13 +3,20 @@ from langchain_text_splitters import (
 )
 
 from .models import Document, Chunk
+from .config import CONFIG
 
 
 def create_chunks(
     documents: list[Document],
-    chunk_size: int = 900,
-    chunk_overlap: int = 150
+    chunk_size: int = CONFIG.chunk_size,
+    chunk_overlap: int = CONFIG.chunk_overlap
 ) -> list[Chunk]:
+    """
+    Chunker para documentos NUEVOS, fuera del corpus congelado de
+    Ground Truth v1. NUNCA usar esto para reproducir chunks_v1.csv:
+    para eso está chunks_loader.load_chunks_from_csv, que carga los
+    chunks ya congelados tal cual, sin volver a partirlos.
+    """
 
     if chunk_overlap >= chunk_size:
         raise ValueError(
@@ -19,42 +26,23 @@ def create_chunks(
     splitter = RecursiveCharacterTextSplitter(
         chunk_size=chunk_size,
         chunk_overlap=chunk_overlap,
-        separators=[
-            "\n\n",
-            "\n",
-            ". ",
-            "? ",
-            "! ",
-            " ",
-            ""
-        ]
+        separators=["\n\n", "\n", ". ", "? ", "! ", " ", ""]
     )
 
     chunks = []
 
     for document in documents:
 
-        cleaned = splitter.split_text(
-            document.text
-        )
+        pieces = splitter.split_text(document.text)
 
-        for index, text in enumerate(
-            cleaned
-        ):
+        for index, text in enumerate(pieces):
 
-            metadata = dict(
-                document.metadata
-            )
-
+            metadata = dict(document.metadata)
             metadata["chunk_index"] = index
 
             chunks.append(
                 Chunk(
-                    id=(
-                        f"{metadata['source']}"
-                        f"_{metadata.get('page', 1)}"
-                        f"_{index}"
-                    ),
+                    id=f"{metadata['source']}_{metadata.get('page', 1)}_{index}",
                     text=text,
                     metadata=metadata
                 )

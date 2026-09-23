@@ -1,26 +1,19 @@
-from .rag.retriever import Retriever
-
-
+from .rag.retriever import RetrieverService
+ 
+ 
 class AgentV1:
     """
-    Estructura inicial del agente.
-    Coordina el acceso al conocimiento a través del Retriever,
-    sin conocer los detalles internos del RAG (embeddings, vector store).
+    Estructura inicial del agente. Coordina el acceso al conocimiento
+    a través de RetrieverService, sin conocer los detalles internos
+    del RAG (embeddings, vector store).
     """
-
+ 
     def __init__(self, vector_store):
-        self.retriever = Retriever(vector_store)
-
-    def answer(
-        self,
-        query: str,
-        top_k: int = 5
-    ):
-        return self.retriever.retrieve(
-            query=query,
-            top_k=top_k
-        )
-
+        self.retriever = RetrieverService(vector_store)
+ 
+    def answer(self, query: str, top_k: int = 5):
+        return self.retriever.retrieve(query=query, top_k=top_k)
+ 
     def answer_for_evaluation(
         self,
         case_id: str,
@@ -32,3 +25,4 @@ class AgentV1:
             query=query,
             top_k=top_k
         )
+ 
