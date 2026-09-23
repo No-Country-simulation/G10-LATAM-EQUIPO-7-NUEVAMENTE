@@ -1,5 +1,6 @@
 """Casos de uso relacionados con documentos."""
 
+import logging
 from dataclasses import dataclass
 from pathlib import Path
 from uuid import uuid4
@@ -7,24 +8,37 @@ from uuid import uuid4
 from app.core.hashing import calculate_file_sha256
 from app.domain.document import Document
 from app.domain.enums import DocumentStatus
-from app.ports.document_repository import DocumentRepository
+from app.ports.document_repository import (
+    DocumentRepository,
+    DocumentRepositoryError,
+)
 from app.ports.object_storage import (
     ObjectStorageError,
     ObjectStoragePort,
 )
 
+logger = logging.getLogger(__name__)
+
 
 class DocumentNotFoundError(Exception):
     """El documento solicitado no existe."""
 
+
 class DocumentNotStoredError(Exception):
     """El documento existe, pero no tiene un objeto persistente asociado."""
 
+
 class DocumentStorageError(Exception):
-    """No fue posible almacenar el documento de forma persistente."""
+    """No fue posible completar el almacenamiento persistente."""
+
+
+class DocumentStorageConsistencyError(DocumentStorageError):
+    """No fue posible restaurar la consistencia tras un fallo de persistencia."""
+
 
 class DocumentRetrievalError(Exception):
     """No fue posible recuperar el contenido persistente del documento."""
+
 
 @dataclass(frozen=True, slots=True)
 class DocumentRegistrationResult:
@@ -124,7 +138,28 @@ class DocumentService:
         local_path: Path,
         object_storage: ObjectStoragePort,
     ) -> Document:
-        """Almacena permanentemente un documento previamente registrado."""
+        """Almacena permanentemente un documento previamente registrado.
+
+        Si la carga a Object Storage finaliza correctamente pero falla la
+        persistencia final de metadata, intenta eliminar el objeto cargado
+        para mantener alineados Object Storage y la base de datos.
+
+        Args:
+            document_id: Identificador canónico del documento.
+            local_path: Ruta temporal del archivo que será almacenado.
+            object_storage: Proveedor de almacenamiento persistente.
+
+        Returns:
+            Documento almacenado y actualizado en persistencia.
+
+        Raises:
+            DocumentNotFoundError: Si el documento no existe.
+            DocumentStorageError: Si falla el almacenamiento o la
+                persistencia final y la compensación se completa.
+            DocumentStorageConsistencyError: Si ocurre un fallo adicional
+                durante la compensación y no puede garantizarse la
+                consistencia entre persistencia y Object Storage.
+        """
         document = self.get_document(document_id)
 
         object_name = self._build_object_name(document)
@@ -138,7 +173,7 @@ class DocumentService:
                 object_name=object_name,
                 content_type=document.content_type,
             )
-        except Exception as exc:
+        except ObjectStorageError as exc:
             document.update_status(DocumentStatus.STORAGE_FAILED)
             self._repository.update(document)
 
@@ -148,7 +183,20 @@ class DocumentService:
 
         document.assign_oci_object(object_name)
         document.update_status(DocumentStatus.STORED)
-        self._repository.update(document)
+
+        try:
+            self._repository.update(document)
+        except DocumentRepositoryError as exc:
+            self._compensate_failed_storage_persistence(
+                document=document,
+                object_name=object_name,
+                object_storage=object_storage,
+            )
+
+            raise DocumentStorageError(
+                "No fue posible confirmar el almacenamiento del documento "
+                f"{document_id}; la carga en Object Storage fue revertida."
+            ) from exc
 
         return document
 
@@ -215,6 +263,59 @@ class DocumentService:
             )
 
         return document
+
+    def _compensate_failed_storage_persistence(
+        self,
+        *,
+        document: Document,
+        object_name: str,
+        object_storage: ObjectStoragePort,
+    ) -> None:
+        """Compensa una carga OCI cuya metadata final no pudo persistirse.
+
+        Primero elimina el objeto que ya había sido cargado. Después retira
+        la referencia OCI de la entidad y registra ``STORAGE_FAILED``.
+
+        Si alguna de esas operaciones falla, se genera un error explícito de
+        consistencia para evitar ocultar una posible desalineación.
+        """
+        try:
+            object_storage.delete_object(
+                object_name
+            )
+        except ObjectStorageError as exc:
+            logger.exception(
+                "No fue posible compensar el objeto %s del documento %s.",
+                object_name,
+                document.document_id,
+            )
+
+            raise DocumentStorageConsistencyError(
+                f"El documento {document.document_id} quedó en un estado "
+                "inconsistente: la carga en Object Storage finalizó, "
+                "la metadata no pudo persistirse y tampoco fue posible "
+                "eliminar el objeto durante la compensación."
+            ) from exc
+
+        document.clear_oci_object()
+        document.update_status(
+            DocumentStatus.STORAGE_FAILED
+        )
+
+        try:
+            self._repository.update(document)
+        except DocumentRepositoryError as exc:
+            logger.exception(
+                "El objeto del documento %s fue compensado, pero no fue "
+                "posible persistir el estado STORAGE_FAILED.",
+                document.document_id,
+            )
+
+            raise DocumentStorageConsistencyError(
+                f"El objeto del documento {document.document_id} fue "
+                "eliminado de Object Storage, pero no fue posible "
+                "registrar STORAGE_FAILED en persistencia."
+            ) from exc
 
     @staticmethod
     def _build_object_name(document: Document) -> str:

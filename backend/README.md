@@ -42,6 +42,9 @@ Actualmente están implementados:
 - Manejo explícito de documentos inexistentes, documentos sin objeto persistente y fallos durante la recuperación desde Object Storage.
 - Gestión de estados `VALIDATED → STORING → STORED`.
 - Gestión del estado `STORAGE_FAILED` cuando falla el almacenamiento en Object Storage.
+- Estrategia de compensación cuando la carga a OCI finaliza correctamente pero falla la persistencia final de `oci_object_name` / `STORED`.
+- Eliminación compensatoria del objeto OCI para evitar objetos huérfanos cuando la actualización final en BD falla.
+- Error explícito `DocumentStorageConsistencyError` cuando no puede garantizarse la consistencia entre Object Storage y persistencia.
 - Eliminación del archivo temporal después del almacenamiento permanente.
 - Dominio y estados de documentos y procesos.
 - Puerto provisional de integración con RAG.
@@ -101,8 +104,7 @@ Infrastructure implementa los Ports
 | `ports/` | Contratos hacia persistencia, almacenamiento e integraciones |
 | `infrastructure/` | Implementaciones concretas |
 | `core/` | Configuración, logging, errores y utilidades |
-| `rag/` | Espacio reservado para integración con el equipo RAG |
-| `agents/` | Espacio provisional reservado para integración externa |
+| `services/` | Compatibilidad temporal con flujos legacy |
 
 ### Persistencia de metadata
 
@@ -144,7 +146,13 @@ OCI Object Storage
 
 De esta forma, la autenticación y las llamadas específicas al proveedor quedan encapsuladas en `infrastructure/storage/`.
 
-El mismo contrato abstrae tanto la escritura como la recuperación de objetos.
+El mismo contrato abstrae escritura, recuperación y eliminación de objetos:
+
+```text
+upload_file(...)
+download_file(...)
+delete_object(...)
+```
 
 ### Recuperación de documentos
 
@@ -239,10 +247,8 @@ backend/
 │   │   ├── exceptions.py
 │   │   ├── logging.py
 │   │   └── hashing.py
-│   ├── services/
-│   │   └── storage.py                    # compatibilidad legacy
-│   ├── rag/
-│   └── agents/
+│   └── services/
+│       └── storage.py                    # compatibilidad legacy
 ├── tests/
 │   ├── conftest.py
 │   ├── fakes.py
@@ -359,16 +365,28 @@ DocumentRepository.find_by_sha256()
           ↓
        STORING
           ↓
-       OCI Object Storage
+       PUT OCI
           ↓
-       guardar oci_object_name
-          ↓
-       STORED
-          ↓
-       eliminar temporal
-          ↓
-       HTTP 201
+       persistir oci_object_name + STORED
+          │
+          ├─ éxito
+          │    ↓
+          │ HTTP 201
+          │
+          └─ falla en BD
+               ↓
+            DELETE OCI compensatorio
+               │
+               ├─ éxito
+               │    ↓
+               │ STORAGE_FAILED
+               │
+               └─ falla
+                    ↓
+             error explícito de consistencia
 ```
+
+El archivo temporal se elimina al finalizar el procesamiento, tanto en éxito como en los errores controlados del endpoint.
 
 ### Documento nuevo
 
@@ -412,16 +430,44 @@ El documento duplicado conserva el mismo `document_id`.
 
 Si el documento ya posee un `oci_object_name`, BackendAPI no vuelve a subir el mismo contenido a Object Storage.
 
-La ruta física del archivo temporal no se expone en el contrato HTTP y el temporal se elimina después del procesamiento.
+La ruta física del archivo temporal no se expone en el contrato HTTP.
 
-### Error de Object Storage durante almacenamiento
+### Errores y compensación durante almacenamiento
 
-Si el registro del documento fue creado pero falla el almacenamiento permanente, BackendAPI:
+El almacenamiento involucra dos recursos diferentes: la base de datos de metadata y OCI Object Storage. No existe una transacción ACID única que abarque ambos, por lo que `DocumentService` aplica una estrategia de compensación.
 
-1. actualiza el estado a `STORAGE_FAILED`;
-2. persiste el nuevo estado;
-3. elimina el archivo temporal;
-4. responde con `502 Bad Gateway`.
+#### Fallo durante `put_object`
+
+Si falla la carga a OCI:
+
+1. el documento pasa a `STORAGE_FAILED`;
+2. se intenta persistir ese estado;
+3. se genera `DocumentStorageError`;
+4. el endpoint responde con `502 Bad Gateway`.
+
+#### OCI confirma la carga pero falla la actualización final en BD
+
+Si `put_object` finaliza correctamente, pero falla la actualización que debía persistir `oci_object_name` y `STORED`:
+
+1. Backend intenta eliminar de OCI el objeto recién cargado;
+2. limpia la referencia OCI en la entidad;
+3. cambia el documento a `STORAGE_FAILED`;
+4. intenta persistir el estado compensado;
+5. genera `DocumentStorageError` indicando que la carga fue revertida.
+
+El objetivo es evitar que quede un objeto huérfano en OCI mientras la metadata permanece en `STORING`.
+
+#### Fallo de la compensación
+
+Si no es posible eliminar el objeto de OCI, o si después de eliminarlo no puede persistirse `STORAGE_FAILED`, Backend genera:
+
+```text
+DocumentStorageConsistencyError
+```
+
+Este error indica explícitamente que no puede garantizarse la alineación entre Object Storage y la persistencia.
+
+No se oculta la inconsistencia ni se reporta falsamente el documento como almacenado.
 
 ---
 
@@ -460,6 +506,13 @@ create(document)
 find_by_id(document_id)
 find_by_sha256(sha256)
 update(document)
+```
+
+Los errores de persistencia se expresan mediante:
+
+```text
+DocumentRepositoryError
+DocumentAlreadyExistsError
 ```
 
 La implementación actual es:
@@ -632,6 +685,22 @@ BackendAPI administra actualmente:
 RECEIVED → VALIDATED → STORING → STORED
 ```
 
+Ante un fallo compensable después de la carga a OCI:
+
+```text
+STORING
+   ↓
+PUT OCI exitoso
+   ↓
+fallo al persistir STORED
+   ↓
+DELETE OCI
+   ↓
+STORAGE_FAILED
+```
+
+Si la compensación no puede completarse, el último estado persistido puede permanecer en `STORING`; en ese caso se genera `DocumentStorageConsistencyError` para indicar explícitamente que el resultado debe revisarse.
+
 La recuperación de un documento almacenado no introduce una nueva transición de estado.
 
 La transición hacia `INDEXING` e `INDEXED` se realizará posteriormente como parte de la frontera de integración con RAG.
@@ -702,6 +771,8 @@ download_file(...)
 delete_object(...)
 ```
 
+`delete_object(...)` también se utiliza como operación compensatoria cuando la carga a OCI fue exitosa pero la confirmación final de metadata falla.
+
 La integración fue validada manualmente contra un bucket OCI configurado para el proyecto:
 
 ```text
@@ -722,6 +793,22 @@ oci_object_name
 OCI Object Storage
     ↓
 contenido binario recuperado correctamente
+```
+
+Además, se ejecutó una prueba manual controlada del flujo compensatorio utilizando almacenamiento y repositorio en memoria, verificando que ante un fallo simulado al persistir `STORED`:
+
+```text
+objeto cargado
+    ↓
+fallo de persistencia
+    ↓
+DELETE compensatorio
+    ↓
+objeto eliminado
+    ↓
+STORAGE_FAILED
+    ↓
+oci_object_name = None
 ```
 
 Las operaciones reales de escritura y recuperación se validaron satisfactoriamente sin incorporar credenciales al repositorio.
@@ -821,7 +908,7 @@ La extracción de texto, limpieza, chunking, embeddings, almacenamiento vectoria
 | `413` | Documento demasiado grande |
 | `415` | Formato o MIME type no soportado |
 | `422` | Error de validación de la petición |
-| `502` | Error al almacenar el documento en Object Storage |
+| `502` | Error al almacenar, confirmar o compensar el documento |
 
 ### Respuestas de `GET /api/v1/documents/{document_id}`
 
@@ -972,7 +1059,7 @@ Estado actual validado:
 
 ```text
 All checks passed!
-47 passed
+50 passed
 ```
 
 La suite incluye pruebas de:
@@ -1009,11 +1096,19 @@ La suite incluye pruebas de:
 - fallo simulado durante recuperación desde Object Storage;
 - operación `OCIObjectStorage.download_file()`;
 - traducción de errores del SDK de OCI a `ObjectStorageError`;
+- compensación cuando `PUT` en OCI fue exitoso pero falla la persistencia de `STORED`;
+- eliminación del objeto recién cargado durante la compensación;
+- persistencia de `STORAGE_FAILED` y limpieza de `oci_object_name` tras una compensación exitosa;
+- detección explícita del fallo de `delete_object()` durante una compensación;
+- detección explícita del fallo al persistir `STORAGE_FAILED` después de eliminar el objeto;
 - compatibilidad del endpoint legacy.
 
 Las pruebas automatizadas utilizan una base SQLite temporal y dobles de prueba para Object Storage. Por tanto, la suite no requiere conectarse a OCI ni modifica la base local de desarrollo.
 
-Adicionalmente, la integración se validó manualmente contra OCI Object Storage real, comprobando tanto almacenamiento como recuperación del archivo original y verificando que el contenido descargado coincide con el contenido persistido.
+Adicionalmente:
+
+- se validó manualmente la recuperación desde OCI Object Storage real, comprobando que el contenido descargado coincide con el archivo previamente persistido;
+- se ejecutó una prueba manual controlada del flujo de compensación, comprobando que un fallo al persistir `STORED` elimina el objeto cargado, deja `oci_object_name = None` y persiste `STORAGE_FAILED`.
 
 ---
 

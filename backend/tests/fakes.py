@@ -48,7 +48,7 @@ class FailingObjectStorage(FakeObjectStorage):
         object_name: str,
         content_type: str | None = None,
     ) -> None:
-        raise RuntimeError(
+        raise ObjectStorageError(
             "Fallo simulado de Object Storage."
         )
 
@@ -62,4 +62,16 @@ class FailingDownloadObjectStorage(FakeObjectStorage):
     ) -> bytes:
         raise ObjectStorageError(
             f"Fallo simulado al recuperar {object_name}."
+        )
+
+
+class FailingDeleteObjectStorage(FakeObjectStorage):
+    """Simula un fallo durante una compensación de Object Storage."""
+
+    def delete_object(
+        self,
+        object_name: str,
+    ) -> None:
+        raise ObjectStorageError(
+            f"Fallo simulado al eliminar {object_name}."
         )
