@@ -1,7 +1,7 @@
 [project]
 name = "g10-latam-equipo-7-backend"
 version = "0.1.0"
-description = "Backend del proyecto G10 LATAM Equipo 7, construido con FastAPI."
+description = "BackendAPI de NuevaMente para gestión de documentos y adaptación educativa asistida por IA."
 requires-python = ">=3.11"
 
 [tool.pytest.ini_options]
