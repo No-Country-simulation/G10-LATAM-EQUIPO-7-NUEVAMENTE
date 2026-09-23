@@ -1,35 +1,118 @@
-from sentence_transformers import (
-    SentenceTransformer
-)
+import chromadb
+
+from .models import Chunk, SearchResult
 
 
-class MultilingualEmbedding:
+class VectorStore:
 
-    def __init__(self, model_name: str):
-        self.model = SentenceTransformer(
-            model_name
-        )
-
-    def embed_documents(
+    def __init__(
         self,
-        texts: list[str]
-    ) -> list[list[float]]:
+        path: str,
+        collection_name: str,
+        embedding_service
+    ):
 
-        embeddings = self.model.encode(
-            texts,
-            normalize_embeddings=True
+        self.embedding_service = (
+            embedding_service
         )
 
-        return embeddings.tolist()
+        self.client = (
+            chromadb.PersistentClient(
+                path=path
+            )
+        )
 
-    def embed_query(
+        self.collection = (
+            self.client.get_or_create_collection(
+                name=collection_name,
+                # FIX: sin esto, Chroma usa L2 por defecto y
+                # "score = 1 - distance" deja de ser una similitud
+                # coseno real. El contrato con Data/IA declara
+                # score_type: "cosine_similarity", así que el espacio
+                # de la colección tiene que ser coseno explícitamente.
+                metadata={"hnsw:space": "cosine"}
+            )
+        )
+
+    def add_chunks(
         self,
-        query: str
-    ) -> list[float]:
+        chunks: list[Chunk]
+    ):
 
-        embedding = self.model.encode(
-            query,
-            normalize_embeddings=True
+        if not chunks:
+            return
+
+        texts = [
+            chunk.text
+            for chunk in chunks
+        ]
+
+        ids = [
+            chunk.id
+            for chunk in chunks
+        ]
+
+        metadata = [
+            chunk.metadata
+            for chunk in chunks
+        ]
+
+        embeddings = (
+            self.embedding_service
+            .embed_documents(texts)
         )
 
-        return embedding.tolist()
+        self.collection.upsert(
+            ids=ids,
+            documents=texts,
+            metadatas=metadata,
+            embeddings=embeddings
+        )
+
+    def search(
+        self,
+        query: str,
+        top_k: int = 5
+    ) -> list[SearchResult]:
+
+        embedding = (
+            self.embedding_service
+            .embed_query(query)
+        )
+
+        results = self.collection.query(
+            query_embeddings=[embedding],
+            n_results=top_k,
+            include=[
+                "documents",
+                "metadatas",
+                "distances"
+            ]
+        )
+
+        output = []
+
+        for i, chunk_id in enumerate(
+            results["ids"][0]
+        ):
+
+            distance = (
+                results["distances"][0][i]
+            )
+
+            output.append(
+                SearchResult(
+                    chunk_id=chunk_id,
+                    text=(
+                        results["documents"][0][i]
+                    ),
+                    # Con hnsw:space="cosine", distance = 1 - cos_sim,
+                    # así que esto sí es cosine_similarity real.
+                    score=1 - distance,
+                    metadata=(
+                        results["metadatas"][0][i]
+                    )
+                )
+            )
+
+        return output

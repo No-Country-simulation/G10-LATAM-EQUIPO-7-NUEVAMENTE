@@ -1,31 +1,34 @@
-from .cleaner import clean_text
-from .extractor import extract_document
-from .chunker import create_chunks
+from .rag.retriever import Retriever
 
 
-def ingest_file(
-    path: str,
-    vector_store
-):
+class AgentV1:
+    """
+    Estructura inicial del agente.
+    Coordina el acceso al conocimiento a través del Retriever,
+    sin conocer los detalles internos del RAG (embeddings, vector store).
+    """
 
-    documents = extract_document(
-        path
-    )
+    def __init__(self, vector_store):
+        self.retriever = Retriever(vector_store)
 
-    for document in documents:
-        document.text = clean_text(
-            document.text
+    def answer(
+        self,
+        query: str,
+        top_k: int = 5
+    ):
+        return self.retriever.retrieve(
+            query=query,
+            top_k=top_k
         )
 
-    chunks = create_chunks(
-        documents
-    )
-
-    vector_store.add_chunks(
-        chunks
-    )
-
-    return {
-        "documents": len(documents),
-        "chunks": len(chunks)
-    }
+    def answer_for_evaluation(
+        self,
+        case_id: str,
+        query: str,
+        top_k: int = 5
+    ) -> dict:
+        return self.retriever.retrieve_for_evaluation(
+            case_id=case_id,
+            query=query,
+            top_k=top_k
+        )
