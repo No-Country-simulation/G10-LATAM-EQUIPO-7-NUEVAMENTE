@@ -1,6 +1,5 @@
 """Pruebas unitarias de DocumentService."""
 
-from copy import deepcopy
 from pathlib import Path
 
 import pytest
@@ -21,58 +20,9 @@ from app.ports.document_repository import (
 from tests.fakes import (
     FailingDeleteObjectStorage,
     FailingDownloadObjectStorage,
+    FakeDocumentRepository,
     FakeObjectStorage,
 )
-
-
-class FakeDocumentRepository:
-    """Repositorio en memoria utilizado exclusivamente por las pruebas."""
-
-    def __init__(self) -> None:
-        self.documents: dict[str, Document] = {}
-
-    def create(self, document: Document) -> Document:
-        self.documents[document.document_id] = deepcopy(
-            document
-        )
-        return document
-
-    def find_by_id(
-        self,
-        document_id: str,
-    ) -> Document | None:
-        document = self.documents.get(
-            document_id
-        )
-
-        if document is None:
-            return None
-
-        return deepcopy(document)
-
-    def find_by_sha256(
-        self,
-        sha256: str,
-    ) -> Document | None:
-        document = next(
-            (
-                document
-                for document in self.documents.values()
-                if document.sha256 == sha256
-            ),
-            None,
-        )
-
-        if document is None:
-            return None
-
-        return deepcopy(document)
-
-    def update(self, document: Document) -> Document:
-        self.documents[document.document_id] = deepcopy(
-            document
-        )
-        return document
 
 
 class FailingStoredUpdateRepository(
@@ -84,7 +34,10 @@ class FailingStoredUpdateRepository(
         super().__init__()
         self._stored_update_failed = False
 
-    def update(self, document: Document) -> Document:
+    def update(
+        self,
+        document: Document,
+    ) -> Document:
         if (
             document.status == DocumentStatus.STORED
             and not self._stored_update_failed
@@ -103,7 +56,10 @@ class FailingStoredAndRecoveryUpdateRepository(
 ):
     """Falla al persistir STORED y STORAGE_FAILED."""
 
-    def update(self, document: Document) -> Document:
+    def update(
+        self,
+        document: Document,
+    ) -> Document:
         if document.status in {
             DocumentStatus.STORED,
             DocumentStatus.STORAGE_FAILED,

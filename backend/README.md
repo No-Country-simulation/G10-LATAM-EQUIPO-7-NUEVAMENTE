@@ -45,17 +45,22 @@ Actualmente están implementados:
 - Estrategia de compensación cuando la carga a OCI finaliza correctamente pero falla la persistencia final de `oci_object_name` / `STORED`.
 - Eliminación compensatoria del objeto OCI para evitar objetos huérfanos cuando la actualización final en BD falla.
 - Error explícito `DocumentStorageConsistencyError` cuando no puede garantizarse la consistencia entre Object Storage y persistencia.
+- Contrato BackendAPI–RAG v1 mediante `RagDocumentInput` y `RagPort`.
+- Entrega de `document_id`, `filename`, `content_type` y `content: bytes` al límite de integración con RAG.
+- Orquestación de recuperación desde OCI y entrega a RAG mediante `RagIntegrationService`.
+- Adaptador `RagAdapter` desacoplado del código interno del módulo RAG.
+- Preservación del `document_id` canónico generado por BackendAPI durante la entrega a RAG.
+- Manejo explícito de fallos de integración mediante `RagError` y `RagIntegrationError`.
+- Pruebas unitarias de la integración BackendAPI–RAG mediante dobles controlados.
 - Eliminación del archivo temporal después del almacenamiento permanente.
 - Dominio y estados de documentos y procesos.
-- Puerto provisional de integración con RAG.
-- Pruebas unitarias y de integración.
 - Endpoint legacy `/api/v1/files/upload`, mantenido temporalmente por compatibilidad.
 
 Pendiente de implementación funcional:
 
-- Cierre del contrato definitivo BackendAPI–RAG.
-- Implementación de la integración BackendAPI–RAG mediante el adapter correspondiente.
-- Entrega del documento recuperado y su `document_id` canónico al módulo RAG.
+- Conectar `RagAdapter` con el entry point público definitivo que exponga el equipo RAG.
+- Registrar la implementación concreta del adapter en el ciclo de vida de la aplicación cuando el entry point real esté disponible.
+- Definir, junto con RAG, la semántica exacta de finalización de la indexación antes de activar transiciones automáticas `INDEXING → INDEXED`.
 - Implementación futura de otro motor de persistencia, por ejemplo PostgreSQL/Supabase, si el despliegue lo requiere.
 - Retiro progresivo de la capa legacy asociada a `/files/upload`.
 
@@ -193,6 +198,36 @@ El `document_id` es el identificador canónico generado por BackendAPI y debe co
 
 La recuperación es actualmente un caso de uso interno. No se expone un endpoint HTTP para descargar el archivo, ya que su propósito es preparar el documento para integraciones internas posteriores.
 
+### Integración BackendAPI–RAG
+
+La integración se divide en dos fronteras:
+
+```text
+Application
+    ↓
+RagPort
+    ↑
+RagAdapter
+    ↓
+entry point público de RAG
+```
+
+`RagIntegrationService` es responsable de:
+
+```text
+document_id
+    ↓
+DocumentService.retrieve_document()
+    ↓
+RetrievedDocument
+    ↓
+RagDocumentInput
+    ↓
+RagPort.index_document()
+```
+
+BackendAPI no accede a componentes internos de RAG como `RetrieverService`, `VectorStore`, chunkers, modelos de embeddings o pipelines internos.
+
 ---
 
 ## Estructura actual
@@ -223,6 +258,7 @@ backend/
 │   │   └── enums.py
 │   ├── application/
 │   │   ├── document_service.py
+│   │   ├── rag_integration_service.py
 │   │   ├── adaptation_service.py
 │   │   └── process_service.py
 │   ├── ports/
@@ -255,7 +291,9 @@ backend/
 │   ├── test_health.py
 │   ├── unit/
 │   │   ├── test_document_service.py
-│   │   └── test_oci_object_storage.py
+│   │   ├── test_oci_object_storage.py
+│   │   ├── test_rag_integration_service.py
+│   │   └── test_rag_adapter.py
 │   └── integration/
 ├── storage/                               # local, ignorado por Git
 ├── .env.example
@@ -268,608 +306,9 @@ backend/
 
 ---
 
-## Carga, validación, identificación y almacenamiento de documentos
+## Contrato BackendAPI–RAG v1
 
-El endpoint:
-
-```text
-POST /api/v1/documents
-```
-
-recibe un archivo mediante `multipart/form-data`.
-
-Formatos admitidos:
-
-```text
-.pdf
-.md
-.txt
-```
-
-### Contrato Frontend → BackendAPI
-
-La solicitud debe enviarse como:
-
-```text
-Content-Type: multipart/form-data
-Campo: file
-```
-
-No se debe enviar el archivo en Base64 ni dentro de JSON.
-
-Ejemplo:
-
-```javascript
-const formData = new FormData();
-formData.append("file", file);
-
-const response = await fetch(
-  "http://localhost:8000/api/v1/documents",
-  {
-    method: "POST",
-    body: formData
-  }
-);
-```
-
-No se debe configurar manualmente el header `Content-Type` al utilizar `FormData`; el navegador agrega automáticamente el `boundary`.
-
-### Validaciones actuales
-
-El flujo valida:
-
-- extensión permitida;
-- MIME type declarado compatible con el formato;
-- tamaño máximo configurado;
-- archivo no vacío;
-- nombre apto para almacenamiento temporal.
-
-Los archivos con extensión o MIME no soportado son rechazados con `415 Unsupported Media Type`.
-
-Los archivos vacíos son rechazados con `400 Bad Request`.
-
-Los archivos que superan el tamaño máximo configurado son rechazados con `413 Content Too Large`.
-
-### Flujo actual
-
-```text
-UploadFile
-   ↓
-validación de extensión y MIME
-   ↓
-almacenamiento temporal local
-   ├─ saneamiento de nombre
-   └─ control de tamaño
-   ↓
-validación de archivo no vacío
-   ↓
-SHA-256 del contenido
-   ↓
-DocumentRepository.find_by_sha256()
-   │
-   ├─ duplicado almacenado
-   │      ↓
-   │   recuperar document_id
-   │      ↓
-   │   duplicate = true
-   │      ↓
-   │   HTTP 200
-   │
-   └─ documento nuevo
-          ↓
-       generar document_id
-          ↓
-       registrar metadata
-          ↓
-       VALIDATED
-          ↓
-       STORING
-          ↓
-       PUT OCI
-          ↓
-       persistir oci_object_name + STORED
-          │
-          ├─ éxito
-          │    ↓
-          │ HTTP 201
-          │
-          └─ falla en BD
-               ↓
-            DELETE OCI compensatorio
-               │
-               ├─ éxito
-               │    ↓
-               │ STORAGE_FAILED
-               │
-               └─ falla
-                    ↓
-             error explícito de consistencia
-```
-
-El archivo temporal se elimina al finalizar el procesamiento, tanto en éxito como en los errores controlados del endpoint.
-
-### Documento nuevo
-
-Ejemplo de respuesta:
-
-```json
-{
-  "document_id": "doc_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
-  "filename": "documento.txt",
-  "status": "stored",
-  "duplicate": false
-}
-```
-
-Código HTTP:
-
-```text
-201 Created
-```
-
-### Documento duplicado
-
-Ejemplo de respuesta:
-
-```json
-{
-  "document_id": "doc_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
-  "filename": "documento.txt",
-  "status": "stored",
-  "duplicate": true
-}
-```
-
-Código HTTP:
-
-```text
-200 OK
-```
-
-El documento duplicado conserva el mismo `document_id`.
-
-Si el documento ya posee un `oci_object_name`, BackendAPI no vuelve a subir el mismo contenido a Object Storage.
-
-La ruta física del archivo temporal no se expone en el contrato HTTP.
-
-### Errores y compensación durante almacenamiento
-
-El almacenamiento involucra dos recursos diferentes: la base de datos de metadata y OCI Object Storage. No existe una transacción ACID única que abarque ambos, por lo que `DocumentService` aplica una estrategia de compensación.
-
-#### Fallo durante `put_object`
-
-Si falla la carga a OCI:
-
-1. el documento pasa a `STORAGE_FAILED`;
-2. se intenta persistir ese estado;
-3. se genera `DocumentStorageError`;
-4. el endpoint responde con `502 Bad Gateway`.
-
-#### OCI confirma la carga pero falla la actualización final en BD
-
-Si `put_object` finaliza correctamente, pero falla la actualización que debía persistir `oci_object_name` y `STORED`:
-
-1. Backend intenta eliminar de OCI el objeto recién cargado;
-2. limpia la referencia OCI en la entidad;
-3. cambia el documento a `STORAGE_FAILED`;
-4. intenta persistir el estado compensado;
-5. genera `DocumentStorageError` indicando que la carga fue revertida.
-
-El objetivo es evitar que quede un objeto huérfano en OCI mientras la metadata permanece en `STORING`.
-
-#### Fallo de la compensación
-
-Si no es posible eliminar el objeto de OCI, o si después de eliminarlo no puede persistirse `STORAGE_FAILED`, Backend genera:
-
-```text
-DocumentStorageConsistencyError
-```
-
-Este error indica explícitamente que no puede garantizarse la alineación entre Object Storage y la persistencia.
-
-No se oculta la inconsistencia ni se reporta falsamente el documento como almacenado.
-
----
-
-## Persistencia de metadata y estado
-
-La metadata interna de un documento se guarda en una base de datos separada del archivo original.
-
-Actualmente se persisten:
-
-```text
-document_id
-original_filename
-sha256
-content_type
-size_bytes
-status
-oci_object_name
-created_at
-updated_at
-```
-
-El archivo original no se almacena en SQLite. El original se persiste en OCI Object Storage.
-
-### Contrato de repositorio
-
-La aplicación depende de:
-
-```text
-DocumentRepository
-```
-
-que define las operaciones necesarias:
-
-```text
-create(document)
-find_by_id(document_id)
-find_by_sha256(sha256)
-update(document)
-```
-
-Los errores de persistencia se expresan mediante:
-
-```text
-DocumentRepositoryError
-DocumentAlreadyExistsError
-```
-
-La implementación actual es:
-
-```text
-SQLiteDocumentRepository
-```
-
-El desacoplamiento permite implementar posteriormente:
-
-```text
-PostgreSQLDocumentRepository
-```
-
-o una integración basada en Supabase, sin cambiar los endpoints ni `DocumentService`.
-
-### Conversión dominio ↔ persistencia
-
-La capa de aplicación trabaja con:
-
-```text
-domain.Document
-```
-
-La infraestructura convierte esa entidad a:
-
-```text
-DocumentRecord
-```
-
-mediante:
-
-```text
-DocumentRecord.from_domain(document)
-```
-
-Al consultar desde SQLite ocurre el proceso inverso:
-
-```text
-SQLite Row
-   ↓
-DocumentRecord.from_row(...)
-   ↓
-DocumentRecord.to_domain()
-   ↓
-domain.Document
-```
-
-De esta forma, `DocumentService` nunca depende de filas SQLite ni de modelos específicos del motor de base de datos.
-
-### Configuración actual
-
-```env
-DATABASE_URL=sqlite:///storage/nuevamente.db
-```
-
-La selección del repositorio se realiza a partir de `DATABASE_URL`.
-
-Actualmente solo está implementado SQLite. Si se configura un motor no soportado, BackendAPI genera un error explícito.
-
----
-
-## Consulta de documentos
-
-El endpoint:
-
-```text
-GET /api/v1/documents/{document_id}
-```
-
-consulta la metadata y el estado actual de un documento previamente registrado.
-
-Ejemplo:
-
-```json
-{
-  "document_id": "doc_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
-  "filename": "documento.txt",
-  "status": "stored",
-  "content_type": "text/plain",
-  "size_bytes": 68,
-  "created_at": "2026-09-22T23:27:00Z",
-  "updated_at": "2026-09-22T23:27:00Z"
-}
-```
-
-Si el documento no existe:
-
-```text
-404 Not Found
-```
-
-con una respuesta controlada.
-
-Este endpoint consulta metadata; no descarga físicamente el archivo desde OCI.
-
----
-
-## Recuperación interna de documentos
-
-`DocumentService` expone el caso de uso interno:
-
-```text
-retrieve_document(document_id, object_storage)
-```
-
-La operación:
-
-1. busca el documento mediante `DocumentRepository`;
-2. obtiene el `oci_object_name` persistido;
-3. solicita el contenido mediante `ObjectStoragePort.download_file()`;
-4. devuelve un `RetrievedDocument`.
-
-El resultado contiene:
-
-```text
-RetrievedDocument
-├── document_id
-├── filename
-├── content_type
-└── content: bytes
-```
-
-Los errores se diferencian explícitamente:
-
-```text
-DocumentNotFoundError
-    El document_id no existe.
-
-DocumentNotStoredError
-    El documento existe, pero no tiene un objeto persistente asociado.
-
-DocumentRetrievalError
-    Object Storage no permitió recuperar el contenido.
-```
-
-Una falla de lectura no modifica el estado persistido del documento. Un documento previamente almacenado continúa en estado `STORED`; el error representa una falla de la operación de recuperación y no una pérdida confirmada del objeto.
-
----
-
-## Gestión de estados
-
-La identidad de un documento se determina mediante **SHA-256 de su contenido**, no por su nombre.
-
-```text
-RECEIVED
-   ↓
-VALIDATED
-   ↓
-STORING
-   ↓
-STORED
-   ↓
-INDEXING
-   ↓
-INDEXED
-```
-
-Estados de error:
-
-```text
-VALIDATION_FAILED
-STORAGE_FAILED
-INDEXING_FAILED
-```
-
-BackendAPI administra actualmente:
-
-```text
-RECEIVED → VALIDATED → STORING → STORED
-```
-
-Ante un fallo compensable después de la carga a OCI:
-
-```text
-STORING
-   ↓
-PUT OCI exitoso
-   ↓
-fallo al persistir STORED
-   ↓
-DELETE OCI
-   ↓
-STORAGE_FAILED
-```
-
-Si la compensación no puede completarse, el último estado persistido puede permanecer en `STORING`; en ese caso se genera `DocumentStorageConsistencyError` para indicar explícitamente que el resultado debe revisarse.
-
-La recuperación de un documento almacenado no introduce una nueva transición de estado.
-
-La transición hacia `INDEXING` e `INDEXED` se realizará posteriormente como parte de la frontera de integración con RAG.
-
-Las actualizaciones de estado son responsabilidad de los casos de uso internos y utilizan:
-
-```text
-DocumentRepository.update(document)
-```
-
-No se expone un endpoint genérico para permitir que el frontend modifique libremente el estado de un documento.
-
----
-
-## Almacenamiento
-
-### Temporal local
-
-El archivo recibido se escribe temporalmente por bloques, se sanea el nombre utilizado localmente y se controla el tamaño máximo configurado.
-
-Actualmente `POST /documents` reutiliza temporalmente el adaptador `services.storage/save_upload`, que a su vez delega en `infrastructure/storage/LocalFileStorage`.
-
-`services/` permanece como capa de compatibilidad mientras exista el endpoint legacy `/files/upload`. Esta dependencia deberá retirarse progresivamente para evitar mantener dos caminos de carga paralelos.
-
-### OCI Object Storage
-
-El contrato de almacenamiento permanente se define mediante:
-
-```text
-ObjectStoragePort
-```
-
-La implementación concreta actual es:
-
-```text
-infrastructure/storage/oci_object_storage.py
-```
-
-con:
-
-```text
-OCIObjectStorage
-```
-
-El adapter utiliza OCI Python SDK para interactuar con el bucket configurado.
-
-Convención de objetos:
-
-```text
-documents/{document_id}/original.pdf
-documents/{document_id}/original.md
-documents/{document_id}/original.txt
-```
-
-El valor se persiste en:
-
-```text
-oci_object_name
-```
-
-El bucket, namespace, región y perfil de autenticación se obtienen desde configuración externa y no están acoplados al código de aplicación.
-
-`ObjectStoragePort` permite actualmente:
-
-```text
-upload_file(...)
-download_file(...)
-delete_object(...)
-```
-
-`delete_object(...)` también se utiliza como operación compensatoria cuando la carga a OCI fue exitosa pero la confirmación final de metadata falla.
-
-La integración fue validada manualmente contra un bucket OCI configurado para el proyecto:
-
-```text
-PUT
-    almacenamiento real del archivo original
-    ↓
-oci_object_name persistido
-    ↓
-estado STORED
-
-GET
-    document_id
-    ↓
-metadata SQLite
-    ↓
-oci_object_name
-    ↓
-OCI Object Storage
-    ↓
-contenido binario recuperado correctamente
-```
-
-Además, se ejecutó una prueba manual controlada del flujo compensatorio utilizando almacenamiento y repositorio en memoria, verificando que ante un fallo simulado al persistir `STORED`:
-
-```text
-objeto cargado
-    ↓
-fallo de persistencia
-    ↓
-DELETE compensatorio
-    ↓
-objeto eliminado
-    ↓
-STORAGE_FAILED
-    ↓
-oci_object_name = None
-```
-
-Las operaciones reales de escritura y recuperación se validaron satisfactoriamente sin incorporar credenciales al repositorio.
-
----
-
-## Integración con RAG
-
-BackendAPI mantiene una frontera explícita con el módulo RAG mediante:
-
-```text
-RagPort
-```
-
-y el adapter correspondiente se ubica en:
-
-```text
-infrastructure/integrations/rag_adapter.py
-```
-
-La decisión arquitectónica actual establece que **BackendAPI es responsable de recuperar físicamente el documento desde OCI Object Storage**.
-
-RAG no debe necesitar conocer:
-
-```text
-OCI namespace
-bucket
-credenciales
-oci_object_name
-OCI Python SDK
-```
-
-El flujo previsto para la siguiente integración es:
-
-```text
-document_id
-     ↓
-BackendAPI
-     ↓
-DocumentRepository
-     ↓
-OCI Object Storage
-     ↓
-RetrievedDocument
-     ↓
-RagDocumentInput
-     ↓
-RagPort
-     ↓
-RagAdapter
-     ↓
-──────── límite BackendAPI ────────
-     ↓
-módulo RAG
-```
-
-BackendAPI deberá entregar el `document_id` canónico junto con el documento recuperado.
-
-### Contrato provisional
-
-Actualmente existe:
+El contrato utilizado por BackendAPI para entregar un documento a RAG es:
 
 ```python
 @dataclass(frozen=True, slots=True)
@@ -880,169 +319,130 @@ class RagDocumentInput:
     content: bytes
 ```
 
-Este contrato permanece provisional hasta completar la tarjeta de integración BackendAPI–RAG.
+La decisión v1 es explícita: **BackendAPI recupera el archivo desde OCI y entrega el contenido binario completo a RAG**.
 
-La decisión ya tomada es que BackendAPI recuperará el contenido desde OCI y será responsable de entregarlo a RAG. RAG no recuperará directamente los objetos desde OCI dentro de este flujo.
-
-La extracción de texto, limpieza, chunking, embeddings, almacenamiento vectorial, retrieval semántico y procesamiento mediante agentes quedan fuera de las responsabilidades de BackendAPI.
-
----
-
-## Endpoints
-
-| Método | Ruta | Estado |
-|---|---|---|
-| `GET` | `/` | Implementado |
-| `GET` | `/api/v1/health` | Implementado |
-| `POST` | `/api/v1/documents` | Implementado: valida, identifica, persiste metadata y almacena original en OCI |
-| `GET` | `/api/v1/documents/{document_id}` | Implementado: consulta metadata y estado |
-| `POST` | `/api/v1/files/upload` | Implementado — legacy |
-
-### Respuestas de `POST /api/v1/documents`
-
-| Código | Significado |
-|---|---|
-| `200` | Documento previamente registrado |
-| `201` | Documento nuevo registrado y almacenado |
-| `400` | Documento vacío o inválido |
-| `413` | Documento demasiado grande |
-| `415` | Formato o MIME type no soportado |
-| `422` | Error de validación de la petición |
-| `502` | Error al almacenar, confirmar o compensar el documento |
-
-### Respuestas de `GET /api/v1/documents/{document_id}`
-
-| Código | Significado |
-|---|---|
-| `200` | Documento encontrado |
-| `404` | Documento no encontrado |
-
-La recuperación física desde OCI es actualmente una operación interna de `DocumentService` y no un endpoint HTTP.
-
-Los routers provisionales de adaptaciones y procesos permanecen en la estructura actual, pero no forman parte de la funcionalidad implementada en esta etapa.
-
----
-
-## Configuración
-
-Crear `.env` a partir de `.env.example`.
-
-Ejemplo:
-
-```env
-PROJECT_NAME="NuevaMente API"
-ENVIRONMENT=local
-DEBUG=true
-
-API_V1_PREFIX=/api/v1
-
-HOST=0.0.0.0
-PORT=8000
-
-BACKEND_CORS_ORIGINS=http://localhost:3000
-
-MAX_UPLOAD_SIZE_MB=10
-UPLOAD_DIR=storage/uploads
-
-DATABASE_URL=sqlite:///storage/nuevamente.db
-
-OCI_NAMESPACE=
-OCI_BUCKET_NAME=
-OCI_REGION=
-OCI_CONFIG_FILE=~/.oci/config
-OCI_CONFIG_PROFILE=DEFAULT
-```
-
-### Autenticación OCI en desarrollo local
-
-El SDK puede utilizar un archivo de configuración externo, normalmente:
+Por tanto, RAG no necesita recibir ni conocer:
 
 ```text
-~/.oci/config
+oci_object_name
+bucket
+namespace
+credenciales OCI
+OCI Python SDK
 ```
 
-Ejemplo conceptual:
+Tampoco se incluyen en este contrato `sha256` ni estados internos de Backend, ya que no forman parte de la información necesaria para iniciar el procesamiento RAG.
 
-```ini
-[DEFAULT]
-user=...
-fingerprint=...
-tenancy=...
-region=...
-key_file=/ruta/a/clave_privada.pem
+### `document_id` canónico
+
+El `document_id` entregado a RAG es siempre el generado por BackendAPI.
+
+RAG debe preservar este identificador durante su procesamiento. BackendAPI no utiliza el nombre del archivo ni `source` como identificador alternativo.
+
+### Orquestación
+
+`RagIntegrationService` implementa el caso de uso:
+
+```text
+document_id
+    ↓
+DocumentService.retrieve_document()
+    ↓
+RetrievedDocument
+    ↓
+RagDocumentInput
+    ↓
+RagPort.index_document()
 ```
 
-También se pueden utilizar perfiles separados:
+El servicio no conoce la implementación interna del módulo RAG.
 
-```ini
-[NUEVAMENTE]
-user=...
-fingerprint=...
-tenancy=...
-region=...
-key_file=/ruta/a/clave_privada.pem
+### Adaptador
+
+`RagAdapter` implementa `RagPort` y traduce `RagDocumentInput` al entry point público de RAG.
+
+Actualmente el adapter depende de una interfaz mínima inyectable:
+
+```text
+RagEntryPoint
 ```
 
-y seleccionar el perfil mediante:
+Esto permite probar y cerrar la arquitectura BackendAPI sin acoplarla a una clase interna concreta del otro equipo.
 
-```env
-OCI_CONFIG_PROFILE=NUEVAMENTE
+La única pieza pendiente para la integración real es reemplazar esa expectativa por el entry point público definitivo que confirme RAG.
+
+Si RAG cambia internamente su pipeline, Vector Store, Retriever o tecnología de embeddings, esos cambios no deben propagarse a `application/` ni al dominio de BackendAPI.
+
+### Errores
+
+Los fallos del entry point externo se normalizan como:
+
+```text
+RagError
 ```
 
-### Seguridad
+y la capa de aplicación los traduce a:
 
-No se deben almacenar en Git:
+```text
+RagIntegrationError
+```
 
-- `.env` real;
-- claves privadas `.pem`;
-- archivo local `~/.oci/config`;
-- base SQLite local;
-- archivos temporales cargados.
+Esto evita que errores específicos del módulo RAG se propaguen directamente por la lógica de aplicación.
 
-El repositorio ya ignora `.env` y `storage/`. Las credenciales OCI deben permanecer fuera del proyecto.
+### Estados de indexación
+
+BackendAPI ya define:
+
+```text
+INDEXING
+INDEXED
+INDEXING_FAILED
+```
+
+pero la integración v1 todavía no activa estas transiciones automáticamente.
+
+La razón es contractual: hasta que el equipo RAG confirme si su entry point retorna al aceptar el documento o al finalizar realmente la indexación, BackendAPI no debe marcar un documento como `INDEXED` basándose en una suposición.
 
 ---
 
-## Instalación
+## Validación manual BackendAPI → RAG
 
-### Windows PowerShell
+La frontera se validó manualmente utilizando un documento real previamente almacenado en OCI Object Storage.
 
-```powershell
-cd backend
-
-python -m venv .venv
-.\.venv\Scripts\Activate.ps1
-
-python -m pip install -r requirements-dev.txt
-
-Copy-Item .env.example .env
-
-python -m uvicorn app.main:app --reload
-```
-
-### Linux / macOS
-
-```bash
-cd backend
-
-python3 -m venv .venv
-source .venv/bin/activate
-
-python -m pip install -r requirements-dev.txt
-
-cp .env.example .env
-
-python -m uvicorn app.main:app --reload
-```
-
-Servicios locales:
+El flujo probado fue:
 
 ```text
-API:     http://localhost:8000
-Swagger: http://localhost:8000/docs
+document_id real
+    ↓
+SQLite
+    ↓
+oci_object_name
+    ↓
+OCI Object Storage real
+    ↓
+contenido binario
+    ↓
+RetrievedDocument
+    ↓
+RagIntegrationService
+    ↓
+RagDocumentInput
+    ↓
+FakeRagPort
 ```
 
-Swagger y OpenAPI se deshabilitan cuando `ENVIRONMENT=production`.
+La validación confirmó que el contrato recibido por el puerto conserva correctamente:
+
+```text
+document_id
+filename
+content_type
+content
+```
+
+y que los bytes entregados corresponden al documento recuperado físicamente desde OCI.
+
+El `FakeRagPort` se utilizó únicamente para validar la frontera BackendAPI–RAG sin depender todavía del entry point real del equipo RAG.
 
 ---
 
@@ -1055,60 +455,48 @@ python -m ruff check app tests
 python -m pytest
 ```
 
-Estado actual validado:
+Estado validado en esta implementación:
 
 ```text
-All checks passed!
-50 passed
+Ruff: sin errores
+Pytest: suite completa aprobada
 ```
 
-La suite incluye pruebas de:
+La suite incluye, además de las pruebas existentes:
 
-- dominio;
-- schemas;
-- hashing;
-- servicios de aplicación;
-- repositorio SQLite;
-- creación de documentos;
-- consulta por `document_id`;
-- consulta por SHA-256;
-- actualización de metadata y estado;
-- selección del repositorio mediante factory;
-- motor de base de datos no soportado;
-- almacenamiento local;
-- salud del servicio;
-- carga de PDF, Markdown y TXT;
-- extensión no soportada;
-- MIME type incompatible;
-- archivo vacío;
-- límite de tamaño;
-- identificación mediante `document_id`;
-- detección de duplicados;
-- almacenamiento mediante `FakeObjectStorage`;
-- eliminación del temporal después del almacenamiento;
-- prevención de una segunda carga al detectar un duplicado ya almacenado;
-- fallo simulado de almacenamiento y respuesta `502`;
-- respuesta `404` para documentos inexistentes;
 - recuperación de documentos almacenados mediante `document_id`;
 - preservación exacta del contenido binario recuperado;
-- documento existente sin `oci_object_name`;
-- `document_id` inexistente durante recuperación;
-- fallo simulado durante recuperación desde Object Storage;
-- operación `OCIObjectStorage.download_file()`;
-- traducción de errores del SDK de OCI a `ObjectStorageError`;
-- compensación cuando `PUT` en OCI fue exitoso pero falla la persistencia de `STORED`;
-- eliminación del objeto recién cargado durante la compensación;
-- persistencia de `STORAGE_FAILED` y limpieza de `oci_object_name` tras una compensación exitosa;
-- detección explícita del fallo de `delete_object()` durante una compensación;
-- detección explícita del fallo al persistir `STORAGE_FAILED` después de eliminar el objeto;
-- compatibilidad del endpoint legacy.
+- compensación cuando OCI fue exitoso pero falla la persistencia final;
+- detección explícita de fallos durante la compensación;
+- transformación `RetrievedDocument → RagDocumentInput`;
+- preservación del `document_id` canónico al entregar a RAG;
+- rechazo de documentos inexistentes o todavía no almacenados;
+- traducción de errores RAG a errores de aplicación;
+- traducción de `RagDocumentInput` hacia el entry point mediante `RagAdapter`;
+- normalización de errores externos mediante `RagError`.
 
-Las pruebas automatizadas utilizan una base SQLite temporal y dobles de prueba para Object Storage. Por tanto, la suite no requiere conectarse a OCI ni modifica la base local de desarrollo.
+Las pruebas automatizadas utilizan SQLite temporal y dobles de Object Storage/RAG, por lo que no requieren modificar la base local ni ejecutar el módulo RAG real.
 
-Adicionalmente:
+Adicionalmente se validó manualmente:
 
-- se validó manualmente la recuperación desde OCI Object Storage real, comprobando que el contenido descargado coincide con el archivo previamente persistido;
-- se ejecutó una prueba manual controlada del flujo de compensación, comprobando que un fallo al persistir `STORED` elimina el objeto cargado, deja `oci_object_name = None` y persiste `STORAGE_FAILED`.
+- almacenamiento y recuperación contra OCI Object Storage real;
+- compensación controlada ante fallo de persistencia;
+- flujo completo `document_id → SQLite → OCI real → RetrievedDocument → RagDocumentInput → FakeRagPort`.
+
+---
+
+## Pendientes de integración
+
+La parte BackendAPI de la tarjeta queda implementada y validada.
+
+Permanece pendiente únicamente:
+
+1. que el equipo RAG confirme su entry point público definitivo;
+2. adaptar `RagAdapter` a esa firma concreta;
+3. registrar esa implementación real en el ciclo de vida de la aplicación;
+4. definir si el retorno del entry point significa “aceptado para indexación” o “indexación terminada” antes de activar `INDEXING`, `INDEXED` e `INDEXING_FAILED`.
+
+BackendAPI no implementará extracción, limpieza, chunking, embeddings, Vector Store, retrieval ni lógica de agentes.
 
 ---
 
