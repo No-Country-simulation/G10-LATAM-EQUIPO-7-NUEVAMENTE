@@ -83,13 +83,13 @@ export const apiClient = {
 
       if (!response.ok) {
         const errJson = await response.json().catch(() => ({}));
-        throw new Error(errJson.detail || `Error al procesar RAG (${response.status})`);
+        throw new Error(errJson.detail || `Error al procesar el documento (${response.status})`);
       }
 
       return await response.json();
     } catch (err) {
       if (err.name === 'AbortError') {
-        throw new Error('El pipeline RAG tardó demasiado tiempo en responder (Timeout).');
+        throw new Error('El servidor tardó demasiado tiempo en responder (Timeout).');
       }
       throw err;
     }

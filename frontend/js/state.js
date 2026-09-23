@@ -18,9 +18,6 @@ const internalState = {
   // Modo de API: 'mock' | 'real'
   apiMode: localStorage.getItem(CONFIG.STORAGE_KEYS.API_MODE) || 'mock',
 
-  // Tema: 'dark' | 'light'
-  theme: localStorage.getItem(CONFIG.STORAGE_KEYS.THEME) || 'dark',
-
   // Archivo seleccionado por el usuario en la pestaña de carga
   selectedFile: {
     name: initialDocument.filename,
@@ -73,12 +70,6 @@ const internalState = {
     currentStep: 0,
     statusText: 'Listo para procesar',
     lastLog: 'Sistema RAG inicializado y en espera.'
-  },
-
-  // Modales secundarios
-  modals: {
-    isArchModalOpen: false,
-    isJsonModalOpen: false
   },
 
   // Último JSON estructurado generado

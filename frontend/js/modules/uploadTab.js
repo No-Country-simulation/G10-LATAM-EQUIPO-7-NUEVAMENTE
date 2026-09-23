@@ -8,7 +8,6 @@ import { sampleLibrary } from '../data/sampleLibrary.js';
 import { mockService } from '../api/mockService.js';
 import { apiClient } from '../api/apiClient.js';
 import { router } from './router.js';
-import { jsonViewer } from './jsonViewer.js';
 
 export const uploadTab = {
   elements: {},
@@ -55,11 +54,10 @@ export const uploadTab = {
 
       // Resultados y Resolver
       resultBoxContainer: document.getElementById('resultBoxContainer'),
-      badgeFidelidad: document.getElementById('badgeFidelidad'),
-      badgeCoherencia: document.getElementById('badgeCoherencia'),
-      badgeChunks: document.getElementById('badgeChunks'),
+      badgeTiempo: document.getElementById('badgeTiempo'),
+      badgeSecciones: document.getElementById('badgeSecciones'),
+      badgeNivel: document.getElementById('badgeNivel'),
       resolverFormatCards: document.querySelectorAll('.btn-resolver-card'),
-      btnVerJsonRaw: document.getElementById('btnVerJsonRaw'),
       btnIrALaBiblioteca: document.getElementById('btnIrALaBiblioteca')
     };
   },
@@ -201,7 +199,7 @@ export const uploadTab = {
     if (resultBoxContainer) resultBoxContainer.style.display = 'none';
     if (btnLanzarProcesamiento) {
       btnLanzarProcesamiento.disabled = true;
-      btnLanzarProcesamiento.innerHTML = '<span>⏳ Procesando documento con RAG...</span>';
+      btnLanzarProcesamiento.innerHTML = '<span>Procesando documento...</span>';
     }
     this.resetStepperUI();
 
@@ -268,7 +266,7 @@ export const uploadTab = {
     } finally {
       if (btnLanzarProcesamiento) {
         btnLanzarProcesamiento.disabled = false;
-        btnLanzarProcesamiento.innerHTML = '<span>🚀 Procesar con NuevaMente RAG</span>';
+        btnLanzarProcesamiento.innerHTML = '<span>Procesar Documento</span>';
       }
     }
   },
@@ -295,23 +293,24 @@ export const uploadTab = {
     });
 
     if (this.elements.pipelineStatusBadge) {
-      this.elements.pipelineStatusBadge.textContent = 'Completado ✓';
+      this.elements.pipelineStatusBadge.textContent = 'Completado';
       this.elements.pipelineStatusBadge.style.background = 'rgba(16, 185, 129, 0.2)';
       this.elements.pipelineStatusBadge.style.color = '#10b981';
     }
     if (this.elements.pipelineLiveLog) {
-      this.elements.pipelineLiveLog.textContent = '¡Validación exitosa por el Agente Revisor! Contenido educativo anclado al documento.';
+      this.elements.pipelineLiveLog.textContent = 'Documento procesado correctamente. Ya está disponible en tu biblioteca.';
     }
 
-    // Actualizar métricas
-    if (this.elements.badgeFidelidad) {
-      this.elements.badgeFidelidad.textContent = `Fidelidad: ${(structuredJson.evaluacion_calidad.fidelidad_fuente * 100).toFixed(1)}%`;
+    // Actualizar datos de estudio
+    const meta = structuredJson.metadatos || {};
+    if (this.elements.badgeTiempo) {
+      this.elements.badgeTiempo.textContent = `Tiempo de lectura: ${meta.tiempo_estudio || '8 min'}`;
     }
-    if (this.elements.badgeCoherencia) {
-      this.elements.badgeCoherencia.textContent = `Coherencia: ${(structuredJson.evaluacion_calidad.coherencia_pedagogica * 100).toFixed(1)}%`;
+    if (this.elements.badgeSecciones) {
+      this.elements.badgeSecciones.textContent = `Secciones: ${procDoc.sections?.length || 1}`;
     }
-    if (this.elements.badgeChunks) {
-      this.elements.badgeChunks.textContent = `ChromaDB Chunks: ${structuredJson.evaluacion_calidad.chunks_utilizados}`;
+    if (this.elements.badgeNivel) {
+      this.elements.badgeNivel.textContent = `Nivel: ${this.getLevelLabel(meta.perfil)}`;
     }
 
     // Mostrar panel de resolución de formatos
@@ -319,6 +318,15 @@ export const uploadTab = {
       this.elements.resultBoxContainer.style.display = 'flex';
       this.elements.resultBoxContainer.scrollIntoView({ behavior: 'smooth' });
     }
+  },
+
+  getLevelLabel(perfil) {
+    const map = {
+      principiante: 'Principiante',
+      intermedio: 'Intermedio',
+      avanzado: 'Avanzado'
+    };
+    return map[(perfil || '').toLowerCase()] || 'General';
   },
 
   setupResolverActions() {
@@ -340,16 +348,6 @@ export const uploadTab = {
     if (this.elements.btnIrALaBiblioteca) {
       this.elements.btnIrALaBiblioteca.addEventListener('click', () => {
         router.navigate('library');
-      });
-    }
-
-    // Botón para ver el JSON estructurado
-    if (this.elements.btnVerJsonRaw) {
-      this.elements.btnVerJsonRaw.addEventListener('click', () => {
-        const currentJson = state.get().lastStructuredJson;
-        if (currentJson) {
-          jsonViewer.open(currentJson, `JSON RAG: ${currentJson.metadatos?.filename || 'Documento'}`);
-        }
       });
     }
   },

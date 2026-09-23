@@ -137,14 +137,13 @@ export const notebook = {
       <p class="cover-doc-description">${doc.description}</p>
       
       <div class="cover-meta-grid">
-        <div class="cover-meta-item">👤 Perfil: <strong>${meta.perfil || 'General'}</strong></div>
-        <div class="cover-meta-item">⏱️ Tiempo estimado: <strong>${meta.tiempo_estudio || '8 min'}</strong></div>
-        <div class="cover-meta-item">🎯 Anclaje RAG: <strong>${meta.anclaje_rag || 99}%</strong></div>
-        <div class="cover-meta-item">📁 Archivo: <strong>${doc.filename}</strong></div>
+        <div class="cover-meta-item">Perfil: <strong>${meta.perfil || 'General'}</strong></div>
+        <div class="cover-meta-item">Tiempo estimado: <strong>${meta.tiempo_estudio || '8 min'}</strong></div>
+        <div class="cover-meta-item">Archivo: <strong>${doc.filename}</strong></div>
       </div>
 
       <button type="button" class="btn-open-notebook" id="btnOpenDynamicNotebook">
-        <span>📖 Abrir Cuaderno de Estudio</span>
+        <span>Abrir Cuaderno de Estudio</span>
       </button>
     `;
 
@@ -177,7 +176,7 @@ export const notebook = {
         `;
       }
 
-      const chipsHtml = (sec.key_concepts || []).map(c => `<span class="concept-chip">#${c}</span>`).join('');
+      const chipsHtml = (sec.key_concepts || []).map(c => `<span class="concept-chip">${c}</span>`).join('');
       return `
         <div class="page-half" data-sec-id="${sec.id}">
           <div class="page-header-row">
@@ -198,7 +197,7 @@ export const notebook = {
 
           <div class="page-footer-actions">
             <button type="button" class="btn-study-badge" data-study-section="${sec.id}">
-              <span>📇 Estudiar esta Sección</span>
+              <span>Estudiar esta Sección</span>
             </button>
             <span class="page-number-label">${doc.discipline}</span>
           </div>
@@ -237,7 +236,7 @@ export const notebook = {
 
     spread.innerHTML = `
       <div class="page-header-row">
-        <h3 class="index-page-title">📑 Índice Temático del Documento</h3>
+        <h3 class="index-page-title">Índice Temático del Documento</h3>
         <span class="badge-pill badge-gold">${doc.sections?.length || 0} Secciones</span>
       </div>
       <p style="color: var(--text-secondary); font-size: 0.92rem;">

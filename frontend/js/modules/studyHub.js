@@ -8,7 +8,6 @@ import { flashcards } from './flashcards.js';
 import { quiz } from './quiz.js';
 import { videoGuide } from './videoGuide.js';
 import { summary } from './summary.js';
-import { jsonViewer } from './jsonViewer.js';
 
 export const studyHub = {
   elements: {},
@@ -16,7 +15,6 @@ export const studyHub = {
   init() {
     this.bindElements();
     this.setupFormatTabs();
-    this.setupJsonInspector();
 
     // Inicializar submódulos
     flashcards.init();
@@ -42,8 +40,7 @@ export const studyHub = {
         quiz: document.getElementById('viewFormatQuiz'),
         video: document.getElementById('viewFormatVideo'),
         sintesis: document.getElementById('viewFormatSintesis')
-      },
-      btnMiniVerJson: document.getElementById('btnMiniVerJson')
+      }
     };
   },
 
@@ -59,25 +56,6 @@ export const studyHub = {
         });
       });
     });
-  },
-
-  setupJsonInspector() {
-    if (this.elements.btnMiniVerJson) {
-      this.elements.btnMiniVerJson.addEventListener('click', () => {
-        const { currentDocument, lastStructuredJson, studyHub } = state.get();
-        const activeSection = this.getActiveSection(currentDocument, studyHub.activeSectionId);
-
-        const dataToInspect = lastStructuredJson || {
-          status: "success",
-          document_id: currentDocument.id,
-          disciplina: currentDocument.discipline,
-          titulo: currentDocument.title,
-          seccion_activa: activeSection
-        };
-
-        jsonViewer.open(dataToInspect, `JSON Sección: ${activeSection?.title || currentDocument.title}`);
-      });
-    }
   },
 
   syncWithState(s) {

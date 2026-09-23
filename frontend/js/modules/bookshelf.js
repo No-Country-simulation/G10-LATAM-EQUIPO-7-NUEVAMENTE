@@ -38,8 +38,8 @@ export const bookshelf = {
       openedTitle: document.getElementById('openedDocTitle'),
       openedSummary: document.getElementById('openedDocSummary'),
       openedTime: document.getElementById('openedDocTime'),
-      openedRagScore: document.getElementById('openedDocRagScore'),
-      openedChunks: document.getElementById('openedDocChunks'),
+      openedSections: document.getElementById('openedDocSections'),
+      openedLevel: document.getElementById('openedDocLevel'),
       openedChips: document.getElementById('openedDocChips'),
 
       // Opciones de Estudio de la Hoja Derecha
@@ -64,8 +64,7 @@ export const bookshelf = {
       if (!books.find(b => b.id === cDoc.id)) {
         books.unshift({
           ...cDoc,
-          spineColor: cDoc.spineColor || customColors[idx % customColors.length],
-          icon: cDoc.icon || '✨'
+          spineColor: cDoc.spineColor || customColors[idx % customColors.length]
         });
       }
     });
@@ -74,8 +73,7 @@ export const bookshelf = {
     if (currentDoc && !books.find(b => b.id === currentDoc.id)) {
       books.unshift({
         ...currentDoc,
-        spineColor: currentDoc.spineColor || 'gold-custom',
-        icon: currentDoc.icon || '✨'
+        spineColor: currentDoc.spineColor || 'gold-custom'
       });
     }
 
@@ -127,6 +125,15 @@ export const bookshelf = {
     return firstWord.length > 8 ? firstWord.slice(0, 8) : firstWord;
   },
 
+  getLevelLabel(perfil) {
+    const map = {
+      principiante: 'Principiante',
+      intermedio: 'Intermedio',
+      avanzado: 'Avanzado'
+    };
+    return map[(perfil || '').toLowerCase()] || 'General';
+  },
+
   createBookSpine(book) {
     const spine = document.createElement('div');
     const colorClass = `spine-${book.spineColor || 'navy'}`;
@@ -137,7 +144,6 @@ export const bookshelf = {
 
     spine.innerHTML = `
       <div class="spine-top-rib"></div>
-      <span class="spine-icon">${book.icon || '📘'}</span>
       <span class="spine-title-vertical">${book.title}</span>
       <span class="spine-code-tag">${shortTag}</span>
       <div class="spine-bottom-rib"></div>
@@ -153,13 +159,12 @@ export const bookshelf = {
   createUploadSlotSpine() {
     const spine = document.createElement('div');
     spine.className = 'book-spine book-spine-upload';
-    spine.title = 'Subir y procesar un nuevo PDF con RAG';
+    spine.title = 'Subir y procesar un nuevo documento';
 
     spine.innerHTML = `
       <div class="spine-top-rib"></div>
-      <span class="spine-icon" style="font-size: 1.5rem;">➕</span>
       <span class="spine-title-vertical">SUBIR NUEVO PDF</span>
-      <span class="spine-code-tag">RAG IA</span>
+      <span class="spine-code-tag">NUEVO</span>
       <div class="spine-bottom-rib"></div>
     `;
 
@@ -177,7 +182,7 @@ export const bookshelf = {
     this.currentSelectedBook = book;
     const {
       openBookOverlay, openedBadge, openedTitle, openedSummary,
-      openedTime, openedRagScore, openedChunks, openedChips
+      openedTime, openedSections, openedLevel, openedChips
     } = this.elements;
 
     if (!openBookOverlay) return;
@@ -189,13 +194,13 @@ export const bookshelf = {
 
     const meta = book.metadatos || {};
     if (openedTime) openedTime.textContent = meta.tiempo_estudio || '10 min';
-    if (openedRagScore) openedRagScore.textContent = `${meta.anclaje_rag || 99.4}%`;
-    if (openedChunks) openedChunks.textContent = meta.chunks_count || 18;
+    if (openedSections) openedSections.textContent = book.sections?.length || 1;
+    if (openedLevel) openedLevel.textContent = this.getLevelLabel(meta.perfil);
 
     // Chips de conceptos clave de la primera sección
     if (openedChips) {
-      const concepts = book.sections?.[0]?.key_concepts || ['Concepto Base', 'Metodología', 'RAG'];
-      openedChips.innerHTML = concepts.map(c => `<span class="concept-chip">#${c}</span>`).join('');
+      const concepts = book.sections?.[0]?.key_concepts || ['Concepto Base', 'Metodología', 'Estudio'];
+      openedChips.innerHTML = concepts.map(c => `<span class="concept-chip">${c}</span>`).join('');
     }
 
     // Mostrar modal

@@ -28,7 +28,6 @@ export const CONFIG = {
 
   // Almacenamiento local
   STORAGE_KEYS: {
-    THEME: 'nuevamente_theme',
     API_MODE: 'nuevamente_api_mode',
     LAST_DOC: 'nuevamente_last_doc'
   }

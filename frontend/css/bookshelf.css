@@ -425,10 +425,28 @@
   flex-direction: column;
   justify-content: space-between;
   gap: 1.25rem;
-  background: linear-gradient(to right, #faf5ea 0%, #f7f0e0 94%, #ede2cb 100%);
+  background:
+    radial-gradient(ellipse at right, rgba(0, 0, 0, 0.09) 0%, rgba(0, 0, 0, 0) 22%),
+    linear-gradient(to right, #faf5ea 0%, #f7f0e0 94%, #ede2cb 100%);
   border-right: 1px solid rgba(0, 0, 0, 0.06);
+  border-radius: 10px 0 0 10px;
   position: relative;
   z-index: 5;
+}
+
+/* Esquina de página doblada ("orejita") para reforzar la lectura de libro físico */
+.notebook-page-left::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 34px;
+  height: 34px;
+  background: linear-gradient(135deg, #fffdf7 45%, #d8c9a3 50%, #c2b083 100%);
+  clip-path: polygon(0 0, 100% 0, 0 100%);
+  box-shadow: 2px 2px 6px rgba(0, 0, 0, 0.15);
+  z-index: 6;
+  pointer-events: none;
 }
 
 .doc-badge-row {
@@ -456,22 +474,28 @@
   font-weight: 500;
 }
 
-.doc-rag-metrics-box {
+.study-meta-box {
   background: #ffffff;
   border: 1px solid rgba(212, 163, 75, 0.45);
   border-radius: 12px;
   padding: 0.85rem 1.1rem;
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  grid-template-columns: repeat(3, 1fr);
   gap: 0.6rem;
   font-size: 0.82rem;
   color: #475569;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
 }
 
-.doc-rag-metrics-box strong {
+.study-meta-box strong {
   color: #0f172a;
   font-weight: 700;
+}
+
+@media (max-width: 480px) {
+  .study-meta-box {
+    grid-template-columns: 1fr;
+  }
 }
 
 /* Hoja Derecha: Opciones de Estudio Interactivas sobre Pergamino */
@@ -481,9 +505,27 @@
   flex-direction: column;
   justify-content: space-between;
   gap: 1.25rem;
-  background: linear-gradient(to right, #ede2cb 0%, #f7f0e0 6%, #faf5ea 100%);
+  background:
+    radial-gradient(ellipse at left, rgba(0, 0, 0, 0.09) 0%, rgba(0, 0, 0, 0) 22%),
+    linear-gradient(to right, #ede2cb 0%, #f7f0e0 6%, #faf5ea 100%);
+  border-radius: 0 10px 10px 0;
   position: relative;
   z-index: 5;
+}
+
+/* Esquina de página doblada ("orejita") en el lado derecho */
+.notebook-page-right::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: 34px;
+  height: 34px;
+  background: linear-gradient(225deg, #fffdf7 45%, #d8c9a3 50%, #c2b083 100%);
+  clip-path: polygon(100% 0, 100% 100%, 0 0);
+  box-shadow: -2px 2px 6px rgba(0, 0, 0, 0.15);
+  z-index: 6;
+  pointer-events: none;
 }
 
 .study-choice-header h4 {
@@ -613,7 +655,7 @@
   box-shadow: 0 25px 70px rgba(15, 23, 42, 0.4), 0 0 35px rgba(180, 83, 9, 0.2);
 }
 
-[data-theme="light"] .doc-rag-metrics-box {
+[data-theme="light"] .study-meta-box {
   background: rgba(255, 255, 255, 0.75);
   border-color: rgba(180, 83, 9, 0.25);
 }

@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>NuevaMente - Plataforma Educativa Adaptativa con IA y RAG</title>
+  <title>NuevaMente - Plataforma Educativa Adaptativa con IA</title>
   <link rel="icon" type="image/png" href="LogoPropuesta - Editado.png">
   <link rel="stylesheet" href="css/main.css?v=2.2">
   <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -33,19 +33,19 @@
       </p>
 
       <div class="portada-stats-pill-row">
-        <span class="portada-stat-pill">📚 10 Tomos Clásicos</span>
-        <span class="portada-stat-pill">✨ RAG Adaptativo</span>
-        <span class="portada-stat-pill">🎯 4 Formatos de Estudio</span>
+        <span class="portada-stat-pill">10 Tomos Clásicos</span>
+        <span class="portada-stat-pill">Contenido Adaptativo</span>
+        <span class="portada-stat-pill">4 Formatos de Estudio</span>
       </div>
 
       <button type="button" class="btn-enter-library" id="btnEnterLibrary">
-        <span class="btn-enter-icon">📖</span>
+        <span class="btn-enter-icon"></span>
         <span class="btn-enter-label">Ingresar a La Biblioteca</span>
         <span class="btn-enter-arrow">&rarr;</span>
       </button>
 
       <p class="portada-click-anywhere-hint">
-        ✦ Haz clic en el botón o en cualquier lugar para ingresar al librero ✦
+        Haz clic en el botón o en cualquier lugar para ingresar al librero
       </p>
     </div>
   </aside>
@@ -62,36 +62,27 @@
     <!-- Navegación por Pestañas Principales (3 Pilares) -->
     <nav class="main-nav-tabs" aria-label="Navegación principal">
       <button type="button" class="nav-tab-btn active" data-tab="library" title="La Biblioteca de NuevaMente">
-        <span>📚 La Biblioteca</span>
+        <span>La Biblioteca</span>
       </button>
-      <button type="button" class="nav-tab-btn" data-tab="upload" title="Carga de Documento y Pipeline RAG">
-        <span>📥 Cargar & RAG</span>
+      <button type="button" class="nav-tab-btn" data-tab="upload" title="Carga de Documento">
+        <span>Cargar Documento</span>
       </button>
       <button type="button" class="nav-tab-btn" data-tab="study" title="Centro de Estudio Multi-Formato">
-        <span>📇 Centro de Estudio</span>
+        <span>Centro de Estudio</span>
       </button>
     </nav>
 
     <!-- Acciones Rápidas del Header -->
     <div class="header-actions">
-      <!-- Botón para ver el Diagrama de Arquitectura RAG -->
-      <button type="button" class="btn-secondary-action" id="btnVerArquitectura" title="Ver Diagrama de Flujo RAG">
-        <span>Arquitectura RAG</span>
-      </button>
-
       <!-- Selector de Modo de Conexión -->
-      <div class="header-select-group" title="Seleccionar modo de backend">
+      <div class="header-select-group" title="Seleccionar modo de conexión">
         <label for="apiModeSelector">Modo:</label>
         <select id="apiModeSelector">
-          <option value="mock">Modo Mock (Autónomo)</option>
-          <option value="real">Modo Backend Real (FastAPI)</option>
+          <option value="mock">Modo Demo (sin conexión)</option>
+          <option value="real">Modo Conectado</option>
         </select>
       </div>
 
-      <!-- Alternador de Tema Claro / Oscuro -->
-      <button type="button" class="theme-btn" id="btnTheme" title="Alternar Modo Claro / Oscuro">
-        <span id="themeBtnText">Modo Claro</span>
-      </button>
     </div>
   </header>
 
@@ -143,10 +134,10 @@
         <!-- Hero Header de la Pestaña -->
         <div class="upload-hero-header">
           <div class="upload-hero-title-box">
-            <span class="badge-pill badge-gold">Flujo Central de Ingesta</span>
-            <h2>Carga de Documento & Pipeline RAG Adaptativo</h2>
+            <span class="badge-pill badge-gold">Subí tu Documento</span>
+            <h2>Carga de Documento y Generación de Material de Estudio</h2>
             <p class="upload-subtitle">
-              Sube cualquier documento de estudio (medicina, ingeniería, leyes, economía, etc.). Nuestro pipeline multiagente indexa el contenido con embeddings, evalúa la fidelidad conceptual y genera materiales pedagógicos en 4 formatos interactivos.
+              Sube cualquier documento de estudio (medicina, ingeniería, leyes, economía, etc.) y generamos automáticamente flashcards, quiz, un video guía y un resumen para que lo estudies como prefieras.
             </p>
           </div>
         </div>
@@ -157,13 +148,13 @@
           <!-- Bloque 1: Carga de Archivo -->
           <div class="upload-panel-card">
             <div class="panel-title-row">
-              <h3><span>📥</span> 1. Documento de Estudio</h3>
+              <h3><span></span> 1. Documento de Estudio</h3>
               <span class="panel-title-hint">PDF, TXT o MD (Hasta 25MB)</span>
             </div>
 
             <!-- Zona de Arrastrar y Soltar Grande -->
             <div class="file-dropzone-large" id="dropAreaLarge">
-              <div class="dropzone-icon-large">📂</div>
+              <div class="dropzone-icon-large"></div>
               <h4>Arrastra y suelta tu documento aquí</h4>
               <p>O explora los archivos de tu dispositivo</p>
               <label for="docFileInput" class="btn-browse-file">Seleccionar Archivo</label>
@@ -187,15 +178,15 @@
               <span class="quick-label">O explora con documentos de muestra:</span>
               <div class="quick-samples-list">
                 <button type="button" class="btn-quick-sample active" data-sample="cloud_architecture">
-                  <div class="sample-meta-title">☁️ Arquitectura Cloud & Microservicios.pdf</div>
+                  <div class="sample-meta-title">Arquitectura Cloud & Microservicios.pdf</div>
                   <span class="sample-meta-tag">Tecnología</span>
                 </button>
                 <button type="button" class="btn-quick-sample" data-sample="neuroscience_learning">
-                  <div class="sample-meta-title">🧠 Neurobiología del Aprendizaje.pdf</div>
+                  <div class="sample-meta-title">Neurobiología del Aprendizaje.pdf</div>
                   <span class="sample-meta-tag">Ciencias Médicas</span>
                 </button>
                 <button type="button" class="btn-quick-sample" data-sample="legal_dataprotection">
-                  <div class="sample-meta-title">⚖️ Derecho Digital & Protección de Datos.docx</div>
+                  <div class="sample-meta-title">Derecho Digital & Protección de Datos.docx</div>
                   <span class="sample-meta-tag">Leyes & Privacidad</span>
                 </button>
               </div>
@@ -205,7 +196,7 @@
           <!-- Bloque 2: Parámetros Pedagógicos & Lanzador -->
           <div class="upload-panel-card">
             <div class="panel-title-row">
-              <h3><span>⚙️</span> 2. Parámetros de Adaptación</h3>
+              <h3><span></span> 2. Parámetros de Adaptación</h3>
               <span class="panel-title-hint">Guía el tono y profundidad del LLM</span>
             </div>
 
@@ -213,7 +204,7 @@
               <!-- Perfil -->
               <div class="param-field">
                 <label for="paramPerfil" class="param-label">
-                  <span>👤</span> <strong>Perfil del Estudiante:</strong>
+                  <span></span> <strong>Perfil del Estudiante:</strong>
                 </label>
                 <select id="paramPerfil" class="custom-select">
                   <option value="principiante">Principiante / Conceptos base, analogías y tono accesible</option>
@@ -225,7 +216,7 @@
               <!-- Nicho / Temática Abierta -->
               <div class="param-field">
                 <label for="paramNicho" class="param-label">
-                  <span>🏷️</span> <strong>Área Temática / Especialidad:</strong>
+                  <span></span> <strong>Área Temática / Especialidad:</strong>
                 </label>
                 <select id="paramNicho" class="custom-select">
                   <option value="auto" selected>Detectar automáticamente del documento (Universal)</option>
@@ -240,7 +231,7 @@
               <!-- Nivel de Detalle -->
               <div class="param-field">
                 <label for="paramDetalle" class="param-label">
-                  <span>🔍</span> <strong>Nivel de Detalle:</strong>
+                  <span></span> <strong>Nivel de Detalle:</strong>
                 </label>
                 <select id="paramDetalle" class="custom-select">
                   <option value="conceptual">Síntesis Conceptual Rápida</option>
@@ -252,21 +243,21 @@
               <!-- Formato Inicial de Salida -->
               <div class="param-field">
                 <label for="paramFormato" class="param-label">
-                  <span>🎯</span> <strong>Formato de Salida Inicial:</strong>
+                  <span></span> <strong>Formato de Salida Inicial:</strong>
                 </label>
                 <select id="paramFormato" class="custom-select">
-                  <option value="todos" selected>⭐ Resolver los 4 Formatos (Flashcards, Quiz, Video, Resumen)</option>
-                  <option value="flashcards">📇 Flashcards (Mnemotecnia y Repetición)</option>
-                  <option value="quiz">🎯 Quiz (Autoevaluación con Retroalimentación)</option>
-                  <option value="tutorial">🎬 Tutorial (Video y Guion Didáctico)</option>
-                  <option value="resumen">📑 Resumen (Síntesis Ejecutiva RAG)</option>
+                  <option value="todos" selected>Resolver los 4 Formatos (Flashcards, Quiz, Video, Resumen)</option>
+                  <option value="flashcards">Flashcards (Mnemotecnia y Repetición)</option>
+                  <option value="quiz">Quiz (Autoevaluación con Retroalimentación)</option>
+                  <option value="tutorial">Tutorial (Video y Guion Didáctico)</option>
+                  <option value="resumen">Resumen (Síntesis Ejecutiva)</option>
                 </select>
               </div>
 
               <!-- Botón de Lanzamiento -->
               <div style="margin-top: 0.75rem;">
                 <button type="button" class="btn-launch-rag" id="btnLanzarProcesamiento" style="width: 100%;">
-                  <span>🚀 Procesar con NuevaMente RAG</span>
+                  <span>Procesar Documento</span>
                 </button>
               </div>
             </div>
@@ -281,7 +272,7 @@
         <!--
         <div class="pipeline-card" id="pipelineCard" style="display: none;">
           <div class="panel-title-row">
-            <h3><span>⚡</span> Pipeline Multiagente en Ejecución</h3>
+            <h3><span></span> Pipeline Multiagente en Ejecución</h3>
             <span class="badge-pill badge-cyan" id="pipelineStatusBadge">Iniciando...</span>
           </div>
 
@@ -331,49 +322,48 @@
         <!-- Panel de Resultados y Resolver de Formatos -->
         <div class="result-box-container" id="resultBoxContainer" style="display: none;">
           <div class="result-success-banner">
-            <div class="success-icon-badge">✓</div>
+            <div class="success-icon-badge"></div>
             <div>
               <h3 style="color: var(--text-main); font-size: 1.25rem;">¡Contenido Educativo Procesado con Éxito!</h3>
               <p style="color: var(--text-secondary); font-size: 0.88rem; margin-top: 0.2rem;">
-                El documento ha sido analizado, anclado y validado conceptualmente por el Agente Revisor.
+                Ya podés estudiar este documento en cualquiera de los 4 formatos disponibles.
               </p>
               <div class="quality-badges-row">
-                <span class="q-badge" id="badgeFidelidad">Fidelidad: 99.4%</span>
-                <span class="q-badge" id="badgeCoherencia">Coherencia Pedagógica: 98.8%</span>
-                <span class="q-badge" id="badgeChunks">ChromaDB Chunks: 18</span>
-                <span class="q-badge">Almacenamiento: OCI Storage</span>
+                <span class="q-badge" id="badgeTiempo">Tiempo de lectura: 8 min</span>
+                <span class="q-badge" id="badgeSecciones">Secciones: 2</span>
+                <span class="q-badge" id="badgeNivel">Nivel: Intermedio</span>
               </div>
             </div>
           </div>
 
           <div style="display: flex; flex-direction: column; gap: 1rem;">
             <label class="param-label" style="font-size: 0.95rem;">
-              <span>🎯</span> <strong>Selecciona cómo deseas estudiar este contenido:</strong>
+              <span></span> <strong>Selecciona cómo deseas estudiar este contenido:</strong>
             </label>
             <div class="resolver-format-grid">
               <button type="button" class="btn-resolver-card" data-resolve-format="flashcards">
-                <span class="resolver-icon">📇</span>
+                <span class="resolver-icon"></span>
                 <div class="resolver-text">
                   <strong>Flashcards 3D</strong>
                   <span>Mnemotecnia y conceptos clave</span>
                 </div>
               </button>
               <button type="button" class="btn-resolver-card" data-resolve-format="quiz">
-                <span class="resolver-icon">🎯</span>
+                <span class="resolver-icon"></span>
                 <div class="resolver-text">
                   <strong>Quiz Interactivo</strong>
                   <span>Autoevaluación con justificación</span>
                 </div>
               </button>
               <button type="button" class="btn-resolver-card" data-resolve-format="video">
-                <span class="resolver-icon">🎬</span>
+                <span class="resolver-icon"></span>
                 <div class="resolver-text">
                   <strong>Tutorial (Video)</strong>
                   <span>Guion pedagógico estructurado</span>
                 </div>
               </button>
               <button type="button" class="btn-resolver-card" data-resolve-format="sintesis">
-                <span class="resolver-icon">📑</span>
+                <span class="resolver-icon"></span>
                 <div class="resolver-text">
                   <strong>Resumen Ejecutivo</strong>
                   <span>Síntesis y conceptos clave</span>
@@ -383,10 +373,7 @@
 
             <div class="secondary-actions-row">
               <button type="button" class="btn-primary-action" id="btnIrALaBiblioteca">
-                <span>📚 Ver en La Biblioteca</span>
-              </button>
-              <button type="button" class="btn-secondary-action" id="btnVerJsonRaw">
-                <span>{ } Inspeccionar JSON Estructurado</span>
+                <span>Ver en La Biblioteca</span>
               </button>
             </div>
           </div>
@@ -407,19 +394,14 @@
             <span class="topic-badge-pill" id="studyTopicBadge">DISCIPLINA</span>
             <h3 class="study-topic-title" id="studyTopicTitle">Sección de Estudio</h3>
           </div>
-          <div class="study-header-actions">
-            <button type="button" class="btn-inspect-json" id="btnMiniVerJson" title="Ver JSON estructurado de este módulo">
-              { } JSON
-            </button>
-          </div>
         </div>
 
         <!-- Pestañas de Formato Pedagógico (4 Salidas) -->
         <div class="format-tabs-bar" role="tablist">
-          <button type="button" class="format-tab-btn active" data-format="flashcards">📇 Flashcards</button>
-          <button type="button" class="format-tab-btn" data-format="quiz">🎯 Quiz</button>
-          <button type="button" class="format-tab-btn" data-format="video">🎬 Tutorial (Video)</button>
-          <button type="button" class="format-tab-btn" data-format="sintesis">📑 Resumen</button>
+          <button type="button" class="format-tab-btn active" data-format="flashcards">Flashcards</button>
+          <button type="button" class="format-tab-btn" data-format="quiz">Quiz</button>
+          <button type="button" class="format-tab-btn" data-format="video">Tutorial (Video)</button>
+          <button type="button" class="format-tab-btn" data-format="sintesis">Resumen</button>
         </div>
 
         <!-- Formato 1: Flashcards 3D -->
@@ -506,7 +488,7 @@
         <div class="format-view" id="viewFormatSintesis">
           <div class="sintesis-container">
             <div class="sintesis-card">
-              <h4>Resumen Ejecutivo RAG</h4>
+              <h4>Resumen Ejecutivo</h4>
               <p id="sintesisResumen">Cargando resumen ejecutivo...</p>
             </div>
             <div class="sintesis-details">
@@ -528,15 +510,15 @@
   </main>
 
   <!-- ========================================================================
-       BARRA INFERIOR DE ESTADO DEL SISTEMA (OCI & ANCLAJE RAG)
+       BARRA INFERIOR DE ESTADO
        ======================================================================== -->
   <footer class="system-status-bar">
     <div class="status-indicator">
       <div class="status-dot"></div>
-      <span id="ociStatusText">OCI Object Storage: Modo Autónomo (Always Free)</span>
+      <span id="ociStatusText">Modo sin conexión (datos de ejemplo)</span>
     </div>
     <div>
-      <span id="qualityScoreText">Score Anclaje RAG: 99.4% | Fidelidad Verificada</span>
+      <span id="qualityScoreText">Explorando la biblioteca</span>
     </div>
   </footer>
 
@@ -548,7 +530,6 @@
       <div class="notebook-page-left">
         <div class="doc-badge-row">
           <span class="badge-pill badge-gold" id="openedDocBadge">DISCIPLINA</span>
-          <span class="badge-pill badge-cyan">Documento RAG</span>
         </div>
 
         <div style="display: flex; flex-direction: column; gap: 0.75rem;">
@@ -556,11 +537,10 @@
           <p class="opened-doc-summary" id="openedDocSummary">Descripción y resumen del contenido analizado...</p>
         </div>
 
-        <div class="doc-rag-metrics-box">
-          <div>⏱️ Tiempo: <strong id="openedDocTime">10 min</strong></div>
-          <div>🎯 Anclaje: <strong id="openedDocRagScore">99.4%</strong></div>
-          <div>🧩 Chunks: <strong id="openedDocChunks">18</strong></div>
-          <div>⚡ Estado: <strong style="color: var(--accent-green);">Validado</strong></div>
+        <div class="study-meta-box">
+          <div>Tiempo de lectura: <strong id="openedDocTime">10 min</strong></div>
+          <div>Secciones: <strong id="openedDocSections">4</strong></div>
+          <div>Nivel: <strong id="openedDocLevel">Intermedio</strong></div>
         </div>
 
         <div>
@@ -583,28 +563,28 @@
 
         <div class="study-options-mini-grid">
           <button type="button" class="btn-study-choice-card" data-study-format="flashcards">
-            <span class="choice-icon">📇</span>
+            <span class="choice-icon"></span>
             <div class="choice-info">
               <strong>Flashcards 3D</strong>
               <span>Mnemotecnia activa</span>
             </div>
           </button>
           <button type="button" class="btn-study-choice-card" data-study-format="quiz">
-            <span class="choice-icon">🎯</span>
+            <span class="choice-icon"></span>
             <div class="choice-info">
               <strong>Quiz</strong>
               <span>Autoevaluación directa</span>
             </div>
           </button>
           <button type="button" class="btn-study-choice-card" data-study-format="video">
-            <span class="choice-icon">🎬</span>
+            <span class="choice-icon"></span>
             <div class="choice-info">
               <strong>Tutorial</strong>
               <span>Guion pedagógico</span>
             </div>
           </button>
           <button type="button" class="btn-study-choice-card" data-study-format="sintesis">
-            <span class="choice-icon">📑</span>
+            <span class="choice-icon"></span>
             <div class="choice-info">
               <strong>Resumen</strong>
               <span>Síntesis ejecutiva</span>
@@ -614,46 +594,14 @@
 
         <div class="notebook-action-footer">
           <button type="button" class="btn-close-notebook-shelf" id="btnCloseNotebookOverlay">
-            <span>✕ Devolver al Estante</span>
+            <span>Devolver al Estante</span>
           </button>
           <button type="button" class="btn-primary-action" id="btnStartStudying">
-            <span>📇 Comenzar a Estudiar &rarr;</span>
+            <span>Comenzar a Estudiar &rarr;</span>
           </button>
         </div>
       </div>
 
-    </div>
-  </div>
-
-  <!-- Modal 1: Diagrama de Arquitectura RAG (content.webp) -->
-  <div class="modal-backdrop" id="archModal" style="display: none;">
-    <div class="modal-dialog modal-arch-dialog">
-      <div class="modal-header">
-        <h3>Diagrama Funcional — Pipeline NuevaMente (RAG & Multiagente)</h3>
-        <button type="button" class="btn-close-modal" id="btnCloseArch">&times;</button>
-      </div>
-      <div class="arch-body">
-        <img src="content.webp" alt="Arquitectura Funcional NuevaMente" class="arch-diagram-img">
-      </div>
-    </div>
-  </div>
-
-  <!-- Modal 2: Visor de JSON Estructurado -->
-  <div class="modal-backdrop" id="jsonModal" style="display: none;">
-    <div class="modal-dialog modal-json-dialog">
-      <div class="modal-header">
-        <div>
-          <span class="badge-pill badge-gold" style="font-size: 0.68rem; margin-bottom: 0.2rem;">JSON Schema v1.0 · Hackathon ONE</span>
-          <h3 id="jsonModalTitle">Respuesta Estructurada del Pipeline RAG</h3>
-        </div>
-        <div class="json-header-actions">
-          <button type="button" class="btn-copy-json" id="btnCopyJson">Copiar JSON</button>
-          <button type="button" class="btn-close-modal" id="btnCloseJsonModal">&times;</button>
-        </div>
-      </div>
-      <div class="json-body">
-        <pre class="json-pre"><code id="jsonCodeDisplay"></code></pre>
-      </div>
     </div>
   </div>
 

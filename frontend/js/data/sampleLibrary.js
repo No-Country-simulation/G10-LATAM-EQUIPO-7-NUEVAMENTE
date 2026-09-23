@@ -14,7 +14,6 @@ export const sampleLibrary = {
     description: "Patrones de diseño desacoplados, escalabilidad horizontal, contenedores y balanceo de carga en la nube.",
     filesize: "3.2 MB",
     spineColor: "navy",
-    icon: "☁️",
     metadatos: {
       perfil: "intermedio",
       nivel_detalle: "equilibrado",
@@ -83,7 +82,6 @@ export const sampleLibrary = {
     description: "Bases sinápticas de la plasticidad neuronal, potenciación a largo plazo (LTP) y retención mnemotécnica.",
     filesize: "4.1 MB",
     spineColor: "emerald",
-    icon: "🧠",
     metadatos: {
       perfil: "principiante",
       nivel_detalle: "conceptual",
@@ -140,7 +138,6 @@ export const sampleLibrary = {
     description: "Principios jurídicos fundamentales del RGPD y normativas sobre tratamiento ético de datos personales.",
     filesize: "1.9 MB",
     spineColor: "burgundy",
-    icon: "⚖️",
     metadatos: {
       perfil: "avanzado",
       nivel_detalle: "profundo",
@@ -191,7 +188,6 @@ export const sampleLibrary = {
     description: "Sesgos cognitivos, teoría de perspectivas (Prospect Theory) y arquitectura de decisiones financieras.",
     filesize: "2.7 MB",
     spineColor: "amber",
-    icon: "📈",
     metadatos: {
       perfil: "intermedio",
       nivel_detalle: "equilibrado",
@@ -242,7 +238,6 @@ export const sampleLibrary = {
     description: "Atención autorregresiva, embeddings vectoriales, búsqueda semántica y recuperación aumentada por generación.",
     filesize: "3.8 MB",
     spineColor: "purple",
-    icon: "🤖",
     metadatos: {
       perfil: "avanzado",
       nivel_detalle: "profundo",
@@ -293,7 +288,6 @@ export const sampleLibrary = {
     description: "Dogma central de la biología molecular, ARN mensajero, ribosomas y edición de precisión con Cas9.",
     filesize: "4.5 MB",
     spineColor: "forest",
-    icon: "🧬",
     metadatos: {
       perfil: "intermedio",
       nivel_detalle: "equilibrado",
@@ -344,7 +338,6 @@ export const sampleLibrary = {
     description: "Algoritmos asimétricos (RSA, ECC), funciones hash (SHA-256), firmas digitales y modelos de confianza cero.",
     filesize: "2.9 MB",
     spineColor: "slate",
-    icon: "🛡️",
     metadatos: {
       perfil: "avanzado",
       nivel_detalle: "profundo",
@@ -395,7 +388,6 @@ export const sampleLibrary = {
     description: "Paradigmas, ciencia normal y cambios de cosmovisión desde Copérnico hasta la teoría de la relatividad.",
     filesize: "3.1 MB",
     spineColor: "ruby",
-    icon: "🏛️",
     metadatos: {
       perfil: "principiante",
       nivel_detalle: "conceptual",
@@ -446,7 +438,6 @@ export const sampleLibrary = {
     description: "Memoria de trabajo, efecto de espaciamiento, teoría de la carga cognitiva y estrategias de metacognición.",
     filesize: "2.5 MB",
     spineColor: "indigo",
-    icon: "🧩",
     metadatos: {
       perfil: "intermedio",
       nivel_detalle: "equilibrado",
@@ -497,7 +488,6 @@ export const sampleLibrary = {
     description: "Dualidad onda-partícula, superposición, entrelazamiento cuántico y el principio de incertidumbre de Heisenberg.",
     filesize: "3.4 MB",
     spineColor: "cyan",
-    icon: "⚛️",
     metadatos: {
       perfil: "principiante",
       nivel_detalle: "conceptual",

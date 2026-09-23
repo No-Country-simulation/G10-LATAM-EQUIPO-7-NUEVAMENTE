@@ -58,14 +58,14 @@ export const quiz = {
       allButtons[selectedIndex]?.classList.add('correct');
       if (feedbackBadge) {
         feedbackBadge.className = 'feedback-badge correct';
-        feedbackBadge.textContent = '✓ ¡Respuesta Correcta!';
+        feedbackBadge.textContent = '¡Respuesta Correcta!';
       }
     } else {
       allButtons[selectedIndex]?.classList.add('incorrect');
       allButtons[quizData.correcta]?.classList.add('correct');
       if (feedbackBadge) {
         feedbackBadge.className = 'feedback-badge incorrect';
-        feedbackBadge.textContent = '✕ Respuesta Incorrecta';
+        feedbackBadge.textContent = 'Respuesta Incorrecta';
       }
     }
 

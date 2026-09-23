@@ -33,7 +33,7 @@ export const mockService = {
       filename: fileData.name,
       discipline: inferredDiscipline,
       title: cleanTitle.charAt(0).toUpperCase() + cleanTitle.slice(1),
-      description: `Contenido educativo procesado mediante RAG adaptado para perfil [${params.perfil}] con nivel [${params.detalle}].`,
+      description: `Contenido educativo adaptado para perfil [${params.perfil}] con nivel [${params.detalle}].`,
       filesize: fileData.size || "1.8 MB",
       metadatos: {
         perfil: params.perfil,
@@ -88,7 +88,7 @@ export const mockService = {
               "Aislar los procesos del contexto real de aplicación."
             ],
             correcta: 0,
-            explicacion: "El análisis RAG valida que la estructuración rigurosa y fundamentada es el objetivo pedagógico primordial."
+            explicacion: "El análisis del documento valida que la estructuración rigurosa y fundamentada es el objetivo pedagógico primordial."
           }
         },
         {

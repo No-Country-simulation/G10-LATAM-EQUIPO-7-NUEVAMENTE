@@ -57,24 +57,6 @@
   gap: 0.75rem;
 }
 
-.btn-inspect-json {
-  background: var(--surface-elevated);
-  border: 1px solid var(--border-ui);
-  color: var(--accent-cyan);
-  font-family: monospace;
-  font-size: 0.82rem;
-  font-weight: 700;
-  padding: 0.45rem 0.9rem;
-  border-radius: 8px;
-  cursor: pointer;
-  transition: all var(--transition-fast);
-}
-
-.btn-inspect-json:hover {
-  background: rgba(6, 182, 212, 0.15);
-  border-color: var(--accent-cyan);
-}
-
 /* Barra de Formatos Pedagógicos (4 Pestañas) */
 .format-tabs-bar {
   display: flex;
