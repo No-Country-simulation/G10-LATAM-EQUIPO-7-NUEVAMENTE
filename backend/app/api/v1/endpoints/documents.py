@@ -13,12 +13,17 @@ from fastapi import (
     status,
 )
 
-from app.api.dependencies import get_document_service
+from app.api.dependencies import (
+    get_document_service,
+    get_object_storage,
+)
 from app.application.document_service import (
     DocumentNotFoundError,
     DocumentService,
+    DocumentStorageError,
 )
 from app.core.config import settings
+from app.ports.object_storage import ObjectStoragePort
 from app.schemas.document import (
     DocumentCreatedResponse,
     DocumentResponse,
@@ -113,6 +118,9 @@ def _validate_document_type(
         415: {
             "description": "Formato o MIME type no soportado.",
         },
+        502: {
+            "description": "Error al almacenar el documento en OCI.",
+        },
     },
 )
 async def upload_document(
@@ -129,6 +137,10 @@ async def upload_document(
     document_service: Annotated[
         DocumentService,
         Depends(get_document_service),
+    ],
+    object_storage: Annotated[
+        ObjectStoragePort,
+        Depends(get_object_storage),
     ],
 ) -> DocumentCreatedResponse:
     """Valida, identifica y registra un documento."""
@@ -165,15 +177,29 @@ async def upload_document(
             content_type=uploaded_file.content_type,
             size_bytes=uploaded_file.size_bytes,
         )
-    except Exception:
+
+        document = registration.document
+
+        if document.oci_object_name is None:
+            document = document_service.store_document(
+                document_id=document.document_id,
+                local_path=temporary_path,
+                object_storage=object_storage,
+            )
+
+    except DocumentStorageError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_502_BAD_GATEWAY,
+            detail=(
+                "El documento fue registrado, pero no pudo "
+                "almacenarse en OCI Object Storage."
+            ),
+        ) from exc
+    finally:
         temporary_path.unlink(missing_ok=True)
-        raise
 
     if not registration.created:
-        temporary_path.unlink(missing_ok=True)
         response.status_code = status.HTTP_200_OK
-
-    document = registration.document
 
     return DocumentCreatedResponse(
         document_id=document.document_id,

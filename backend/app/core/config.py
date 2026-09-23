@@ -60,6 +60,8 @@ class Settings(BaseSettings):
     OCI_NAMESPACE: str = ""
     OCI_BUCKET_NAME: str = ""
     OCI_REGION: str = ""
+    OCI_CONFIG_FILE: str = "~/.oci/config"
+    OCI_CONFIG_PROFILE: str = "DEFAULT"
 
     @field_validator("BACKEND_CORS_ORIGINS", mode="before")
     @classmethod

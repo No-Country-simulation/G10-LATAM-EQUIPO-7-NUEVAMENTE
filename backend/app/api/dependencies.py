@@ -3,6 +3,7 @@
 from fastapi import Request
 
 from app.application.document_service import DocumentService
+from app.ports.object_storage import ObjectStoragePort
 
 
 def get_document_service(
@@ -21,3 +22,20 @@ def get_document_service(
         )
 
     return service
+
+def get_object_storage(
+    request: Request,
+) -> ObjectStoragePort:
+    """Obtiene el almacenamiento de objetos configurado."""
+    storage = getattr(
+        request.app.state,
+        "object_storage",
+        None,
+    )
+
+    if storage is None:
+        raise RuntimeError(
+            "ObjectStoragePort no fue inicializado."
+        )
+
+    return storage

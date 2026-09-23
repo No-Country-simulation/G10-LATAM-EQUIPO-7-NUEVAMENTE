@@ -2,7 +2,7 @@
 
 Backend de **NuevaMente**, desarrollado con **FastAPI** y **Pydantic v2**.
 
-BackendAPI gestiona la recepción técnica de documentos, su validación, identificación, persistencia de metadata y estado, además de los contratos de integración con almacenamiento, RAG y Agentes.
+BackendAPI gestiona la recepción técnica de documentos, su validación, identificación, persistencia de metadata y estado, almacenamiento del archivo original en OCI Object Storage y los contratos de integración con RAG y Agentes.
 
 El frontend se encuentra en [`../frontend`](../frontend).
 
@@ -30,19 +30,28 @@ Actualmente están implementados:
 - Implementación actual del repositorio mediante SQLite.
 - Consulta de metadata mediante `GET /api/v1/documents/{document_id}`.
 - Selección centralizada del repositorio mediante `repository_factory.py`.
+- Contrato desacoplado de almacenamiento mediante `ObjectStoragePort`.
+- Implementación de OCI Object Storage mediante `OCIObjectStorage`.
+- Persistencia del archivo original en OCI utilizando la convención `documents/{document_id}/original.ext`.
+- Persistencia de `oci_object_name` en la metadata del documento.
+- Gestión de estados `VALIDATED → STORING → STORED`.
+- Gestión del estado `STORAGE_FAILED` cuando falla Object Storage.
+- Eliminación del archivo temporal después del almacenamiento permanente.
 - Dominio y estados de documentos y procesos.
-- Puertos para persistencia, Object Storage, RAG y Agentes.
+- Puertos provisionales para RAG y Agentes.
 - Pruebas unitarias y de integración.
 - Endpoint legacy `/api/v1/files/upload`, mantenido temporalmente por compatibilidad.
 
 Pendiente de implementación funcional:
 
-- OCI Object Storage.
-- Recuperación de documentos desde OCI.
+- Recuperación de documentos desde OCI Object Storage.
+- Cierre del contrato BackendAPI–RAG.
 - Integración real con RAG.
+- Cierre del contrato BackendAPI–Agentes.
 - Integración real con Agentes.
 - Endpoints funcionales de adaptaciones y procesos.
 - Implementación futura de otro motor de persistencia, por ejemplo PostgreSQL/Supabase, si el despliegue lo requiere.
+- Retiro progresivo de la capa legacy asociada a `/files/upload`.
 
 ---
 
@@ -57,9 +66,10 @@ Pendiente de implementación funcional:
 | Uploads | python-multipart |
 | Persistencia actual | SQLite |
 | Persistencia futura posible | PostgreSQL / Supabase |
+| Object Storage | OCI Object Storage |
+| SDK Cloud | OCI Python SDK |
 | Testing | pytest / httpx |
 | Calidad | Ruff |
-| Almacenamiento permanente previsto | OCI Object Storage |
 
 El proyecto soporta **Python 3.11 o superior**.
 
@@ -89,6 +99,8 @@ Infrastructure implementa los Ports
 | `rag/` | Espacio reservado para el equipo RAG |
 | `agents/` | Espacio reservado para RAG/Agentes |
 
+### Persistencia de metadata
+
 El endpoint HTTP no conoce directamente el motor de base de datos. `DocumentService` depende del contrato `DocumentRepository`.
 
 ```text
@@ -110,6 +122,24 @@ infrastructure/persistence/repository_factory.py
 ```
 
 Esto permite incorporar posteriormente otra implementación, por ejemplo PostgreSQL/Supabase, sin modificar los endpoints ni los casos de uso.
+
+### Almacenamiento de objetos
+
+La lógica de aplicación tampoco depende directamente del SDK de OCI.
+
+```text
+documents.py
+     ↓
+DocumentService
+     ↓
+ObjectStoragePort
+     ↑
+OCIObjectStorage
+     ↓
+OCI Object Storage
+```
+
+De esta forma, la autenticación y las llamadas específicas al proveedor quedan encapsuladas en `infrastructure/storage/`.
 
 ---
 
@@ -171,6 +201,7 @@ backend/
 │   └── agents/
 ├── tests/
 │   ├── conftest.py
+│   ├── fakes.py
 │   ├── test_health.py
 │   ├── unit/
 │   └── integration/
@@ -185,7 +216,7 @@ backend/
 
 ---
 
-## Carga, validación e identificación de documentos
+## Carga, validación, identificación y almacenamiento de documentos
 
 El endpoint:
 
@@ -254,8 +285,8 @@ UploadFile
    ↓
 validación de extensión y MIME
    ↓
-LocalFileStorage
-   ├─ saneamiento de nombre temporal
+almacenamiento temporal local
+   ├─ saneamiento de nombre
    └─ control de tamaño
    ↓
 validación de archivo no vacío
@@ -264,18 +295,44 @@ SHA-256 del contenido
    ↓
 DocumentRepository.find_by_sha256()
    │
-   ├─ existe → recuperar document_id → duplicate = true → HTTP 200
+   ├─ duplicado almacenado
+   │      ↓
+   │   recuperar document_id
+   │      ↓
+   │   duplicate = true
+   │      ↓
+   │   HTTP 200
    │
-   └─ no existe → generar document_id → registrar → VALIDATED → HTTP 201
+   └─ documento nuevo
+          ↓
+       generar document_id
+          ↓
+       registrar metadata
+          ↓
+       VALIDATED
+          ↓
+       STORING
+          ↓
+       OCI Object Storage
+          ↓
+       guardar oci_object_name
+          ↓
+       STORED
+          ↓
+       eliminar temporal
+          ↓
+       HTTP 201
 ```
 
 ### Documento nuevo
 
+Ejemplo de respuesta:
+
 ```json
 {
-  "document_id": "doc_69f7bfab0d9d410690662cc6a376d509",
-  "filename": "manual.txt",
-  "status": "validated",
+  "document_id": "doc_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+  "filename": "documento.txt",
+  "status": "stored",
   "duplicate": false
 }
 ```
@@ -288,11 +345,13 @@ Código HTTP:
 
 ### Documento duplicado
 
+Ejemplo de respuesta:
+
 ```json
 {
-  "document_id": "doc_69f7bfab0d9d410690662cc6a376d509",
-  "filename": "manual.txt",
-  "status": "validated",
+  "document_id": "doc_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+  "filename": "documento.txt",
+  "status": "stored",
   "duplicate": true
 }
 ```
@@ -305,7 +364,18 @@ Código HTTP:
 
 El documento duplicado conserva el mismo `document_id`.
 
-La ruta física del archivo temporal no se expone en el contrato HTTP. Cuando una carga corresponde a contenido ya registrado, la nueva copia temporal se elimina.
+Si el documento ya posee un `oci_object_name`, BackendAPI no vuelve a subir el mismo contenido a Object Storage.
+
+La ruta física del archivo temporal no se expone en el contrato HTTP y el temporal se elimina después del procesamiento.
+
+### Error de Object Storage
+
+Si el registro del documento fue creado pero falla el almacenamiento permanente, BackendAPI:
+
+1. actualiza el estado a `STORAGE_FAILED`;
+2. persiste el nuevo estado;
+3. elimina el archivo temporal;
+4. responde con `502 Bad Gateway`.
 
 ---
 
@@ -327,7 +397,7 @@ created_at
 updated_at
 ```
 
-El archivo original no se almacena en SQLite. Su persistencia definitiva se realizará mediante OCI Object Storage.
+El archivo original no se almacena en SQLite. El original se persiste en OCI Object Storage.
 
 ### Contrato de repositorio
 
@@ -420,13 +490,13 @@ Ejemplo:
 
 ```json
 {
-  "document_id": "doc_8edfc38a084147fd9ca2991b3cc0829e",
-  "filename": "prueba_persistencia.txt",
-  "status": "validated",
+  "document_id": "doc_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+  "filename": "documento.txt",
+  "status": "stored",
   "content_type": "text/plain",
-  "size_bytes": 49,
-  "created_at": "2026-09-22T20:04:51.813647Z",
-  "updated_at": "2026-09-22T20:04:51.813655Z"
+  "size_bytes": 68,
+  "created_at": "2026-09-22T23:27:00Z",
+  "updated_at": "2026-09-22T23:27:00Z"
 }
 ```
 
@@ -466,17 +536,13 @@ STORAGE_FAILED
 INDEXING_FAILED
 ```
 
-BackendAPI administra principalmente:
+BackendAPI administra actualmente:
 
 ```text
 RECEIVED → VALIDATED → STORING → STORED
 ```
 
-Actualmente, después de validar e identificar el documento, el estado queda en:
-
-```text
-VALIDATED
-```
+La transición hacia `INDEXING` e `INDEXED` corresponderá a la integración con RAG.
 
 Las actualizaciones de estado son responsabilidad de los casos de uso internos y utilizan:
 
@@ -492,25 +558,51 @@ No se expone un endpoint genérico para permitir que el frontend modifique libre
 
 ### Temporal local
 
-`LocalFileStorage` escribe los archivos por bloques, sanea el nombre utilizado para almacenamiento temporal y controla el tamaño máximo configurado.
+El archivo recibido se escribe temporalmente por bloques, se sanea el nombre utilizado localmente y se controla el tamaño máximo configurado.
+
+Actualmente `POST /documents` reutiliza temporalmente el adaptador `services.storage/save_upload`, que a su vez delega en `infrastructure/storage/LocalFileStorage`.
+
+`services/` permanece como capa de compatibilidad mientras exista el endpoint legacy `/files/upload`. Esta dependencia deberá retirarse progresivamente para evitar mantener dos caminos de carga paralelos.
 
 ### OCI Object Storage
 
-Existe `ObjectStoragePort` y el módulo:
+El contrato de almacenamiento permanente se define mediante:
+
+```text
+ObjectStoragePort
+```
+
+La implementación concreta actual es:
 
 ```text
 infrastructure/storage/oci_object_storage.py
 ```
 
-La implementación concreta con OCI está pendiente.
+con:
 
-Convención prevista:
+```text
+OCIObjectStorage
+```
+
+El adapter utiliza OCI Python SDK para interactuar con el bucket configurado.
+
+Convención de objetos:
 
 ```text
 documents/{document_id}/original.pdf
 documents/{document_id}/original.md
 documents/{document_id}/original.txt
 ```
+
+El valor se persiste en:
+
+```text
+oci_object_name
+```
+
+El bucket, namespace, región y perfil de autenticación se obtienen desde configuración externa y no están acoplados al código de aplicación.
+
+La integración fue validada manualmente contra un bucket OCI configurado para el proyecto mediante una operación real `PUT`, obteniendo respuesta exitosa del servicio y persistiendo posteriormente el `oci_object_name` y estado `STORED` en la base de datos local.
 
 ---
 
@@ -531,6 +623,15 @@ infrastructure/integrations/
 
 BackendAPI no implementa directamente extracción de texto, chunking, embeddings, vector store, retrieval semántico, prompts ni orquestación de agentes.
 
+### Contratos provisionales
+
+El contrato `RagDocumentInput` continúa siendo provisional. Actualmente contempla el contenido binario del documento, pero la integración definitiva BackendAPI–RAG deberá decidir si RAG recibe:
+
+- el contenido binario completo; o
+- una referencia al documento almacenado (`document_id` / referencia de Object Storage) y lo recupera desde allí.
+
+El contrato de adaptación también permanece provisional. Los parámetros definitivos deberán acordarse con Frontend y Agentes antes de cerrar esa integración.
+
 ---
 
 ## Endpoints
@@ -539,7 +640,7 @@ BackendAPI no implementa directamente extracción de texto, chunking, embeddings
 |---|---|---|
 | `GET` | `/` | Implementado |
 | `GET` | `/api/v1/health` | Implementado |
-| `POST` | `/api/v1/documents` | Implementado: carga, valida, identifica y persiste metadata |
+| `POST` | `/api/v1/documents` | Implementado: valida, identifica, persiste metadata y almacena original en OCI |
 | `GET` | `/api/v1/documents/{document_id}` | Implementado: consulta metadata y estado |
 | `POST` | `/api/v1/files/upload` | Implementado — legacy |
 
@@ -548,11 +649,12 @@ BackendAPI no implementa directamente extracción de texto, chunking, embeddings
 | Código | Significado |
 |---|---|
 | `200` | Documento previamente registrado |
-| `201` | Documento nuevo registrado |
+| `201` | Documento nuevo registrado y almacenado |
 | `400` | Documento vacío o inválido |
 | `413` | Documento demasiado grande |
 | `415` | Formato o MIME type no soportado |
 | `422` | Error de validación de la petición |
+| `502` | Error al almacenar el documento en Object Storage |
 
 ### Respuestas de `GET /api/v1/documents/{document_id}`
 
@@ -576,6 +678,8 @@ GET  /api/v1/processes/{process_id}
 
 Crear `.env` a partir de `.env.example`.
 
+Ejemplo:
+
 ```env
 PROJECT_NAME="NuevaMente API"
 ENVIRONMENT=local
@@ -596,9 +700,57 @@ DATABASE_URL=sqlite:///storage/nuevamente.db
 OCI_NAMESPACE=
 OCI_BUCKET_NAME=
 OCI_REGION=
+OCI_CONFIG_FILE=~/.oci/config
+OCI_CONFIG_PROFILE=DEFAULT
 ```
 
-Las credenciales reales y archivos locales no deben almacenarse en Git.
+### Autenticación OCI en desarrollo local
+
+El SDK puede utilizar un archivo de configuración externo, normalmente:
+
+```text
+~/.oci/config
+```
+
+Ejemplo conceptual:
+
+```ini
+[DEFAULT]
+user=...
+fingerprint=...
+tenancy=...
+region=...
+key_file=/ruta/a/clave_privada.pem
+```
+
+También se pueden utilizar perfiles separados:
+
+```ini
+[NUEVAMENTE]
+user=...
+fingerprint=...
+tenancy=...
+region=...
+key_file=/ruta/a/clave_privada.pem
+```
+
+y seleccionar el perfil mediante:
+
+```env
+OCI_CONFIG_PROFILE=NUEVAMENTE
+```
+
+### Seguridad
+
+No se deben almacenar en Git:
+
+- `.env` real;
+- claves privadas `.pem`;
+- archivo local `~/.oci/config`;
+- base SQLite local;
+- archivos temporales cargados.
+
+El repositorio ya ignora `.env` y `storage/`. Las credenciales OCI deben permanecer fuera del proyecto.
 
 ---
 
@@ -612,11 +764,11 @@ cd backend
 python -m venv .venv
 .\.venv\Scripts\Activate.ps1
 
-pip install -r requirements-dev.txt
+python -m pip install -r requirements-dev.txt
 
 Copy-Item .env.example .env
 
-uvicorn app.main:app --reload
+python -m uvicorn app.main:app --reload
 ```
 
 ### Linux / macOS
@@ -627,11 +779,11 @@ cd backend
 python3 -m venv .venv
 source .venv/bin/activate
 
-pip install -r requirements-dev.txt
+python -m pip install -r requirements-dev.txt
 
 cp .env.example .env
 
-uvicorn app.main:app --reload
+python -m uvicorn app.main:app --reload
 ```
 
 Servicios locales:
@@ -647,15 +799,17 @@ Swagger y OpenAPI se deshabilitan cuando `ENVIRONMENT=production`.
 
 ## Tests y calidad
 
+Ejecutar:
+
 ```bash
-python -m pytest
 python -m ruff check app tests
+python -m pytest
 ```
 
 Estado actual validado:
 
 ```text
-40 passed
+41 passed
 ```
 
 La suite incluye pruebas de:
@@ -680,10 +834,16 @@ La suite incluye pruebas de:
 - límite de tamaño;
 - identificación mediante `document_id`;
 - detección de duplicados;
+- almacenamiento mediante un `FakeObjectStorage`;
+- eliminación del temporal después del almacenamiento;
+- prevención de una segunda carga al detectar un duplicado ya almacenado;
+- fallo simulado de Object Storage y respuesta `502`;
 - respuesta `404` para documentos inexistentes;
 - compatibilidad del endpoint legacy.
 
-Las pruebas de integración utilizan una base SQLite temporal para evitar modificar la base local de desarrollo.
+Las pruebas automatizadas utilizan una base SQLite temporal y dobles de prueba para Object Storage. Por tanto, la suite no requiere conectarse a OCI ni modifica la base local de desarrollo.
+
+La conexión real con OCI debe validarse separadamente como prueba de integración manual o en un entorno de integración controlado.
 
 ---
 
@@ -698,3 +858,5 @@ Las pruebas de integración utilizan una base SQLite temporal para evitar modifi
 - Evitar duplicación y abstracciones innecesarias.
 - Documentar contratos y decisiones relevantes.
 - Acompañar nuevas funcionalidades con pruebas.
+- Mantener los contratos entre BackendAPI, RAG y Agentes explícitos y versionables.
+- No incorporar credenciales, claves privadas ni configuración sensible al repositorio.
