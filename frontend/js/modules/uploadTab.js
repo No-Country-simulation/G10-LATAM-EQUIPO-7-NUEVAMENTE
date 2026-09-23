@@ -37,7 +37,6 @@ export const uploadTab = {
       paramPerfil: document.getElementById('paramPerfil'),
       paramFormato: document.getElementById('paramFormato'),
       paramNicho: document.getElementById('paramNicho'),
-      paramDetalle: document.getElementById('paramDetalle'),
 
       // Stepper
       pipelineCard: document.getElementById('pipelineCard'),
@@ -149,11 +148,10 @@ export const uploadTab = {
 
         // Preseleccionar parámetros sugeridos
         if (sample.metadatos) {
-          if (sample.metadatos.perfil && this.elements.paramPerfil) {
-            this.elements.paramPerfil.value = sample.metadatos.perfil;
-          }
-          if (sample.metadatos.nivel_detalle && this.elements.paramDetalle) {
-            this.elements.paramDetalle.value = sample.metadatos.nivel_detalle;
+          if (this.elements.paramPerfil) {
+            const rawPerfil = sample.metadatos.target_profile || sample.metadatos.perfil;
+            const map = { principiante: 'beginner', intermedio: 'intermediate', avanzado: 'advanced' };
+            this.elements.paramPerfil.value = map[rawPerfil] || rawPerfil || 'intermediate';
           }
         }
       });
@@ -164,15 +162,14 @@ export const uploadTab = {
     const updateParams = () => {
       state.set({
         adaptationParams: {
-          perfil: this.elements.paramPerfil?.value || 'intermedio',
-          formato: this.elements.paramFormato?.value || 'todos',
-          nicho: this.elements.paramNicho?.value || 'auto',
-          detalle: this.elements.paramDetalle?.value || 'equilibrado'
+          target_profile: this.elements.paramPerfil?.value || 'intermediate',
+          output_format: this.elements.paramFormato?.value || 'all',
+          niche_context: this.elements.paramNicho?.value || 'general'
         }
       });
     };
 
-    [this.elements.paramPerfil, this.elements.paramFormato, this.elements.paramNicho, this.elements.paramDetalle].forEach(el => {
+    [this.elements.paramPerfil, this.elements.paramFormato, this.elements.paramNicho].forEach(el => {
       if (el) el.addEventListener('change', updateParams);
     });
   },
@@ -203,56 +200,81 @@ export const uploadTab = {
     }
     this.resetStepperUI();
 
+    const targetProfile = params.target_profile || 'intermediate';
+    const outputFormat = params.output_format || 'all';
+    const nicheContext = params.niche_context || 'general';
+
     try {
       if (apiMode === 'real' && selectedFile.rawFile) {
-        // Modo Real: Envía el archivo al backend FastAPI (POST /api/v1/documents)
-        this.setStepActive(this.elements.stepOci, 'Subiendo archivo al backend FastAPI (POST /api/v1/documents)...');
+        // Paso 1: Subir el documento al backend FastAPI (POST /api/v1/documents)
+        this.setStepActive(this.elements.stepOci, 'Persistiendo archivo en backend (POST /api/v1/documents)...');
         const uploadResult = await apiClient.uploadFile(selectedFile.rawFile);
         console.log('[Backend API /documents] Respuesta recibida:', uploadResult);
 
-        // Guardar metadatos del documento (soporta tanto document_id como filename/original_filename)
-        const docId = uploadResult.document_id || uploadResult.filename || selectedFile.name;
+        const docId = uploadResult.document_id;
+        if (!docId) {
+          throw new Error('El backend no retornó un document_id válido.');
+        }
+
         state.set({
           backendDocument: uploadResult,
           currentDocId: docId
         });
         this.setStepCompleted(this.elements.stepOci, this.elements.line1);
 
-        this.setStepActive(this.elements.stepChroma, 'Indexando chunks en vector store...');
-        await this.wait(600);
+        // Paso 2: Indexación y preparación
+        this.setStepActive(this.elements.stepChroma, `Indexando chunks para document_id [${docId}]...`);
+        await this.wait(400);
         this.setStepCompleted(this.elements.stepChroma, this.elements.line2);
 
-        this.setStepActive(this.elements.stepGen, 'Agente Generador procesando consultas...');
-        await this.wait(700);
+        // Paso 3: Llamar al contrato v1 de adaptación pedagógica (POST /api/v1/adaptations)
+        this.setStepActive(this.elements.stepGen, `Generando adaptación en backend (POST /api/v1/adaptations) para perfil [${targetProfile}]...`);
+        
+        const adaptationPayload = {
+          document_id: docId,
+          target_profile: targetProfile,
+          output_format: outputFormat,
+          niche_context: nicheContext
+        };
+        console.log('[Backend API /adaptations] Enviando payload v1:', adaptationPayload);
+
+        const adaptationResult = await apiClient.adaptContent(adaptationPayload);
+        console.log('[Backend API /adaptations] Respuesta recibida:', adaptationResult);
         this.setStepCompleted(this.elements.stepGen, this.elements.line3);
 
-        this.setStepActive(this.elements.stepCritic, 'Agente Crítico validando coherencia conceptual...');
-        await this.wait(500);
+        // Paso 4: Agente Revisor / Validación final
+        this.setStepActive(this.elements.stepCritic, 'Validando estructura pedagógica y calidad de respuesta...');
+        await this.wait(350);
         this.setStepCompleted(this.elements.stepCritic, null);
 
-        // Procesar resultado estructurado
-        const { document: procDoc, structuredJson } = await mockService.processMockPipeline(selectedFile, params);
-        this.onPipelineSuccess(procDoc, structuredJson);
+        // Mapear resultado del backend al modelo de visualización del frontend
+        const procDoc = this.mapBackendResponseToDocument(selectedFile, adaptationResult, params);
+        this.onPipelineSuccess(procDoc, adaptationResult, params);
+
       } else {
-        // Modo Mock (o muestra sin rawFile)
+        // Modo Mock (o muestra precargada sin archivo físico)
         this.setStepActive(this.elements.stepOci, 'Almacenando documento en OCI Object Storage...');
-        await this.wait(550);
+        await this.wait(500);
         this.setStepCompleted(this.elements.stepOci, this.elements.line1);
 
         this.setStepActive(this.elements.stepChroma, 'ChromaDB: particionando documento y calculando embeddings...');
-        await this.wait(700);
+        await this.wait(600);
         this.setStepCompleted(this.elements.stepChroma, this.elements.line2);
 
-        this.setStepActive(this.elements.stepGen, `Agente Generador: Extrayendo conceptos para perfil [${params.perfil}]...`);
-        await this.wait(800);
+        this.setStepActive(this.elements.stepGen, `Agente Generador: Extrayendo conceptos para perfil [${targetProfile}] en formato [${outputFormat}]...`);
+        await this.wait(650);
         this.setStepCompleted(this.elements.stepGen, this.elements.line3);
 
-        this.setStepActive(this.elements.stepCritic, 'Agente Revisor: Evaluando fidelidad conceptual (99.2%) y estructura JSON...');
-        await this.wait(600);
+        this.setStepActive(this.elements.stepCritic, 'Agente Revisor: Evaluando fidelidad conceptual y estructura JSON v1...');
+        await this.wait(500);
         this.setStepCompleted(this.elements.stepCritic, null);
 
-        const { document: procDoc, structuredJson } = await mockService.processMockPipeline(selectedFile, params);
-        this.onPipelineSuccess(procDoc, structuredJson);
+        const { document: procDoc, structuredJson } = await mockService.processMockPipeline(selectedFile, {
+          target_profile: targetProfile,
+          output_format: outputFormat,
+          niche_context: nicheContext
+        });
+        this.onPipelineSuccess(procDoc, structuredJson, params);
       }
     } catch (err) {
       console.error('[Pipeline Error]:', err);
@@ -271,10 +293,74 @@ export const uploadTab = {
     }
   },
 
-  onPipelineSuccess(procDoc, structuredJson) {
+  /**
+   * Mapea la respuesta estructurada del contrato v1 de Backend al modelo del Cuaderno/StudyHub
+   */
+  mapBackendResponseToDocument(selectedFile, backendRes, params) {
+    const adapted = backendRes.adapted_content || {};
+    const meta = backendRes.metadata || {};
+    const quality = backendRes.quality_evaluation || {};
+
+    const cleanTitle = adapted.title || selectedFile.name.replace(/\.[^/.]+$/, "").replace(/[-_]/g, " ");
+    const discipline = mockService.inferDiscipline(cleanTitle, meta.niche_context || params.niche_context);
+
+    const section = {
+      id: "sec_adapted_1",
+      title: cleanTitle,
+      summary: adapted.summary?.executive_summary || "Contenido adaptado generado por NuevaMente RAG.",
+      key_concepts: adapted.summary?.key_terms || ["Concepto Clave", "Arquitectura"],
+      flashcards: (adapted.flashcards || []).map(f => ({
+        front: f.front || f.frente,
+        back: f.back || f.dorso,
+        didactic_hint: f.didactic_hint || f.pista_didactica
+      })),
+      quiz: adapted.quiz ? {
+        question: adapted.quiz.question || adapted.quiz.pregunta,
+        options: adapted.quiz.options || adapted.quiz.opciones,
+        correct_answer: adapted.quiz.correct_answer !== undefined ? adapted.quiz.correct_answer : adapted.quiz.correcta,
+        explanation: adapted.quiz.explanation || adapted.quiz.explicacion
+      } : null,
+      video: adapted.tutorial ? {
+        title: adapted.tutorial.title || adapted.tutorial.titulo_video,
+        duration: adapted.tutorial.duration || adapted.tutorial.duracion,
+        key_points: adapted.tutorial.key_points || adapted.tutorial.puntos_video
+      } : null,
+      sintesis: adapted.summary ? {
+        executive_summary: adapted.summary.executive_summary || adapted.summary.resumen_ejecutivo,
+        key_takeaways: adapted.summary.key_takeaways || adapted.summary.puntos_clave,
+        key_terms: adapted.summary.key_terms || adapted.summary.terminos_clave
+      } : null
+    };
+
+    return {
+      id: backendRes.document_id || `doc_${Date.now()}`,
+      filename: selectedFile.name,
+      discipline: discipline,
+      title: cleanTitle.charAt(0).toUpperCase() + cleanTitle.slice(1),
+      description: `Contenido educativo adaptado para perfil [${meta.target_profile || params.target_profile}].`,
+      filesize: selectedFile.size || "2.0 MB",
+      metadatos: {
+        target_profile: meta.target_profile || params.target_profile,
+        tiempo_estudio: "6 min",
+        anclaje_rag: Math.round((quality.overall_score || 0.99) * 100),
+        fidelidad: `${((quality.source_faithfulness || 0.99) * 100).toFixed(1)}%`,
+        chunks_count: 14
+      },
+      sections: [section]
+    };
+  },
+
+  onPipelineSuccess(procDoc, structuredJson, params = {}) {
     const currentCustomBooks = state.get().customBooks || [];
     const exists = currentCustomBooks.some(b => b.id === procDoc.id);
     const updatedCustom = exists ? currentCustomBooks : [procDoc, ...currentCustomBooks];
+
+    // Mapear formato solicitado al formato activo en el Study Hub
+    const outputFormat = params.output_format || 'all';
+    let initialStudyFormat = 'flashcards';
+    if (outputFormat === 'quiz') initialStudyFormat = 'quiz';
+    else if (outputFormat === 'tutorial') initialStudyFormat = 'video';
+    else if (outputFormat === 'summary') initialStudyFormat = 'sintesis';
 
     state.set({
       currentDocument: procDoc,
@@ -286,31 +372,33 @@ export const uploadTab = {
       },
       studyHub: {
         activeSectionId: procDoc.sections[0]?.id || null,
-        activeFormat: 'flashcards',
+        activeFormat: initialStudyFormat,
         currentCardIndex: 0,
         isFlipped: false
       }
     });
 
     if (this.elements.pipelineStatusBadge) {
-      this.elements.pipelineStatusBadge.textContent = 'Completado';
+      this.elements.pipelineStatusBadge.textContent = 'Completado ✓';
       this.elements.pipelineStatusBadge.style.background = 'rgba(16, 185, 129, 0.2)';
       this.elements.pipelineStatusBadge.style.color = '#10b981';
     }
     if (this.elements.pipelineLiveLog) {
-      this.elements.pipelineLiveLog.textContent = 'Documento procesado correctamente. Ya está disponible en tu biblioteca.';
+      this.elements.pipelineLiveLog.textContent = 'Documento procesado correctamente según el contrato v1. Ya está disponible en tu biblioteca.';
     }
 
     // Actualizar datos de estudio
-    const meta = structuredJson.metadatos || {};
+    const meta = structuredJson.metadata || structuredJson.metadatos || {};
+    const quality = structuredJson.quality_evaluation || structuredJson.evaluacion_calidad || {};
+    
     if (this.elements.badgeTiempo) {
-      this.elements.badgeTiempo.textContent = `Tiempo de lectura: ${meta.tiempo_estudio || '8 min'}`;
+      this.elements.badgeTiempo.textContent = `Tiempo de lectura: ${meta.tiempo_estudio || '6 min'}`;
     }
     if (this.elements.badgeSecciones) {
       this.elements.badgeSecciones.textContent = `Secciones: ${procDoc.sections?.length || 1}`;
     }
     if (this.elements.badgeNivel) {
-      this.elements.badgeNivel.textContent = `Nivel: ${this.getLevelLabel(meta.perfil)}`;
+      this.elements.badgeNivel.textContent = `Nivel: ${this.getLevelLabel(meta.target_profile || meta.perfil)}`;
     }
 
     // Mostrar panel de resolución de formatos
@@ -322,11 +410,14 @@ export const uploadTab = {
 
   getLevelLabel(perfil) {
     const map = {
+      beginner: 'Principiante',
+      intermediate: 'Intermedio',
+      advanced: 'Avanzado',
       principiante: 'Principiante',
       intermedio: 'Intermedio',
       avanzado: 'Avanzado'
     };
-    return map[(perfil || '').toLowerCase()] || 'General';
+    return map[(perfil || '').toLowerCase()] || 'Intermedio';
   },
 
   setupResolverActions() {

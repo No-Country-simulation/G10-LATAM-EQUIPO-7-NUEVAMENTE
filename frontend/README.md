@@ -108,9 +108,71 @@ frontend/
 
 ---
 
-## 👥 Nota para el Equipo de Datos / Backend: Cómo Personalizar las Muestras
+---
 
-Los ejemplos precargados se encuentran centralizados en:
-👉 `frontend/js/data/sampleLibrary.js`
+## 🤝 Contrato de Integración v1 Estable (Frontend ↔ Backend)
 
-Para agregar nuevos datasets o retirar las muestras temporales, simplemente edita o sustituye los objetos exportados en ese archivo. Cada entrada define título, disciplina, metadatos y la lista de `sections` con sus flashcards, síntesis, tutorial y quiz.
+El Frontend se encuentra 100% alineado para enviar y consumir el contrato v1 cerrado con Backend (`POST /api/v1/adaptations`):
+
+### 1. Ingesta Técnica de Archivo
+- **Endpoint:** `POST http://localhost:8000/api/v1/documents`
+- **Body:** `multipart/form-data` con campo `file`
+- **Respuesta esperada:**
+  ```json
+  {
+    "document_id": "doc_e7a935bc87ff",
+    "filename": "documento.pdf",
+    "status": "stored",
+    "duplicate": false
+  }
+  ```
+
+### 2. Procesamiento y Adaptación Pedagógica
+- **Endpoint:** `POST http://localhost:8000/api/v1/adaptations`
+- **Método:** `POST`
+- **Content-Type:** `application/json`
+- **Request Body (v1 en inglés):**
+  ```json
+  {
+    "document_id": "doc_e7a935bc87ff",
+    "target_profile": "beginner",
+    "output_format": "flashcards",
+    "niche_context": "backend"
+  }
+  ```
+
+#### Valores Permitidos (Enums)
+* **`target_profile`**: `"beginner"` | `"intermediate"` | `"advanced"`
+* **`output_format`**: `"flashcards"` | `"quiz"` | `"tutorial"` | `"summary"` | `"all"`
+* **`niche_context`**: `"general"` | `"backend"` | `"health"` | `"legal"` | `"business"` | `"humanities"`
+* **`detail_level`**: **Excluido del contrato v1** (la profundidad y tono se derivan directamente de `target_profile`).
+
+### 3. Response Body Esperado (200 OK Síncrono)
+```json
+{
+  "status": "completed",
+  "document_id": "doc_e7a935bc87ff",
+  "metadata": {
+    "target_profile": "beginner",
+    "output_format": "flashcards",
+    "niche_context": "backend"
+  },
+  "quality_evaluation": {
+    "source_faithfulness": 0.99,
+    "pedagogical_coherence": 0.98,
+    "overall_score": 0.985
+  },
+  "adapted_content": {
+    "title": "Arquitectura Backend & Servidores",
+    "flashcards": [
+      {
+        "front": "¿Qué es un Endpoint en una REST API?",
+        "back": "Es una dirección URL específica para consultar o modificar datos en el servidor.",
+        "didactic_hint": "Es como el buzón específico al que envías una solicitud."
+      }
+    ]
+  }
+}
+```
+*Si `output_format` es `"quiz"`, el objeto `adapted_content` contiene únicamente `quiz`; si es `"tutorial"`, únicamente `tutorial`; si es `"summary"`, únicamente `summary`; y si es `"all"`, incluye los 4 formatos completos.*
+

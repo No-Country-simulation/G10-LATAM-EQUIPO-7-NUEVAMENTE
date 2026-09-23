@@ -15,7 +15,7 @@ export const CONFIG = {
     ENDPOINTS: {
       HEALTH: '/health',
       UPLOAD_FILE: '/documents',
-      ADAPT_RAG: '/adaptar' // Endpoint de pipeline RAG
+      ADAPT_RAG: '/adaptations' // Endpoint de pipeline RAG (contrato v1)
     },
     TIMEOUT_MS: 30000
   },

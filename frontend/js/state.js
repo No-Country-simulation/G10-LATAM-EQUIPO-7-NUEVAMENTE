@@ -42,12 +42,11 @@ const internalState = {
   // Libros y documentos personalizados subidos por el usuario durante la sesión
   customBooks: [],
 
-  // Parámetros de adaptación seleccionados
+  // Parámetros de adaptación seleccionados (contrato v1)
   adaptationParams: {
-    perfil: 'intermedio',
-    formato: 'todos',
-    nicho: 'auto',
-    detalle: 'equilibrado'
+    target_profile: 'intermediate',
+    output_format: 'all',
+    niche_context: 'general'
   },
 
   // Estado del Cuaderno Interactivo Dinámico

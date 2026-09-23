@@ -25,12 +25,12 @@ export const videoGuide = {
       return;
     }
 
-    videoTitle.textContent = videoData.titulo_video || 'Masterclass Didáctica';
+    videoTitle.textContent = videoData.title || videoData.titulo_video || 'Tutorial Pedagógico';
     if (videoDuration) {
-      videoDuration.textContent = videoData.duracion || '4:30 min';
+      videoDuration.textContent = videoData.duration || videoData.duracion || '4:30 min';
     }
 
-    const items = videoData.puntos_video || [];
+    const items = videoData.key_points || videoData.puntos_video || [];
     videoScriptList.innerHTML = items.length > 0
       ? items.map(point => `<li>${point}</li>`).join('')
       : '<li>Estructura de guion generada por el agente pedagógico.</li>';

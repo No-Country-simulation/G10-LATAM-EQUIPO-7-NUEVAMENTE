@@ -22,17 +22,20 @@ export const quiz = {
 
     if (feedbackBox) feedbackBox.style.display = 'none';
 
-    if (!quizData || !quizData.pregunta) {
+    const question = quizData.question || quizData.pregunta;
+    const options = quizData.options || quizData.opciones;
+
+    if (!quizData || !question) {
       questionText.textContent = 'No hay preguntas de quiz configuradas para esta sección.';
       optionsList.innerHTML = '';
       return;
     }
 
-    questionText.textContent = quizData.pregunta;
+    questionText.textContent = question;
     optionsList.innerHTML = '';
 
     const letters = ['A', 'B', 'C', 'D'];
-    (quizData.opciones || []).forEach((opcion, index) => {
+    (options || []).forEach((opcion, index) => {
       const btn = document.createElement('button');
       btn.className = 'quiz-option-btn';
       btn.innerHTML = `<strong>${letters[index] || index + 1})</strong> <span>${opcion}</span>`;
@@ -52,7 +55,8 @@ export const quiz = {
     const allButtons = optionsList.querySelectorAll('.quiz-option-btn');
     allButtons.forEach(b => b.disabled = true);
 
-    const isCorrect = selectedIndex === quizData.correcta;
+    const correctIndex = quizData.correct_answer !== undefined ? quizData.correct_answer : quizData.correcta;
+    const isCorrect = selectedIndex === correctIndex;
 
     if (isCorrect) {
       allButtons[selectedIndex]?.classList.add('correct');
@@ -62,7 +66,9 @@ export const quiz = {
       }
     } else {
       allButtons[selectedIndex]?.classList.add('incorrect');
-      allButtons[quizData.correcta]?.classList.add('correct');
+      if (correctIndex !== undefined && allButtons[correctIndex]) {
+        allButtons[correctIndex].classList.add('correct');
+      }
       if (feedbackBadge) {
         feedbackBadge.className = 'feedback-badge incorrect';
         feedbackBadge.textContent = 'Respuesta Incorrecta';
@@ -70,7 +76,7 @@ export const quiz = {
     }
 
     if (feedbackText) {
-      feedbackText.textContent = quizData.explicacion || 'El anclaje conceptual del documento fundamenta esta respuesta.';
+      feedbackText.textContent = quizData.explanation || quizData.explicacion || 'El anclaje conceptual del documento fundamenta esta respuesta.';
     }
 
     if (feedbackBox) {

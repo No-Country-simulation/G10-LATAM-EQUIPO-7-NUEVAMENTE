@@ -83,7 +83,15 @@ export const apiClient = {
 
       if (!response.ok) {
         const errJson = await response.json().catch(() => ({}));
-        throw new Error(errJson.detail || `Error al procesar el documento (${response.status})`);
+        let message = `Error al procesar el documento (${response.status})`;
+        if (errJson.detail) {
+          if (Array.isArray(errJson.detail)) {
+            message = errJson.detail.map(d => `${d.loc ? d.loc.join('.') + ': ' : ''}${d.msg}`).join('; ');
+          } else if (typeof errJson.detail === 'string') {
+            message = errJson.detail;
+          }
+        }
+        throw new Error(message);
       }
 
       return await response.json();

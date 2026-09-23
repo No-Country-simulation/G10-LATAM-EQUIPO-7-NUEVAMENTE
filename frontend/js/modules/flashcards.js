@@ -131,9 +131,9 @@ export const flashcards = {
     const total = this.cards.length;
     const currentNum = this.currentIndex + 1;
 
-    if (frontText) frontText.textContent = currentCard.frente;
-    if (backText) backText.textContent = currentCard.dorso;
-    if (hintText) hintText.textContent = currentCard.pista_didactica || 'Reflexiona sobre el concepto clave de la pregunta.';
+    if (frontText) frontText.textContent = currentCard.front || currentCard.frente;
+    if (backText) backText.textContent = currentCard.back || currentCard.dorso;
+    if (hintText) hintText.textContent = currentCard.didactic_hint || currentCard.pista_didactica || 'Reflexiona sobre el concepto clave de la pregunta.';
 
     if (progressTop) progressTop.textContent = `${currentNum} / ${total}`;
     if (counterText) counterText.textContent = `Tarjeta ${currentNum} de ${total}`;

@@ -201,56 +201,44 @@
             </div>
 
             <div class="parameters-stack">
-              <!-- Perfil -->
+              <!-- Perfil (target_profile) -->
               <div class="param-field">
                 <label for="paramPerfil" class="param-label">
-                  <span></span> <strong>Perfil del Estudiante:</strong>
+                  <span>👤</span> <strong>Perfil del Estudiante:</strong>
                 </label>
                 <select id="paramPerfil" class="custom-select">
-                  <option value="principiante">Principiante / Conceptos base, analogías y tono accesible</option>
-                  <option value="intermedio" selected>Intermedio / Aplicación práctica, ejemplos y metodología</option>
-                  <option value="avanzado">Avanzado / Profundidad técnica, compensaciones y análisis crítico</option>
+                  <option value="beginner">Principiante / Conceptos base, analogías y tono accesible</option>
+                  <option value="intermediate" selected>Intermedio / Aplicación práctica, ejemplos y metodología</option>
+                  <option value="advanced">Avanzado / Profundidad técnica, compensaciones y análisis crítico</option>
                 </select>
               </div>
 
-              <!-- Nicho / Temática Abierta -->
+              <!-- Nicho / Temática (niche_context) -->
               <div class="param-field">
                 <label for="paramNicho" class="param-label">
-                  <span></span> <strong>Área Temática / Especialidad:</strong>
+                  <span>🏷️</span> <strong>Área Temática / Especialidad:</strong>
                 </label>
                 <select id="paramNicho" class="custom-select">
-                  <option value="auto" selected>Detectar automáticamente del documento (Universal)</option>
-                  <option value="backend">Ingeniería & Software</option>
-                  <option value="salud">Ciencias Médicas & Biología</option>
-                  <option value="leyes">Ciencias Jurídicas & Derecho</option>
-                  <option value="economia">Economía & Negocios</option>
-                  <option value="humanidades">Humanidades & Educación</option>
+                  <option value="general" selected>General / Detección universal del documento</option>
+                  <option value="backend">Ingeniería & Software (Backend)</option>
+                  <option value="health">Ciencias Médicas & Salud</option>
+                  <option value="legal">Ciencias Jurídicas & Derecho</option>
+                  <option value="business">Economía & Negocios</option>
+                  <option value="humanities">Humanidades & Educación</option>
                 </select>
               </div>
 
-              <!-- Nivel de Detalle -->
-              <div class="param-field">
-                <label for="paramDetalle" class="param-label">
-                  <span></span> <strong>Nivel de Detalle:</strong>
-                </label>
-                <select id="paramDetalle" class="custom-select">
-                  <option value="conceptual">Síntesis Conceptual Rápida</option>
-                  <option value="equilibrado" selected>Equilibrado (Recomendado)</option>
-                  <option value="profundo">Riguroso / Exhaustivo</option>
-                </select>
-              </div>
-
-              <!-- Formato Inicial de Salida -->
+              <!-- Formato Inicial de Salida (output_format) -->
               <div class="param-field">
                 <label for="paramFormato" class="param-label">
-                  <span></span> <strong>Formato de Salida Inicial:</strong>
+                  <span>🎯</span> <strong>Formato de Salida Solicitado:</strong>
                 </label>
                 <select id="paramFormato" class="custom-select">
-                  <option value="todos" selected>Resolver los 4 Formatos (Flashcards, Quiz, Video, Resumen)</option>
+                  <option value="all" selected>Resolver los 4 Formatos (Flashcards, Quiz, Video, Resumen)</option>
                   <option value="flashcards">Flashcards (Mnemotecnia y Repetición)</option>
                   <option value="quiz">Quiz (Autoevaluación con Retroalimentación)</option>
                   <option value="tutorial">Tutorial (Video y Guion Didáctico)</option>
-                  <option value="resumen">Resumen (Síntesis Ejecutiva)</option>
+                  <option value="summary">Resumen (Síntesis Ejecutiva)</option>
                 </select>
               </div>
 
