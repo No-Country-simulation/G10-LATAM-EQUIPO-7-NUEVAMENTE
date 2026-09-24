@@ -1,5 +1,6 @@
 """Endpoints HTTP relacionados con documentos."""
 
+from collections.abc import AsyncIterator
 from pathlib import Path
 from typing import Annotated
 
@@ -16,6 +17,7 @@ from fastapi import (
 from app.api.dependencies import (
     get_document_service,
     get_object_storage,
+    get_temporary_storage,
 )
 from app.application.document_service import (
     DocumentNotFoundError,
@@ -24,16 +26,21 @@ from app.application.document_service import (
 )
 from app.core.config import settings
 from app.ports.object_storage import ObjectStoragePort
+from app.ports.temporary_storage import (
+    FileTooLargeError,
+    TemporaryStoragePort,
+)
 from app.schemas.document import (
     DocumentCreatedResponse,
     DocumentResponse,
 )
-from app.services.storage import FileTooLargeError, save_upload
 
 router = APIRouter(
     prefix="/documents",
     tags=["documents"],
 )
+
+_CHUNK_SIZE = 1024 * 1024  # 1 MiB
 
 _ALLOWED_MIME_TYPES = {
     ".pdf": frozenset({
@@ -49,6 +56,16 @@ _ALLOWED_MIME_TYPES = {
         "application/octet-stream",
     }),
 }
+
+
+async def _read_upload_chunks(
+    file: UploadFile,
+) -> AsyncIterator[bytes]:
+    """Convierte un UploadFile HTTP en un flujo asíncrono de bytes."""
+    while chunk := await file.read(
+        _CHUNK_SIZE
+    ):
+        yield chunk
 
 
 def _validate_document_type(
@@ -142,28 +159,49 @@ async def upload_document(
         ObjectStoragePort,
         Depends(get_object_storage),
     ],
+    temporary_storage: Annotated[
+        TemporaryStoragePort,
+        Depends(get_temporary_storage),
+    ],
 ) -> DocumentCreatedResponse:
-    """Valida, identifica y registra un documento."""
+    """Valida, registra y almacena permanentemente un documento."""
     _validate_document_type(
         file.filename,
         file.content_type,
     )
 
+    original_filename = (
+        file.filename or "archivo"
+    )
+    content_type = file.content_type
+
     try:
-        uploaded_file = await save_upload(file)
-    except FileTooLargeError as exc:
-        raise HTTPException(
-            status_code=status.HTTP_413_CONTENT_TOO_LARGE,
-            detail=(
-                "El archivo supera el máximo de "
-                f"{settings.MAX_UPLOAD_SIZE_MB} MB."
-            ),
-        ) from exc
+        try:
+            temporary_file = (
+                await temporary_storage.save(
+                    original_filename=original_filename,
+                    chunks=_read_upload_chunks(file),
+                )
+            )
+        except FileTooLargeError as exc:
+            raise HTTPException(
+                status_code=(
+                    status.HTTP_413_CONTENT_TOO_LARGE
+                ),
+                detail=(
+                    "El archivo supera el máximo de "
+                    f"{settings.MAX_UPLOAD_SIZE_MB} MB."
+                ),
+            ) from exc
+    finally:
+        await file.close()
 
-    temporary_path = Path(uploaded_file.path)
+    temporary_path = temporary_file.path
 
-    if uploaded_file.size_bytes == 0:
-        temporary_path.unlink(missing_ok=True)
+    if temporary_file.size_bytes == 0:
+        temporary_path.unlink(
+            missing_ok=True
+        )
 
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
@@ -171,20 +209,24 @@ async def upload_document(
         )
 
     try:
-        registration = document_service.register_document(
-            local_path=temporary_path,
-            original_filename=uploaded_file.original_filename,
-            content_type=uploaded_file.content_type,
-            size_bytes=uploaded_file.size_bytes,
+        registration = (
+            document_service.register_document(
+                local_path=temporary_path,
+                original_filename=original_filename,
+                content_type=content_type,
+                size_bytes=temporary_file.size_bytes,
+            )
         )
 
         document = registration.document
 
         if document.oci_object_name is None:
-            document = document_service.store_document(
-                document_id=document.document_id,
-                local_path=temporary_path,
-                object_storage=object_storage,
+            document = (
+                document_service.store_document(
+                    document_id=document.document_id,
+                    local_path=temporary_path,
+                    object_storage=object_storage,
+                )
             )
 
     except DocumentStorageError as exc:
@@ -196,7 +238,9 @@ async def upload_document(
             ),
         ) from exc
     finally:
-        temporary_path.unlink(missing_ok=True)
+        temporary_path.unlink(
+            missing_ok=True
+        )
 
     if not registration.created:
         response.status_code = status.HTTP_200_OK
@@ -207,6 +251,7 @@ async def upload_document(
         status=document.status,
         duplicate=not registration.created,
     )
+
 
 @router.get(
     "/{document_id}",
