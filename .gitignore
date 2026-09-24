@@ -1,0 +1,6 @@
+# Archivos de datos y bases vectoriales (Ignorados por peso y seguridad)
+agentes/chunks_v1.csv
+agentes/ground_truth_v1.csv
+chroma_test_db/
+.pytest_cache/
+__pycache__/
