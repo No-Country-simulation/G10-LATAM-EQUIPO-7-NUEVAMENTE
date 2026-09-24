@@ -1,4 +1,8 @@
-"""Endpoints de carga de archivos (requiere `python-multipart`)."""
+"""Endpoint legacy de carga de archivos.
+
+Se mantiene temporalmente por compatibilidad mientras la carga de documentos
+migra a ``POST /documents``.
+"""
 
 from typing import Annotated
 
@@ -18,12 +22,18 @@ router = APIRouter(prefix="/files", tags=["files"])
     summary="Subir un archivo",
 )
 async def upload_file(
-    file: Annotated[UploadFile, File(description="Archivo a almacenar.")],
+    file: Annotated[
+        UploadFile,
+        File(description="Archivo a almacenar."),
+    ],
 ) -> UploadedFile:
     try:
         return await save_upload(file)
     except FileTooLargeError as exc:
         raise HTTPException(
-            status_code=status.HTTP_413_REQUEST_ENTITY_TOO_LARGE,
-            detail=f"El archivo supera el máximo de {settings.MAX_UPLOAD_SIZE_MB} MB.",
+            status_code=status.HTTP_413_CONTENT_TOO_LARGE,
+            detail=(
+                "El archivo supera el máximo de "
+                f"{settings.MAX_UPLOAD_SIZE_MB} MB."
+            ),
         ) from exc
