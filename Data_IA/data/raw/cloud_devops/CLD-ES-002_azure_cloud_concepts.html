@@ -1,0 +1,1072 @@
+ <!DOCTYPE html>
+		<html
+			class="layout layout-single    learningpath show-breadcrumb default-focus"
+			lang="es-es"
+			dir="ltr"
+			data-authenticated="false"
+			data-auth-status-determined="false"
+			data-target="docs"
+			x-ms-format-detection="none"
+		>
+			
+		<head>
+			<title>Introducción a la infraestructura en la nube: Descripción de los conceptos de la nube - Training | Microsoft Learn</title>
+			<meta charset="utf-8" />
+			<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+			<meta name="color-scheme" content="light dark" />
+
+			<meta name="description" content="Ruta de aprendizaje introductoria que forma parte del contenido fundamental de la infraestructura de Azure." />
+			<link rel="canonical" href="https://learn.microsoft.com/es-es/training/paths/microsoft-azure-fundamentals-describe-cloud-concepts/" /> 
+
+			<!-- Non-customizable open graph and sharing-related metadata -->
+			<meta name="twitter:card" content="summary" />
+			<meta name="twitter:site" content="@MicrosoftLearn" />
+			<meta property="og:type" content="website" />
+			<meta property="og:image:alt" content="Introducción a la infraestructura en la nube: Descripción de los conceptos de la nube - Training | Microsoft Learn" />
+			<meta property="og:image" content="https://learn.microsoft.com/training/achievements/microsoft-azure-fundamentals-describe-cloud-concepts-social.png" />
+			<!-- Page specific open graph and sharing-related metadata -->
+			<meta property="og:title" content="Introducción a la infraestructura en la nube: Descripción de los conceptos de la nube - Training" />
+			<meta property="og:url" content="https://learn.microsoft.com/es-es/training/paths/microsoft-azure-fundamentals-describe-cloud-concepts/" />
+			<meta property="og:description" content="Ruta de aprendizaje introductoria que forma parte del contenido fundamental de la infraestructura de Azure." />
+			<meta name="platform_id" content="e683fef2-4549-8f6d-a9f9-cb2e60ad1666" /> 
+			<meta name="locale" content="es-es" />
+			 
+			<meta name="uhfHeaderId" content="MSDocsHeader-Learn" />
+
+			<meta name="page_type" content="learn" />
+
+			<!--page specific meta tags-->
+			
+
+			<!-- custom meta tags -->
+			
+		<meta name="schema" content="LearningPath" />
+	
+		<meta name="uid" content="learn.wwl.microsoft-azure-fundamentals-describe-cloud-concepts" />
+	
+		<meta name="ms.translationtype" content="MT" />
+	
+		<meta name="ms.contentlocale" content="es-es" />
+	
+		<meta name="loc_version" content="2026-03-31T17:20:35.8663394Z" />
+	
+		<meta name="loc_source_id" content="Github-126092861#live" />
+	
+		<meta name="loc_file_id" content="Github-126092861.live.Docs.learn-pr.paths/microsoft-azure-fundamentals-describe-cloud-concepts/index.yml" />
+	
+		<meta name="author" content="wwlpublish" />
+	
+		<meta name="breadcrumb_path" content="/learn/breadcrumb/toc.json" />
+	
+		<meta name="clicktale" content="true" />
+	
+		<meta name="depot_name" content="Docs.learn-pr" />
+	
+		<meta name="feedback_system" content="Standard" />
+	
+		<meta name="git_commit_id" content="3c26f9d91a3088ac1aefe6a52cb75419a9e758bf" />
+	
+		<meta name="gitcommit" content="https://github.com/MicrosoftDocs/learn-pr/blob/3c26f9d91a3088ac1aefe6a52cb75419a9e758bf/learn-pr/paths/microsoft-azure-fundamentals-describe-cloud-concepts/index.yml" />
+	
+		<meta name="ms.author" content="robbarefoot" />
+	
+		<meta name="ms.date" content="2026-03-31T00:00:00Z" />
+	
+		<meta name="ms.topic" content="learning-path" />
+	
+		<meta name="original_content_git_url" content="https://github.com/MicrosoftDocs/learn-pr/blob/live/learn-pr/paths/microsoft-azure-fundamentals-describe-cloud-concepts/index.yml" />
+	
+		<meta name="site_name" content="Docs" />
+	
+		<meta name="updated_at" content="2026-08-10T09:01:00Z" />
+	
+		<meta name="page_kind" content="path" />
+	
+		<meta name="feedback_product_url" content="" />
+	
+		<meta name="feedback_help_link_type" content="" />
+	
+		<meta name="feedback_help_link_url" content="" />
+	
+		<meta name="asset_id" content="paths/microsoft-azure-fundamentals-describe-cloud-concepts/index" />
+	
+		<meta name="item_type" content="Content" />
+	
+		<meta name="github_feedback_content_git_url" content="https://github.com/MicrosoftDocs/learn/blob/main/learn-pr/paths/microsoft-azure-fundamentals-describe-cloud-concepts/index.yml" />
+	
+		<meta name="markdown_url" content="https://learn.microsoft.com/es-es/training/paths/microsoft-azure-fundamentals-describe-cloud-concepts/?accept=text/markdown" />
+	 
+		<meta name="cmProducts" content="https://authoring-docs-microsoft.poolparty.biz/devrel/68ec7f3a-2bc6-459f-b959-19beb729907d" data-source="generated" />
+	
+		<meta name="spProducts" content="https://authoring-docs-microsoft.poolparty.biz/devrel/90370425-aca4-4a39-9533-d52e5e002a5d" data-source="generated" />
+	
+
+			<!-- Apply persisted/system theme before first paint to prevent wrong-theme flash when scripts are deferred. -->
+			<script id="theme-preference">
+				(function () {
+			try {
+				var stored = localStorage.getItem('theme');
+				var theme = /^(light|dark|high-contrast)$/.test(stored)
+					? stored
+					: matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+				document.documentElement.classList.add('theme-' + theme);
+			} catch (e) {}
+		})();;
+			</script>
+
+			<script id="atlas-layout-preferences">
+				(function () {
+			try {
+				var state = JSON.parse(localStorage.getItem('atlas-layout-preferences') || '{}');
+				var view = state["LearningPath"] || {};
+				var excludesKey = "";
+				var blocked = {};
+				if (excludesKey) {
+					var exclusions = JSON.parse(localStorage.getItem('atlas-layout-exclusions') || '{}');
+					if (Object.prototype.hasOwnProperty.call(exclusions, excludesKey)) {
+						var scoped = exclusions[excludesKey];
+						if (scoped) {
+							if (typeof scoped === 'object') blocked = scoped;
+						}
+					}
+				}
+				var html = document.documentElement;
+				for (var c in view) {
+					if (Object.prototype.hasOwnProperty.call(blocked, c)) continue;
+					if (view[c]) html.classList.add(c);
+					else html.classList.remove(c);
+				}
+			} catch (e) {}
+		})();;
+			</script>
+
+			<!-- assets and js globals -->
+			
+			<link rel="stylesheet" href="/static/assets/0.4.03547.8249-7a3b4850/styles/site.css" />
+			
+			<script src="https://wcpstatic.microsoft.com/mscc/lib/v2/wcp-consent.js"></script>
+			<!-- Keep this URL in sync with oneDSScriptSelector in instrumentation/one-ds.ts. -->
+			<script async src="https://js.monitor.azure.com/scripts/c/ms.jsll-4.min.js"></script>
+			
+
+			<!-- msdocs global object -->
+			<script id="msdocs-script">
+		var msDocs = {
+  "environment": {
+    "accessLevel": "online",
+    "azurePortalHostname": "portal.azure.com",
+    "reviewFeatures": false,
+    "supportLevel": "production",
+    "systemContent": true,
+    "siteName": "learn",
+    "legacyHosting": false
+  },
+  "data": {
+    "contentLocale": "es-es",
+    "contentDir": "ltr",
+    "userLocale": "es-es",
+    "userDir": "ltr",
+    "pageTemplate": "LearningPath",
+    "layoutStateStorageKey": "LearningPath",
+    "brand": "",
+    "context": {},
+    "standardFeedback": false,
+    "showFeedbackReport": false,
+    "feedbackHelpLinkType": "",
+    "feedbackHelpLinkUrl": "",
+    "feedbackSystem": "Standard",
+    "feedbackGitHubRepo": "",
+    "feedbackProductUrl": "",
+    "extendBreadcrumb": false,
+    "isEditDisplayable": false,
+    "isPrivateUnauthorized": false,
+    "hideViewSource": false,
+    "isPermissioned": false,
+    "hasRecommendations": false
+  },
+  "functions": {}
+};;
+	</script>
+
+			<!-- base scripts, msdocs global should be before this -->
+			
+				<script
+					src="/static/assets/0.4.03547.8249-7a3b4850/scripts/es-es/index-learner-experience.js"
+					async
+				></script>
+			
+			
+
+			<!-- json-ld -->
+			
+		<script >bazadebezolkohpepadr="2128521956"</script><script type="text/javascript" src="https://learn.microsoft.com/akam/13/7edeab49"  defer></script></head>
+	
+			<body
+				id="body"
+				data-bi-name="body"
+				class="layout-body "
+				lang="es-es"
+				dir="ltr"
+			>
+				<header class="layout-body-header background-color-body-medium">
+		<div class="header-holder has-default-focus">
+			
+		<a
+			href="#main"
+			
+			style="z-index: 1070"
+			class="outline-color-text visually-hidden-until-focused position-fixed inner-focus focus-visible top-0 left-0 right-0 padding-xs text-align-center background-color-body"
+			
+		>
+			Ir al contenido principal
+		</a>
+	
+
+			<div hidden id="cookie-consent-holder" data-test-id="cookie-consent-container"></div>
+			<!-- Unsupported browser warning -->
+			<div
+				id="unsupported-browser"
+				style="background-color: white; color: black; padding: 16px; border-bottom: 1px solid grey;"
+				hidden
+			>
+				<div style="max-width: 800px; margin: 0 auto;">
+					<p style="font-size: 24px">Este explorador ya no se admite.</p>
+					<p style="font-size: 16px; margin-top: 16px;">
+						Actualice a Microsoft Edge para aprovechar las características y actualizaciones de seguridad más recientes, y disponer de soporte técnico.
+					</p>
+					<div style="margin-top: 12px;">
+						<a
+							href="https://go.microsoft.com/fwlink/p/?LinkID=2092881 "
+							style="background-color: #0078d4; border: 1px solid #0078d4; color: white; padding: 6px 12px; border-radius: 2px; display: inline-block;"
+						>
+							Descargar Microsoft Edge
+						</a>
+						<a
+							href="https://learn.microsoft.com/en-us/lifecycle/faq/internet-explorer-microsoft-edge"
+							style="background-color: white; padding: 6px 12px; border: 1px solid #505050; color: #171717; border-radius: 2px; display: inline-block;"
+						>
+							Más información sobre Internet Explorer y Microsoft Edge
+						</a>
+					</div>
+				</div>
+			</div>
+			<!-- site header -->
+			<div
+				id="ms--site-header"
+				data-test-id="site-header-wrapper"
+				itemscope="itemscope"
+				itemtype="http://schema.org/Organization"
+			>
+				<div
+					id="ms--mobile-nav"
+					class="site-header display-none-tablet padding-inline-none gap-none"
+					data-bi-name="mobile-header"
+					data-test-id="mobile-header"
+				></div>
+				<div
+					id="ms--primary-nav"
+					class="site-header display-none display-flex-tablet"
+					data-bi-name="L1-header"
+					data-test-id="primary-header"
+				></div>
+				<div
+					id="ms--secondary-nav"
+					class="site-header display-none display-flex-tablet"
+					data-bi-name="L2-header"
+					data-test-id="secondary-header"
+					
+				></div>
+			</div>
+			
+		<!-- banner -->
+		<div data-banner>
+			<div id="disclaimer-holder"></div>
+			
+		</div>
+		<!-- banner end -->
+	
+		</div>
+	</header>
+				 
+
+				<main
+					id="main"
+					role="main"
+					class="layout-body-main background-color-body-medium"
+					data-bi-name="content"
+					lang="es-es"
+					dir="ltr"
+				>
+					
+			<div
+				data-main-column
+				class=""
+			>
+				<div class="">
+					
+		<div id="article-header" class="background-color-body display-none-print">
+			<div class="display-flex align-items-center justify-content-space-between uhf-container">
+				
+		<details
+			id="article-header-breadcrumbs-overflow-popover"
+			class="popover popover-left"
+			data-for="article-header-breadcrumbs"
+		>
+			<summary
+				class="button button-clear button-primary button-sm inner-focus"
+				aria-label="Todas las rutas de navegación"
+			>
+				<span class="icon" aria-hidden="true">
+					<span class="docon docon-more"></span>
+				</span>
+			</summary>
+			<div id="article-header-breadcrumbs-overflow" class="popover-content"></div>
+		</details>
+
+		<bread-crumbs
+			id="article-header-breadcrumbs"
+			role="group"
+			aria-label="Rutas de navegación"
+			data-test-id="article-header-breadcrumbs"
+			class="overflow-hidden flex-grow-1 margin-right-sm margin-right-md-tablet margin-right-lg-desktop margin-left-negative-xxs padding-left-xxs"
+		></bread-crumbs>
+	 
+		<div
+			id="article-header-page-actions"
+			class="opacity-none margin-left-auto display-flex flex-wrap-no-wrap align-items-stretch"
+		>
+			 
+
+			<details class="popover popover-right" id="article-header-page-actions-overflow">
+				<summary
+					class="justify-content-flex-start button button-clear button-sm button-primary inner-focus"
+					aria-label="Más acciones"
+					title="Más acciones"
+				>
+					<span class="icon" aria-hidden="true">
+						<span class="docon docon-more-vertical"></span>
+					</span>
+				</summary>
+				<div class="popover-content">
+					  
+		<a
+			id="lang-link-overflow"
+			class="button-sm inner-focus button button-clear button-block justify-content-flex-start text-align-left"
+			data-bi-name="language-toggle"
+			data-page-action-item="overflow-all"
+			data-check-hidden="true"
+			data-read-in-link
+			href="#"
+			hidden
+		>
+			<span class="icon" aria-hidden="true" data-read-in-link-icon>
+				<span class="docon docon-locale-globe"></span>
+			</span>
+			<span data-read-in-link-text>Leer en inglés</span>
+		</a>
+	
+					  
+					  
+				</div>
+			</details>
+		</div>
+	
+			</div>
+		</div>
+	 
+					<div data-page-content class=""><div class="has-body-background">
+	<div class="modular-content-container">
+		<div class="section is-small is-uniform padding-top-sm padding-top-lg-tablet padding-top-sm-desktop position-relative">
+			<div class="columns has-large-gaps margin-none">
+				<figure class="image is-112x112-desktop is-96x96 margin-bottom-sm">
+					<img role="presentation" src="/es-es/training/achievements/microsoft-azure-fundamentals-describe-cloud-concepts.svg" alt="" data-linktype="absolute-path">
+				</figure>
+
+				<div class="column padding-none padding-sm-tablet position-relative-tablet">
+					<div data-progress-uid="learn.wwl.microsoft-azure-fundamentals-describe-cloud-concepts" class="xp-tag is-hidden position-absolute top-0 margin-top-xs margin-top-sm-tablet margin-top-none-desktop right-0 margin-right-sm margin-right-lg-tablet">
+						<div class="xp-tag-hexagon">
+							<span class="xp-tag-icon is-shown-complete docon docon-check"></span>
+							<span aria-hidden="true" class="xp-tag-xp"></span>
+						</div>
+					</div>
+					<div class="columns is-mobile is-gapless margin-bottom-none">
+						<div class="column is-auto heading-container">
+							<h1 class="title is-2 margin-none margin-right-xxl-tablet">Introducción a la infraestructura en la nube: Descripción de los conceptos de la nube</h1>
+							<ul class="metadata page-metadata">
+								<li id="time-remaining"></li>
+								<li>
+									Ruta de aprendizaje
+								</li>
+								<li id="modules-remaining">
+									3 Módulos
+								</li>
+							</ul>
+						</div>
+					</div>
+
+					<div class="column margin-block-md">
+<div id="at-a-glance" class="padding-sm background-color-body-medium border-radius-lg">
+	<h2 class="title is-4 gradient-text-purple-blue display-inline-block has-line-height-reset">
+		En un vistazo
+	</h2>
+	<ul class="columns is-multiline">
+<li data-test-id="at-a-glance-level" class=" column is-half">
+	<div class="media">
+		<div class="media-left">
+			<span class="icon">
+				<span class="docon docon-dial-shape1" aria-hidden="true"></span>
+			</span>
+		</div>
+		<div class="media-content">
+			<p class="list-label is-capitalized font-weight-semibold">
+				Nivel
+			</p>
+			<div class="list-container is-comma-delimited ">
+
+							<a class="browse-page-link" href="/es-es/training/browse/?levels=beginner&amp;resource_type=learning%20path" data-linktype="absolute-path">Principiante</a>
+
+
+			</div>
+		</div>
+	</div>
+</li>
+<li id="at-a-glance-skill" data-test-id="at-a-glance-skills" class=" column is-half">
+	<div class="media">
+		<div class="media-left">
+			<span class="icon">
+				<span class="docon docon-ribbon2" aria-hidden="true"></span>
+			</span>
+		</div>
+		<div class="media-content">
+			<p class="list-label is-capitalized font-weight-semibold">
+				personalizada
+			</p>
+			<div class="list-container is-comma-delimited skeleton">
+
+
+							<span class="skill-text">&amp;nbsp;</span>
+
+			</div>
+		</div>
+	</div>
+</li>
+<li data-test-id="at-a-glance-product" class=" column is-half">
+	<div class="media">
+		<div class="media-left">
+			<span class="icon">
+				<span class="docon docon-product" aria-hidden="true"></span>
+			</span>
+		</div>
+		<div class="media-content">
+			<p class="list-label is-capitalized font-weight-semibold">
+				Producto
+			</p>
+			<div class="list-container is-comma-delimited ">
+
+							<a class="browse-page-link" href="/es-es/training/browse/?products=azure&amp;resource_type=learning%20path" data-linktype="absolute-path">Azure</a>
+
+
+			</div>
+		</div>
+	</div>
+</li>
+<li data-test-id="at-a-glance-role" class=" column is-half">
+	<div class="media">
+		<div class="media-left">
+			<span class="icon">
+				<span class="docon docon-contact" aria-hidden="true"></span>
+			</span>
+		</div>
+		<div class="media-content">
+			<p class="list-label is-capitalized font-weight-semibold">
+				Rol
+			</p>
+			<div class="list-container is-comma-delimited ">
+
+							<a class="browse-page-link" href="/es-es/training/browse/?roles=administrator&amp;resource_type=learning%20path" data-linktype="absolute-path">Administrador</a>
+
+
+							<a class="browse-page-link" href="/es-es/training/browse/?roles=developer&amp;resource_type=learning%20path" data-linktype="absolute-path">Desarrollador</a>
+
+
+							<a class="browse-page-link" href="/es-es/training/browse/?roles=devops-engineer&amp;resource_type=learning%20path" data-linktype="absolute-path">Ingeniero de DevOps</a>
+
+
+							<a class="browse-page-link" href="/es-es/training/browse/?roles=solution-architect&amp;resource_type=learning%20path" data-linktype="absolute-path">Arquitecto de soluciones</a>
+
+
+			</div>
+		</div>
+	</div>
+</li>
+<li data-test-id="at-a-glance-subject" class=" column is-half">
+	<div class="media">
+		<div class="media-left">
+			<span class="icon">
+				<span class="docon docon-text-document" aria-hidden="true"></span>
+			</span>
+		</div>
+		<div class="media-content">
+			<p class="list-label is-capitalized font-weight-semibold">
+				Asunto
+			</p>
+			<div class="list-container is-comma-delimited ">
+
+							<a class="browse-page-link" href="/es-es/training/browse/?subjects=architecture&amp;resource_type=learning%20path" data-linktype="absolute-path">Architecture</a>
+
+
+							<a class="browse-page-link" href="/es-es/training/browse/?subjects=cloud-computing&amp;resource_type=learning%20path" data-linktype="absolute-path">Informática en la nube</a>
+
+
+							<a class="browse-page-link" href="/es-es/training/browse/?subjects=infrastructure&amp;resource_type=learning%20path" data-linktype="absolute-path">Infraestructura técnica</a>
+
+
+			</div>
+		</div>
+	</div>
+</li>
+	</ul>
+</div>
+					</div>
+
+
+					<div class="learn-summary font-size-md content"><p>¿Primera experiencia con la nube? Introducción a la infraestructura en la nube es una serie de cuatro partes que le enseña conceptos básicos de la nube, proporciona una visión general simplificada de muchos servicios de Azure y le guía con ejercicios prácticos para implementar sus primeros servicios de forma gratuita. Complete todas las rutas de aprendizaje de la serie si está preparando el examen AZ-900: Aspectos básicos de Microsoft Azure.
+Esta es la primera ruta de aprendizaje de la serie Introducción a la infraestructura en la <strong>nube: Descripción de los conceptos de la nube</strong>. Las otras rutas de aprendizaje de la serie son <a href="/es-es/training/paths/azure-fundamentals-describe-azure-architecture-services/" data-linktype="absolute-path"><strong>parte 2: Descripción de la arquitectura y los servicios de Azure</strong></a>, <a href="/es-es/training/paths/describe-azure-management-governance/" data-linktype="absolute-path"><strong>parte 3: Descripción de la administración y gobernanza de Azure</strong></a> y <a href="/es-es/training/paths/introduction-cloud-infrastructure-apply-azure-skills-guided-projects/" data-linktype="absolute-path"><strong>parte 4: Aplicación de aptitudes de Azure en proyectos guiados</strong></a>.</p>
+</div>
+
+						<div class="prerequisites font-size-sm content margin-bottom-xs">
+							<h2 class="title is-6 margin-top-xxs margin-bottom-none">Requisitos previos</h2>
+							<ul>
+<li>Conocimientos básicos sobre los términos y conceptos de TI</li>
+</ul>
+
+						</div>
+
+<div class="font-size-sm content margin-bottom-xs">
+	<h2 class="title is-6 margin-top-xxs margin-bottom-none">Introducción a Azure</h2>
+	<p class="margin-top-none">Elija la cuenta de Azure adecuada para usted. Pague a medida que habla o pruebe Azure gratis durante 30 días. <a href="https://azure.microsoft.com/pricing/purchase-options/azure-account?cid=msft_learn" data-linktype="external">Regístrese.</a></p>
+</div>
+
+					<div id="learning-path-actions" class="buttons">
+						<button type="button" class="collection button button-clear inner-focus margin-right-none" data-bi-name="collection" data-list-item-title="Introducción a la infraestructura en la nube: Descripción de los conceptos de la nube" data-list-source="learning-path" data-resource-type="learning path" data-list-type="collection">
+							<span class="icon has-text-primary" aria-hidden="true">
+								<span class="docon docon-circle-addition"></span>
+							</span>
+							<span class="add-to-collection-status">
+								Agregar
+							</span>
+						</button>
+					</div>
+					<div id="learning-path-further-engagement" hidden=""></div>
+<div id="partner-and-code-container" class="text-align-center padding-block-md background-color-secondary-light" hidden="">
+	<div id="request-code-achievement-container" hidden="">
+		<p class="margin-bottom-xxs"><strong>Código de logros</strong></p>
+		<p class="margin-bottom-xs">¿Desea solicitar un código de logro?</p>
+		<button class="button button-clear button-sm border" data-bi-name="request-achievement-code" data-show-modal="">Solicitar código de logro</button>
+	</div>
+</div>
+				</div>
+			</div>
+		</div>
+	</div>
+</div>
+
+<div class="modular-content-container">
+	<div class="section is-small is-uniform padding-none padding-block-lg-tablet padding-inline-sm-tablet padding-sm-desktop has-body-background-mobile">
+		<div id="module-list-heading" class="justify-content-space-between display-flex flex-wrap-wrap margin-right-sm margin-bottom-xs">
+			<h2 class="title is-5 margin-bottom-xxs padding-left-sm padding-left-none-tablet">Módulos en esta ruta de aprendizaje</h2>
+		</div>
+				<div id="learn.wwl.describe-cloud-compute" class="box margin-none margin-bottom-sm-tablet padding-none is-shadowless-mobile border-top position-relative" data-bi-name="module">
+	<div class="padding-sm padding-bottom-none-tablet">
+		<div data-progress-uid="learn.wwl.describe-cloud-compute" class="xp-tag is-hidden position-absolute top-0 margin-top-lg-tablet margin-top-xs right-0 margin-right-lg-tablet margin-right-sm">
+			<div class="xp-tag-hexagon">
+				<span class="xp-tag-icon is-shown-complete docon docon-check"></span>
+				<span aria-hidden="true" class="xp-tag-xp"></span>
+			</div>
+		</div>
+		<div class="columns has-large-gaps margin-none">
+
+			<div class="image is-96x96 is-hidden-mobile">
+				<a aria-hidden="true" tabindex="-1" href="../../modules/describe-cloud-compute/" class="display-block" data-linktype="relative-path">
+					<img role="presentation" src="/es-es/training/achievements/describe-cloud-compute.svg" alt="" data-linktype="absolute-path">
+				</a>
+			</div>
+
+			<div class="column is-auto padding-none padding-top-sm padding-sm-tablet">
+				<div class="columns has-large-gaps is-mobile margin-none padding-bottom-xs">
+					<div class="column is-narrow is-hidden-tablet padding-top-none padding-left-none">
+						<div class="image is-max-48x48">
+							<img role="presentation" src="/es-es/training/achievements/describe-cloud-compute.svg" alt="" data-linktype="absolute-path">
+						</div>
+					</div>
+					<div class="column is-auto padding-none">
+						<a href="../../modules/describe-cloud-compute/" class="display-block text-decoration-none font-weight-semibold font-size-h6 margin-none has-content-margin-right-xxl-tablet" data-linktype="relative-path">
+							Descripción de la informática en la nube
+						</a>
+						<ul class="metadata page-metadata">
+							<li class="module-time-remaining"></li>
+							<li class="module-type"></li>
+							<li class="module-units-remaining"></li>
+						</ul>
+						<div class="page-rating">
+						</div>
+					</div>
+				</div>
+				<div class="is-hidden-portrait padding-inline-sm padding-inline-none-tablet">
+					<div class="font-size-md module-summary"><p>En este módulo se presenta la informática en la nube. Trata aspectos como los conceptos de la nube, los modelos de implementación y la comprensión de la responsabilidad compartida en la nube.</p>
+</div>
+					<div data-bi-name="units" class="margin-top-xs">
+						<button class="button button-clear text-decoration-none button-sm unit-expander" data-bi-name="expander" aria-expanded="true" aria-controls="aria-learn.wwl.describe-cloud-compute" aria-label="" type="button">
+							<span class="module-overview font-weight-semibold font-size-sm"></span>
+							<span class="icon" aria-hidden="true">
+								<span class="docon docon-chevron-down-light expanded-indicator"></span>
+							</span>
+						</button>
+						<div id="aria-learn.wwl.describe-cloud-compute" class="module-units margin-top-xs">
+						</div>
+					</div>
+				</div>
+			</div>
+		</div>
+	</div>
+	<div class="border-top padding-xxs padding-right-xs">
+		<div class="buttons buttons-right">
+			<button type="button" class="collection button button-clear button-primary inner-focus button-sm margin-right-none" data-bi-name="collection" data-list-item-title="Descripción de la informática en la nube" data-list-item-url=" " data-list-type="collection">
+				<span class="icon" aria-hidden="true">
+					<span class="docon docon-circle-addition"></span>
+				</span>
+				<span class="is-visually-hidden">Agregar</span>
+			</button>
+		</div>
+	</div>
+</div>
+
+				<div id="learn.wwl.describe-benefits-use-cloud-services" class="box margin-none margin-bottom-sm-tablet padding-none is-shadowless-mobile border-top position-relative" data-bi-name="module">
+	<div class="padding-sm padding-bottom-none-tablet">
+		<div data-progress-uid="learn.wwl.describe-benefits-use-cloud-services" class="xp-tag is-hidden position-absolute top-0 margin-top-lg-tablet margin-top-xs right-0 margin-right-lg-tablet margin-right-sm">
+			<div class="xp-tag-hexagon">
+				<span class="xp-tag-icon is-shown-complete docon docon-check"></span>
+				<span aria-hidden="true" class="xp-tag-xp"></span>
+			</div>
+		</div>
+		<div class="columns has-large-gaps margin-none">
+
+			<div class="image is-96x96 is-hidden-mobile">
+				<a aria-hidden="true" tabindex="-1" href="../../modules/describe-benefits-use-cloud-services/" class="display-block" data-linktype="relative-path">
+					<img role="presentation" src="/es-es/training/achievements/describe-benefits-use-cloud-services.svg" alt="" data-linktype="absolute-path">
+				</a>
+			</div>
+
+			<div class="column is-auto padding-none padding-top-sm padding-sm-tablet">
+				<div class="columns has-large-gaps is-mobile margin-none padding-bottom-xs">
+					<div class="column is-narrow is-hidden-tablet padding-top-none padding-left-none">
+						<div class="image is-max-48x48">
+							<img role="presentation" src="/es-es/training/achievements/describe-benefits-use-cloud-services.svg" alt="" data-linktype="absolute-path">
+						</div>
+					</div>
+					<div class="column is-auto padding-none">
+						<a href="../../modules/describe-benefits-use-cloud-services/" class="display-block text-decoration-none font-weight-semibold font-size-h6 margin-none has-content-margin-right-xxl-tablet" data-linktype="relative-path">
+							Descripción de las ventajas de usar servicios en la nube
+						</a>
+						<ul class="metadata page-metadata">
+							<li class="module-time-remaining"></li>
+							<li class="module-type"></li>
+							<li class="module-units-remaining"></li>
+						</ul>
+						<div class="page-rating">
+						</div>
+					</div>
+				</div>
+				<div class="is-hidden-portrait padding-inline-sm padding-inline-none-tablet">
+					<div class="font-size-md module-summary"><p>En este módulo se presentan las ventajas que la informática en la nube puede ofrecerle a usted o su organización.</p>
+</div>
+					<div data-bi-name="units" class="margin-top-xs">
+						<button class="button button-clear text-decoration-none button-sm unit-expander" data-bi-name="expander" aria-expanded="true" aria-controls="aria-learn.wwl.describe-benefits-use-cloud-services" aria-label="" type="button">
+							<span class="module-overview font-weight-semibold font-size-sm"></span>
+							<span class="icon" aria-hidden="true">
+								<span class="docon docon-chevron-down-light expanded-indicator"></span>
+							</span>
+						</button>
+						<div id="aria-learn.wwl.describe-benefits-use-cloud-services" class="module-units margin-top-xs">
+						</div>
+					</div>
+				</div>
+			</div>
+		</div>
+	</div>
+	<div class="border-top padding-xxs padding-right-xs">
+		<div class="buttons buttons-right">
+			<button type="button" class="collection button button-clear button-primary inner-focus button-sm margin-right-none" data-bi-name="collection" data-list-item-title="Descripción de las ventajas de usar servicios en la nube" data-list-item-url=" " data-list-type="collection">
+				<span class="icon" aria-hidden="true">
+					<span class="docon docon-circle-addition"></span>
+				</span>
+				<span class="is-visually-hidden">Agregar</span>
+			</button>
+		</div>
+	</div>
+</div>
+
+				<div id="learn.wwl.describe-cloud-service-types" class="box margin-none margin-bottom-sm-tablet padding-none is-shadowless-mobile border-top position-relative" data-bi-name="module">
+	<div class="padding-sm padding-bottom-none-tablet">
+		<div data-progress-uid="learn.wwl.describe-cloud-service-types" class="xp-tag is-hidden position-absolute top-0 margin-top-lg-tablet margin-top-xs right-0 margin-right-lg-tablet margin-right-sm">
+			<div class="xp-tag-hexagon">
+				<span class="xp-tag-icon is-shown-complete docon docon-check"></span>
+				<span aria-hidden="true" class="xp-tag-xp"></span>
+			</div>
+		</div>
+		<div class="columns has-large-gaps margin-none">
+
+			<div class="image is-96x96 is-hidden-mobile">
+				<a aria-hidden="true" tabindex="-1" href="../../modules/describe-cloud-service-types/" class="display-block" data-linktype="relative-path">
+					<img role="presentation" src="/es-es/training/achievements/describe-cloud-service-types.svg" alt="" data-linktype="absolute-path">
+				</a>
+			</div>
+
+			<div class="column is-auto padding-none padding-top-sm padding-sm-tablet">
+				<div class="columns has-large-gaps is-mobile margin-none padding-bottom-xs">
+					<div class="column is-narrow is-hidden-tablet padding-top-none padding-left-none">
+						<div class="image is-max-48x48">
+							<img role="presentation" src="/es-es/training/achievements/describe-cloud-service-types.svg" alt="" data-linktype="absolute-path">
+						</div>
+					</div>
+					<div class="column is-auto padding-none">
+						<a href="../../modules/describe-cloud-service-types/" class="display-block text-decoration-none font-weight-semibold font-size-h6 margin-none has-content-margin-right-xxl-tablet" data-linktype="relative-path">
+							Descripción de los tipos de servicio en la nube
+						</a>
+						<ul class="metadata page-metadata">
+							<li class="module-time-remaining"></li>
+							<li class="module-type"></li>
+							<li class="module-units-remaining"></li>
+						</ul>
+						<div class="page-rating">
+						</div>
+					</div>
+				</div>
+				<div class="is-hidden-portrait padding-inline-sm padding-inline-none-tablet">
+					<div class="font-size-md module-summary"><p>En este módulo se tratan los distintos tipos de servicio en la nube y se comparten algunos de los casos de uso y las ventajas alineados con cada tipo de servicio.</p>
+</div>
+					<div data-bi-name="units" class="margin-top-xs">
+						<button class="button button-clear text-decoration-none button-sm unit-expander" data-bi-name="expander" aria-expanded="true" aria-controls="aria-learn.wwl.describe-cloud-service-types" aria-label="" type="button">
+							<span class="module-overview font-weight-semibold font-size-sm"></span>
+							<span class="icon" aria-hidden="true">
+								<span class="docon docon-chevron-down-light expanded-indicator"></span>
+							</span>
+						</button>
+						<div id="aria-learn.wwl.describe-cloud-service-types" class="module-units margin-top-xs">
+						</div>
+					</div>
+				</div>
+			</div>
+		</div>
+	</div>
+	<div class="border-top padding-xxs padding-right-xs">
+		<div class="buttons buttons-right">
+			<button type="button" class="collection button button-clear button-primary inner-focus button-sm margin-right-none" data-bi-name="collection" data-list-item-title="Descripción de los tipos de servicio en la nube" data-list-item-url=" " data-list-type="collection">
+				<span class="icon" aria-hidden="true">
+					<span class="docon docon-circle-addition"></span>
+				</span>
+				<span class="is-visually-hidden">Agregar</span>
+			</button>
+		</div>
+	</div>
+</div>
+
+		</div>
+
+</div>
+</div>
+					
+		<div class="is-mobile is-fixed-bottom is-hidden-tablet">
+			<a
+				href="#"
+				id="start-unit-mobile"
+				class="button button-block button-primary button-filled button-large is-radiusless margin-none"
+				data-bi-name="start"
+				data-test-id="start-unit-button"
+			>
+				<span>Inicio</span>
+				<span class="icon" aria-hidden="true">
+					<span class="docon docon-chevron-right-light"></span>
+				</span>
+			</a>
+		</div>
+	
+				</div>
+				
+			</div>
+		
+				</main>
+				  <div class="layout-body-footer " data-bi-name="layout-footer">
+		<footer
+			id="footer"
+			data-test-id="footer"
+			data-bi-name="footer"
+			class="footer-layout padding-xs padding-sm-desktop has-default-focus border-top"
+			role="contentinfo"
+		>
+			<div class="display-flex gap-xs flex-wrap-wrap is-full-height padding-right-lg-desktop">
+				
+		<a
+			data-mscc-ic="false"
+			href="#"
+			data-bi-name="select-locale"
+			class="locale-selector-link flex-shrink-0 button button-sm button-clear external-link-indicator"
+			id=""
+			title=""
+			><span class="icon" aria-hidden="true"
+				><span class="docon docon-world"></span></span
+			><span class="local-selector-link-text">es-es</span></a
+		>
+	 <div class="ccpa-privacy-link" data-ccpa-privacy-link hidden>
+		
+		<a
+			data-mscc-ic="false"
+			href="https://aka.ms/yourcaliforniaprivacychoices"
+			data-bi-name="your-privacy-choices"
+			class="button button-sm button-clear flex-shrink-0 external-link-indicator"
+			id=""
+			title=""
+			>
+		<svg
+			xmlns="http://www.w3.org/2000/svg"
+			viewBox="0 0 30 14"
+			xml:space="preserve"
+			height="16"
+			width="43"
+			aria-hidden="true"
+			focusable="false"
+		>
+			<path
+				d="M7.4 12.8h6.8l3.1-11.6H7.4C4.2 1.2 1.6 3.8 1.6 7s2.6 5.8 5.8 5.8z"
+				style="fill-rule:evenodd;clip-rule:evenodd;fill:#fff"
+			></path>
+			<path
+				d="M22.6 0H7.4c-3.9 0-7 3.1-7 7s3.1 7 7 7h15.2c3.9 0 7-3.1 7-7s-3.2-7-7-7zm-21 7c0-3.2 2.6-5.8 5.8-5.8h9.9l-3.1 11.6H7.4c-3.2 0-5.8-2.6-5.8-5.8z"
+				style="fill-rule:evenodd;clip-rule:evenodd;fill:#06f"
+			></path>
+			<path
+				d="M24.6 4c.2.2.2.6 0 .8L22.5 7l2.2 2.2c.2.2.2.6 0 .8-.2.2-.6.2-.8 0l-2.2-2.2-2.2 2.2c-.2.2-.6.2-.8 0-.2-.2-.2-.6 0-.8L20.8 7l-2.2-2.2c-.2-.2-.2-.6 0-.8.2-.2.6-.2.8 0l2.2 2.2L23.8 4c.2-.2.6-.2.8 0z"
+				style="fill:#fff"
+			></path>
+			<path
+				d="M12.7 4.1c.2.2.3.6.1.8L8.6 9.8c-.1.1-.2.2-.3.2-.2.1-.5.1-.7-.1L5.4 7.7c-.2-.2-.2-.6 0-.8.2-.2.6-.2.8 0L8 8.6l3.8-4.5c.2-.2.6-.2.9 0z"
+				style="fill:#06f"
+			></path>
+		</svg>
+	
+			<span>Sus opciones de privacidad</span></a
+		>
+	
+	</div>
+				<div class="flex-shrink-0">
+		<div class="dropdown has-caret-up">
+			<button
+				data-test-id="theme-selector-button"
+				class="dropdown-trigger button button-clear button-sm inner-focus theme-dropdown-trigger"
+				aria-controls="{{ themeMenuId }}"
+				aria-haspopup="true"
+				aria-expanded="false"
+				data-bi-name="theme"
+			>
+				<span class="icon" aria-hidden="true"><span class="docon docon-sun"></span></span>
+				<span>Tema</span>
+				<span class="icon expanded-indicator" aria-hidden="true">
+					<span class="docon docon-chevron-down-light"></span>
+				</span>
+			</button>
+			<div class="dropdown-menu" id="{{ themeMenuId }}" role="menu">
+				<ul class="theme-selector padding-xxs" data-test-id="theme-dropdown-menu" role="none">
+					<li class="theme display-block" role="none">
+						<button
+							class="button button-clear button-sm theme-control button-block justify-content-flex-start text-align-left"
+							role="menuitemradio"
+							aria-checked="false"
+							data-theme-to="light"
+							tabindex="-1"
+						>
+							<span class="theme-light margin-right-xxs">
+								<span
+									class="theme-selector-icon border display-inline-block has-body-background"
+									aria-hidden="true"
+								>
+									<svg class="svg" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 22 14">
+										<rect width="22" height="14" class="has-fill-body-background" />
+										<rect x="5" y="5" width="12" height="4" class="has-fill-secondary" />
+										<rect x="5" y="2" width="2" height="1" class="has-fill-secondary" />
+										<rect x="8" y="2" width="2" height="1" class="has-fill-secondary" />
+										<rect x="11" y="2" width="3" height="1" class="has-fill-secondary" />
+										<rect x="1" y="1" width="2" height="2" class="has-fill-secondary" />
+										<rect x="5" y="10" width="7" height="2" rx="0.3" class="has-fill-primary" />
+										<rect x="19" y="1" width="2" height="2" rx="1" class="has-fill-secondary" />
+									</svg>
+								</span>
+							</span>
+							<span> Claro </span>
+						</button>
+					</li>
+					<li class="theme display-block" role="none">
+						<button
+							class="button button-clear button-sm theme-control button-block justify-content-flex-start text-align-left"
+							role="menuitemradio"
+							aria-checked="false"
+							data-theme-to="dark"
+							tabindex="-1"
+						>
+							<span class="theme-dark margin-right-xxs">
+								<span
+									class="border theme-selector-icon display-inline-block has-body-background"
+									aria-hidden="true"
+								>
+									<svg class="svg" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 22 14">
+										<rect width="22" height="14" class="has-fill-body-background" />
+										<rect x="5" y="5" width="12" height="4" class="has-fill-secondary" />
+										<rect x="5" y="2" width="2" height="1" class="has-fill-secondary" />
+										<rect x="8" y="2" width="2" height="1" class="has-fill-secondary" />
+										<rect x="11" y="2" width="3" height="1" class="has-fill-secondary" />
+										<rect x="1" y="1" width="2" height="2" class="has-fill-secondary" />
+										<rect x="5" y="10" width="7" height="2" rx="0.3" class="has-fill-primary" />
+										<rect x="19" y="1" width="2" height="2" rx="1" class="has-fill-secondary" />
+									</svg>
+								</span>
+							</span>
+							<span> Oscuro </span>
+						</button>
+					</li>
+					<li class="theme display-block" role="none">
+						<button
+							class="button button-clear button-sm theme-control button-block justify-content-flex-start text-align-left"
+							role="menuitemradio"
+							aria-checked="false"
+							data-theme-to="high-contrast"
+							tabindex="-1"
+						>
+							<span class="theme-high-contrast margin-right-xxs">
+								<span
+									class="border theme-selector-icon display-inline-block has-body-background"
+									aria-hidden="true"
+								>
+									<svg class="svg" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 22 14">
+										<rect width="22" height="14" class="has-fill-body-background" />
+										<rect x="5" y="5" width="12" height="4" class="has-fill-secondary" />
+										<rect x="5" y="2" width="2" height="1" class="has-fill-secondary" />
+										<rect x="8" y="2" width="2" height="1" class="has-fill-secondary" />
+										<rect x="11" y="2" width="3" height="1" class="has-fill-secondary" />
+										<rect x="1" y="1" width="2" height="2" class="has-fill-secondary" />
+										<rect x="5" y="10" width="7" height="2" rx="0.3" class="has-fill-primary" />
+										<rect x="19" y="1" width="2" height="2" rx="1" class="has-fill-secondary" />
+									</svg>
+								</span>
+							</span>
+							<span> Contraste alto </span>
+						</button>
+					</li>
+				</ul>
+			</div>
+		</div>
+	</div>
+			</div>
+			<ul class="links" data-bi-name="footerlinks">
+				<li class="manage-cookies-holder" hidden=""></li>
+				<li>
+		
+		<a
+			data-mscc-ic="false"
+			href="https://learn.microsoft.com/es-es/principles-for-ai-generated-content"
+			data-bi-name="aiDisclaimer"
+			class=" external-link-indicator"
+			id=""
+			title=""
+			>Declinación de responsabilidades de IA</a
+		>
+	
+	</li><li>
+		
+		<a
+			data-mscc-ic="false"
+			href="https://learn.microsoft.com/es-es/previous-versions/"
+			data-bi-name="archivelink"
+			class=" external-link-indicator"
+			id=""
+			title=""
+			>Versiones anteriores</a
+		>
+	
+	</li> <li>
+		
+		<a
+			data-mscc-ic="false"
+			href="https://techcommunity.microsoft.com/t5/microsoft-learn-blog/bg-p/MicrosoftLearnBlog"
+			data-bi-name="bloglink"
+			class=" external-link-indicator"
+			id=""
+			title=""
+			>Blog</a
+		>
+	
+	</li> <li>
+		
+		<a
+			data-mscc-ic="false"
+			href="https://learn.microsoft.com/es-es/contribute"
+			data-bi-name="contributorGuide"
+			class=" external-link-indicator"
+			id=""
+			title=""
+			>Contribuir</a
+		>
+	
+	</li><li>
+		
+		<a
+			data-mscc-ic="false"
+			href="https://go.microsoft.com/fwlink/?LinkId=521839"
+			data-bi-name="privacy"
+			class=" external-link-indicator"
+			id=""
+			title=""
+			>Privacidad</a
+		>
+	
+	</li><li>
+		
+		<a
+			data-mscc-ic="false"
+			href="https://go.microsoft.com/fwlink/?linkid=2259814"
+			data-bi-name="consumer-health-privacy"
+			class=" external-link-indicator"
+			id=""
+			title=""
+			>Privacidad de estado del consumidor</a
+		>
+	
+	</li><li>
+		
+		<a
+			data-mscc-ic="false"
+			href="https://learn.microsoft.com/es-es/legal/termsofuse"
+			data-bi-name="termsofuse"
+			class=" external-link-indicator"
+			id=""
+			title=""
+			>Términos de uso</a
+		>
+	
+	</li><li>
+		
+		<a
+			data-mscc-ic="false"
+			href="https://www.microsoft.com/legal/intellectualproperty/Trademarks/"
+			data-bi-name="trademarks"
+			class=" external-link-indicator"
+			id=""
+			title=""
+			>Marcas comerciales</a
+		>
+	
+	</li>
+				<li>&copy; Microsoft 2026</li>
+			</ul>
+		</footer>
+	</footer>
+			<noscript><img src="https://learn.microsoft.com/akam/13/pixel_7edeab49?a=dD1hNThhMjM4ZDVhYzI2MDhkNzdhMzc3Y2QxMzQzYTYzYjQ2NWJmNTk1JmpzPW9mZg==" style="visibility: hidden; position: absolute; left: -999px; top: -999px;" /></noscript></body>
+		</html>
