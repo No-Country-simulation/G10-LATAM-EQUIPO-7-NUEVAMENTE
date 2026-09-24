@@ -1,0 +1,2661 @@
+﻿chunk_id,document_id,categoria,titulo_documento,chunk_index,char_count,chunk_text
+AI-ES-001_CH_001,AI-ES-001,IA,Introducción a los conceptos de inteligencia artificial,1,747,"# Introducción a los conceptos de inteligencia artificial
+
+- Módulo
+
+- 10 Unidades
+
+¿Tiene curiosidad por la inteligencia artificial? ¿Quieres entender de qué trata el revuelo? En este módulo se presenta el mundo de la inteligencia artificial.
+
+## Objetivos de aprendizaje
+
+En este módulo, obtendrá información sobre los tipos de soluciones que la inteligencia artificial puede hacer posible y tener en cuenta las prácticas de inteligencia artificial responsables.
+
+## Requisitos previos
+
+Aunque no es necesario, un conocimiento conceptual del aprendizaje automático puede ser útil para este módulo. Considere la posibilidad de completar la introducción a los conceptos de Machine Learning antes de iniciar este módulo.
+
+- Introducción a la IA min"
+AI-ES-001_CH_002,AI-ES-001,IA,Introducción a los conceptos de inteligencia artificial,2,530,"- Introducción a la IA min
+
+- Inteligencia artificial y agentes generativos min
+
+- Texto y lenguaje natural min
+
+- Discurso min
+
+- Visión por ordenador min
+
+- Extracción de información min
+
+- Inteligencia artificial responsable min
+
+- Ejercicio: Exploración de las cargas de trabajo de IA min
+
+- Evaluación de módulos min
+
+- Resumen min
+
+Resultados de la evaluación del módulo
+
+Evalúe su comprensión de este módulo. Inicie sesión y responda correctamente a todas las preguntas para obtener la designación de aprobado en su perfil."
+AI-ES-002_CH_001,AI-ES-002,IA,Introducción a la inteligencia artificial y los agentes generativos,1,778,"# Introducción a la inteligencia artificial y los agentes generativos
+
+- Módulo
+
+- 7 Unidades
+
+La inteligencia artificial genera aplicaciones que pueden crear contenido, responder preguntas y ayudar con tareas. En este módulo, explorará los aspectos básicos de la inteligencia artificial generativa, incluidos los modelos de lenguaje grande (LLM), las solicitudes y los agentes de IA.
+
+## Objetivos de aprendizaje
+
+Al término de este módulo, sabrá hacer lo siguiente:
+
+- Describir los conceptos básicos de la inteligencia artificial generativa.
+
+- Explicar cómo funcionan los modelos de lenguaje (LLM) de gran tamaño.
+
+- Considere cómo crear solicitudes eficaces para los LLM.
+
+- Describir los conceptos básicos de los agentes y las soluciones de inteligencia artificial agente."
+AI-ES-002_CH_002,AI-ES-002,IA,Introducción a la inteligencia artificial y los agentes generativos,2,720,"- Describir los conceptos básicos de los agentes y las soluciones de inteligencia artificial agente.
+
+## Requisitos previos
+
+Antes de iniciar este módulo, debería tener lo siguiente:
+
+- Familiaridad con los conceptos y la terminología de la inteligencia artificial
+
+- Principios básicos de aprendizaje automático.
+
+- Introducción min
+
+- Modelos de lenguaje grandes (LLM) min
+
+- Mensajes min
+
+- Agentes de IA min
+
+- Ejercicio: Exploración de la inteligencia artificial generativa min
+
+- Evaluación del módulo min
+
+- Resumen min
+
+Resultados de la evaluación del módulo
+
+Evalúe su comprensión de este módulo. Inicie sesión y responda correctamente a todas las preguntas para obtener la designación de aprobado en su perfil."
+BE-ES-001_CH_001,BE-ES-001,Backend,Primeros Pasos - FastAPI,1,657,"# Primeros Pasos
+
+El archivo FastAPI más simple podría verse así:
+
+```text
+from fastapi import FastAPI
+
+app = FastAPI()
+
+@app.get(""/"")
+async def root():
+    return {""message"": ""Hello World""}
+```
+
+Copia eso en un archivo main.py .
+
+`main.py`
+
+Consejo
+
+FastAPI tiene una extensión oficial para VS Code (y Cursor), que proporciona muchas funcionalidades, incluyendo un explorador de path operations, búsqueda de path operations, navegación CodeLens en tests (saltar a la definición desde los tests), y despliegue y logs de FastAPI Cloud, todo desde tu editor.
+
+Ejecuta el servidor en vivo:
+
+```text
+$ uv run fastapi dev
+
+FastAPI   Starting development server 🚀"
+BE-ES-001_CH_002,BE-ES-001,Backend,Primeros Pasos - FastAPI,2,600,"Ejecuta el servidor en vivo:
+
+```text
+$ uv run fastapi dev
+
+FastAPI   Starting development server 🚀
+
+Searching for package file structure from directories
+             with __init__.py files
+             Importing from /home/user/code/awesomeapp
+
+module   🐍 main.py
+
+code   Importing the FastAPI app object from the module with
+             the following code:
+
+from main import app
+
+app   Using import string: main:app
+
+server   Server started at http://127.0.0.1:8000
+  server   Documentation at http://127.0.0.1:8000/docs
+
+tip   Running in development mode, for production use:
+ fastapi run
+
+Logs:"
+BE-ES-001_CH_003,BE-ES-001,Backend,Primeros Pasos - FastAPI,3,781,"tip   Running in development mode, for production use:
+ fastapi run
+
+Logs:
+
+INFO   Will watch for changes in these directories:
+ ['/home/user/code/awesomeapp']
+  INFO   Uvicorn running on http://127.0.0.1:8000 (Press CTRL+C
+             to quit)
+  INFO   Started reloader process [383138] using WatchFiles
+  INFO   Started server process [383153]
+  INFO   Waiting for application startup.
+  INFO   Application startup complete.
+```
+
+En el resultado, hay una línea con algo como:
+
+```text
+INFO:     Uvicorn running on http://127.0.0.1:8000 (Press CTRL+C to quit)
+```
+
+Esa línea muestra la URL donde tu aplicación está siendo servida, en tu máquina local.
+
+### Revisa
+
+Abre tu navegador en http://127.0.0.1:8000 .
+
+Verás el response JSON como:
+
+```text
+{""message"": ""Hello World""}
+```"
+BE-ES-001_CH_004,BE-ES-001,Backend,Primeros Pasos - FastAPI,4,721,"Abre tu navegador en http://127.0.0.1:8000 .
+
+Verás el response JSON como:
+
+```text
+{""message"": ""Hello World""}
+```
+
+### Documentación interactiva de la API
+
+Ahora ve a http://127.0.0.1:8000/docs .
+
+Verás la documentación interactiva automática de la API (proporcionada por Swagger UI ):
+
+### Documentación alternativa de la API
+
+Y ahora, ve a http://127.0.0.1:8000/redoc .
+
+Verás la documentación alternativa automática (proporcionada por ReDoc ):
+
+### OpenAPI
+
+FastAPI genera un ""esquema"" con toda tu API utilizando el estándar OpenAPI para definir APIs.
+
+#### ""Esquema""
+
+Un ""esquema"" es una definición o descripción de algo. No el código que lo implementa, sino solo una descripción abstracta.
+
+#### ""Esquema"" de la API"
+BE-ES-001_CH_005,BE-ES-001,Backend,Primeros Pasos - FastAPI,5,704,"#### ""Esquema"" de la API
+
+En este caso, OpenAPI es una especificación que dicta cómo definir un esquema de tu API.
+
+Esta definición de esquema incluye los paths de tu API, los posibles parámetros que toman, etc.
+
+#### ""Esquema"" de datos
+
+El término ""esquema"" también podría referirse a la forma de algunos datos, como el contenido JSON.
+
+En ese caso, significaría los atributos del JSON, los tipos de datos que tienen, etc.
+
+#### OpenAPI y JSON Schema
+
+OpenAPI define un esquema de API para tu API. Y ese esquema incluye definiciones (o ""esquemas"") de los datos enviados y recibidos por tu API utilizando JSON Schema , el estándar para esquemas de datos JSON.
+
+#### Revisa el openapi.json
+
+`openapi.json`"
+BE-ES-001_CH_006,BE-ES-001,Backend,Primeros Pasos - FastAPI,6,724,"#### Revisa el openapi.json
+
+`openapi.json`
+
+Si tienes curiosidad por cómo se ve el esquema OpenAPI en bruto, FastAPI automáticamente genera un JSON (esquema) con las descripciones de toda tu API.
+
+Puedes verlo directamente en: http://127.0.0.1:8000/openapi.json .
+
+Mostrará un JSON que empieza con algo como:
+
+```text
+{
+    ""openapi"": ""3.1.0"",
+    ""info"": {
+        ""title"": ""FastAPI"",
+        ""version"": ""0.1.0""
+    },
+    ""paths"": {
+        ""/items/"": {
+            ""get"": {
+                ""responses"": {
+                    ""200"": {
+                        ""description"": ""Successful Response"",
+                        ""content"": {
+                            ""application/json"": {
+
+...
+```
+
+#### Para qué sirve OpenAPI"
+BE-ES-001_CH_007,BE-ES-001,Backend,Primeros Pasos - FastAPI,7,782,"...
+```
+
+#### Para qué sirve OpenAPI
+
+El esquema OpenAPI es lo que impulsa los dos sistemas de documentación interactiva incluidos.
+
+Y hay docenas de alternativas, todas basadas en OpenAPI. Podrías añadir fácilmente cualquiera de esas alternativas a tu aplicación construida con FastAPI .
+
+También podrías usarlo para generar código automáticamente, para clientes que se comuniquen con tu API. Por ejemplo, aplicaciones frontend, móviles o IoT.
+
+### Configura el entrypoint de la app en pyproject.toml
+
+`entrypoint`
+
+`pyproject.toml`
+
+Puedes configurar dónde está tu app en un archivo pyproject.toml así:
+
+`pyproject.toml`
+
+```text
+[tool.fastapi]
+entrypoint = ""main:app""
+```
+
+Ese entrypoint le dirá al comando fastapi que debe hacer el import de la app así:
+
+`entrypoint`
+
+`fastapi`"
+BE-ES-001_CH_008,BE-ES-001,Backend,Primeros Pasos - FastAPI,8,788,"Ese entrypoint le dirá al comando fastapi que debe hacer el import de la app así:
+
+`entrypoint`
+
+`fastapi`
+
+```text
+from main import app
+```
+
+Si tu código estuviera estructurado así:
+
+```text
+.
+├── backend
+│   ├── main.py
+│   ├── __init__.py
+```
+
+Entonces pondrías el entrypoint como:
+
+`entrypoint`
+
+```text
+[tool.fastapi]
+entrypoint = ""backend.main:app""
+```
+
+lo cual sería equivalente a:
+
+```text
+from backend.main import app
+```
+
+### fastapi dev con path o con la opción de CLI --entrypoint
+
+`fastapi dev`
+
+`--entrypoint`
+
+También puedes pasar el path del archivo al comando fastapi dev , y adivinará el objeto app de FastAPI que debe usar:
+
+`fastapi dev`
+
+```text
+$ uv run fastapi dev main.py
+```
+
+O, también puedes pasar la opción --entrypoint al comando fastapi dev :
+
+`--entrypoint`"
+BE-ES-001_CH_009,BE-ES-001,Backend,Primeros Pasos - FastAPI,9,777,"O, también puedes pasar la opción --entrypoint al comando fastapi dev :
+
+`--entrypoint`
+
+`fastapi dev`
+
+```text
+$ uv run fastapi dev --entrypoint main:app
+```
+
+Pero tendrías que recordar pasar el path\entrypoint correcto cada vez que llames al comando fastapi .
+
+`fastapi`
+
+Además, otras herramientas podrían no ser capaces de encontrarlo, por ejemplo la Extensión de VS Code o FastAPI Cloud , así que se recomienda usar el entrypoint en pyproject.toml .
+
+`entrypoint`
+
+`pyproject.toml`
+
+### Despliega tu app (opcional)
+
+Opcionalmente puedes desplegar tu app de FastAPI en FastAPI Cloud con un solo comando. 🚀
+
+```text
+$ uv run fastapi deploy
+
+Deploying to FastAPI Cloud...
+
+✅ Deployment successful!
+
+🐔 Ready the chicken! Your app is ready at https://myapp.fastapicloud.dev
+```"
+BE-ES-001_CH_010,BE-ES-001,Backend,Primeros Pasos - FastAPI,10,741,"✅ Deployment successful!
+
+🐔 Ready the chicken! Your app is ready at https://myapp.fastapicloud.dev
+```
+
+La CLI detectará automáticamente tu aplicación de FastAPI y la desplegará en la nube. Si no has iniciado sesión, se abrirá tu navegador para completar el proceso de autenticación.
+
+¡Eso es todo! Ahora puedes acceder a tu app en esa URL. ✨
+
+## Recapitulación, paso a paso
+
+### Paso 1: importa FastAPI
+
+`FastAPI`
+
+```text
+from fastapi import FastAPI
+
+app = FastAPI()
+
+@app.get(""/"")
+async def root():
+    return {""message"": ""Hello World""}
+```
+
+FastAPI es una clase de Python que proporciona toda la funcionalidad para tu API.
+
+`FastAPI`
+
+Detalles técnicos
+
+FastAPI es una clase que hereda directamente de Starlette .
+
+`FastAPI`
+
+`Starlette`"
+BE-ES-001_CH_011,BE-ES-001,Backend,Primeros Pasos - FastAPI,11,783,"`FastAPI`
+
+Detalles técnicos
+
+FastAPI es una clase que hereda directamente de Starlette .
+
+`FastAPI`
+
+`Starlette`
+
+Puedes usar toda la funcionalidad de Starlette con FastAPI también.
+
+`FastAPI`
+
+### Paso 2: crea una ""instance"" de FastAPI
+
+`FastAPI`
+
+```text
+from fastapi import FastAPI
+
+app = FastAPI()
+
+@app.get(""/"")
+async def root():
+    return {""message"": ""Hello World""}
+```
+
+Aquí la variable app será una ""instance"" de la clase FastAPI .
+
+`app`
+
+`FastAPI`
+
+Este será el punto principal de interacción para crear toda tu API.
+
+### Paso 3: crea una path operation
+
+#### Path
+
+""Path"" aquí se refiere a la última parte de la URL empezando desde la primera / .
+
+`/`
+
+Así que, en una URL como:
+
+```text
+https://example.com/items/foo
+```
+
+...el path sería:
+
+```text
+/items/foo
+```
+
+Nota"
+BE-ES-001_CH_012,BE-ES-001,Backend,Primeros Pasos - FastAPI,12,778,"Así que, en una URL como:
+
+```text
+https://example.com/items/foo
+```
+
+...el path sería:
+
+```text
+/items/foo
+```
+
+Nota
+
+Un ""path"" también es comúnmente llamado ""endpoint"" o ""ruta"".
+
+Mientras construyes una API, el ""path"" es la forma principal de separar ""concerns"" y ""resources"".
+
+#### Operación
+
+""Operación"" aquí se refiere a uno de los ""métodos"" HTTP.
+
+Uno de:
+
+- POST
+
+`POST`
+
+- GET
+
+`GET`
+
+- PUT
+
+`PUT`
+
+- DELETE
+
+`DELETE`
+
+...y los más exóticos:
+
+- OPTIONS
+
+`OPTIONS`
+
+- HEAD
+
+`HEAD`
+
+- PATCH
+
+`PATCH`
+
+- TRACE
+
+`TRACE`
+
+En el protocolo HTTP, puedes comunicarte con cada path usando uno (o más) de estos ""métodos"".
+
+Al construir APIs, normalmente usas estos métodos HTTP específicos para realizar una acción específica.
+
+Normalmente usas:
+
+- POST : para crear datos.
+
+`POST`"
+BE-ES-001_CH_013,BE-ES-001,Backend,Primeros Pasos - FastAPI,13,745,"Normalmente usas:
+
+- POST : para crear datos.
+
+`POST`
+
+- GET : para leer datos.
+
+`GET`
+
+- PUT : para actualizar datos.
+
+`PUT`
+
+- DELETE : para eliminar datos.
+
+`DELETE`
+
+Así que, en OpenAPI, cada uno de los métodos HTTP se llama una ""operación"".
+
+Vamos a llamarlas "" operaciones "" también.
+
+#### Define un path operation decorator
+
+```text
+from fastapi import FastAPI
+
+app = FastAPI()
+
+@app.get(""/"")
+async def root():
+    return {""message"": ""Hello World""}
+```
+
+El @app.get(""/"") le dice a FastAPI que la función justo debajo se encarga de manejar requests que vayan a:
+
+`@app.get(""/"")`
+
+- el path /
+
+`/`
+
+- usando una get operación
+
+`get`
+
+Información sobre @decorator
+
+`@decorator`
+
+Esa sintaxis @algo en Python se llama un ""decorador"".
+
+`@algo`"
+BE-ES-001_CH_014,BE-ES-001,Backend,Primeros Pasos - FastAPI,14,749,"`get`
+
+Información sobre @decorator
+
+`@decorator`
+
+Esa sintaxis @algo en Python se llama un ""decorador"".
+
+`@algo`
+
+Lo pones encima de una función. Como un bonito sombrero decorativo (supongo que de ahí viene el término).
+
+Un ""decorador"" toma la función de abajo y hace algo con ella.
+
+En nuestro caso, este decorador le dice a FastAPI que la función de abajo corresponde al path / con una operation get .
+
+`/`
+
+`get`
+
+Es el "" path operation decorator "".
+
+También puedes usar las otras operaciones:
+
+- @app.post()
+
+`@app.post()`
+
+- @app.put()
+
+`@app.put()`
+
+- @app.delete()
+
+`@app.delete()`
+
+Y los más exóticos:
+
+- @app.options()
+
+`@app.options()`
+
+- @app.head()
+
+`@app.head()`
+
+- @app.patch()
+
+`@app.patch()`
+
+- @app.trace()
+
+`@app.trace()`
+
+Consejo"
+BE-ES-001_CH_015,BE-ES-001,Backend,Primeros Pasos - FastAPI,15,781,"`@app.options()`
+
+- @app.head()
+
+`@app.head()`
+
+- @app.patch()
+
+`@app.patch()`
+
+- @app.trace()
+
+`@app.trace()`
+
+Consejo
+
+Eres libre de usar cada operación (método HTTP) como quieras.
+
+FastAPI no fuerza ningún significado específico.
+
+La información aquí se presenta como una guía, no un requisito.
+
+Por ejemplo, cuando usas GraphQL normalmente realizas todas las acciones usando solo operaciones POST .
+
+`POST`
+
+### Paso 4: define la path operation function
+
+Esta es nuestra "" path operation function "":
+
+- path : es / .
+
+`/`
+
+- operation : es get .
+
+`get`
+
+- function : es la función debajo del ""decorador"" (debajo de @app.get(""/"") ).
+
+`@app.get(""/"")`
+
+```text
+from fastapi import FastAPI
+
+app = FastAPI()
+
+@app.get(""/"")
+async def root():
+    return {""message"": ""Hello World""}
+```"
+BE-ES-001_CH_016,BE-ES-001,Backend,Primeros Pasos - FastAPI,16,727,"app = FastAPI()
+
+@app.get(""/"")
+async def root():
+    return {""message"": ""Hello World""}
+```
+
+Esta es una función de Python.
+
+Será llamada por FastAPI cuando reciba un request en la URL "" / "" usando una operación GET .
+
+`/`
+
+`GET`
+
+En este caso, es una función async .
+
+`async`
+
+También podrías definirla como una función normal en lugar de async def :
+
+`async def`
+
+```text
+from fastapi import FastAPI
+
+app = FastAPI()
+
+@app.get(""/"")
+def root():
+    return {""message"": ""Hello World""}
+```
+
+Nota
+
+Si no sabes la diferencia, Revisa la sección Async: ""¿Tienes prisa?"" .
+
+### Paso 5: retorna el contenido
+
+```text
+from fastapi import FastAPI
+
+app = FastAPI()
+
+@app.get(""/"")
+async def root():
+    return {""message"": ""Hello World""}
+```"
+BE-ES-001_CH_017,BE-ES-001,Backend,Primeros Pasos - FastAPI,17,768,"app = FastAPI()
+
+@app.get(""/"")
+async def root():
+    return {""message"": ""Hello World""}
+```
+
+Puedes retornar un dict , list , valores singulares como str , int , etc.
+
+`dict`
+
+`list`
+
+`str`
+
+`int`
+
+También puedes retornar modelos de Pydantic (verás más sobre eso más adelante).
+
+Hay muchos otros objetos y modelos que serán automáticamente convertidos a JSON (incluyendo ORMs, etc). Intenta usar tus favoritos, es altamente probable que ya sean compatibles.
+
+### Paso 6: Despliégalo
+
+Despliega tu app en FastAPI Cloud con un solo comando: fastapi deploy . 🎉
+
+`fastapi deploy`
+
+#### Sobre FastAPI Cloud
+
+FastAPI Cloud está construido por el mismo autor y equipo detrás de FastAPI .
+
+Agiliza el proceso de construir , desplegar y acceder a una API con el mínimo esfuerzo."
+BE-ES-001_CH_018,BE-ES-001,Backend,Primeros Pasos - FastAPI,18,744,"Agiliza el proceso de construir , desplegar y acceder a una API con el mínimo esfuerzo.
+
+Trae la misma experiencia de desarrollador de construir apps con FastAPI a desplegarlas en la nube. 🎉
+
+FastAPI Cloud es el sponsor principal y proveedor de financiación para los proyectos open source de FastAPI and friends . ✨
+
+#### Despliega en otros proveedores cloud
+
+FastAPI es open source y basado en estándares. Puedes desplegar apps de FastAPI en cualquier proveedor cloud que elijas.
+
+Sigue las guías de tu proveedor cloud para desplegar apps de FastAPI con ellos. 🤓
+
+## Recapitulación
+
+- Importa FastAPI .
+
+`FastAPI`
+
+- Crea una instance app .
+
+`app`
+
+- Escribe un path operation decorator usando decoradores como @app.get(""/"") .
+
+`@app.get(""/"")`"
+BE-ES-001_CH_019,BE-ES-001,Backend,Primeros Pasos - FastAPI,19,349,"`app`
+
+- Escribe un path operation decorator usando decoradores como @app.get(""/"") .
+
+`@app.get(""/"")`
+
+- Define una path operation function ; por ejemplo, def root(): ... .
+
+`def root(): ...`
+
+- Ejecuta el servidor de desarrollo usando el comando fastapi dev .
+
+`fastapi dev`
+
+- Opcionalmente, despliega tu app con fastapi deploy .
+
+`fastapi deploy`"
+BE-ES-002_CH_001,BE-ES-002,Backend,"Escribiendo su primera aplicación en Django, parte 1",1,719,"- Getting Help
+
+- zh-hans
+
+- sv
+
+- pt-br
+
+- pl
+
+- ko
+
+- ja
+
+- it
+
+- id
+
+- fr
+
+- en
+
+- el
+
+- dev
+
+- 6.1
+
+- 6.0
+
+- 5.1
+
+- 5.0
+
+- 4.2
+
+- 4.1
+
+- 4.0
+
+- 3.2
+
+- 3.1
+
+- 3.0
+
+- 2.2
+
+- 2.1
+
+- 2.0
+
+- 1.11
+
+- 1.10
+
+# Escribiendo su primera aplicación en Django, parte 1
+
+Aprendamos mediante el ejemplo.
+
+A través de este tutorial le mostraremos cómo crear una aplicación de encuestas básica.
+
+Consistirá de dos partes:
+
+- Un sitio público que le permite a las personas ver sondeos y votar en ellos.
+
+Un sitio público que le permite a las personas ver sondeos y votar en ellos.
+
+- Un sitio administrativo que le permite añadir, modificar y borrar sondeos.
+
+Un sitio administrativo que le permite añadir, modificar y borrar sondeos."
+BE-ES-002_CH_002,BE-ES-002,Backend,"Escribiendo su primera aplicación en Django, parte 1",2,470,"Un sitio administrativo que le permite añadir, modificar y borrar sondeos.
+
+Asumiremos que ya ha instalado Django . Puede ver si Django está instalado, así como su versión, ejecutando el siguiente comando (señalado por el prefijo $):
+
+```text
+$ python -m django --version
+```
+
+```text
+...\> py -m django --version
+```
+
+Si Django está instalado, debería ver la versión de su instalación. Si no es así, obtendrá un error indicando que «No existe el módulo llamado Django»."
+BE-ES-002_CH_003,BE-ES-002,Backend,"Escribiendo su primera aplicación en Django, parte 1",3,560,"This tutorial is written for Django 5.2, which supports Python 3.10 and
+later. If the Django version doesn’t match, you can refer to the tutorial for
+your version of Django by using the version switcher at the bottom right corner
+of this page, or update Django to the newest version. If you’re using an older
+version of Python, check ¿Qué versión de Python puedo usar con Django? to find a compatible
+version of Django.
+
+Dónde obtener ayuda:
+
+Si tiene problemas para seguir este tutorial, diríjase a la sección Obteniendo ayuda del FAQ.
+
+## Creando un proyecto"
+BE-ES-002_CH_004,BE-ES-002,Backend,"Escribiendo su primera aplicación en Django, parte 1",4,767,"Si tiene problemas para seguir este tutorial, diríjase a la sección Obteniendo ayuda del FAQ.
+
+## Creando un proyecto
+
+Si esta es la primera vez que utiliza Django, tendrá que hacerse cargo de ciertas configuraciones iniciales. Concretamente, tendrá que autogenerar un código que establezca un Django project – un conjunto de ajustes para una instancia de Django, incluida la configuración de la base de datos, opciones específicas de Django y configuraciones específicas de la aplicación.
+
+From the command line, cd into a directory where you’d like to store your
+code and create a new directory named djangotutorial . (This directory name
+doesn’t matter to Django; you can rename it to anything you like.)
+
+`cd`
+
+`djangotutorial`
+
+```text
+$ mkdir djangotutorial
+```"
+BE-ES-002_CH_005,BE-ES-002,Backend,"Escribiendo su primera aplicación en Django, parte 1",5,796,"`cd`
+
+`djangotutorial`
+
+```text
+$ mkdir djangotutorial
+```
+
+```text
+...\> mkdir djangotutorial
+```
+
+Then, run the following command to bootstrap a new Django project:
+
+```text
+$ django-admin startproject mysite djangotutorial
+```
+
+```text
+...\> django-admin startproject mysite djangotutorial
+```
+
+This will create a project called mysite inside the djangotutorial directory. If it didn’t work, see Problemas ejecutando django-admin .
+
+`mysite`
+
+`djangotutorial`
+
+Nota
+
+Tendrá que evitar darle nombres a sus proyectos que sean iguales a los de otros componentes integrados de Python o Django. En particular, esto quiere decir que debe evitar usar nombres como django (que entrará en conflicto con Django mismo) o test (que entrará en conflicto con un paquete interno de Python).
+
+`django`
+
+`test`"
+BE-ES-002_CH_006,BE-ES-002,Backend,"Escribiendo su primera aplicación en Django, parte 1",6,673,"`django`
+
+`test`
+
+Veamos lo que el comando startproject creó:
+
+`startproject`
+
+```text
+djangotutorial/
+    manage.py
+    mysite/
+        __init__.py
+        settings.py
+        urls.py
+        asgi.py
+        wsgi.py
+```
+
+Estos archivos son:
+
+- manage.py : Una utilidad de la línea de comandos que le permite interactuar con este proyecto Django de diferentes formas. Puede leer todos los detalles sobre manage.py en django-admin and manage.py .
+
+manage.py : Una utilidad de la línea de comandos que le permite interactuar con este proyecto Django de diferentes formas. Puede leer todos los detalles sobre manage.py en django-admin and manage.py .
+
+`manage.py`
+
+`manage.py`"
+BE-ES-002_CH_007,BE-ES-002,Backend,"Escribiendo su primera aplicación en Django, parte 1",7,638,"`manage.py`
+
+`manage.py`
+
+- mysite/ : A directory that is the actual Python package for your
+project. Its name is the Python package name you’ll need to use to import
+anything inside it (e.g. mysite.urls ).
+
+mysite/ : A directory that is the actual Python package for your
+project. Its name is the Python package name you’ll need to use to import
+anything inside it (e.g. mysite.urls ).
+
+`mysite/`
+
+`mysite.urls`
+
+- mysite/__init__.py : Un archivo vacío que le indica a Python que este directorio debería ser considerado como un paquete Python. Si usted es un principiante lea más sobre los paquetes en la documentación oficial de Python."
+BE-ES-002_CH_008,BE-ES-002,Backend,"Escribiendo su primera aplicación en Django, parte 1",8,727,"mysite/__init__.py : Un archivo vacío que le indica a Python que este directorio debería ser considerado como un paquete Python. Si usted es un principiante lea más sobre los paquetes en la documentación oficial de Python.
+
+`mysite/__init__.py`
+
+- mysite/settings.py : Ajustes/configuración para este proyecto Django. Django settings le indicará todo sobre cómo funciona la configuración.
+
+mysite/settings.py : Ajustes/configuración para este proyecto Django. Django settings le indicará todo sobre cómo funciona la configuración.
+
+`mysite/settings.py`
+
+- mysite/urls.py : Las declaraciones URL para este proyecto Django; una «tabla de contenidos» de su sitio basado en Django. Puede leer más sobre las URLs en URL dispatcher ."
+BE-ES-002_CH_009,BE-ES-002,Backend,"Escribiendo su primera aplicación en Django, parte 1",9,658,"mysite/urls.py : Las declaraciones URL para este proyecto Django; una «tabla de contenidos» de su sitio basado en Django. Puede leer más sobre las URLs en URL dispatcher .
+
+`mysite/urls.py`
+
+- mysite/asgi.py : An entry-point for ASGI-compatible web servers to
+serve your project. See How to deploy with ASGI for more details.
+
+mysite/asgi.py : An entry-point for ASGI-compatible web servers to
+serve your project. See How to deploy with ASGI for more details.
+
+`mysite/asgi.py`
+
+- mysite/wsgi.py : Un punto de entrada para que los servidores web compatibles con WSGI puedan servir su proyecto. Consulte :doc: ` /howto/deployment/wsgi/index`para más detalles."
+BE-ES-002_CH_010,BE-ES-002,Backend,"Escribiendo su primera aplicación en Django, parte 1",10,736,"mysite/wsgi.py : Un punto de entrada para que los servidores web compatibles con WSGI puedan servir su proyecto. Consulte :doc: ` /howto/deployment/wsgi/index`para más detalles.
+
+`mysite/wsgi.py`
+
+## El servidor de desarrollo
+
+Let’s verify your Django project works. Change into the djangotutorial directory, if you haven’t already, and run the following commands:
+
+`djangotutorial`
+
+```text
+$ python manage.py runserver
+```
+
+```text
+...\> py manage.py runserver
+```
+
+Verá la siguiente salida en la línea de comandos:
+
+```text
+Performing system checks...
+
+System check identified no issues (0 silenced).
+
+You have unapplied migrations; your app may not work properly until they are applied.
+Run 'python manage.py migrate' to apply them."
+BE-ES-002_CH_011,BE-ES-002,Backend,"Escribiendo su primera aplicación en Django, parte 1",11,703,"diciembre 02, 2025 - 15:50:53
+Django version 5.2, using settings 'mysite.settings'
+Starting development server at http://127.0.0.1:8000/
+Quit the server with CONTROL-C.
+
+WARNING: This is a development server. Do not use it in a production setting. Use a production WSGI or ASGI server instead.
+For more information on production servers see: https://docs.djangoproject.com/en/5.2/howto/deployment/
+```
+
+Nota
+
+Ignore por ahora la advertencia sobre las migraciones de bases de datos sin aplicar, nos ocuparemos de la base de datos dentro de poco.
+
+Now that the server’s running, visit http://127.0.0.1:8000/ with your web
+browser. You’ll see a «Congratulations!» page, with a rocket taking off.
+It worked!"
+BE-ES-002_CH_012,BE-ES-002,Backend,"Escribiendo su primera aplicación en Django, parte 1",12,627,"You’ve started the Django development server, a lightweight web server written
+purely in Python. We’ve included this with Django so you can develop things
+rapidly, without having to deal with configuring a production server – such as
+Apache – until you’re ready for production.
+
+Now’s a good time to note: don’t use this server in anything resembling a
+production environment. It’s intended only for use while developing. (We’re in
+the business of making web frameworks, not web servers.)
+
+(To serve the site on a different port, see the runserver reference.)
+
+`runserver`
+
+Recarga automática del comando runserver
+
+`runserver`"
+BE-ES-002_CH_013,BE-ES-002,Backend,"Escribiendo su primera aplicación en Django, parte 1",13,537,"`runserver`
+
+Recarga automática del comando runserver
+
+`runserver`
+
+El servidor de desarrollo recarga de forma automática el código Python para cada petición cuando sea necesario. No es necesario reiniciar el servidor para que los cambios de código surtan efecto. Sin embargo, algunas acciones como la adición de archivos no provoca un reinicio, por lo que tendrá que reiniciar el servidor en estos casos.
+
+## Creando la aplicación encuestas
+
+Ahora que su entorno (un «proyecto») se ha configurado, ya está listo para empezar a trabajar."
+BE-ES-002_CH_014,BE-ES-002,Backend,"Escribiendo su primera aplicación en Django, parte 1",14,761,"Ahora que su entorno (un «proyecto») se ha configurado, ya está listo para empezar a trabajar.
+
+Cada aplicación que usted escribe en Django consiste en un paquete de Python que sigue una determinada convención. Django tiene una utilidad que genera automáticamente la estructura básica de directorios de una aplicación, por lo que usted puede centrarse en la escritura de código en lugar de crear directorios.
+
+Proyectos vs. aplicaciones
+
+What’s the difference between a project and an app? An app is a web
+application that does something – e.g., a blog system, a database of
+public records or a small poll app. A project is a collection of
+configuration and apps for a particular website. A project can contain
+multiple apps. An app can be in multiple projects."
+BE-ES-002_CH_015,BE-ES-002,Backend,"Escribiendo su primera aplicación en Django, parte 1",15,690,"Your apps can live anywhere in your Python path . In
+this tutorial, we’ll create our poll app inside the djangotutorial folder.
+
+`djangotutorial`
+
+Para crear su aplicación, asegúrese de que está en el mismo directorio que el archivo manage.py y escriba este comando:
+
+`manage.py`
+
+```text
+$ python manage.py startapp polls
+```
+
+```text
+...\> py manage.py startapp polls
+```
+
+Esto creará un directorio polls , que se presenta de la siguiente manera:
+
+`polls`
+
+```text
+polls/
+    __init__.py
+    admin.py
+    apps.py
+    migrations/
+        __init__.py
+    models.py
+    tests.py
+    views.py
+```
+
+Esta estructura de directorios almacenará la aplicación encuesta.
+
+## Escriba su primera vista"
+BE-ES-002_CH_016,BE-ES-002,Backend,"Escribiendo su primera aplicación en Django, parte 1",16,797,"Esta estructura de directorios almacenará la aplicación encuesta.
+
+## Escriba su primera vista
+
+Vamos a escribir la primera vista. Abra el archivo polls/views.py y ponga el siguiente código Python en ella:
+
+`polls/views.py`
+
+`polls/views.py`
+
+```text
+from django.http import HttpResponse
+
+def index(request):
+    return HttpResponse(""Hello, world. You're at the polls index."")
+```
+
+This is the most basic view possible in Django. To access it in a browser, we
+need to map it to a URL - and for this we need to define a URL configuration,
+or «URLconf» for short. These URL configurations are defined inside each
+Django app, and they are Python files named urls.py .
+
+`urls.py`
+
+To define a URLconf for the polls app, create a file polls/urls.py with the following content:
+
+`polls`
+
+`polls/urls.py`"
+BE-ES-002_CH_017,BE-ES-002,Backend,"Escribiendo su primera aplicación en Django, parte 1",17,790,"To define a URLconf for the polls app, create a file polls/urls.py with the following content:
+
+`polls`
+
+`polls/urls.py`
+
+`polls/urls.py`
+
+```text
+from django.urls import path
+
+from . import views
+
+urlpatterns = [
+    path("""", views.index, name=""index""),
+]
+```
+
+Su directorio de aplicaciones ahora debería verse asi:
+
+```text
+polls/
+    __init__.py
+    admin.py
+    apps.py
+    migrations/
+        __init__.py
+    models.py
+    tests.py
+    urls.py
+    views.py
+```
+
+The next step is to configure the root URLconf in the mysite project to
+include the URLconf defined in polls.urls . To do this, add an import for django.urls.include in mysite/urls.py and insert an include() in the urlpatterns list, so you have:
+
+`mysite`
+
+`polls.urls`
+
+`django.urls.include`
+
+`mysite/urls.py`
+
+`include()`"
+BE-ES-002_CH_018,BE-ES-002,Backend,"Escribiendo su primera aplicación en Django, parte 1",18,654,"`mysite`
+
+`polls.urls`
+
+`django.urls.include`
+
+`mysite/urls.py`
+
+`include()`
+
+`urlpatterns`
+
+`mysite/urls.py`
+
+```text
+from django.contrib import admin
+from django.urls import include, path
+
+urlpatterns = [
+    path(""polls/"", include(""polls.urls"")),
+    path(""admin/"", admin.site.urls),
+]
+```
+
+The path() function expects at least two arguments: route and view .
+The include() function allows referencing other URLconfs.
+Whenever Django encounters include() , it chops off whatever
+part of the URL matched up to that point and sends the remaining string to the
+included URLconf for further processing.
+
+`path()`
+
+`route`
+
+`view`
+
+`include()`
+
+`include()`"
+BE-ES-002_CH_019,BE-ES-002,Backend,"Escribiendo su primera aplicación en Django, parte 1",19,798,"`path()`
+
+`route`
+
+`view`
+
+`include()`
+
+`include()`
+
+La idea detrás de include() es facilitar la conexión y ejecución inmediata de las URLs. Dado que las encuestas están en su propia URLconf ( polls/urls.py ) se pueden ubicar en «/polls/», «/fun_polls /», «/content/polls/» o en cualquier otra ruta raíz , y la aplicación todavía seguirá funcionando.
+
+`include()`
+
+`polls/urls.py`
+
+Cuándo utilizar include()
+
+`include()`
+
+You should always use include() when you include other URL patterns.
+The only exception is admin.site.urls , which is a pre-built URLconf
+provided by Django for the default admin site.
+
+`include()`
+
+`admin.site.urls`
+
+Ahora tiene una vista index vinculada en los URLconf. Compruebe su funcionamiento con el siguiente comando:
+
+`index`
+
+```text
+$ python manage.py runserver
+```"
+BE-ES-002_CH_020,BE-ES-002,Backend,"Escribiendo su primera aplicación en Django, parte 1",20,610,"`index`
+
+```text
+$ python manage.py runserver
+```
+
+```text
+...\> py manage.py runserver
+```
+
+Vaya a http://localhost:8000/polls/ en su navegador, y usted debería ver el texto « Hello, world. You’re at the polls index. » el cual definió en la vista index .
+
+`index`
+
+¿Página no encotrada?
+
+Si usted obtiene aquí una página de error, revisee que usted este llendo a la dirección URL http://localhost:8000/polls/ y no a la dirección URL http://localhost:8000/ .
+
+Cuando se familiarice con el flujo básico de solicitud y respuesta, lea la parte 2 del presente tutorial para empezar a trabajar con la base de datos."
+DS-ES-001_CH_001,DS-ES-001,Data Science,Trabajar con datos en Python,1,730,"# Trabajar con datos en Python
+
+- Módulo
+
+- 7 Unidades
+
+Aprenda a almacenar y manipular datos en Python. Explore variables, escritura dinámica, operaciones numéricas y conversión de tipos.
+
+## Objetivos de aprendizaje
+
+Después de completar este módulo, puede hacer lo siguiente:
+
+- Almacene y actualice los valores mediante variables.
+
+- Realice operaciones aritméticas con números.
+
+- Convertir entre tipos de datos mediante funciones integradas.
+
+- Introduction min
+
+- Descripción de variables y escritura dinámica min
+
+- Realizar operaciones con números min
+
+- Convierta entre tipos de datos. min
+
+- Ejercicio: Cálculo del GPA de un alumno min
+
+- Valoración del módulo min
+
+- Resumen min
+
+Resultados de la evaluación del módulo"
+DS-ES-001_CH_002,DS-ES-001,Data Science,Trabajar con datos en Python,2,236,"- Valoración del módulo min
+
+- Resumen min
+
+Resultados de la evaluación del módulo
+
+Evalúe su comprensión de este módulo. Inicie sesión y responda correctamente a todas las preguntas para obtener la designación de aprobado en su perfil."
+DS-ES-002_CH_001,DS-ES-002,Data Science,Introducción al análisis de datos,1,769,"# Introducción al análisis de datos
+
+- Módulo
+
+- 7 Unidades
+
+La conversión de datos sin procesar en información útil es esencial para los usuarios profesionales. En este módulo, se tratan los conceptos fundamentales de la agregación de datos y la agrupación de datos.
+
+## Objetivos de aprendizaje
+
+Al final de este módulo, podrá:
+
+- Describir la agregación de datos.
+
+Describir la agregación de datos.
+
+- Describir la agrupación de datos.
+
+Describir la agrupación de datos.
+
+- Describir visualizaciones de datos.
+
+Describir visualizaciones de datos.
+
+## Requisitos previos
+
+- Debe estar familiarizado con la terminología y los conceptos básicos relacionados con la informática.
+
+- Introducción min
+
+- Agregar datos min
+
+- Agrupar datos min
+
+- Visualización de datos min"
+DS-ES-002_CH_002,DS-ES-002,Data Science,Introducción al análisis de datos,2,364,"- Introducción min
+
+- Agregar datos min
+
+- Agrupar datos min
+
+- Visualización de datos min
+
+- Ejercicio: Análisis de datos min
+
+- Evaluación de módulos min
+
+- Resumen min
+
+Resultados de la evaluación del módulo
+
+Evalúe su comprensión de este módulo. Inicie sesión y responda correctamente a todas las preguntas para obtener la designación de aprobado en su perfil."
+FE-ES-001_CH_001,FE-ES-001,Frontend,Primeros pasos con HTML,1,732,"Esta página ha sido traducida del inglés por la comunidad. Aprende más y únete a la comunidad de MDN Web Docs .
+
+View in English Always switch to English
+
+View in English Always switch to English
+
+# Primeros pasos con HTML
+
+- Overview: Estructurando la web con HTML
+
+- Siguiente
+
+En este artículo, cubrimos los conceptos básicos de HTML. Para empezar, este artículo define elementos, atributos y todos los demás términos importantes que puedas haber escuchado. También explica dónde encajan en HTML. Aprenderás cómo se estructuran los elementos HTML, cómo se estructura una página HTML típica y otras características importantes del lenguaje básico. ¡En el camino, también tendrás la oportunidad de jugar con HTML!
+
+## ¿Qué es HTML?"
+FE-ES-001_CH_002,FE-ES-001,Frontend,Primeros pasos con HTML,2,780,"## ¿Qué es HTML?
+
+HTML (HyperText Markup Language, por sus siglas en inglés) es un lenguaje de marcado que indica a los navegadores web cómo estructurar las páginas web que visita. Puede ser tan complicado o tan simple como el desarrollador web quiera que sea. HTML consiste en una serie de elementos , que utiliza para encerrar, envolver o marcar diferentes partes del contenido para que aparezca o actúe de cierta manera. Las etiquetas pueden convertir el contenido en un hipervínculo para conectarse a otra página, poner palabras en cursiva, etc. Por ejemplo, considere la siguiente línea de texto:
+
+```text
+Mi gato es muy gruñón
+```
+
+Si quisiéramos que el texto se mantuviera solo, podríamos especificar que es un párrafo encerrándolo en un elemento de párrafo ( <p> ):
+
+`<p>`"
+FE-ES-001_CH_003,FE-ES-001,Frontend,Primeros pasos con HTML,3,613,"`<p>`
+
+```text
+Mi gato es muy gruñón
+```
+
+Nota: Las etiquetas en HTML no distinguen entre mayúsculas y minúsculas. Esto significa que se pueden escribir en mayúsculas o minúsculas. Por ejemplo, una etiqueta <title> podría escribirse como <title> , <TITLE> , <Title> , <TiTlE> , etc., y funcionará. Sin embargo, es una buena práctica escribir todas las etiquetas en minúsculas para mayor coherencia y legibilidad.
+
+`<title>`
+
+`<title>`
+
+`<TITLE>`
+
+`<Title>`
+
+`<TiTlE>`
+
+## Anatomía de un elemento HTML
+
+Exploremos más a fondo nuestro elemento de párrafo de la sección anterior:
+
+La anatomía de nuestro elemento es:"
+FE-ES-001_CH_004,FE-ES-001,Frontend,Primeros pasos con HTML,4,798,"Exploremos más a fondo nuestro elemento de párrafo de la sección anterior:
+
+La anatomía de nuestro elemento es:
+
+- La etiqueta de apertura: Consiste en el nombre del elemento (en este ejemplo, p para el párrafo), envuelto en corchetes angulares de apertura y cierre. Esta etiqueta de apertura marca dónde inicia o comienza a surtir efecto el elemento. En este ejemplo, precede al inicio del texto del párrafo.
+
+- El contenido: Este es el contenido del elemento. En este ejemplo, es el texto del párrafo.
+
+- La etiqueta de cierre: Esta es la misma que la etiqueta de apertura, excepto que incluye una barra diagonal delante del nombre del elemento. Esto marca donde termina el elemento. No incluir una etiqueta de cierre es un error común para principiantes que puede producir resultados peculiares."
+FE-ES-001_CH_005,FE-ES-001,Frontend,Primeros pasos con HTML,5,795,"El elemento es la etiqueta de apertura, seguida del contenido, seguida de la etiqueta de cierre.
+
+### Aprendizaje activo: crear tu primer elemento HTML
+
+Edite la siguiente línea en el área ""Código editable"" envolviéndola con las etiquetas <em> y </em>. Para abrir el elemento , coloque la etiqueta de apertura <em> al comienzo de la línea. Para cerrar el elemento , coloque la etiqueta de cierre </em> al final de la línea. ¡Hacer esto debería darle formato de texto en cursiva a la línea! Consulta la actualización de tus cambios en vivo en el área de Salida en vivo .
+
+`<em>`
+
+`</em>.`
+
+`<em>`
+
+`</em>`
+
+Si comete un error, puede borrar su trabajo utilizando el botón Restablecer . Si te quedas realmente atascado, pulsa el botón Mostrar solución para ver la respuesta.
+
+```text
+Salida en vivo"
+FE-ES-001_CH_006,FE-ES-001,Frontend,Primeros pasos con HTML,6,739,"```text
+Salida en vivo
+
+Código editable
+
+Pulse Esc para alejar el foco del área de código (Tab inserta un carácter de
+  tabulación).
+
+Este es mi texto.
+```
+
+```text
+html {
+  font-family: ""Open Sans Light"", Helvetica, Arial, sans-serif;
+}
+
+h2 {
+  font-size: 16px;
+}
+
+.a11y-label {
+  margin: 0;
+  text-align: right;
+  font-size: 0.7rem;
+  width: 98%;
+}
+
+body {
+  margin: 10px;
+  background: #f5f9fa;
+}
+```
+
+```text
+const textarea = document.getElementById(""code"");
+const reset = document.getElementById(""reset"");
+const solution = document.getElementById(""solution"");
+const output = document.querySelector("".output"");
+const code = textarea.value;
+let userEntry = textarea.value;
+
+function updateCode() {
+  output.innerHTML = textarea.value;
+}"
+FE-ES-001_CH_007,FE-ES-001,Frontend,Primeros pasos con HTML,7,696,"function updateCode() {
+  output.innerHTML = textarea.value;
+}
+
+const htmlSolution = ""Este es mi texto."";
+let solutionEntry = htmlSolution;
+
+reset.addEventListener(""click"", () => {
+  textarea.value = code;
+  userEntry = textarea.value;
+  solutionEntry = htmlSolution;
+  solution.value = ""Mostrar solución"";
+  updateCode();
+});
+
+solution.addEventListener(""click"", () => {
+  if (solution.value === ""Mostrar solución"") {
+    textarea.value = solutionEntry;
+    solution.value = ""Ocultar solución"";
+  } else {
+    textarea.value = userEntry;
+    solution.value = ""Mostrar solución"";
+  }
+  updateCode();
+});
+
+textarea.addEventListener(""input"", updateCode);
+window.addEventListener(""load"", updateCode);"
+FE-ES-001_CH_008,FE-ES-001,Frontend,Primeros pasos con HTML,8,516,"textarea.addEventListener(""input"", updateCode);
+window.addEventListener(""load"", updateCode);
+
+// detener la tabulación de la tecla tabulación fuera del área de texto y
+// hacer que escriba una tabulación en la posición del cursor en su lugar
+textarea.onkeydown = (e) => {
+  if (e.keyCode === 9) {
+    e.preventDefault();
+    insertAtCaret(""\t"");
+  }
+
+if (e.keyCode === 27) {
+    textarea.blur();
+  }
+};
+
+function insertAtCaret(text) {
+  const scrollPos = textarea.scrollTop;
+  let caretPos = textarea.selectionStart;"
+FE-ES-001_CH_009,FE-ES-001,Frontend,Primeros pasos con HTML,9,560,"function insertAtCaret(text) {
+  const scrollPos = textarea.scrollTop;
+  let caretPos = textarea.selectionStart;
+
+const front = textarea.value.substring(0, caretPos);
+  const back = textarea.value.substring(
+    textarea.selectionEnd,
+    textarea.value.length,
+  );
+  textarea.value = front + text + back;
+  caretPos += text.length;
+  textarea.selectionStart = caretPos;
+  textarea.selectionEnd = caretPos;
+  textarea.focus();
+  textarea.scrollTop = scrollPos;
+}
+
+// Actualizar el userCode guardado cada vez que el usuario actualice el código de área de texto"
+FE-ES-001_CH_010,FE-ES-001,Frontend,Primeros pasos con HTML,10,780,"// Actualizar el userCode guardado cada vez que el usuario actualice el código de área de texto
+
+textarea.onkeyup = () => {
+  // Solo queremos guardar el estado cuando se muestra el código de usuario,
+  // no la solución, para que la solución no se guarde sobre el código de usuario
+  if (solution.value === ""Mostrar solución"") {
+    userEntry = textarea.value;
+  } else {
+    solutionEntry = textarea.value;
+  }
+
+updateCode();
+};
+```
+
+### Anidando elementos
+
+Los elementos se pueden colocar dentro de otros elementos. Esto se llama anidamiento . Si quisiéramos decir que nuestro gato está muy gruñón, podríamos envolver la palabra muy en un elemento <strong> , lo que significa que la palabra debe tener un formato de texto fuerte:
+
+`<strong>`
+
+```text
+Mi gato es muy gruñón.
+```"
+FE-ES-001_CH_011,FE-ES-001,Frontend,Primeros pasos con HTML,11,694,"`<strong>`
+
+```text
+Mi gato es muy gruñón.
+```
+
+Hay una forma correcta e incorrecta de anidar. En el ejemplo anterior, abrimos primero el elemento p , luego abrimos el elemento strong . Para una anidación adecuada, primero debemos cerrar el elemento strong , antes de cerrar p .
+
+`p`
+
+`strong`
+
+`strong`
+
+`p`
+
+El siguiente es un ejemplo de la forma incorrecta de anidar:
+
+```text
+Mi gato es muy gruñón.
+```
+
+Las etiquetas tienen que abrirse y cerrarse de manera que estén dentro o fuera la una de la otra . Con el tipo de superposición en el ejemplo anterior, el navegador tiene que adivinar tu intención. Este tipo de adivinanzas puede dar lugar a resultados inesperados.
+
+### Elementos vacíos"
+FE-ES-001_CH_012,FE-ES-001,Frontend,Primeros pasos con HTML,12,568,"### Elementos vacíos
+
+No todos los elementos siguen el patrón de una etiqueta de apertura, contenido y una etiqueta de cierre. Algunos elementos consisten en una sola etiqueta, que normalmente se utiliza para insertar/incrustar algo en el documento. Dichos elementos se denominan elementos vacíos . Por ejemplo, el elemento <img> incrusta un archivo de imagen en una página:
+
+`<img>`
+
+```text
+<img
+  src=""https://raw.githubusercontent.com/mdn/beginner-html-site/gh-pages/images/firefox-icon.png""
+  alt=""Icono de Firefox"" />
+```
+
+Esto daría como resultado lo siguiente:"
+FE-ES-001_CH_013,FE-ES-001,Frontend,Primeros pasos con HTML,13,684,"Esto daría como resultado lo siguiente:
+
+Nota: En HTML, no es necesario añadir un / al final de la etiqueta de un elemento vacío, por ejemplo: <img src=""images/cat.jpg"" alt=""cat"" /> . Sin embargo, también es una sintaxis válida, y puede hacerlo cuando desee que su HTML sea XML válido.
+
+`/`
+
+`<img src=""images/cat.jpg"" alt=""cat"" />`
+
+## Atributos
+
+Los elementos también pueden tener atributos. Los atributos se ven así:
+
+Los atributos contienen información adicional sobre el elemento que no aparecerá en el contenido. En este ejemplo, el atributo class es un nombre de identificación utilizado para identificar el elemento con información de estilo.
+
+`class`
+
+Un atributo debe tener:"
+FE-ES-001_CH_014,FE-ES-001,Frontend,Primeros pasos con HTML,14,754,"`class`
+
+Un atributo debe tener:
+
+- Un espacio entre él y el nombre del elemento. (Para un elemento con más de un atributo, los atributos también deben estar separados por espacios).
+
+- El nombre del atributo, seguido de un signo igual.
+
+- Un valor de atributo, envuelto con comillas de apertura y cierre.
+
+### Aprendizaje activo: añadir atributos a un elemento
+
+El elemento <img> puede tomar una serie de atributos, que incluyen:
+
+`<img>`
+
+`src`
+
+El atributo src es un atributo requerido que especifica la ubicación de la imagen. Por ejemplo: src=""https://raw.githubusercontent.com/mdn/beginner-html-site/gh-pages/images/firefox-icon.png"" .
+
+`src`
+
+`src=""https://raw.githubusercontent.com/mdn/beginner-html-site/gh-pages/images/firefox-icon.png""`
+
+`alt`"
+FE-ES-001_CH_015,FE-ES-001,Frontend,Primeros pasos con HTML,15,732,"`src`
+
+`src=""https://raw.githubusercontent.com/mdn/beginner-html-site/gh-pages/images/firefox-icon.png""`
+
+`alt`
+
+El atributo alt especifica una descripción de texto de la imagen. Por ejemplo: alt=""El icono de Firefox"" .
+
+`alt`
+
+`alt=""El icono de Firefox""`
+
+`width`
+
+El atributo width especifica el ancho de la imagen con la unidad en píxeles. Por ejemplo: width=""300"" .
+
+`width`
+
+`width=""300""`
+
+`height`
+
+El atributo height especifica la altura de la imagen con la unidad en píxeles. Por ejemplo: height=""300"" .
+
+`height`
+
+`height=""300""`
+
+Edita la siguiente línea en el área del Input para convertirla en una imagen.
+
+- Encuentra tu imagen favorita en línea, haz clic con el botón derecho y pulsa Copiar enlace/dirección de imagen ."
+FE-ES-001_CH_016,FE-ES-001,Frontend,Primeros pasos con HTML,16,748,"- Encuentra tu imagen favorita en línea, haz clic con el botón derecho y pulsa Copiar enlace/dirección de imagen .
+
+- De vuelta en el área de abajo, añade el atributo src y rellénalo con el enlace del paso 1.
+
+`src`
+
+- Establece el atributo alt .
+
+`alt`
+
+- Añade los atributos width y height .
+
+`width`
+
+`height`
+
+Podrás ver los cambios en vivo en el área de Salida .
+
+Si comete un error, siempre puede restablecerlo utilizando el botón Restablecer . Si te quedas realmente atascado, pulsa el botón Mostrar solución para ver la respuesta.
+
+```text
+Salida en vivo
+
+Código editable
+
+Pulse Esc para alejar el foco del área de código (Tab inserta un carácter de
+  tabulación).
+```
+
+```text
+html {
+  font-family: sans-serif;
+}
+
+h2 {
+  font-size: 16px;
+}"
+FE-ES-001_CH_017,FE-ES-001,Frontend,Primeros pasos con HTML,17,794,"```text
+html {
+  font-family: sans-serif;
+}
+
+h2 {
+  font-size: 16px;
+}
+
+.a11y-label {
+  margin: 0;
+  text-align: right;
+  font-size: 0.7rem;
+  width: 98%;
+}
+
+body {
+  margin: 10px;
+  background: #f5f9fa;
+}
+```
+
+```text
+const textarea = document.getElementById(""code"");
+const reset = document.getElementById(""reset"");
+const solution = document.getElementById(""solution"");
+const output = document.querySelector("".output"");
+const code = textarea.value;
+let userEntry = textarea.value;
+
+function updateCode() {
+  output.innerHTML = textarea.value;
+}
+
+const htmlSolution =
+  '';
+let solutionEntry = htmlSolution;
+
+reset.addEventListener(""click"", () => {
+  textarea.value = code;
+  userEntry = textarea.value;
+  solutionEntry = htmlSolution;
+  solution.value = ""Mostrar solución"";
+  updateCode();
+});"
+FE-ES-001_CH_018,FE-ES-001,Frontend,Primeros pasos con HTML,18,793,"solution.addEventListener(""click"", () => {
+  if (solution.value === ""Mostrar solución"") {
+    textarea.value = solutionEntry;
+    solution.value = ""Ocultar solución"";
+  } else {
+    textarea.value = userEntry;
+    solution.value = ""Mostrar solución"";
+  }
+  updateCode();
+});
+
+textarea.addEventListener(""input"", updateCode);
+window.addEventListener(""load"", updateCode);
+
+// detener la tabulación de la tecla tabulación fuera del área de texto y
+// hacer que escriba una tabulación en la posición del cursor en su lugar
+
+textarea.onkeydown = (e) => {
+  if (e.keyCode === 9) {
+    e.preventDefault();
+    insertAtCaret(""\t"");
+  }
+
+if (e.keyCode === 27) {
+    textarea.blur();
+  }
+};
+
+function insertAtCaret(text) {
+  const scrollPos = textarea.scrollTop;
+  let caretPos = textarea.selectionStart;"
+FE-ES-001_CH_019,FE-ES-001,Frontend,Primeros pasos con HTML,19,459,"// Actualizar el userCode guardado cada vez que el usuario actualice el código de área de texto
+
+textarea.onkeyup = () => {
+  // Solo queremos guardar el estado cuando se muestra el código de usuario,
+  // no la solución, para que la solución no se guarde sobre el código de usuario
+  if (solution.value === ""Mostrar solución"") {
+    userEntry = textarea.value;
+  } else {
+    solutionEntry = textarea.value;
+  }
+
+updateCode();
+};
+```
+
+### Atributos booleanos"
+FE-ES-001_CH_020,FE-ES-001,Frontend,Primeros pasos con HTML,20,653,"updateCode();
+};
+```
+
+### Atributos booleanos
+
+A veces verás atributos escritos sin valores. Esto es totalmente aceptable. Estos se llaman atributos booleanos. Los atributos booleanos solo pueden tener un valor, que generalmente es el mismo que el nombre del atributo. Por ejemplo, considere el atributo disabled , que puede asignar a los elementos de entrada de formulario. (Utiliza esto para deshabilitar los elementos de entrada del formulario para que el usuario no pueda realizar entradas. Los elementos deshabilitados suelen tener un aspecto grisáceo.) Por ejemplo:
+
+`disabled`
+
+Como abreviatura, es aceptable escribir esto de la siguiente manera:"
+FE-ES-001_CH_021,FE-ES-001,Frontend,Primeros pasos con HTML,21,298,"`disabled`
+
+Como abreviatura, es aceptable escribir esto de la siguiente manera:
+
+Como referencia, el ejemplo anterior también incluye un elemento de entrada de formulario no deshabilitado. El HTML del ejemplo anterior produce este resultado:
+
+### Omitir comillas en torno a los valores de atributo"
+FE-ES-001_CH_022,FE-ES-001,Frontend,Primeros pasos con HTML,22,682,"### Omitir comillas en torno a los valores de atributo
+
+Si observa el código de muchos otros sitios, es posible que encuentre una serie de estilos de marcado extraños, incluidos los valores de atributos sin comillas. Esto está permitido en ciertas circunstancias, pero también puede romper su margen de beneficio en otras circunstancias. El elemento en el fragmento de código a continuación, <a> , se llama ancla. Los anclajes encierran texto y los convierten en enlaces. El atributo href especifica la dirección web a la que apunta el enlace. Puedes escribir esta versión básica a continuación con solo el atributo href , así:
+
+`<a>`
+
+`href`
+
+`href`
+
+```text
+sitio web favorito
+```"
+FE-ES-001_CH_023,FE-ES-001,Frontend,Primeros pasos con HTML,23,766,"`<a>`
+
+`href`
+
+`href`
+
+```text
+sitio web favorito
+```
+
+Los anclajes también pueden tener un atributo title , una descripción de la página vinculada. Sin embargo, tan pronto como añadimos el title de la misma manera que el atributo href hay problemas:
+
+`title`
+
+`title`
+
+`href`
+
+```text
+sitio web favorito
+```
+
+Como se ha escrito anteriormente, el navegador malinterpreta el marcado, confundiendo el atributo title con tres atributos: un atributo title con el valor The , y dos atributos booleanos, Mozilla y homepage . ¡Obviamente, esto no es la intención! Causará errores o comportamientos inesperados, como puede ver en el ejemplo en vivo a continuación. ¡Intenta pasar el cursor sobre el enlace para ver el texto del título!
+
+`title`
+
+`The`
+
+`Mozilla`
+
+`homepage`"
+FE-ES-001_CH_024,FE-ES-001,Frontend,Primeros pasos con HTML,24,720,"`title`
+
+`The`
+
+`Mozilla`
+
+`homepage`
+
+Incluya siempre las comillas de los atributos. Evita tales problemas y da como resultado un código más legible.
+
+### ¿Comillas simples o dobles?
+
+En este artículo, también notarás que los atributos están entre comillas dobles. Sin embargo, es posible que veas comillas simples en algún código HTML. Es una cuestión de estilo. Puedes elegir libremente cuál prefieres. Ambas opciones son equivalentes:
+
+```text
+Un enlace a mi ejemplo.
+
+Un enlace a mi ejemplo.
+```
+
+Asegúrate de no mezclar comillas simples y comillas dobles. Este ejemplo (a continuación) muestra una especie de mezcla de comillas que saldrá mal:
+
+```text
+<a href=""https://www.example.com'>Un enlace a mi ejemplo.
+```"
+FE-ES-001_CH_025,FE-ES-001,Frontend,Primeros pasos con HTML,25,753,"```text
+<a href=""https://www.example.com'>Un enlace a mi ejemplo.
+```
+
+Sin embargo, si utilizas un tipo de comilla, puedes incluir el otro tipo de comilla dentro tus valores de atributo:
+
+```text
+  Un enlace a mi ejemplo.
+```
+
+Para usar comillas dentro de otras comillas del mismo tipo (comillas simples o comillas dobles), use entidades HTML . Por ejemplo, esto se romperá:
+
+```text
+Un enlace a mi ejemplo.
+```
+
+En su lugar, debe hacer lo siguiente:
+
+```text
+Un enlace a mi ejemplo.
+```
+
+## Anatomía de un documento HTML
+
+Los elementos HTML individualmente no son muy útiles por sí solos. A continuación, examinemos cómo se combinan los elementos para formar una página HTML completa:
+
+```text
+ Mi página de prueba
+
+Esta es mi página
+```
+
+Aquí tenemos:"
+FE-ES-001_CH_026,FE-ES-001,Frontend,Primeros pasos con HTML,26,724,"```text
+ Mi página de prueba
+
+Esta es mi página
+```
+
+Aquí tenemos:
+
+- <!DOCTYPE html> : El tipo de documento. Cuando HTML era joven (1991-1992), los doctype estaban destinados a actuar como enlaces a un conjunto de reglas que la página HTML tenía que seguir para ser considerada un buen HTML. Los doctypes solían parecerse a algo como esto: html <!DOCTYPE html PUBLIC ""-//W3C//DTD XHTML 1.0 Transitional//EN"" ""http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd""> Más recientemente, el doctype es un artefacto histórico que debe incluirse para que todo lo demás funcione correctamente. <!DOCTYPE html> es la cadena más corta de caracteres que cuenta como un tipo de documento válido. ¡Eso es todo lo que necesitas saber!"
+FE-ES-001_CH_027,FE-ES-001,Frontend,Primeros pasos con HTML,27,705,"<!DOCTYPE html> : El tipo de documento. Cuando HTML era joven (1991-1992), los doctype estaban destinados a actuar como enlaces a un conjunto de reglas que la página HTML tenía que seguir para ser considerada un buen HTML. Los doctypes solían parecerse a algo como esto:
+
+`<!DOCTYPE html>`
+
+Más recientemente, el doctype es un artefacto histórico que debe incluirse para que todo lo demás funcione correctamente. <!DOCTYPE html> es la cadena más corta de caracteres que cuenta como un tipo de documento válido. ¡Eso es todo lo que necesitas saber!
+
+`<!DOCTYPE html>`
+
+- <html></html> : El elemento <html> . Este elemento envuelve todo el contenido de la página. A veces se le conoce como el elemento raíz."
+FE-ES-001_CH_028,FE-ES-001,Frontend,Primeros pasos con HTML,28,606,"<html></html> : El elemento <html> . Este elemento envuelve todo el contenido de la página. A veces se le conoce como el elemento raíz.
+
+`<html></html>`
+
+`<html>`
+
+- <head></head> : El elemento <head> . Este elemento actúa como un contenedor para todo lo que desea incluir en la página HTML, que no es el contenido que la página mostrará a los espectadores. Esto incluye palabras clave y una descripción de la página que aparecería en los resultados de búsqueda, CSS para dar estilo al contenido, declaraciones de conjuntos de caracteres y más. Aprenderás más sobre esto en el próximo artículo de la serie."
+FE-ES-001_CH_029,FE-ES-001,Frontend,Primeros pasos con HTML,29,467,"<head></head> : El elemento <head> . Este elemento actúa como un contenedor para todo lo que desea incluir en la página HTML, que no es el contenido que la página mostrará a los espectadores. Esto incluye palabras clave y una descripción de la página que aparecería en los resultados de búsqueda, CSS para dar estilo al contenido, declaraciones de conjuntos de caracteres y más. Aprenderás más sobre esto en el próximo artículo de la serie.
+
+`<head></head>`
+
+`<head>`"
+FE-ES-001_CH_030,FE-ES-001,Frontend,Primeros pasos con HTML,30,630,"`<head></head>`
+
+`<head>`
+
+- <meta charset=""utf-8""> : El elemento <meta> . Este elemento representa metadatos que no pueden ser representados por otros elementos HTML relacionados con metadatos, como <base> , <link> , <script> , <style> o <title> . El atributo charset especifica la codificación de caracteres para su documento como UTF-8, que incluye la mayoría de los caracteres de la gran mayoría de los lenguajes humanos escritos. Con esta configuración, la página ahora puede manejar cualquier contenido textual que pueda contener. No hay razón para no configurar esto, y puede ayudar a evitar algunos problemas más adelante."
+FE-ES-001_CH_031,FE-ES-001,Frontend,Primeros pasos con HTML,31,702,"<meta charset=""utf-8""> : El elemento <meta> . Este elemento representa metadatos que no pueden ser representados por otros elementos HTML relacionados con metadatos, como <base> , <link> , <script> , <style> o <title> . El atributo charset especifica la codificación de caracteres para su documento como UTF-8, que incluye la mayoría de los caracteres de la gran mayoría de los lenguajes humanos escritos. Con esta configuración, la página ahora puede manejar cualquier contenido textual que pueda contener. No hay razón para no configurar esto, y puede ayudar a evitar algunos problemas más adelante.
+
+`<meta charset=""utf-8"">`
+
+`<meta>`
+
+`<base>`
+
+`<link>`
+
+`<script>`
+
+`<style>`
+
+`<title>`
+
+`charset`"
+FE-ES-001_CH_032,FE-ES-001,Frontend,Primeros pasos con HTML,32,653,"`<meta charset=""utf-8"">`
+
+`<meta>`
+
+`<base>`
+
+`<link>`
+
+`<script>`
+
+`<style>`
+
+`<title>`
+
+`charset`
+
+- <title></title> : El elemento <title> . Esto establece el título de la página, que es el título que aparece en la pestaña del navegador en la que se carga la página. El título de la página también se utiliza para describir la página cuando está en marcadores.
+
+<title></title> : El elemento <title> . Esto establece el título de la página, que es el título que aparece en la pestaña del navegador en la que se carga la página. El título de la página también se utiliza para describir la página cuando está en marcadores.
+
+`<title></title>`
+
+`<title>`"
+FE-ES-001_CH_033,FE-ES-001,Frontend,Primeros pasos con HTML,33,796,"`<title></title>`
+
+`<title>`
+
+- <body></body> : El elemento <body> . Contiene todo el contenido que se muestra en la página, incluidos texto, imágenes, vídeos, juegos, pistas de audio reproducibles o cualquier otra cosa.
+
+<body></body> : El elemento <body> . Contiene todo el contenido que se muestra en la página, incluidos texto, imágenes, vídeos, juegos, pistas de audio reproducibles o cualquier otra cosa.
+
+`<body></body>`
+
+`<body>`
+
+### Aprendizaje activo: añadir algunas funciones a un documento HTML
+
+Si quieres experimentar con escribir algo de HTML en tu ordenador local, puedes:
+
+- Copie el ejemplo de página HTML listado anteriormente.
+
+- Crea un nuevo archivo en tu editor de texto.
+
+- Pega el código en el nuevo archivo de texto.
+
+- Guarde el archivo como index.html .
+
+`index.html`"
+FE-ES-001_CH_034,FE-ES-001,Frontend,Primeros pasos con HTML,34,752,"- Pega el código en el nuevo archivo de texto.
+
+- Guarde el archivo como index.html .
+
+`index.html`
+
+Nota: También puedes encontrar esta plantilla HTML básica en el repositorio de GitHub del área de aprendizaje de MDN .
+
+Ahora puede abrir este archivo en un navegador web para ver cómo se ve el código renderizado. Edita el código y actualiza el navegador para ver cuál es el resultado. Inicialmente, la página se ve así:
+
+En este ejercicio, puedes editar el código localmente en tu ordenador, como se describió anteriormente, o puedes editarlo en la ventana de muestra a continuación (la ventana de muestra editable representa solo el contenido del elemento <body> , en este caso). Mejora tus habilidades implementando las siguientes tareas:
+
+`<body>`"
+FE-ES-001_CH_035,FE-ES-001,Frontend,Primeros pasos con HTML,35,567,"`<body>`
+
+- Justo debajo de la etiqueta de apertura del elemento <body> , añade un título principal para el documento. Esto debe envolverse dentro de una etiqueta <h1> de apertura y </h1> de cierre.
+
+`<body>`
+
+`<h1>`
+
+`</h1>`
+
+- Edita el contenido del párrafo para incluir texto sobre un tema que te parezca interesante.
+
+- Haz que las palabras importantes se destaquen en negrita envolviéndolas dentro de una etiqueta <strong> de apertura y </strong> de cierre.
+
+`<strong>`
+
+`</strong>`
+
+- Añade un enlace a tu párrafo, como se explicó anteriormente en el artículo ."
+FE-ES-001_CH_036,FE-ES-001,Frontend,Primeros pasos con HTML,36,780,"`<strong>`
+
+`</strong>`
+
+- Añade un enlace a tu párrafo, como se explicó anteriormente en el artículo .
+
+- Añade una imagen a tu documento. Colócalo debajo del párrafo, como se explicó anteriormente en el artículo . Gana puntos de bonificación si consigues vincular a una imagen diferente (ya sea localmente en tu ordenador o en algún otro lugar de la web).
+
+Si comete un error, siempre puede restablecerlo utilizando el botón Restablecer . Si te quedas realmente atascado, pulsa el botón Mostrar solución para ver la respuesta.
+
+```text
+Salida en vivo
+
+Código editable
+
+Pulse Esc para alejar el foco del área de código (Tab inserta un carácter de
+  tabulación).
+
+Esta es mi página
+```
+
+```text
+html {
+  font-family: sans-serif;
+}
+
+h1 {
+  color: blue;
+}
+
+h2 {
+  font-size: 16px;
+}"
+FE-ES-001_CH_037,FE-ES-001,Frontend,Primeros pasos con HTML,37,619,"Esta es mi página
+```
+
+```text
+html {
+  font-family: sans-serif;
+}
+
+h1 {
+  color: blue;
+}
+
+h2 {
+  font-size: 16px;
+}
+
+.a11y-label {
+  margin: 0;
+  text-align: right;
+  font-size: 0.7rem;
+  width: 98%;
+}
+
+img {
+  max-width: 100%;
+}
+
+body {
+  margin: 10px;
+  background: #f5f9fa;
+}
+```
+
+```text
+const textarea = document.getElementById(""code"");
+const reset = document.getElementById(""reset"");
+const solution = document.getElementById(""solution"");
+const output = document.querySelector("".output"");
+const code = textarea.value;
+let userEntry = textarea.value;
+
+function updateCode() {
+  output.innerHTML = textarea.value;
+}"
+FE-ES-001_CH_038,FE-ES-001,Frontend,Primeros pasos con HTML,38,768,"function updateCode() {
+  output.innerHTML = textarea.value;
+}
+
+const htmlSolution =
+  'Algo de músicaDisfruto mucho tocando la batería. Uno de mis bateristas favoritos es Neal Peart, que toca en la banda Rush. Mi álbum favorito de Rush es actualmente Moving Pictures. ';
+let solutionEntry = htmlSolution;
+
+reset.addEventListener(""click"", () => {
+  textarea.value = code;
+  userEntry = textarea.value;
+  solutionEntry = htmlSolution;
+  solution.value = ""Mostrar solución"";
+  updateCode();
+});
+
+solution.addEventListener(""click"", () => {
+  if (solution.value === ""Mostrar solución"") {
+    textarea.value = solutionEntry;
+    solution.value = ""Ocultar solución"";
+  } else {
+    textarea.value = userEntry;
+    solution.value = ""Mostrar solución"";
+  }
+  updateCode();
+});"
+FE-ES-001_CH_039,FE-ES-001,Frontend,Primeros pasos con HTML,39,517,"textarea.addEventListener(""input"", updateCode);
+window.addEventListener(""load"", updateCode);
+
+// detener la tabulación de la tecla tabulación fuera del área de texto y
+// hacer que escriba una tabulación en la posición del cursor en su lugar
+
+textarea.onkeydown = (e) => {
+  if (e.keyCode === 9) {
+    e.preventDefault();
+    insertAtCaret(""\t"");
+  }
+
+if (e.keyCode === 27) {
+    textarea.blur();
+  }
+};
+
+function insertAtCaret(text) {
+  const scrollPos = textarea.scrollTop;
+  let caretPos = textarea.selectionStart;"
+FE-ES-001_CH_040,FE-ES-001,Frontend,Primeros pasos con HTML,40,463,"function insertAtCaret(text) {
+  const scrollPos = textarea.scrollTop;
+  let caretPos = textarea.selectionStart;
+
+const front = textarea.value.substring(0, caretPos);
+  const back = textarea.value.substring(
+    textarea.selectionEnd,
+    textarea.value.length,
+  );
+  textarea.value = front + text + back;
+  caretPos += text.length;
+  textarea.selectionStart = caretPos;
+  textarea.selectionEnd = caretPos;
+  textarea.focus();
+  textarea.scrollTop = scrollPos;
+}"
+FE-ES-001_CH_041,FE-ES-001,Frontend,Primeros pasos con HTML,41,722,"// Actualizar el userCode guardado cada vez que el usuario actualice el código de área de texto
+textarea.onkeyup = () => {
+  // Solo queremos guardar el estado cuando se muestra el código de usuario,
+  // no la solución, para que la solución no se guarde sobre el código de usuario
+  if (solution.value === ""Mostrar solución"") {
+    userEntry = textarea.value;
+  } else {
+    solutionEntry = textarea.value;
+  }
+
+updateCode();
+};
+```
+
+### Espacios en blanco en HTML
+
+En los ejemplos anteriores, es posible que hayas notado que se incluyen muchos espacios en blanco en el código. Este paso es opcional. Estos dos fragmentos de código son equivalentes:
+
+```text
+Los perros son tontos.
+
+Los perros
+    son
+        tontos.
+```"
+FE-ES-001_CH_042,FE-ES-001,Frontend,Primeros pasos con HTML,42,758,"```text
+Los perros son tontos.
+
+Los perros
+    son
+        tontos.
+```
+
+No importa cuánto espacio en blanco utilice dentro del contenido del elemento HTML (que puede incluir uno o más caracteres de espacio, o también saltos de línea), el analizador HTML reduce cada secuencia de espacio en blanco a un solo espacio al representar el código. Entonces, ¿por qué usar tanto espacio en blanco? La respuesta es la legibilidad.
+
+Puede ser más fácil entender lo que está pasando en tu código si lo tienes bien formateado. En nuestro HTML tenemos cada elemento anidado indentado por dos espacios más que el que está dentro. Depende de usted elegir el estilo de formato (cuántos espacios para cada nivel de indentación, por ejemplo), pero debe considerar formatearlo."
+FE-ES-001_CH_043,FE-ES-001,Frontend,Primeros pasos con HTML,43,646,"Echemos un vistazo a cómo el navegador representa los dos párrafos anteriores con y sin espacios en blanco:
+
+Nota: El acceso a innerHTML de los elementos de JavaScript mantendrá intacto todo el espacio en blanco.
+Esto puede arrojar resultados inesperados si el navegador recorta el espacio en blanco.
+
+```text
+const noWhitespace = document.getElementById(""noWhitespace"").innerHTML;
+console.log(noWhitespace);
+// ""Los perros son tontos"".
+
+const whitespace = document.getElementById(""whitespace"").innerHTML;
+console.log(whitespace);
+// ""Los perros
+//    son
+//        tontos.""
+```
+
+## Referencias de entidades: Incluir caracteres especiales en HTML"
+FE-ES-001_CH_044,FE-ES-001,Frontend,Primeros pasos con HTML,44,658,"## Referencias de entidades: Incluir caracteres especiales en HTML
+
+En HTML, los caracteres < , > , "" , ' y & son caracteres especiales. Son partes de la sintaxis HTML en sí. Entonces, ¿cómo incluyes uno de estos caracteres especiales en tu texto? Por ejemplo, si desea usar un signo ampersand (&) o menor que, y no interpretarlo como código.
+
+`<`
+
+`>`
+
+`""`
+
+`'`
+
+`&`
+
+Haces esto con referencias de caracteres. Estos son códigos especiales que representan caracteres, para ser utilizados en estas circunstancias exactas. Cada referencia de carácter comienza con un ampersand (&) y termina con un punto y coma (;).
+
+`&lt;`
+
+`&gt;`
+
+`&quot;`
+
+`&apos;`
+
+`&amp;`"
+FE-ES-001_CH_045,FE-ES-001,Frontend,Primeros pasos con HTML,45,591,"`&lt;`
+
+`&gt;`
+
+`&quot;`
+
+`&apos;`
+
+`&amp;`
+
+El equivalente de referencia de carácter podría recordarse fácilmente porque el texto que utiliza puede verse como menor que (less than, en inglés) para '&lt;', comilla (quot, en inglés) para '&quot;' y de manera similar para otros. Para obtener más información sobre las referencias de entidades, consulta Lista de referencias de entidades de caracteres XML y HTML (Wikipedia).
+
+En el siguiente ejemplo, hay dos párrafos:
+
+```text
+En HTML, se define un párrafo utilizando el elemento .
+
+En HTML, se define un párrafo utilizando el elemento .
+```"
+FE-ES-001_CH_046,FE-ES-001,Frontend,Primeros pasos con HTML,46,577,"En HTML, se define un párrafo utilizando el elemento .
+```
+
+En la salida en vivo a continuación, puede ver que el primer párrafo ha salido mal. El navegador interpreta la segunda instancia de <p> como comenzar un nuevo párrafo. El segundo párrafo se ve bien porque tiene corchetes angulares con referencias de caracteres.
+
+`<p>`
+
+Nota: No es necesario usar referencias de entidad para ningún otro símbolo, ya que los navegadores modernos manejarán bien los símbolos reales siempre que la codificación de caracteres de tu HTML esté configurada en UTF-8 .
+
+## Comentarios en HTML"
+FE-ES-001_CH_047,FE-ES-001,Frontend,Primeros pasos con HTML,47,715,"## Comentarios en HTML
+
+HTML tiene un mecanismo para escribir comentarios en el código. Los navegadores ignoran los comentarios, lo que hace que los comentarios sean invisibles para el usuario. El propósito de los comentarios es permitirle incluir notas en el código para explicar su lógica o codificación. Esto es muy útil si vuelve a una base de código después de estar ausente el tiempo suficiente para no recordarlo por completo. Del mismo modo, los comentarios son invaluables ya que diferentes personas están haciendo cambios y actualizaciones.
+
+Para escribir un comentario en HTML, envuélvalo en los marcadores especiales <!-- y --> . Por ejemplo:
+
+`<!--`
+
+`-->`
+
+```text
+No estoy dentro de un comentario
+```"
+FE-ES-001_CH_048,FE-ES-001,Frontend,Primeros pasos con HTML,48,580,"`<!--`
+
+`-->`
+
+```text
+No estoy dentro de un comentario
+```
+
+Como puede ver a continuación, solo se muestra el primer párrafo en la salida en vivo.
+
+## Resumen
+
+¡Has llegado al final del artículo! Esperamos que hayas disfrutado de tu recorrido por los conceptos básicos de HTML.
+
+En este punto, debes entender cómo se ve HTML y cómo funciona a un nivel básico. También deberías poder escribir algunos elementos y atributos. Los artículos posteriores de este módulo profundizan en algunos de los temas introducidos aquí, así como en la presentación de otros conceptos del lenguaje."
+FE-ES-001_CH_049,FE-ES-001,Frontend,Primeros pasos con HTML,49,524,"- A medida que comiences a aprender más sobre HTML, considera aprender los conceptos básicos de CSS (hojas de estilo en cascada). CSS es el lenguaje utilizado para dar estilo a las páginas web, como cambiar fuentes o colores o alterar el diseño de la página. HTML y CSS funcionan bien juntos, como pronto descubrirás.
+
+## Vease también
+
+- Aplicar color a elementos HTML usando CSS
+
+- Overview: Estructurando la web con HTML
+
+- Siguiente
+
+## Help improve MDN
+
+This page was last modified on 12 sept 2026 by MDN contributors ."
+FE-ES-002_CH_001,FE-ES-002,Frontend,Elementos básicos de JavaScript,1,775,"Esta página ha sido traducida del inglés por la comunidad. Aprende más y únete a la comunidad de MDN Web Docs .
+
+View in English Always switch to English
+
+View in English Always switch to English
+
+# Elementos básicos de JavaScript
+
+En este módulo, continuamos nuestra cobertura de todas las características clave de JavaScript, tornando nuestra atención a tipos de código comúnmente encontrados tales como enunciados condicionales, bucles (loops), funciones, y eventos. Ya has visto estas cosas en este curso, pero solo de pasada aquí lo hablaremos mas explícitamente.
+
+### Quieres transformarte en un desarrollador web front-end?
+
+Hemos reunido un curso que incluye toda la información esencial que necesitas para trabajar hacia tu objetivo.
+
+Empieza aquí
+
+## Pre-requisitos"
+FE-ES-002_CH_002,FE-ES-002,Frontend,Elementos básicos de JavaScript,2,468,"Empieza aquí
+
+## Pre-requisitos
+
+Antes de empezar este módulo, deberías ya tener alguna familiaridad con lo básico de HTML y CSS , y también deberías haber trabajado todos lo módulos previos, JavaScript primeros pasos .
+
+Nota: Si estas trabajando en una computadora/tablet/otro dispositivo donde no tienes la capacidad de crear tus propios archivos, podrías practicar (la mayoría de) los ejemplos de código en un programa en linea tales como JSBin o Glitch .
+
+## Guías"
+FE-ES-002_CH_003,FE-ES-002,Frontend,Elementos básicos de JavaScript,3,735,"## Guías
+
+En cualquier lenguaje de programación, el código necesita tomar decisiones y efectuar acciones consiguientemente dependiendo de las diferentes ordenes ingresadas. Por ejemplo, en un juego, si el numero de vidas del jugador es 0, entonces se termina el juego. En una aplicación del clima, si esta siendo vista por la mañana, muestra un gráfico del amanecer; muestra estrellas y una luna si es de noche. En este artículo exploraremos como los condicionales estructuran el trabajo en Javascript.
+
+A veces necesitas que una tarea se haga más de una vez. Por ejemplo, revisar toda una lista de nombres. En programación, los bucles (' loops' en inglés) hacen este trabajo muy bien. Aca veremos la estructura de loops en Javascript."
+FE-ES-002_CH_004,FE-ES-002,Frontend,Elementos básicos de JavaScript,4,725,"Otro concepto fundamental en código es funciones. Funciones te permite almacenar una pieza de código que ejecuta una sola tarea dentro de un bloque definido, y después llamar ese código cuando lo necesitas usando un comando corto en lugar de tener que escribir el mismo código varias veces. En este articulo exploraremos conceptos fundamentales detrás de las funciones tales como sintaxis básica, cómo invocar y definir funciones, ámbito o alcance (scope), y parámetros.
+
+Con la información presentada en el artículo anterior, este artículo, pretende demostrar una parte práctica. Se podrá desarrollar una función propia, y durante el desarrollo se presentarán algunos consejos prácticos y útiles para trabajar con funciones."
+FE-ES-002_CH_005,FE-ES-002,Frontend,Elementos básicos de JavaScript,5,326,"Un concepto fundamental que ha de tenerse en cuenta, es que las funciones pueden devolver valores al finalizar su ejecución, aunque algunas funciones también pueden no devolver ningún valor. Es importante entender como son esos valores, qué tipos pueden tener y cómo aprovechar el valor devuelto por la función en el programa."
+FE-ES-002_CH_006,FE-ES-002,Frontend,Elementos básicos de JavaScript,6,652,"Los eventos son acciones u ocurrencias que aparecen durante la ejecución del programa, y que son reportadas por el sistema, de forma que se pueda responder a los eventos de la forma deseada. Por ejemplo, si un usuario hace un click en un botón de una página web, puede que se quiera que ese evento inicie una acción en el que se muestre cierta información en un cuadro de información. En este último artículo se presentarán y describirán los conceptos necesarios con respecto a los eventos, y como funcionan en un navegador.
+
+## Evaluaciones
+
+La siguiente evaluación probara tu entendimiento de lo básico de Javascript cubierto en las guias anteriores."
+FE-ES-002_CH_007,FE-ES-002,Frontend,Elementos básicos de JavaScript,7,770,"La siguiente evaluación probara tu entendimiento de lo básico de Javascript cubierto en las guias anteriores.
+
+Ahora que hemos visto los bloques constructores fundamentales de JavaScript, probaremos tus conocimientos en bucles, funciones, condicionales y eventos construyendo un item bastante común en muchos sitios web — una galería de imágenes creada con JavaScript.
+
+## Ver también
+
+Un excelente recurso para aspirantes a desarrolladores web — Aprenda JavaScript en un entorno interactivo, con lecciones cortas y pruebas interactivas, guiadas por una evaluación automatizada. Las primeras 40 lecciones son gratuitas, y el curso completo está disponible por un pequeño pago único.
+
+## Help improve MDN
+
+This page was last modified on 12 sept 2026 by MDN contributors ."
+CLD-ES-001_CH_001,CLD-ES-001,Cloud / DevOps,¿Qué es Kubernetes?,1,773,"# ¿Qué es Kubernetes?
+
+Esta página ofrece una visión general sobre Kubernetes.
+
+Kubernetes es una plataforma portable y extensible de código abierto para
+administrar cargas de trabajo y servicios. Kubernetes facilita la automatización
+y la configuración declarativa. Tiene un ecosistema grande y en rápido crecimiento.
+El soporte, las herramientas y los servicios para Kubernetes están ampliamente disponibles.
+
+Google liberó el proyecto Kubernetes en el año 2014. Kubernetes se basa en la experiencia de
+Google corriendo aplicaciones en producción a gran escala por década y media , junto a las mejores ideas y prácticas de la comunidad.
+
+## ¿Por qué necesito Kubernetes y qué puede hacer por mi?
+
+Kubernetes tiene varias características. Puedes pensar en Kubernetes como:"
+CLD-ES-001_CH_002,CLD-ES-001,Cloud / DevOps,¿Qué es Kubernetes?,2,650,"Kubernetes tiene varias características. Puedes pensar en Kubernetes como:
+
+- una plataforma de contenedores
+
+- una plataforma de microservicios
+
+- una plataforma portable de nube
+
+y mucho más.
+
+Kubernetes ofrece un entorno de administración centrado en contenedores . Kubernetes
+orquesta la infraestructura de cómputo, redes y almacenamiento para que las cargas de
+trabajo de los usuarios no tengan que hacerlo. Esto ofrece la simplicidad de las Plataformas
+como Servicio (PaaS) con la flexibilidad de la Infraestructura como Servicio (IaaS) y permite
+la portabilidad entre proveedores de infraestructura.
+
+## ¿Qué hace de Kubernetes una plataforma?"
+CLD-ES-001_CH_003,CLD-ES-001,Cloud / DevOps,¿Qué es Kubernetes?,3,617,"## ¿Qué hace de Kubernetes una plataforma?
+
+A pesar de que Kubernetes ya ofrece muchas funcionalidades, siempre hay nuevos
+escenarios que se benefician de nuevas características. Los flujos de trabajo
+de las aplicaciones pueden optimizarse para acelerar el tiempo de desarrollo.
+Una solución de orquestación propia puede ser suficiente al principio, pero suele requerir
+una automatización robusta cuando necesita escalar. Es por ello que Kubernetes fue diseñada como
+una plataforma: para poder construir un ecosistema de componentes y herramientas que hacen
+más fácil el desplegar, escalar y administrar aplicaciones."
+CLD-ES-001_CH_004,CLD-ES-001,Cloud / DevOps,¿Qué es Kubernetes?,4,684,"Las etiquetas, o Labels , le
+permiten a los usuarios organizar sus recursos como deseen. Las anotaciones, o Annotations , les permiten asignar información arbitraria a un recurso para
+facilitar sus flujos de trabajo y hacer más fácil a las herramientas administrativas inspeccionar el estado.
+
+Además, el Plano de Control de Kubernetes usa las mismas APIs que usan los desarrolladores y usuarios finales.
+Los usuarios pueden escribir sus propios controladores, como por ejemplo un planificador o scheduler ,
+usando sus propias
+APIs desde una herramienta de línea de comandos .
+
+Este diseño ha permitido que otros sistemas sean construidos sobre Kubernetes.
+
+## Lo que Kubernetes no es"
+CLD-ES-001_CH_005,CLD-ES-001,Cloud / DevOps,¿Qué es Kubernetes?,5,731,"Este diseño ha permitido que otros sistemas sean construidos sobre Kubernetes.
+
+## Lo que Kubernetes no es
+
+Kubernetes no es una Plataforma como Servicio (PaaS) convencional. Ya que
+Kubernetes opera a nivel del contenedor y no a nivel del hardware, ofrece
+algunas características que las PaaS también ofrecen, como deployments,
+escalado, balanceo de carga, registros y monitoreo. Dicho esto, Kubernetes
+no es monolítico y las soluciones que se ofrecen de forma predeterminada
+son opcionales e intercambiables.
+
+Kubernetes ofrece los elementos esenciales para construir una plataforma
+para desarrolladores, preservando la elección del usuario y la flexibilidad
+en las partes más importantes.
+
+Entonces, podemos decir que Kubernetes:"
+CLD-ES-001_CH_006,CLD-ES-001,Cloud / DevOps,¿Qué es Kubernetes?,6,553,"Entonces, podemos decir que Kubernetes:
+
+- No limita el tipo de aplicaciones que soporta. Kubernetes busca dar soporte a un número diverso de cargas de trabajo, que incluyen aplicaciones con y sin estado así como aplicaciones que procesan datos. Si la aplicación puede correr en un contenedor, debería correr bien en Kubernetes.
+
+- No hace deployment de código fuente ni compila tu aplicación. Los flujos de integración, entrega y deployment continuo (CI/CD) vienen determinados por la cultura y preferencia organizacional y sus requerimientos técnicos."
+CLD-ES-001_CH_007,CLD-ES-001,Cloud / DevOps,¿Qué es Kubernetes?,7,768,"- No provee servicios en capa de aplicación como middleware (por ejemplo, buses de mensaje), frameworks de procesamiento de datos (como Spark), bases de datos (como MySQL), caches o sistemas de almacenamiento (como Ceph). Es posible correr estas aplicaciones en Kubernetes, o acceder a ellos desde una aplicación usando un mecanismo portable como el Open Service Broker.
+
+- No dictamina las soluciones de registros, monitoreo o alerta que se deben usar. Hay algunas integraciones que se ofrecen como prueba de concepto, y existen mecanismos para recolectar y exportar métricas.
+
+- No provee ni obliga a usar un sistema o lenguaje de configuración (como jsonnet ) sino que ofrece una API declarativa que puede ser usada con cualquier forma de especificación declarativa"
+CLD-ES-001_CH_008,CLD-ES-001,Cloud / DevOps,¿Qué es Kubernetes?,8,756,"- No provee ni adopta un sistema exhaustivo de mantenimiento, administración o corrección automática de errores
+
+Además, Kubernetes no es un mero sistema de orquestación . De hecho, Kubernetes elimina la necesidad de orquestar. Orquestación se define como la ejecución de un flujo de trabajo definido: haz A, luego B y entonces C. Kubernetes está compuesto de un conjunto de procesos de control independientes y combinables entre si que llevan el estado actual hacia el estado deseado. No debería importar demasiado como llegar de A a C. No se requiere control centralizado y, como resultado, el sistema es más fácil de usar, más poderoso, robusto, resiliente y extensible.
+
+## ¿Por qué usar contenedores?
+
+¿Te preguntas las razones para usar contenedores?"
+CLD-ES-001_CH_009,CLD-ES-001,Cloud / DevOps,¿Qué es Kubernetes?,9,523,"## ¿Por qué usar contenedores?
+
+¿Te preguntas las razones para usar contenedores?
+
+La Manera Antigua de desplegar aplicaciones era instalarlas en un
+servidor usando el administrador de paquetes del sistema operativo.
+La desventaja era que los ejecutables, la configuración, las librerías
+y el ciclo de vida de todos estos componentes se entretejían unos a
+otros. Podíamos construir imágenes de máquina virtual inmutables para
+tener rollouts y rollbacks predecibles, pero las máquinas virtuales
+son pesadas y poco portables."
+CLD-ES-001_CH_010,CLD-ES-001,Cloud / DevOps,¿Qué es Kubernetes?,10,516,"La Manera Nueva es desplegar contenedores basados en virtualización
+a nivel del sistema operativo, en vez del hardware. Estos contenedores
+están aislados entre ellos y con el servidor anfitrión: tienen sus propios
+sistemas de archivos, no ven los procesos de los demás y el uso de recursos
+puede ser limitado. Son más fáciles de construir que una máquina virtual, y
+porque no están acoplados a la infraestructura y sistema de archivos del
+anfitrión, pueden llevarse entre nubes y distribuciones de sistema operativo."
+CLD-ES-001_CH_011,CLD-ES-001,Cloud / DevOps,¿Qué es Kubernetes?,11,1049,"Ya que los contenedores son pequeños y rápidos, una aplicación puede ser
+empaquetada en una imagen de contenedor. Esta relación uno a uno entre
+aplicación e imagen nos abre un abanico de beneficios para usar contenedores.
+Con contenedores, podemos crear imágenes inmutables al momento de la compilación
+en vez del despliegue ya que las aplicaciones no necesitan componerse junto al
+resto del stack ni atarse al entorno de infraestructura de producción. Generar
+una imagen de contenedor al momento de la compilación permite tener un entorno
+consistente que va desde desarrollo hasta producción. De igual forma, los contenedores
+son más transparentes que las máquinas virtuales y eso hace que el monitoreo y la
+administración sean más fáciles. Esto se aprecia más cuando los ciclos de vida de
+los contenedores son administrados por la infraestructura en vez de un proceso supervisor
+escondido en el contenedor. Por último, ya que solo hay una aplicación por contenedor,
+administrar el despliegue de la aplicación se reduce a administrar el contenedor."
+CLD-ES-001_CH_012,CLD-ES-001,Cloud / DevOps,¿Qué es Kubernetes?,12,702,"En resumen, los beneficios de usar contenedores incluyen:
+
+- Ágil creación y despliegue de aplicaciones :
+Mayor facilidad y eficiencia al crear imágenes de contenedor en vez de máquinas virtuales
+
+- Desarrollo, integración y despliegue continuo :
+Permite que la imagen de contenedor se construya y despliegue de forma frecuente y confiable,
+facilitando los rollbacks pues la imagen es inmutable
+
+- Separación de tareas entre Dev y Ops :
+Puedes crear imágenes de contenedor al momento de compilar y no al desplegar, desacoplando la
+aplicación de la infraestructura
+
+- Observabilidad No solamente se presenta la información y métricas del sistema operativo, sino la salud de la
+aplicación y otras señales"
+CLD-ES-001_CH_013,CLD-ES-001,Cloud / DevOps,¿Qué es Kubernetes?,13,746,"- Consistencia entre los entornos de desarrollo, pruebas y producción :
+La aplicación funciona igual en un laptop y en la nube
+
+- Portabilidad entre nubes y distribuciones :
+Funciona en Ubuntu, RHEL, CoreOS, tu datacenter físico, Google Kubernetes Engine y todo lo demás
+
+- Administración centrada en la aplicación :
+Eleva el nivel de abstracción del sistema operativo y el hardware virtualizado a la aplicación que funciona en un sistema con recursos lógicos
+
+- Microservicios distribuidos, elásticos, liberados y débilmente acoplados:
+Las aplicaciones se separan en piezas pequeñas e independientes que pueden ser desplegadas y administradas de forma dinámica, y no como una aplicación monolítica que opera en una sola máquina de gran capacidad"
+CLD-ES-001_CH_014,CLD-ES-001,Cloud / DevOps,¿Qué es Kubernetes?,14,798,"- Aislamiento de recursos :
+Hace el rendimiento de la aplicación más predecible
+
+- Utilización de recursos :
+Permite mayor eficiencia y densidad
+
+## ¿Qué significa Kubernetes? ¿Qué significa K8S?
+
+El nombre Kubernetes proviene del griego y significa timonel o piloto . Es la raíz de gobernador y de cibernética . K8s es una abrevación que se obtiene al reemplazar las ocho letras ""ubernete"" con el número 8.
+
+## ¿Qué sigue?
+
+- ¿Estás listo para empezar ?
+
+- Para saber más, visita el resto de la documentación de Kubernetes .
+
+## Comentarios
+
+¿Fue útil esta página?
+
+Gracias por la retroalimentacion. Si tienes una pregunta específica y respondible sobre cómo usar Kubernetes, hazla en Stack Overflow .
+Abre un issue en el Repositorio de GitHub si deseas reportar un problema o sugerir una mejora ."
+CLD-ES-002_CH_001,CLD-ES-002,Cloud / DevOps,Introducción a la infraestructura en la nube: Descripción de los conceptos de la nube,1,400,"# Introducción a la infraestructura en la nube: Descripción de los conceptos de la nube
+
+- Ruta de aprendizaje
+
+- 3 Módulos
+
+## En un vistazo
+
+- Nivel Principiante
+
+Nivel
+
+- personalizada &nbsp;
+
+personalizada
+
+- Producto Azure
+
+Producto
+
+- Rol Administrador Desarrollador Ingeniero de DevOps Arquitecto de soluciones
+
+Rol
+
+- Asunto Architecture Informática en la nube Infraestructura técnica
+
+Asunto"
+CLD-ES-002_CH_002,CLD-ES-002,Cloud / DevOps,Introducción a la infraestructura en la nube: Descripción de los conceptos de la nube,2,912,"Rol
+
+- Asunto Architecture Informática en la nube Infraestructura técnica
+
+Asunto
+
+¿Primera experiencia con la nube? Introducción a la infraestructura en la nube es una serie de cuatro partes que le enseña conceptos básicos de la nube, proporciona una visión general simplificada de muchos servicios de Azure y le guía con ejercicios prácticos para implementar sus primeros servicios de forma gratuita. Complete todas las rutas de aprendizaje de la serie si está preparando el examen AZ-900: Aspectos básicos de Microsoft Azure.
+Esta es la primera ruta de aprendizaje de la serie Introducción a la infraestructura en la nube: Descripción de los conceptos de la nube . Las otras rutas de aprendizaje de la serie son parte 2: Descripción de la arquitectura y los servicios de Azure , parte 3: Descripción de la administración y gobernanza de Azure y parte 4: Aplicación de aptitudes de Azure en proyectos guiados ."
+CLD-ES-002_CH_003,CLD-ES-002,Cloud / DevOps,Introducción a la infraestructura en la nube: Descripción de los conceptos de la nube,3,635,"## Requisitos previos
+
+- Conocimientos básicos sobre los términos y conceptos de TI
+
+## Introducción a Azure
+
+Elija la cuenta de Azure adecuada para usted. Pague a medida que habla o pruebe Azure gratis durante 30 días. Regístrese.
+
+Código de logros
+
+¿Desea solicitar un código de logro?
+
+## Módulos en esta ruta de aprendizaje
+
+En este módulo se presenta la informática en la nube. Trata aspectos como los conceptos de la nube, los modelos de implementación y la comprensión de la responsabilidad compartida en la nube.
+
+En este módulo se presentan las ventajas que la informática en la nube puede ofrecerle a usted o su organización."
+CLD-ES-002_CH_004,CLD-ES-002,Cloud / DevOps,Introducción a la infraestructura en la nube: Descripción de los conceptos de la nube,4,277,"En este módulo se presentan las ventajas que la informática en la nube puede ofrecerle a usted o su organización.
+
+En este módulo se tratan los distintos tipos de servicio en la nube y se comparten algunos de los casos de uso y las ventajas alineados con cada tipo de servicio."
