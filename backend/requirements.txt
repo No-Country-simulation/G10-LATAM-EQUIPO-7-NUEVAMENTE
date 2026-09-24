@@ -7,3 +7,6 @@ python-dotenv==1.1.1
 # --- Validación & Tipado ---
 pydantic==2.13.5
 pydantic-settings==2.13.1
+
+# --- Oracle Cloud Infrastructure ---
+oci==2.186.0

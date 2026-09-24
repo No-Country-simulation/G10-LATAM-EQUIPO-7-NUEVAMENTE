@@ -14,7 +14,7 @@ __pycache__/
 .mypy_cache/
 
 # --- Almacenamiento local ---
-storage/
+/storage/
 
 # --- Sistema / editores ---
 .DS_Store

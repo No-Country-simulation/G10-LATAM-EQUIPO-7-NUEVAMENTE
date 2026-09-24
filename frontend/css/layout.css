@@ -1,0 +1,261 @@
+/* ==========================================================================
+   LAYOUT PRINCIPAL — NUEVAMENTE
+   Header, Navegación de Pestañas Principales y Footer de Estado
+   ========================================================================== */
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  background: 
+    radial-gradient(ellipse at center, rgba(12, 17, 26, 0.55) 0%, rgba(8, 12, 18, 0.82) 100%),
+    linear-gradient(to bottom, rgba(10, 14, 22, 0.6) 0%, rgba(10, 14, 22, 0.75) 100%),
+    url('../biblioteca.jpg') center center / cover no-repeat fixed;
+  color: var(--text-main);
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  overflow-x: hidden;
+  transition: background 0.3s ease, color 0.3s ease;
+}
+
+[data-theme="light"] body {
+  background: 
+    radial-gradient(ellipse at center, rgba(253, 251, 247, 0.65) 0%, rgba(245, 240, 230, 0.82) 100%),
+    linear-gradient(to bottom, rgba(250, 248, 242, 0.6) 0%, rgba(245, 240, 230, 0.8) 100%),
+    url('../biblioteca.jpg') center center / cover no-repeat fixed;
+}
+
+[data-theme="light"] .app-header {
+  background: rgba(255, 255, 255, 0.92);
+  border-bottom: 1px solid rgba(15, 23, 42, 0.08);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.04);
+}
+
+[data-theme="light"] .nav-tab-btn.active {
+  background: #ffffff;
+  color: #b45309;
+  border-color: rgba(180, 83, 9, 0.3);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+}
+
+
+/* Header Principal */
+.app-header {
+  border-bottom: 1px solid var(--border-ui);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  background: var(--surface-glass);
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  padding: 0.75rem 2rem;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 1.5rem;
+}
+
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  cursor: pointer;
+  user-select: none;
+}
+
+.header-brand-logo {
+  height: 38px;
+  width: auto;
+  max-width: 175px;
+  object-fit: contain;
+  transition: transform 0.25s ease, filter 0.25s ease;
+  filter: drop-shadow(0 2px 8px rgba(0, 0, 0, 0.4));
+}
+
+.brand:hover .header-brand-logo {
+  transform: scale(1.03);
+}
+
+[data-theme="light"] .header-brand-logo {
+  filter: drop-shadow(0 1px 4px rgba(0, 0, 0, 0.08));
+}
+
+.brand .badge {
+  font-size: 0.72rem;
+  background: rgba(245, 158, 11, 0.15);
+  color: var(--accent-gold);
+  border: 1px solid rgba(245, 158, 11, 0.3);
+  padding: 0.2rem 0.6rem;
+  border-radius: 999px;
+  font-weight: 700;
+}
+
+/* Barra Central de Pestañas Principales (Nav Tabs) */
+.main-nav-tabs {
+  display: flex;
+  align-items: center;
+  background: var(--surface-subtle);
+  border: 1px solid var(--border-ui);
+  border-radius: 12px;
+  padding: 0.3rem;
+  gap: 0.3rem;
+}
+
+.nav-tab-btn {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 1.1rem;
+  border: none;
+  background: transparent;
+  color: var(--text-secondary);
+  font-size: 0.88rem;
+  font-weight: 600;
+  border-radius: 9px;
+  cursor: pointer;
+  transition: all var(--transition-normal);
+  user-select: none;
+  white-space: nowrap;
+}
+
+.nav-tab-btn:hover {
+  color: var(--text-main);
+  background: var(--surface-subtle);
+}
+
+.nav-tab-btn.active {
+  background: var(--surface-elevated);
+  color: var(--accent-gold);
+  box-shadow: var(--shadow-sm);
+  border: 1px solid var(--border-ui);
+}
+
+.nav-tab-btn .tab-badge-count {
+  font-size: 0.7rem;
+  background: rgba(245, 158, 11, 0.2);
+  color: var(--accent-gold);
+  padding: 0.1rem 0.45rem;
+  border-radius: 999px;
+  font-weight: 700;
+}
+
+/* Acciones del Header */
+.header-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.header-select-group {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  background: var(--surface-ui);
+  border: 1px solid var(--border-ui);
+  padding: 0.35rem 0.75rem;
+  border-radius: 10px;
+}
+
+.header-select-group label {
+  font-size: 0.78rem;
+  color: var(--text-muted);
+  font-weight: 600;
+}
+
+.header-select-group select {
+  background: transparent;
+  border: none;
+  color: var(--text-main);
+  font-size: 0.8rem;
+  font-weight: 600;
+  outline: none;
+  cursor: pointer;
+}
+
+.header-select-group select option {
+  background: var(--surface-ui);
+  color: var(--text-main);
+}
+
+/* Contenedor Principal de la App y Sistema de Vistas */
+.app-container {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  position: relative;
+  width: 100%;
+}
+
+.tab-view {
+  display: none;
+  flex-direction: column;
+  width: 100%;
+  flex: 1;
+  animation: fadeInView 0.25s ease forwards;
+}
+
+.tab-view.active {
+  display: flex;
+}
+
+@keyframes fadeInView {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Barra Inferior de Estado del Sistema */
+.system-status-bar {
+  border-top: 1px solid var(--border-ui);
+  background: var(--surface-glass);
+  backdrop-filter: blur(8px);
+  padding: 0.6rem 2rem;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 0.78rem;
+  color: var(--text-muted);
+  z-index: 50;
+}
+
+.status-indicator {
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+}
+
+.status-dot {
+  width: 8px;
+  height: 8px;
+  background-color: var(--accent-green);
+  border-radius: 50%;
+  box-shadow: 0 0 10px rgba(16, 185, 129, 0.7);
+  animation: pulseDot 2s infinite;
+}
+
+@keyframes pulseDot {
+  0%, 100% { transform: scale(1); opacity: 1; }
+  50% { transform: scale(1.2); opacity: 0.75; }
+}
+
+@media (max-width: 960px) {
+  .app-header {
+    flex-wrap: wrap;
+    padding: 0.75rem 1rem;
+  }
+  .main-nav-tabs {
+    order: 3;
+    width: 100%;
+    justify-content: center;
+  }
+}
