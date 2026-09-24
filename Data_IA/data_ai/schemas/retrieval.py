@@ -33,8 +33,8 @@ class RetrievalContract(BaseModel):
     results: List[RetrievalResult] = Field(default_factory=list, description="Lista de fragmentos recuperados.")
     error: Optional[ErrorDetail] = Field(default=None, description="Detalle del error si el status es 'error'.")
 
-    @model_validator(mode="after")
-    def validate_contract_consistency(self):
+@model_validator(mode="after")
+def validate_contract_consistency(self):
         """
         Valida reglas semánticas de Retrieval Contract v1.
         """
