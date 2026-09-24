@@ -120,3 +120,12 @@ def test_rank_must_follow_position():
     errors = validate_retrieval_contract(payload)
 
     assert errors
+
+
+def test_required_contract_field_is_missing():
+    payload = make_success_payload()
+    payload.pop("error")
+
+    errors = validate_retrieval_contract(payload)
+
+    assert errors
