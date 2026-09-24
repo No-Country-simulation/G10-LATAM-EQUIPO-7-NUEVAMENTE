@@ -49,6 +49,12 @@ def generar_lote_resultados():
                 query=pregunta,
                 top_k=5
             )
+            
+            # --- AJUSTE ESTRICTO AL CONTRATO V1 ---
+            if respuesta.get("status") == "success":
+                respuesta["error"] = None
+            # --------------------------------------
+            
             resultados.append(respuesta)
             
     # 4. Guardar todo en formato JSON
