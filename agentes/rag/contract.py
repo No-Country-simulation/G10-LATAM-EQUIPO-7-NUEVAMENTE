@@ -1,68 +1,73 @@
+"""
+Contrato de retrieval v1.0 acordado con Data/IA para el cálculo de
+Recall@3, Recall@5, Precision@3, Precision@5.
+"""
+
 from .models import SearchResult
-from .vector_store import VectorStore  # única implementación (punto 2)
-from .contract import (
-    build_success_response,
-    build_no_results_response,
-    build_error_response,
-)
+
+CONTRACT_VERSION = "1.0"
+SCORE_TYPE = "cosine_similarity"
 
 
-class RetrieverService:
-    """
-    Interfaz principal de recuperación. Coordina VectorStore y arma
-    las respuestas bajo el contrato v1.0 acordado con Data/IA.
-    """
+def build_success_response(
+    case_id: str,
+    query: str,
+    top_k: int,
+    results: list[SearchResult]
+) -> dict:
 
-    def __init__(self, vector_store: VectorStore):
-        self.vector_store = vector_store
+    return {
+        "contract_version": CONTRACT_VERSION,
+        "case_id": case_id,
+        "query": query,
+        "top_k": top_k,
+        "score_type": SCORE_TYPE,
+        "status": "success",
+        "results": [
+            {
+                "rank": rank,
+                "chunk_id": result.chunk_id,
+                "document_id": result.document_id,
+                "score": round(result.score, 4),
+                "text": result.text,
+                "metadata": result.metadata
+            }
+            for rank, result in enumerate(results, start=1)
+        ]
+    }
 
-    def retrieve(self, query: str, top_k: int = 5) -> list[SearchResult]:
-        self._validate_query(query)
-        self._validate_top_k(top_k)
 
-        return self.vector_store.search(query=query, top_k=top_k)
+def build_no_results_response(case_id: str, query: str, top_k: int) -> dict:
 
-    def retrieve_for_evaluation(
-        self,
-        case_id: str,
-        query: str,
-        top_k: int = 5
-    ) -> dict:
-        """
-        Punto 3 de Tara: case_id ya NO tiene default, es obligatorio
-        (evita IDs duplicados si el caller no lo manda).
-        """
+    return {
+        "contract_version": CONTRACT_VERSION,
+        "case_id": case_id,
+        "query": query,
+        "top_k": top_k,
+        "score_type": SCORE_TYPE,
+        "status": "no_results",
+        "results": []
+    }
 
-        if not case_id or not case_id.strip():
-            raise ValueError(
-                "case_id es obligatorio para evaluación y no puede "
-                "estar vacío."
-            )
 
-        try:
-            self._validate_query(query)
-            self._validate_top_k(top_k)
-            results = self.vector_store.search(query=query, top_k=top_k)
-        except ValueError as exc:
-            return build_error_response(
-                case_id, query, top_k, "INVALID_INPUT", str(exc)
-            )
-        except Exception as exc:
-            return build_error_response(
-                case_id, query, top_k, "RETRIEVAL_FAILED", str(exc)
-            )
+def build_error_response(
+    case_id: str,
+    query: str,
+    top_k: int,
+    code: str,
+    message: str
+) -> dict:
 
-        if not results:
-            return build_no_results_response(case_id, query, top_k)
-
-        return build_success_response(case_id, query, top_k, results)
-
-    @staticmethod
-    def _validate_query(query: str):
-        if not query or not query.strip():
-            raise ValueError("La consulta (query) no puede estar vacía.")
-
-    @staticmethod
-    def _validate_top_k(top_k: int):
-        if top_k <= 0:
-            raise ValueError("top_k debe ser mayor que 0.")
+    return {
+        "contract_version": CONTRACT_VERSION,
+        "case_id": case_id,
+        "query": query,
+        "top_k": top_k,
+        "score_type": SCORE_TYPE,
+        "status": "error",
+        "results": [],
+        "error": {
+            "code": code,
+            "message": message
+        }
+    }
