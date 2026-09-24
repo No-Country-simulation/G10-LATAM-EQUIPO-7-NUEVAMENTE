@@ -33,8 +33,8 @@ class RetrievalContract(BaseModel):
     results: List[RetrievalResult] = Field(default_factory=list, description="Lista de fragmentos recuperados.")
     error: Optional[ErrorDetail] = Field(default=None, description="Detalle del error si el status es 'error'.")
 
-@model_validator(mode="after")
-def validate_contract_consistency(self):
+    @model_validator(mode="after")
+    def validate_contract_consistency(self):
         """
         Valida reglas semánticas de Retrieval Contract v1.
         """
@@ -61,6 +61,28 @@ def validate_contract_consistency(self):
                     "status='no_results' requiere error=null."
                 )
 
+        elif self.status == "error":
+            if self.results:
+                raise ValueError(
+                    "status='error' requiere results=[]."
+                )
+
+            if self.error is None:
+                raise ValueError(
+                    "status='error' requiere un objeto error."
+                )
+
+        for expected_rank, result in enumerate(
+            self.results,
+            start=1,
+        ):
+            if result.rank != expected_rank:
+                raise ValueError(
+                    f"Se esperaba rank={expected_rank}, "
+                    f"pero se recibió rank={result.rank}."
+                )
+
+        return self
         elif self.status == "error":
             if self.results:
                 raise ValueError(
