@@ -83,25 +83,4 @@ class RetrievalContract(BaseModel):
                 )
 
         return self
-        elif self.status == "error":
-            if self.results:
-                raise ValueError(
-                    "status='error' requiere results=[]."
-                )
-
-            if self.error is None:
-                raise ValueError(
-                    "status='error' requiere un objeto error."
-                )
-
-        for expected_rank, result in enumerate(
-            self.results,
-            start=1,
-        ):
-            if result.rank != expected_rank:
-                raise ValueError(
-                    f"Se esperaba rank={expected_rank}, "
-                    f"pero se recibió rank={result.rank}."
-                )
-
-        return self
+        
