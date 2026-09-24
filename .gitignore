@@ -1,3 +1,10 @@
+# Archivos de datos y bases vectoriales (Ignorados por peso y seguridad)
+agentes/chunks_v1.csv
+agentes/ground_truth_v1.csv
+chroma_test_db/
+chroma_db/
+.pytest_cache/
+__pycache__/
 Aprende C++ en un fin de semana (Aprende en un fin.pdf
 Plan_Accion_Ciencia_Datos_NuevaMente_v2.pdf
 Nuevamente Proyecto.pdf

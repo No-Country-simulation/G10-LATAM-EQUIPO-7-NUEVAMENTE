@@ -1,0 +1,11 @@
+# Dependencias del módulo Agentes / RAG Core.
+# Fijadas con las versiones probadas; si al instalar te da error de
+# compatibilidad, corre `pip install -r requirements.txt` igual y
+# después `pip freeze > requirements.txt` para congelar lo que
+# realmente te instaló pip en tu entorno.
+
+chromadb>=1.5,<2.0
+sentence-transformers>=3.0,<4.0
+langchain-text-splitters>=1.1,<2.0
+pypdf>=4.0,<5.0
+pytest>=9.0,<10.0
