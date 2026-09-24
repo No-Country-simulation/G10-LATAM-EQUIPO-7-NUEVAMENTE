@@ -2,5 +2,6 @@
 agentes/chunks_v1.csv
 agentes/ground_truth_v1.csv
 chroma_test_db/
+chroma_db/
 .pytest_cache/
 __pycache__/

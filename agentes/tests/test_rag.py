@@ -61,8 +61,6 @@ def empty_vector_store(tmp_path):
     )
 
 
-# --- Vector Store y similitud coseno ---
-
 def test_vector_store_uses_cosine_space(vector_store):
     assert vector_store.collection.metadata.get("hnsw:space") == "cosine"
 
@@ -73,22 +71,16 @@ def test_search_returns_best_match_first(vector_store):
     assert results[0].score > results[1].score
 
 
-# --- document_id canónico (punto 4) ---
-
 def test_search_result_document_id_requires_metadata():
     result = SearchResult(chunk_id="x", text="y", score=0.5, metadata={})
     with pytest.raises(ValueError):
         _ = result.document_id
 
 
-# --- Cleaner conservador (punto 9) ---
-
 def test_cleaner_preserves_indentation():
     code = "def f():\n    return 1\n"
     assert clean_text(code) == code
 
-
-# --- Validaciones de entrada (punto 8) ---
 
 def test_retriever_rejects_empty_query(vector_store):
     retriever = RetrieverService(vector_store)
@@ -108,8 +100,6 @@ def test_retrieve_for_evaluation_requires_case_id(vector_store):
         retriever.retrieve_for_evaluation(case_id="", query="kubernetes")
 
 
-# --- Integración AgentV1 / RetrieverService y contrato success/no_results ---
-
 def test_retrieve_for_evaluation_success_shape(vector_store):
     retriever = RetrieverService(vector_store)
     response = retriever.retrieve_for_evaluation(
@@ -117,6 +107,7 @@ def test_retrieve_for_evaluation_success_shape(vector_store):
     )
     assert response["status"] == "success"
     assert response["contract_version"] == "1.0"
+    assert response["error"] is None
     assert response["results"][0]["rank"] == 1
     assert response["results"][0]["document_id"] == "doc1"
 
@@ -128,12 +119,14 @@ def test_retrieve_for_evaluation_no_results(empty_vector_store):
     )
     assert response["status"] == "no_results"
     assert response["results"] == []
+    assert response["error"] is None
 
 
 def test_build_no_results_response_shape():
     response = build_no_results_response("CASE-003", "query", 5)
     assert response["status"] == "no_results"
     assert response["results"] == []
+    assert response["error"] is None
 
 
 def test_build_error_response_shape():
@@ -143,8 +136,6 @@ def test_build_error_response_shape():
     assert response["status"] == "error"
     assert response["error"] == {"code": "RETRIEVAL_FAILED", "message": "boom"}
 
-
-# --- Compatibilidad con chunks_v1.csv (punto 3) ---
 
 def test_load_chunks_from_csv(tmp_path):
     csv_content = (
@@ -161,4 +152,3 @@ def test_load_chunks_from_csv(tmp_path):
     assert chunks[0].id == "AI-ES-001_CH_001"
     assert chunks[0].metadata["document_id"] == "AI-ES-001"
     assert chunks[0].text == "Texto de prueba"
-    
