@@ -1,121 +1,129 @@
 import sys
 import os
-# Agregamos la raíz del proyecto al PYTHONPATH para que encuentre la carpeta 'agentes'
+import time
+
+# Forzar a Python a reconocer la raíz del proyecto
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
-import time
-import os
-import shutil
-import sys
-from sentence_transformers import SentenceTransformer
-from agentes.rag.models import Chunk
+from agentes.rag.extractor import extract_document
+from agentes.rag.cleaner import clean_text
+from agentes.rag.chunker import create_chunks
+from agentes.rag.embeddings import MultilingualEmbedding
 from agentes.rag.vector_store import VectorStore 
+from agentes.agent_v1 import AgentV1
 
-class MultilingualEmbedding:
-    def __init__(self, model_name: str):
-        self.model = SentenceTransformer(model_name)
-
-    def embed_documents(self, texts: list[str]) -> list[list[float]]:
-        embeddings = self.model.encode(texts, normalize_embeddings=True)
-        return embeddings.tolist()
-
-    def embed_query(self, query: str) -> list[float]:
-        embedding = self.model.encode(query, normalize_embeddings=True)
-        return embedding.tolist()
-
-def pausa():
-    input("\n[Presione ENTER para continuar al siguiente paso...]")
-
-def tipo_maquina(texto, velocidad=0.035):
-    """Imprime el texto letra por letra de forma más pausada."""
-    for letra in texto:
-        sys.stdout.write(letra)
+# ---------------------------------------------------------
+# Funciones para el efecto visual en terminal
+# ---------------------------------------------------------
+def imprimir_lento(texto, retardo=0.015):
+    for caracter in str(texto):
+        sys.stdout.write(caracter)
         sys.stdout.flush()
-        time.sleep(velocidad)
+        time.sleep(retardo)
     print()
 
-def ejecutar_demo():
-    print("\n" + "="*70)
-    print(" INICIANDO DEMO: HACKATHON RAG PIPELINE - CONTRATO V1")
-    print("="*70)
-    pausa()
+def barra_progreso(mensaje, iteraciones=15, retardo=0.03):
+    sys.stdout.write(mensaje + " [")
+    for _ in range(iteraciones):
+        sys.stdout.write("■")
+        sys.stdout.flush()
+        time.sleep(retardo)
+    print("] Ejecución OK")
 
+# ---------------------------------------------------------
+# Pipeline RAG
+# ---------------------------------------------------------
+def ejecutar_demo(ruta_archivo: str, pregunta_usuario: str):
+    imprimir_lento("\n[SISTEMA] Iniciando orquestación del pipeline RAG...\n", 0.03)
+    
+    # 1. Extracción 
+    imprimir_lento(f"[PASO 1] MODULE: agentes.rag.extractor")
+    imprimir_lento(f"  ↳ Ejecutando: extract_document(path='{ruta_archivo}')")
+    documentos = extract_document(ruta_archivo)
+    imprimir_lento(f"  ↳ Retorno: list[Document] -> {len(documentos)} documento(s) extraído(s)")
+    if documentos:
+        preview = documentos[0].text[:75].replace('\n', ' ')
+        imprimir_lento(f"  ↳ Preview: \"{preview}...\"")
+    input("\n>> [Enter] para continuar al Cleaner...")
+    
+    # 2. Limpieza 
+    imprimir_lento("\n[PASO 2] MODULE: agentes.rag.cleaner")
+    imprimir_lento("  ↳ Ejecutando: clean_text(text) iterativamente sobre list[Document]")
+    barra_progreso("  ↳ Aplicando regex y normalización NFKC", iteraciones=20)
+    for doc in documentos:
+        doc.text = clean_text(doc.text)
+    input("\n>> [Enter] para continuar al Chunker...")
+        
+    # 3. Chunking 
+    imprimir_lento("\n[PASO 3] MODULE: agentes.rag.chunker")
+    imprimir_lento("  ↳ Ejecutando: create_chunks(documents=documentos)")
+    chunks = create_chunks(documentos)
+    imprimir_lento(f"  ↳ Retorno: list[Chunk] -> {len(chunks)} fragmentos generados")
+    if chunks:
+        imprimir_lento(f"  ↳ Ejemplo de metadatos: {chunks[0].metadata}")
+    input("\n>> [Enter] para inicializar Vector Store...")
+    
+    # 4. Vectorización y base de datos
+    imprimir_lento("\n[PASO 4] MODULE: agentes.rag.vector_store & embeddings")
+    imprimir_lento("  ↳ Instanciando: MultilingualEmbedding(model_name='paraphrase-multilingual-MiniLM-L12-v2')")
+    modelo_embedding = MultilingualEmbedding(model_name="sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2")
+    
+    imprimir_lento("  ↳ Instanciando: VectorStore(path='./chroma_demo', embedding_service=modelo_embedding)")
+    # Forzamos la ruta para crear el Sandbox visible en la raíz
+    vector_store = VectorStore(path="./chroma_demo", embedding_service=modelo_embedding)
+    
+    imprimir_lento("  ↳ Ejecutando: vector_store.add_chunks(chunks)")
+    barra_progreso("  ↳ Calculando embeddings en ChromaDB", iteraciones=25)
+    input("\n>> [Enter] para invocar al Agente y consultar...")
+    
+    # 5. Ejecución del agente final
+    imprimir_lento("\n[PASO 5] MODULE: agentes.agent_v1")
+    imprimir_lento("  ↳ Instanciando: AgentV1(vector_store=vector_store)")
+    agente = AgentV1(vector_store=vector_store)
+    
+    imprimir_lento(f"  ↳ Ejecutando: agente.answer(query='{pregunta_usuario}')")
+    barra_progreso("  ↳ RetrieverService procesando búsqueda por similitud (Cosine)", iteraciones=20)
+    respuesta = agente.answer(query=pregunta_usuario)
+    
     # ---------------------------------------------------------
-    print("\n[PASO 1] Leyendo documento crudo (hackathon_spec.txt)...")
-    ruta_quemada = "../hackathon_spec.txt" # Apunta un nivel arriba hacia la raíz
-    print(f"-> Ruta del archivo: {ruta_quemada}")
-    
-    if os.path.exists(ruta_quemada):
-        with open(ruta_quemada, "r", encoding="utf-8") as f:
-            texto = f.read()
-    else:
-        texto = "Especificación Técnica del Pipeline RAG - Hackathon Latam v1.0. El sistema implementa un servicio de recuperación estricto (RetrieverService) integrado con ChromaDB."
-    
-    print("\nContenido extraído del archivo:")
-    tipo_maquina(f"   {texto[:150]}...\n", velocidad=0.025)
-    pausa()
-
+    # Formateo de la respuesta
     # ---------------------------------------------------------
-    print("\n[PASO 2] Procesando y empaquetando fragmentos (Chunks)...")
-    textos_crudos = texto.split(".\n")
-    chunks_preparados = []
+    print("\n" + "═"*70)
+    imprimir_lento("  === CONTEXTO RECUPERADO (SearchResult) === 🤖", 0.03)
+    print("═"*70 + "\n")
     
-    for i, txt in enumerate(textos_crudos):
-        if txt.strip():
-            print(f"   [SYSTEM] Procesando tensor para fragmento {i+1}...")
-            time.sleep(0.4)
-            nuevo_chunk = Chunk(
-                id=f"demo_hackathon_{i}", 
-                text=txt.strip() + ("." if not txt.endswith(".") else ""), 
-                metadata={"source": "hackathon_spec.txt"}
-            )
-            chunks_preparados.append(nuevo_chunk)
-            print(f"   [CHUNK {i+1}] Empaquetado exitoso con ID y Metadatos.")
-            time.sleep(0.3)
-    pausa()
-
-    # ---------------------------------------------------------
-    print("\n[PASO 3] Creacion de base de datos persistente desde cero...")
-    db_path = "../chroma_demo_live" # Se crea en la raíz del proyecto
-    if os.path.exists(db_path):
-        shutil.rmtree(db_path)
-        print("-> [Limpieza] Directorio previo eliminado para demostracion en vivo.")
-    
-    print("-> Inicializando motor de embeddings (MultilingualEmbedding)...")
-    embedding_service = MultilingualEmbedding(model_name="paraphrase-multilingual-MiniLM-L12-v2")
-    
-    print("-> Instanciando VectorStore con ChromaDB PersistentClient...")
-    vector_store = VectorStore(
-        path=db_path,
-        collection_name="demo_hackathon",
-        embedding_service=embedding_service
-    )
-    
-    print("-> Persistiendo chunks e indices vectoriales en disco...")
-    vector_store.add_chunks(chunks_preparados)
-    print(" [OK] Base de datos ChromaDB generada e indexada correctamente.")
-    pausa()
-
-    # ---------------------------------------------------------
-    print("\n[PASO 4] Ejecutando busqueda semantica (Retrieval)...")
-    pregunta = "¿Cómo deben estructurarse obligatoriamente las respuestas del agente según el Contrato v1?"
-    print(f"-> Consulta de usuario: '{pregunta}'")
-    print("-> Ejecutando calculo de similitud coseno en el espacio vectorial...")
-    time.sleep(1.2)
-
-    resultados = vector_store.search(query=pregunta, top_k=2)
-    
-    print("\n Resultados obtenidos por el motor RAG:")
-    for i, res in enumerate(resultados):
-        print(f"   [MATCH TOP {i+1}] Score de relevancia: {res.score:.4f}")
-        print("   Texto recuperado:")
-        tipo_maquina(f"      \"{res.text}\"", velocidad=0.035)
-        print(f"   Metadatos: {res.metadata}\n")
-    
-    print("="*70)
-    print(" DEMOSTRACION FINALIZADA CON EXITO")
-    print("="*70 + "\n")
+    for i, resultado in enumerate(respuesta, 1):
+        imprimir_lento(f"--- MATCH #{i} ---")
+        imprimir_lento(f" 🔹 ID del Chunk : {resultado.chunk_id}")
+        imprimir_lento(f" 🔹 Relevancia   : {resultado.score * 100:.2f}% (Cosine Similarity)")
+        imprimir_lento(f" 🔹 Metadatos    : {resultado.metadata}")
+        imprimir_lento(f" 🔹 Contenido extraído:\n")
+        
+        verde_matrix = "\033[92m"
+        reset_color = "\033[0m"
+        texto_formateado = "\n".join([f"    {linea}" for linea in resultado.text.split('\n')])
+        
+        # Impresión lenta y en verde matrix para el contenido
+        imprimir_lento(f"{verde_matrix}{texto_formateado}{reset_color}", 0.04)
+        print("\n" + "-"*70 + "\n")
 
 if __name__ == "__main__":
-    ejecutar_demo()
+    documento_prueba = "hackathon_spec.txt"
+    pregunta_prueba = "¿Cuáles son las especificaciones principales del hackathon?"
     
+    os.system('cls' if os.name == 'nt' else 'clear') 
+    imprimir_lento("==================================================================")
+    imprimir_lento("   [DEBUG MODE] ORQUESTADOR RAG - PRUEBA DE INTEGRACIÓN CONTINUA  ")
+    imprimir_lento("==================================================================")
+    imprimir_lento(f" Target    : {documento_prueba}")
+    imprimir_lento(f" Query     : {pregunta_prueba}\n")
+    
+    input(">> [Enter] para iniciar secuencia de ejecución...")
+    ejecutar_demo(documento_prueba, pregunta_prueba)
+    
+    # Bloque de cierre
+    print("\n" + "="*70)
+    imprimir_lento(" [SISTEMA] PRUEBA DE INTEGRACIÓN RAG FINALIZADA CON ÉXITO", 0.03)
+    imprimir_lento(" Conexión vectorial con ChromaDB cerrada.", 0.01)
+    imprimir_lento(" Process finished with exit code 0", 0.01)
+    print("="*70 + "\n")
