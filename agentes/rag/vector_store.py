@@ -3,9 +3,7 @@ import chromadb
 from .models import Chunk, SearchResult
 from .config import CONFIG
 
-# Punto 2 del review: esta es la ÚNICA implementación de VectorStore
-# en todo el módulo. retriever.py la importa desde aquí, nunca la
-# redefine.
+
 
 
 class VectorStore:
@@ -23,7 +21,7 @@ class VectorStore:
 
         self.collection = self.client.get_or_create_collection(
             name=collection_name,
-            # Punto de Tara sobre score/score_type: esto tiene que
+            #score/score_type: esto tiene que
             # quedar explícito, si no Chroma usa L2 por defecto y
             # "score = 1 - distance" deja de ser cosine_similarity real.
             metadata={"hnsw:space": "cosine"}
@@ -47,13 +45,17 @@ class VectorStore:
             embeddings=embeddings
         )
 
-    def search(self, query: str, top_k: int = CONFIG.top_k_default) -> list[SearchResult]:
+    def search(self, query: str, top_k: int = CONFIG.top_k_default, document_id: str = None) -> list[SearchResult]:
 
         embedding = self.embedding_service.embed_query(query)
+
+        # Filtro condicional para que ChromaDB busque solo en un documento específico
+        where_clause = {"document_id": document_id} if document_id else None
 
         results = self.collection.query(
             query_embeddings=[embedding],
             n_results=top_k,
+            where=where_clause,
             include=["documents", "metadatas", "distances"]
         )
 
