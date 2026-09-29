@@ -74,13 +74,10 @@
 
     <!-- Acciones Rápidas del Header -->
     <div class="header-actions">
-      <!-- Selector de Modo de Conexión -->
-      <div class="header-select-group" title="Seleccionar modo de conexión">
-        <label for="apiModeSelector">Modo:</label>
-        <select id="apiModeSelector">
-          <option value="mock">Modo Demo (sin conexión)</option>
-          <option value="real">Modo Conectado</option>
-        </select>
+      <!-- Indicador de Conexión Backend Real (Sprint 2) -->
+      <div class="header-connection-badge" title="Conectado exclusivamente con Backend FastAPI">
+        <span class="status-dot-pulse"></span>
+        <span>Backend API</span>
       </div>
 
     </div>
@@ -149,7 +146,7 @@
           <div class="upload-panel-card">
             <div class="panel-title-row">
               <h3><span></span> 1. Documento de Estudio</h3>
-              <span class="panel-title-hint">PDF, TXT o MD (Hasta 25MB)</span>
+              <span class="panel-title-hint">PDF, TXT o MD (Hasta 10MB)</span>
             </div>
 
             <!-- Zona de Arrastrar y Soltar Grande -->
@@ -167,7 +164,7 @@
                 <span class="file-format-badge" id="fileFormatBadge">PDF</span>
                 <div class="file-text-details">
                   <strong id="selectedFileName">documento.pdf</strong>
-                  <span id="selectedFileSize">2.4 MB · Listo para indexar</span>
+                  <span id="selectedFileSize">2.4 MB · Listo para procesar</span>
                 </div>
               </div>
               <button type="button" class="btn-remove-file" id="btnRemoveFile" title="Quitar archivo">&times;</button>
@@ -197,14 +194,14 @@
           <div class="upload-panel-card">
             <div class="panel-title-row">
               <h3><span></span> 2. Parámetros de Adaptación</h3>
-              <span class="panel-title-hint">Guía el tono y profundidad del LLM</span>
+              <span class="panel-title-hint">Guía el tono y la profundidad del contenido generado</span>
             </div>
 
             <div class="parameters-stack">
               <!-- Perfil (target_profile) -->
               <div class="param-field">
                 <label for="paramPerfil" class="param-label">
-                  <span>👤</span> <strong>Perfil del Estudiante:</strong>
+                  <strong>Perfil del Estudiante:</strong>
                 </label>
                 <select id="paramPerfil" class="custom-select">
                   <option value="beginner">Principiante / Conceptos base, analogías y tono accesible</option>
@@ -216,7 +213,7 @@
               <!-- Nicho / Temática (niche_context) -->
               <div class="param-field">
                 <label for="paramNicho" class="param-label">
-                  <span>🏷️</span> <strong>Área Temática / Especialidad:</strong>
+                  <strong>Área Temática / Especialidad:</strong>
                 </label>
                 <select id="paramNicho" class="custom-select">
                   <option value="general" selected>General / Detección universal del documento</option>
@@ -231,7 +228,7 @@
               <!-- Formato Inicial de Salida (output_format) -->
               <div class="param-field">
                 <label for="paramFormato" class="param-label">
-                  <span>🎯</span> <strong>Formato de Salida Solicitado:</strong>
+                  <strong>Formato de Salida Solicitado:</strong>
                 </label>
                 <select id="paramFormato" class="custom-select">
                   <option value="all" selected>Resolver los 4 Formatos (Flashcards, Quiz, Video, Resumen)</option>
@@ -248,19 +245,51 @@
                   <span>Procesar Documento</span>
                 </button>
               </div>
+
+              <!-- Panel de Pruebas de Códigos de Respuesta Backend (Para Demo) -->
+              <div class="demo-status-tester">
+                <div class="tester-title-row">
+                  <span class="tester-title">Códigos de Respuesta Backend (Demo)</span>
+                  <span class="tester-tag">Dialog Temporal OCI</span>
+                </div>
+                <div class="tester-buttons-grid">
+                  <button type="button" class="btn-tester-code code-success" data-status-test="201" title="Documento nuevo almacenado en OCI">
+                    201 Stored (Nuevo)
+                  </button>
+                  <button type="button" class="btn-tester-code code-success" data-status-test="200" title="Documento duplicado reutilizado">
+                    200 Stored (Duplicado)
+                  </button>
+                  <button type="button" class="btn-tester-code code-error" data-status-test="400" title="Documento inválido o vacío">
+                    400 Vacío / Inválido
+                  </button>
+                  <button type="button" class="btn-tester-code code-error" data-status-test="404" title="Recurso inexistente">
+                    404 Inexistente
+                  </button>
+                  <button type="button" class="btn-tester-code code-error" data-status-test="413" title="Archivo demasiado grande">
+                    413 &gt;10MB
+                  </button>
+                  <button type="button" class="btn-tester-code code-error" data-status-test="415" title="Formato no soportado">
+                    415 Formato/MIME
+                  </button>
+                  <button type="button" class="btn-tester-code code-error" data-status-test="422" title="Validación del request">
+                    422 Validación
+                  </button>
+                  <button type="button" class="btn-tester-code code-error" data-status-test="502" title="Fallo de almacenamiento en OCI">
+                    502 Fallo OCI
+                  </button>
+                  <button type="button" class="btn-tester-code code-error" data-status-test="500" title="Error no controlado en servidor">
+                    500 Error Servidor
+                  </button>
+                </div>
+              </div>
             </div>
           </div>
 
         </div>
 
-        <!-- ==========================================================================
-             PIPELINE MULTIAGENTE EN EJECUCIÓN (OCULTO TEMPORALMENTE)
-             Para reactivarlo en cualquier momento, basta con retirar los tags de comentario <!-- y -->
-             ========================================================================== -->
-        <!--
         <div class="pipeline-card" id="pipelineCard" style="display: none;">
           <div class="panel-title-row">
-            <h3><span></span> Pipeline Multiagente en Ejecución</h3>
+            <h3>Procesando tu Documento</h3>
             <span class="badge-pill badge-cyan" id="pipelineStatusBadge">Iniciando...</span>
           </div>
 
@@ -268,8 +297,8 @@
             <div class="step-item" id="stepOci">
               <div class="step-circle">1</div>
               <div class="step-info">
-                <strong>OCI Storage</strong>
-                <span>Carga & Metadata</span>
+                <strong>Guardando</strong>
+                <span>Archivo y datos</span>
               </div>
             </div>
             <div class="step-line" id="line1"></div>
@@ -277,8 +306,8 @@
             <div class="step-item" id="stepChroma">
               <div class="step-circle">2</div>
               <div class="step-info">
-                <strong>ChromaDB</strong>
-                <span>Chunking & Embeddings</span>
+                <strong>Analizando</strong>
+                <span>Lectura del contenido</span>
               </div>
             </div>
             <div class="step-line" id="line2"></div>
@@ -286,8 +315,8 @@
             <div class="step-item" id="stepGen">
               <div class="step-circle">3</div>
               <div class="step-info">
-                <strong>Agente Generador</strong>
-                <span>Retrieval top-k + LLM</span>
+                <strong>Generando</strong>
+                <span>Material de estudio</span>
               </div>
             </div>
             <div class="step-line" id="line3"></div>
@@ -295,17 +324,16 @@
             <div class="step-item" id="stepCritic">
               <div class="step-circle">4</div>
               <div class="step-info">
-                <strong>Agente Revisor</strong>
-                <span>Fidelidad & JSON</span>
+                <strong>Validando</strong>
+                <span>Calidad del contenido</span>
               </div>
             </div>
           </div>
 
           <div class="pipeline-live-log" id="pipelineLiveLog">
-            Preparando conexión con el pipeline RAG...
+            Preparando el procesamiento de tu documento...
           </div>
         </div>
-        -->
 
         <!-- Panel de Resultados y Resolver de Formatos -->
         <div class="result-box-container" id="resultBoxContainer" style="display: none;">
@@ -503,7 +531,7 @@
   <footer class="system-status-bar">
     <div class="status-indicator">
       <div class="status-dot"></div>
-      <span id="ociStatusText">Modo sin conexión (datos de ejemplo)</span>
+      <span id="ociStatusText">Conectado a Backend API</span>
     </div>
     <div>
       <span id="qualityScoreText">Explorando la biblioteca</span>
@@ -592,6 +620,84 @@
 
     </div>
   </div>
+
+  <!-- Diálogo Modal Temporal de Estado / OCI y Errores del Backend -->
+  <div class="status-dialog-backdrop" id="statusDialogOverlay" style="display: none;" role="dialog" aria-modal="true" aria-labelledby="statusDialogTitle">
+    <div class="status-dialog-card" id="statusDialogCard">
+      <!-- Barra superior de temporizador regresivo -->
+      <div class="status-timer-bar-track">
+        <div class="status-timer-bar-fill" id="statusTimerFill"></div>
+      </div>
+
+      <!-- Cabecera -->
+      <div class="status-dialog-header">
+        <div class="status-header-main">
+          <div class="status-icon-bubble" id="statusIconBubble"></div>
+          <div class="status-title-group">
+            <div class="status-badge-row" id="statusBadgeRow"></div>
+            <h3 class="status-dialog-title" id="statusDialogTitle">Notificación del Sistema</h3>
+          </div>
+        </div>
+        <button type="button" class="btn-close-status-dialog" id="btnCloseStatusDialog" title="Cerrar (Esc)">&times;</button>
+      </div>
+
+      <!-- Cuerpo -->
+      <div class="status-dialog-body" id="statusDialogBody">
+        <p class="status-main-message" id="statusMainMessage"></p>
+
+        <!-- Metadata OCI (para estado STORED) -->
+        <div class="status-meta-card" id="statusMetaCard" style="display: none;">
+          <div class="status-meta-field">
+            <div class="meta-label-row">
+              <span class="meta-label">ID / Objeto en OCI Object Storage:</span>
+              <span class="meta-hint-tag">Oracle Cloud Infrastructure</span>
+            </div>
+            <div class="meta-copyable-row">
+              <code class="meta-code" id="statusOciId">documents/doc_xxx/original.pdf</code>
+              <button type="button" class="btn-copy-oci" id="btnCopyOciId" title="Copiar ID de OCI al portapapeles">
+                <span id="btnCopyOciText">Copiar</span>
+              </button>
+            </div>
+          </div>
+          <div class="status-meta-grid">
+            <div class="status-meta-field">
+              <span class="meta-label">ID Canónico del Documento:</span>
+              <code class="meta-code-sm" id="statusDocId">doc_xxx</code>
+            </div>
+            <div class="status-meta-field">
+              <span class="meta-label">Archivo Procesado:</span>
+              <span class="meta-val" id="statusFileName">archivo.pdf</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Detalles de Error (para respuestas 4xx / 5xx) -->
+        <div class="status-error-details" id="statusErrorDetails" style="display: none;">
+          <div class="status-error-header-row">
+            <span class="meta-label">Detalle devuelto por backend:</span>
+            <span class="error-code-chip" id="statusErrorCode">BAD_REQUEST</span>
+          </div>
+          <div class="error-details-box" id="statusErrorBox"></div>
+        </div>
+
+        <!-- Fila de timestamp y timer text -->
+        <div class="status-timestamp-row">
+          <span class="status-timestamp" id="statusTimestamp"></span>
+          <span class="status-timer-text" id="statusTimerText"></span>
+        </div>
+      </div>
+
+      <!-- Pie de diálogo -->
+      <div class="status-dialog-footer">
+        <button type="button" class="btn-status-confirm" id="btnStatusConfirm">
+          Entendido
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Contenedor Global de Notificaciones y Feedback UX -->
+  <div class="toast-container" id="toastContainer" role="region" aria-label="Notificaciones del sistema"></div>
 
   <!-- Script Modular ES6 Principal -->
   <script type="module" src="js/main.js"></script>
