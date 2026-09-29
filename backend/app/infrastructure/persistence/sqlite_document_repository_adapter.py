@@ -89,6 +89,31 @@ class SQLiteDocumentRepositoryAdapter:
             (sha256,),
         )
 
+    def find_all(
+        self,
+    ) -> list[Document]:
+        """Obtiene todos los documentos ordenados del más reciente."""
+        try:
+            with self._database.connect() as connection:
+                rows = connection.execute(
+                    """
+                    SELECT *
+                    FROM documents
+                    ORDER BY created_at DESC
+                    """
+                ).fetchall()
+        except sqlite3.Error as exc:
+            raise DocumentRepositoryError(
+                "No fue posible consultar los documentos."
+            ) from exc
+
+        return [
+            DocumentRecord.from_row(
+                row
+            ).to_domain()
+            for row in rows
+        ]
+
     def update(
         self,
         document: Document,
