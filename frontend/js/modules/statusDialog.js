@@ -532,7 +532,7 @@ export const statusDialog = {
     const map = {
       400: 'Documento Inválido o Vacío',
       404: 'Documento o Recurso No Encontrado',
-      413: 'Archivo Demasiado Grande (Máx 25 MB)',
+      413: 'Archivo Demasiado Grande (Máx 10 MB)',
       415: 'Formato de Archivo No Soportado',
       422: 'Error de Validación en la Solicitud',
       502: 'Fallo en OCI Object Storage',
