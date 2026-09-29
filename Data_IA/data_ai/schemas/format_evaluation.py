@@ -1,5 +1,5 @@
 """
-Schemas para la evaluación de formatos generados por NuevaMente.
+Contratos de evaluación de formatos generados por NuevaMente.
 
 Sprint 2:
 - Formatos soportados: quiz y flashcards.
@@ -8,8 +8,16 @@ Sprint 2:
     format
     generated_content
     chunks_used
-- El campo `format` discrimina automáticamente el tipo esperado de
-  `generated_content`.
+- Data/IA devuelve:
+    document_id
+    format
+    status
+    scores
+    informacion_no_respaldada
+    observaciones
+
+El campo `format` discrimina automáticamente el tipo esperado de
+`generated_content`.
 
 Requiere Pydantic v2.
 """
@@ -19,20 +27,48 @@ from typing import Annotated, List, Literal, Union
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 
 
+# ============================================================
+# CONFIGURACIÓN BASE
+# ============================================================
+
 class StrictModel(BaseModel):
     """Modelo base: no permite campos adicionales no definidos."""
 
     model_config = ConfigDict(extra="forbid")
 
 
+# ============================================================
+# QUIZ
+# ============================================================
+
 class QuizQuestion(StrictModel):
     """Una pregunta individual del quiz."""
 
-    question_id: str = Field(..., min_length=1)
-    question: str = Field(..., min_length=1)
-    options: List[str] = Field(..., min_length=2)
-    correct_answer: str = Field(..., min_length=1)
-    explanation: str = Field(..., min_length=1)
+    question_id: str = Field(
+        ...,
+        min_length=1,
+        description="Identificador único de la pregunta dentro del quiz.",
+    )
+    question: str = Field(
+        ...,
+        min_length=1,
+        description="Texto de la pregunta.",
+    )
+    options: List[str] = Field(
+        ...,
+        min_length=2,
+        description="Opciones disponibles para responder.",
+    )
+    correct_answer: str = Field(
+        ...,
+        min_length=1,
+        description="Respuesta correcta. Debe coincidir con una opción.",
+    )
+    explanation: str = Field(
+        ...,
+        min_length=1,
+        description="Explicación de la respuesta correcta.",
+    )
 
     @model_validator(mode="after")
     def validate_question(self):
@@ -55,9 +91,21 @@ class QuizQuestion(StrictModel):
 class QuizContent(StrictModel):
     """Contenido generado para el formato quiz."""
 
-    title: str = Field(..., min_length=1)
-    instructions: str = Field(..., min_length=1)
-    questions: List[QuizQuestion] = Field(..., min_length=1)
+    title: str = Field(
+        ...,
+        min_length=1,
+        description="Título del quiz.",
+    )
+    instructions: str = Field(
+        ...,
+        min_length=1,
+        description="Instrucciones para responder el quiz.",
+    )
+    questions: List[QuizQuestion] = Field(
+        ...,
+        min_length=1,
+        description="Preguntas que componen el quiz.",
+    )
 
     @model_validator(mode="after")
     def validate_unique_question_ids(self):
@@ -69,12 +117,28 @@ class QuizContent(StrictModel):
         return self
 
 
+# ============================================================
+# FLASHCARDS
+# ============================================================
+
 class FlashcardItem(StrictModel):
     """Una flashcard individual."""
 
-    card_id: str = Field(..., min_length=1)
-    front: str = Field(..., min_length=1)
-    back: str = Field(..., min_length=1)
+    card_id: str = Field(
+        ...,
+        min_length=1,
+        description="Identificador único de la flashcard dentro del conjunto.",
+    )
+    front: str = Field(
+        ...,
+        min_length=1,
+        description="Pregunta, concepto o estímulo mostrado al usuario.",
+    )
+    back: str = Field(
+        ...,
+        min_length=1,
+        description="Respuesta o contenido mostrado al reverso.",
+    )
 
     @model_validator(mode="after")
     def validate_flashcard(self):
@@ -87,9 +151,21 @@ class FlashcardItem(StrictModel):
 class FlashcardsContent(StrictModel):
     """Contenido generado para el formato flashcards."""
 
-    title: str = Field(..., min_length=1)
-    instructions: str = Field(..., min_length=1)
-    cards: List[FlashcardItem] = Field(..., min_length=1)
+    title: str = Field(
+        ...,
+        min_length=1,
+        description="Título del conjunto de flashcards.",
+    )
+    instructions: str = Field(
+        ...,
+        min_length=1,
+        description="Instrucciones de uso para el usuario.",
+    )
+    cards: List[FlashcardItem] = Field(
+        ...,
+        min_length=1,
+        description="Lista de flashcards generadas.",
+    )
 
     @model_validator(mode="after")
     def validate_unique_card_ids(self):
@@ -101,21 +177,56 @@ class FlashcardsContent(StrictModel):
         return self
 
 
+# ============================================================
+# CHUNKS UTILIZADOS COMO EVIDENCIA
+# ============================================================
+
 class ChunkUsed(StrictModel):
     """Chunk recuperado por Agentes y utilizado como evidencia."""
 
-    chunk_id: str = Field(..., min_length=1)
-    document_id: str = Field(..., min_length=1)
-    rank: int = Field(..., ge=1)
-    score: float
-    text: str = Field(..., min_length=1)
+    chunk_id: str = Field(
+        ...,
+        min_length=1,
+        description="Identificador único del chunk.",
+    )
+    document_id: str = Field(
+        ...,
+        min_length=1,
+        description="Documento al que pertenece el chunk.",
+    )
+    rank: int = Field(
+        ...,
+        ge=1,
+        description="Posición del chunk dentro de los resultados recuperados.",
+    )
+    score: float = Field(
+        ...,
+        description="Score de retrieval informado por Agentes.",
+    )
+    text: str = Field(
+        ...,
+        min_length=1,
+        description="Texto del chunk utilizado como evidencia.",
+    )
 
+
+# ============================================================
+# REQUEST BASE
+# ============================================================
 
 class EvaluationRequestBase(StrictModel):
     """Campos comunes a cualquier solicitud de evaluación."""
 
-    document_id: str = Field(..., min_length=1)
-    chunks_used: List[ChunkUsed] = Field(..., min_length=1)
+    document_id: str = Field(
+        ...,
+        min_length=1,
+        description="Identificador del documento original.",
+    )
+    chunks_used: List[ChunkUsed] = Field(
+        ...,
+        min_length=1,
+        description="Chunks utilizados por Agentes para generar el formato.",
+    )
 
     @model_validator(mode="after")
     def validate_chunks(self):
@@ -143,6 +254,10 @@ class EvaluationRequestBase(StrictModel):
         return self
 
 
+# ============================================================
+# REQUESTS ESPECÍFICOS
+# ============================================================
+
 class QuizEvaluationRequest(EvaluationRequestBase):
     """Solicitud de evaluación para un quiz."""
 
@@ -166,10 +281,121 @@ EvaluationRequest = Annotated[
 ]
 
 
+# ============================================================
+# RESPONSE
+# ============================================================
+
+class EvaluationScores(StrictModel):
+    """Puntajes de calidad para el contenido generado."""
+
+    relevancia: int = Field(
+        ...,
+        ge=1,
+        le=5,
+        description="Qué tan pertinente es el contenido respecto al material fuente.",
+    )
+    coherencia: int = Field(
+        ...,
+        ge=1,
+        le=5,
+        description="Consistencia lógica, claridad y estructura del contenido.",
+    )
+    adaptacion_didactica: int = Field(
+        ...,
+        ge=1,
+        le=5,
+        description="Adecuación del contenido al propósito educativo esperado.",
+    )
+    informacion_respaldada: int = Field(
+        ...,
+        ge=1,
+        le=5,
+        description="Grado de respaldo del contenido en los chunks utilizados.",
+    )
+
+
+class EvaluationResponse(StrictModel):
+    """Respuesta estructurada del servicio de evaluación Data/IA."""
+
+    document_id: str = Field(
+        ...,
+        min_length=1,
+        description="Identificador del documento original.",
+    )
+    format: Literal["quiz", "flashcards"] = Field(
+        ...,
+        description="Formato educativo evaluado.",
+    )
+    status: Literal[
+        "aprobado",
+        "requiere_revision",
+        "rechazado",
+    ] = Field(
+        ...,
+        description="Resultado global de la evaluación.",
+    )
+    scores: EvaluationScores = Field(
+        ...,
+        description="Puntajes de calidad del contenido evaluado.",
+    )
+    informacion_no_respaldada: bool = Field(
+        ...,
+        description=(
+            "Indica si se detectó información que no está respaldada "
+            "por los chunks utilizados."
+        ),
+    )
+    observaciones: List[str] = Field(
+        default_factory=list,
+        description="Comentarios o hallazgos detectados durante la evaluación.",
+    )
+
+    @model_validator(mode="after")
+    def validate_status_consistency(self):
+        """
+        Reglas:
+        - rechazado:
+            informacion_no_respaldada = True
+            o algún score <= 2
+        - requiere_revision:
+            ningún score <= 2
+            y al menos un score == 3
+        - aprobado:
+            todos los scores >= 4
+            e informacion_no_respaldada = False
+        """
+
+        values = [
+            self.scores.relevancia,
+            self.scores.coherencia,
+            self.scores.adaptacion_didactica,
+            self.scores.informacion_respaldada,
+        ]
+
+        if self.informacion_no_respaldada:
+            expected_status = "rechazado"
+        elif any(score <= 2 for score in values):
+            expected_status = "rechazado"
+        elif any(score == 3 for score in values):
+            expected_status = "requiere_revision"
+        else:
+            expected_status = "aprobado"
+
+        if self.status != expected_status:
+            raise ValueError(
+                "status inconsistente con la evaluación. "
+                f"Se esperaba '{expected_status}' y se recibió '{self.status}'."
+            )
+
+        return self
+
+
 __all__ = [
     "ChunkUsed",
     "EvaluationRequest",
     "EvaluationRequestBase",
+    "EvaluationResponse",
+    "EvaluationScores",
     "FlashcardItem",
     "FlashcardsContent",
     "FlashcardsEvaluationRequest",
