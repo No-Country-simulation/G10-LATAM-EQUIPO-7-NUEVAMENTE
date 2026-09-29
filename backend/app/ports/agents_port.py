@@ -1,40 +1,79 @@
-"""Contrato provisional entre BackendAPI y el módulo de Agentes."""
+"""Puerto de integración entre BackendAPI y Agentes."""
 
-from collections.abc import Mapping
 from dataclasses import dataclass
 from typing import Protocol
 
+from app.domain.enums import (
+    GeneratedFormatStatus,
+    GeneratedFormatType,
+)
+from app.domain.generated_content import (
+    GeneratedContent,
+)
+from app.domain.generated_format import (
+    ChunkEvidence,
+    GenerationContext,
+)
+
+
+class AgentsError(Exception):
+    """Error durante una operación solicitada a Agentes."""
+
 
 @dataclass(frozen=True, slots=True)
-class AgentAdaptationInput:
-    """Parámetros necesarios para solicitar una adaptación educativa."""
+class AgentGenerationInput:
+    """Solicitud normalizada de generación educativa."""
 
     document_id: str
-    profile: str
-    output_format: str
-    niche: str
-    detail_level: str
+    formats: tuple[GeneratedFormatType, ...]
+    generation_context: GenerationContext
 
 
 @dataclass(frozen=True, slots=True)
-class AgentAdaptationResult:
-    """Resultado estructurado devuelto por el módulo de Agentes.
+class AgentGeneratedFormatResult:
+    """Resultado atómico recibido desde Agentes."""
 
-    Las estructuras internas permanecerán provisionales hasta cerrar
-    el contrato definitivo con RAG/Agentes y Frontend.
-    """
+    format_type: GeneratedFormatType
+    status: GeneratedFormatStatus
+    content: GeneratedContent | None
+    chunks_used: tuple[ChunkEvidence, ...]
+    error_message: str | None = None
 
-    metadata: Mapping[str, object]
-    content: Mapping[str, object]
-    quality: Mapping[str, object]
+    def __post_init__(self) -> None:
+        if (
+            self.status
+            == GeneratedFormatStatus.SUCCESS
+        ):
+            if self.content is None:
+                raise ValueError(
+                    "Agentes debe devolver content "
+                    "para una generación exitosa."
+                )
+
+            if not self.chunks_used:
+                raise ValueError(
+                    "Agentes debe devolver chunks_used completos "
+                    "para una generación exitosa."
+                )
+
+
+@dataclass(frozen=True, slots=True)
+class AgentGenerationResult:
+    """Respuesta completa de una solicitud de generación."""
+
+    document_id: str
+    results: tuple[
+        AgentGeneratedFormatResult,
+        ...
+    ]
 
 
 class AgentsPort(Protocol):
-    """Operaciones del sistema de agentes requeridas por BackendAPI."""
+    """Operaciones de Agentes requeridas por BackendAPI."""
 
-    async def generate_adaptation(
+    async def generate_formats(
         self,
-        request: AgentAdaptationInput,
-    ) -> AgentAdaptationResult:
-        """Genera contenido educativo adaptado."""
+        request: AgentGenerationInput,
+    ) -> AgentGenerationResult:
+        """Genera Quiz y/o Flashcards para un documento indexado."""
         ...
