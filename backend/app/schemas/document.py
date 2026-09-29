@@ -22,6 +22,10 @@ class DocumentBaseResponse(BaseSchema):
     status: DocumentStatus = Field(
         description="Estado actual del documento.",
     )
+    oci_object_name: str | None = Field(
+        default=None,
+        description="Identificador del objeto persistido en OCI Object Storage.",
+    )
 
 
 class DocumentCreatedResponse(DocumentBaseResponse):

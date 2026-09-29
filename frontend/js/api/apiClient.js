@@ -10,84 +10,86 @@ import { CONFIG } from '../config.js';
  * Error personalizado con metadatos HTTP para feedback enriquecido en la UI
  */
 export class ApiError extends Error {
-  constructor(message, status = 0, detail = null, raw = null) {
-    super(message);
+  constructor(statusOrMessage, bodyOrStatus = {}, maybeDetail = null) {
+    let resolvedStatus = 500;
+    let resolvedMessage = '';
+    let resolvedCode = '';
+    let resolvedDetails = [];
+    let rawBody = {};
+
+    // Soporte polimórfico: new ApiError(status, body) o new ApiError(message, status, detail)
+    if (typeof statusOrMessage === 'number') {
+      resolvedStatus = statusOrMessage;
+      rawBody = typeof bodyOrStatus === 'object' && bodyOrStatus !== null ? bodyOrStatus : {};
+
+      if (typeof rawBody.message === 'string' && rawBody.message.trim()) {
+        resolvedMessage = rawBody.message;
+      } else if (typeof rawBody.detail === 'string' && rawBody.detail.trim()) {
+        resolvedMessage = rawBody.detail;
+      } else if (Array.isArray(rawBody.detail) && rawBody.detail.length > 0) {
+        resolvedMessage = rawBody.detail.map(d => `${d.loc ? d.loc.join('.') + ': ' : ''}${d.msg}`).join('; ');
+        resolvedDetails = rawBody.detail;
+      } else if (Array.isArray(rawBody.errors) && rawBody.errors.length > 0) {
+        resolvedMessage = rawBody.errors.map(e => `${e.field ? e.field + ': ' : ''}${e.message || e.msg || ''}`).join('; ');
+      } else {
+        resolvedMessage = ApiError.getDefaultMessageForStatus(resolvedStatus);
+      }
+      resolvedCode = rawBody.code || ApiError.getDefaultCodeForStatus(resolvedStatus);
+      if (rawBody.details) resolvedDetails = rawBody.details;
+    } else {
+      resolvedMessage = statusOrMessage || 'Error en la petición API';
+      resolvedStatus = typeof bodyOrStatus === 'number' ? bodyOrStatus : 500;
+      resolvedCode = ApiError.getDefaultCodeForStatus(resolvedStatus);
+      resolvedDetails = maybeDetail ? [maybeDetail] : [];
+    }
+
+    super(resolvedMessage);
     this.name = 'ApiError';
-    this.status = status;
-    this.detail = detail;
-    this.raw = raw;
+    this.status = resolvedStatus;
+    this.code = resolvedCode;
+    this.details = Array.isArray(resolvedDetails) ? resolvedDetails : [resolvedDetails];
+    this.timestamp = new Date().toISOString();
+    this.rawBody = rawBody;
+  }
+
+  static getDefaultCodeForStatus(status) {
+    const map = {
+      200: 'DOCUMENT_DUPLICATE',
+      201: 'DOCUMENT_CREATED',
+      400: 'BAD_REQUEST',
+      404: 'DOCUMENT_NOT_FOUND',
+      408: 'TIMEOUT_ERROR',
+      413: 'FILE_TOO_LARGE',
+      415: 'UNSUPPORTED_MEDIA_TYPE',
+      422: 'REQUEST_VALIDATION_ERROR',
+      500: 'INTERNAL_SERVER_ERROR',
+      502: 'OCI_STORAGE_ERROR'
+    };
+    return map[status] || `HTTP_${status}`;
+  }
+
+  static getDefaultMessageForStatus(status) {
+    const map = {
+      200: 'El documento ya existía previamente en el repositorio.',
+      201: 'Documento nuevo creado y registrado exitosamente.',
+      400: 'Documento inválido o vacío.',
+      404: 'Recurso o documento no encontrado.',
+      408: 'Tiempo de espera agotado al comunicarse con el servidor (Timeout).',
+      413: `El archivo supera el tamaño máximo permitido de ${CONFIG.UPLOAD.MAX_SIZE_MB} MB.`,
+      415: 'Formato o MIME type no soportado. Se admiten archivos PDF, Markdown (.md) y TXT.',
+      422: 'Error de validación en la estructura del request.',
+      502: 'Fallo al almacenar o comunicarse con OCI Object Storage.',
+      500: 'Error interno inesperado en el servidor.'
+    };
+    return map[status] || `Error del servidor HTTP ${status}`;
   }
 }
 
-/**
- * Mapea códigos de estado y detalles del backend a explicaciones claras para el usuario
- * @param {number} status
- * @param {any} detail
- * @returns {{ title: string, message: string }}
- */
 export function mapBackendError(status, detail) {
-  let friendlyDetail = '';
-
-  if (Array.isArray(detail)) {
-    friendlyDetail = detail
-      .map(d => `${d.loc ? d.loc.slice(1).join('.') + ': ' : ''}${d.msg}`)
-      .join('; ');
-  } else if (typeof detail === 'string') {
-    friendlyDetail = detail;
-  }
-
-  switch (status) {
-    case 400:
-      return {
-        title: 'Documento Inválido (400)',
-        message: friendlyDetail || 'El documento está vacío o no contiene texto legible.'
-      };
-    case 404:
-      return {
-        title: 'Recurso No Encontrado (404)',
-        message: friendlyDetail || 'No se encontró el documento o formato solicitado en el servidor.'
-      };
-    case 413:
-      return {
-        title: 'Archivo Demasiado Grande (413)',
-        message: friendlyDetail || `El archivo supera el tamaño máximo permitido de ${CONFIG.UPLOAD.MAX_SIZE_MB} MB.`
-      };
-    case 415:
-      return {
-        title: 'Formato No Soportado (415)',
-        message: friendlyDetail || 'Formato o tipo MIME no admitido. Se admiten archivos PDF, Markdown (.md) y TXT.'
-      };
-    case 422:
-      return {
-        title: 'Error de Validación (422)',
-        message: friendlyDetail || 'Los parámetros enviados no cumplen con el formato esperado por el backend.'
-      };
-    case 502:
-      return {
-        title: 'Fallo de Almacenamiento OCI (502)',
-        message: friendlyDetail || 'El documento fue registrado pero no pudo almacenarse en Oracle Cloud (OCI).'
-      };
-    case 500:
-      return {
-        title: 'Error Interno del Servidor (500)',
-        message: friendlyDetail || 'Ocurrió un error inesperado en el servidor backend al procesar la solicitud.'
-      };
-    case 408:
-      return {
-        title: 'Tiempo de Espera Agotado (Timeout)',
-        message: 'El servidor tardó más de 30 segundos en responder.'
-      };
-    case 0:
-      return {
-        title: 'Error de Conexión',
-        message: 'No se pudo conectar con el Backend (FastAPI). Verifica que esté activo en ' + CONFIG.API.DEFAULT_BASE_URL
-      };
-    default:
-      return {
-        title: `Error del Servidor (${status || 'Desconocido'})`,
-        message: friendlyDetail || `Error en la solicitud HTTP (${status}).`
-      };
-  }
+  return {
+    title: ApiError.getDefaultCodeForStatus(status),
+    message: detail || ApiError.getDefaultMessageForStatus(status)
+  };
 }
 
 export const apiClient = {
@@ -109,7 +111,6 @@ export const apiClient = {
 
   /**
    * Sube un archivo al backend usando multipart/form-data
-   * Maneja: 201 (nuevo), 200 (duplicado), 400, 413, 415, 422, 502, 500
    * @param {File} file 
    */
   async uploadFile(file) {
@@ -129,29 +130,26 @@ export const apiClient = {
 
       clearTimeout(timeoutId);
 
-      // Si no es OK (códigos >= 400)
+      const json = await response.json().catch(() => ({}));
+
       if (!response.ok) {
-        const errJson = await response.json().catch(() => ({}));
-        const mapped = mapBackendError(response.status, errJson.detail);
-        throw new ApiError(mapped.message, response.status, errJson.detail, errJson);
+        throw new ApiError(response.status, json);
       }
 
-      const data = await response.json();
-
-      // Enriquecer respuesta con estado HTTP para distinguir 201 (nuevo) de 200 (duplicado)
       return {
-        ...data,
+        ...json,
         httpStatus: response.status,
-        isDuplicate: response.status === 200 || Boolean(data.duplicate)
+        isDuplicate: response.status === 200 || Boolean(json.duplicate)
       };
     } catch (err) {
       if (err.name === 'AbortError') {
-        const mapped = mapBackendError(408);
-        throw new ApiError(mapped.message, 408);
+        throw new ApiError(408, { message: 'Tiempo de espera agotado al subir el archivo (Timeout de 30s).' });
       }
       if (err instanceof TypeError && err.message.toLowerCase().includes('fetch')) {
-        const mapped = mapBackendError(0);
-        throw new ApiError(mapped.message, 0);
+        throw new ApiError(0, {
+          code: 'CONNECTION_REFUSED',
+          message: `No se pudo conectar con el Backend (FastAPI). Verifica que esté activo en ${CONFIG.API.DEFAULT_BASE_URL}`
+        });
       }
       throw err;
     }
@@ -180,21 +178,25 @@ export const apiClient = {
 
       clearTimeout(timeoutId);
 
+      const json = await response.json().catch(() => ({}));
+
       if (!response.ok) {
-        const errJson = await response.json().catch(() => ({}));
-        const mapped = mapBackendError(response.status, errJson.detail);
-        throw new ApiError(mapped.message, response.status, errJson.detail, errJson);
+        throw new ApiError(response.status, json);
       }
 
-      return await response.json();
+      return {
+        ...json,
+        httpStatus: response.status
+      };
     } catch (err) {
       if (err.name === 'AbortError') {
-        const mapped = mapBackendError(408);
-        throw new ApiError(mapped.message, 408);
+        throw new ApiError(408, { message: 'El servidor tardó demasiado tiempo en responder (Timeout de 30s).' });
       }
       if (err instanceof TypeError && err.message.toLowerCase().includes('fetch')) {
-        const mapped = mapBackendError(0);
-        throw new ApiError(mapped.message, 0);
+        throw new ApiError(0, {
+          code: 'CONNECTION_REFUSED',
+          message: `No se pudo conectar con el Backend (FastAPI). Verifica que esté activo en ${CONFIG.API.DEFAULT_BASE_URL}`
+        });
       }
       throw err;
     }

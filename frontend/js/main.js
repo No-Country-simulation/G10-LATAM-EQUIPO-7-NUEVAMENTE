@@ -10,9 +10,13 @@ import { uploadTab } from './modules/uploadTab.js';
 import { studyHub } from './modules/studyHub.js';
 import { bookshelf } from './modules/bookshelf.js';
 import { portada } from './modules/portada.js';
+import { statusDialog } from './modules/statusDialog.js';
 
 document.addEventListener('DOMContentLoaded', () => {
-  // 1. Inicializar Enrutador de Pestañas Principales (3 Pilares)
+  // 1. Inicializar Diálogo Temporal de Estados / Errores
+  statusDialog.init();
+
+  // 2. Inicializar Enrutador de Pestañas Principales (3 Pilares)
   router.init();
 
   // 3. Inicializar La Biblioteca de NuevaMente

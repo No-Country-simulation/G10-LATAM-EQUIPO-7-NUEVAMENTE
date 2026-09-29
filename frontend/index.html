@@ -245,6 +245,43 @@
                   <span>Procesar Documento</span>
                 </button>
               </div>
+
+              <!-- Panel de Pruebas de Códigos de Respuesta Backend (Para Demo) -->
+              <div class="demo-status-tester">
+                <div class="tester-title-row">
+                  <span class="tester-title">🧪 Códigos de Respuesta Backend (Demo)</span>
+                  <span class="tester-tag">Dialog Temporal OCI</span>
+                </div>
+                <div class="tester-buttons-grid">
+                  <button type="button" class="btn-tester-code code-success" data-status-test="201" title="Documento nuevo almacenado en OCI">
+                    201 Stored (Nuevo)
+                  </button>
+                  <button type="button" class="btn-tester-code code-success" data-status-test="200" title="Documento duplicado reutilizado">
+                    200 Stored (Duplicado)
+                  </button>
+                  <button type="button" class="btn-tester-code code-error" data-status-test="400" title="Documento inválido o vacío">
+                    400 Vacío / Inválido
+                  </button>
+                  <button type="button" class="btn-tester-code code-error" data-status-test="404" title="Recurso inexistente">
+                    404 Inexistente
+                  </button>
+                  <button type="button" class="btn-tester-code code-error" data-status-test="413" title="Archivo demasiado grande">
+                    413 &gt;10MB
+                  </button>
+                  <button type="button" class="btn-tester-code code-error" data-status-test="415" title="Formato no soportado">
+                    415 Formato/MIME
+                  </button>
+                  <button type="button" class="btn-tester-code code-error" data-status-test="422" title="Validación del request">
+                    422 Validación
+                  </button>
+                  <button type="button" class="btn-tester-code code-error" data-status-test="502" title="Fallo de almacenamiento en OCI">
+                    502 Fallo OCI
+                  </button>
+                  <button type="button" class="btn-tester-code code-error" data-status-test="500" title="Error no controlado en servidor">
+                    500 Error Servidor
+                  </button>
+                </div>
+              </div>
             </div>
           </div>
 
@@ -581,6 +618,82 @@
         </div>
       </div>
 
+    </div>
+  </div>
+
+  <!-- Diálogo Modal Temporal de Estado / OCI y Errores del Backend -->
+  <div class="status-dialog-backdrop" id="statusDialogOverlay" style="display: none;" role="dialog" aria-modal="true" aria-labelledby="statusDialogTitle">
+    <div class="status-dialog-card" id="statusDialogCard">
+      <!-- Barra superior de temporizador regresivo -->
+      <div class="status-timer-bar-track">
+        <div class="status-timer-bar-fill" id="statusTimerFill"></div>
+      </div>
+
+      <!-- Cabecera -->
+      <div class="status-dialog-header">
+        <div class="status-header-main">
+          <div class="status-icon-bubble" id="statusIconBubble"></div>
+          <div class="status-title-group">
+            <div class="status-badge-row" id="statusBadgeRow"></div>
+            <h3 class="status-dialog-title" id="statusDialogTitle">Notificación del Sistema</h3>
+          </div>
+        </div>
+        <button type="button" class="btn-close-status-dialog" id="btnCloseStatusDialog" title="Cerrar (Esc)">&times;</button>
+      </div>
+
+      <!-- Cuerpo -->
+      <div class="status-dialog-body" id="statusDialogBody">
+        <p class="status-main-message" id="statusMainMessage"></p>
+
+        <!-- Metadata OCI (para estado STORED) -->
+        <div class="status-meta-card" id="statusMetaCard" style="display: none;">
+          <div class="status-meta-field">
+            <div class="meta-label-row">
+              <span class="meta-label">ID / Objeto en OCI Object Storage:</span>
+              <span class="meta-hint-tag">Oracle Cloud Infrastructure</span>
+            </div>
+            <div class="meta-copyable-row">
+              <code class="meta-code" id="statusOciId">documents/doc_xxx/original.pdf</code>
+              <button type="button" class="btn-copy-oci" id="btnCopyOciId" title="Copiar ID de OCI al portapapeles">
+                <span class="copy-icon">📋</span>
+                <span id="btnCopyOciText">Copiar</span>
+              </button>
+            </div>
+          </div>
+          <div class="status-meta-grid">
+            <div class="status-meta-field">
+              <span class="meta-label">ID Canónico del Documento:</span>
+              <code class="meta-code-sm" id="statusDocId">doc_xxx</code>
+            </div>
+            <div class="status-meta-field">
+              <span class="meta-label">Archivo Procesado:</span>
+              <span class="meta-val" id="statusFileName">archivo.pdf</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Detalles de Error (para respuestas 4xx / 5xx) -->
+        <div class="status-error-details" id="statusErrorDetails" style="display: none;">
+          <div class="status-error-header-row">
+            <span class="meta-label">Detalle devuelto por backend:</span>
+            <span class="error-code-chip" id="statusErrorCode">BAD_REQUEST</span>
+          </div>
+          <div class="error-details-box" id="statusErrorBox"></div>
+        </div>
+
+        <!-- Fila de timestamp y timer text -->
+        <div class="status-timestamp-row">
+          <span class="status-timestamp" id="statusTimestamp"></span>
+          <span class="status-timer-text" id="statusTimerText"></span>
+        </div>
+      </div>
+
+      <!-- Pie de diálogo -->
+      <div class="status-dialog-footer">
+        <button type="button" class="btn-status-confirm" id="btnStatusConfirm">
+          Entendido
+        </button>
+      </div>
     </div>
   </div>
 
