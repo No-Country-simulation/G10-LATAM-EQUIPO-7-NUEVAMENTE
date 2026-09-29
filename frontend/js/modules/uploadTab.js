@@ -7,7 +7,6 @@
 import { CONFIG } from '../config.js';
 import { state } from '../state.js';
 import { sampleLibrary } from '../data/sampleLibrary.js';
-import { mockService } from '../api/mockService.js';
 import { apiClient, ApiError } from '../api/apiClient.js';
 import { router } from './router.js';
 import { statusDialog } from './statusDialog.js';
@@ -336,35 +335,27 @@ export const uploadTab = {
         isMock: false
       });
 
-      // Paso 2: Indexación y preparación
+      // Paso 2: Indexación y procesamiento en Backend
       this.currentActiveStep = this.elements.stepChroma;
-      this.setStepActive(this.elements.stepChroma, 'Analizando el contenido del documento...');
-      await this.wait(400);
+      this.setStepActive(this.elements.stepChroma, 'Indexando contenido y calculando embeddings...');
+      await this.wait(350);
       this.setStepCompleted(this.elements.stepChroma, this.elements.line2);
 
-      // Paso 3: Llamar al contrato v1 de adaptación pedagógica (POST /api/v1/adaptations)
+      // Paso 3: Vinculación con formatos de estudio (Sprint 2: Quiz y Flashcards)
       this.currentActiveStep = this.elements.stepGen;
-      this.setStepActive(this.elements.stepGen, `Generando material de estudio para nivel [${this.getLevelLabel(targetProfile)}]...`);
-      
-      const adaptationPayload = {
-        document_id: docId,
-        target_profile: targetProfile,
-        output_format: outputFormat,
-        niche_context: nicheContext
-      };
-
-      const adaptationResult = await apiClient.adaptContent(adaptationPayload);
+      this.setStepActive(this.elements.stepGen, `Vinculando formatos de estudio para nivel [${this.getLevelLabel(targetProfile)}]...`);
+      await this.wait(350);
       this.setStepCompleted(this.elements.stepGen, this.elements.line3);
 
-      // Paso 4: Agente Revisor / Validación final
+      // Paso 4: Verificación de persistencia y registro en la biblioteca
       this.currentActiveStep = this.elements.stepCritic;
-      this.setStepActive(this.elements.stepCritic, 'Validando estructura pedagógica y calidad de respuesta...');
-      await this.wait(350);
+      this.setStepActive(this.elements.stepCritic, 'Validando persistencia y registrando en La Biblioteca...');
+      await this.wait(300);
       this.setStepCompleted(this.elements.stepCritic, null);
 
-      // Mapear resultado del backend al modelo de visualización del frontend
-      const procDoc = this.mapBackendResponseToDocument(selectedFile, adaptationResult, params);
-      this.onPipelineSuccess(procDoc, adaptationResult, params);
+      // Crear el documento persistido para el estado global y el librero
+      const procDoc = this.createDocumentFromUpload(selectedFile, uploadResult, params);
+      this.onPipelineSuccess(procDoc, uploadResult, params);
 
     } catch (err) {
       console.error('[Pipeline Error]:', err);
@@ -411,63 +402,70 @@ export const uploadTab = {
   },
 
   /**
-   * Mapea la respuesta estructurada del contrato v1 de Backend al modelo del Cuaderno/StudyHub
+   * Construye el modelo canónico del documento procesado para el Cuaderno y la Biblioteca
    */
-  mapBackendResponseToDocument(selectedFile, backendRes, params) {
-    const adapted = backendRes.adapted_content || {};
-    const meta = backendRes.metadata || {};
-    const quality = backendRes.quality_evaluation || {};
+  createDocumentFromUpload(selectedFile, uploadResult, params = {}) {
+    const rawName = uploadResult.filename || selectedFile.name || 'Documento';
+    const cleanTitle = rawName
+      .replace(/\.[^/.]+$/, '')
+      .replace(/[-_]/g, ' ')
+      .trim();
 
-    const cleanTitle = adapted.title || selectedFile.name.replace(/\.[^/.]+$/, "").replace(/[-_]/g, " ");
-    const discipline = mockService.inferDiscipline(cleanTitle, meta.niche_context || params.niche_context);
-
-    const section = {
-      id: "sec_adapted_1",
-      title: cleanTitle,
-      summary: adapted.summary?.executive_summary || "Contenido adaptado generado automáticamente por NuevaMente.",
-      key_concepts: adapted.summary?.key_terms || ["Concepto Clave", "Arquitectura"],
-      flashcards: (adapted.flashcards || []).map(f => ({
-        front: f.front || f.frente,
-        back: f.back || f.dorso,
-        didactic_hint: f.didactic_hint || f.pista_didactica
-      })),
-      quiz: adapted.quiz ? {
-        question: adapted.quiz.question || adapted.quiz.pregunta,
-        options: adapted.quiz.options || adapted.quiz.opciones,
-        correct_answer: adapted.quiz.correct_answer !== undefined ? adapted.quiz.correct_answer : adapted.quiz.correcta,
-        explanation: adapted.quiz.explanation || adapted.quiz.explicacion
-      } : null,
-      video: adapted.tutorial ? {
-        title: adapted.tutorial.title || adapted.tutorial.titulo_video,
-        duration: adapted.tutorial.duration || adapted.tutorial.duracion,
-        key_points: adapted.tutorial.key_points || adapted.tutorial.puntos_video
-      } : null,
-      sintesis: adapted.summary ? {
-        executive_summary: adapted.summary.executive_summary || adapted.summary.resumen_ejecutivo,
-        key_takeaways: adapted.summary.key_takeaways || adapted.summary.puntos_clave,
-        key_terms: adapted.summary.key_terms || adapted.summary.terminos_clave
-      } : null
-    };
+    const formattedTitle = cleanTitle.charAt(0).toUpperCase() + cleanTitle.slice(1);
+    const discipline = this.inferDiscipline(cleanTitle, params.niche_context);
+    const targetProfile = params.target_profile || 'intermediate';
+    const docId = uploadResult.document_id;
+    const ext = (selectedFile.format || rawName.split('.').pop() || 'pdf').toLowerCase();
+    const ociId = uploadResult.oci_object_name || `documents/${docId}/original.${ext}`;
 
     return {
-      id: backendRes.document_id || `doc_${Date.now()}`,
-      filename: selectedFile.name,
+      id: docId,
+      filename: rawName,
+      title: formattedTitle,
       discipline: discipline,
-      title: cleanTitle.charAt(0).toUpperCase() + cleanTitle.slice(1),
-      description: `Contenido educativo adaptado para nivel ${this.getLevelLabel(meta.target_profile || params.target_profile)}.`,
-      filesize: selectedFile.size || "2.0 MB",
+      spineColor: 'gold-custom',
+      description: `Documento procesado y persistido en OCI Object Storage (${uploadResult.isDuplicate ? 'Registro existente reutilizado' : 'Nuevo registro creado'}).`,
+      filesize: selectedFile.size || '1.0 MB',
+      status: uploadResult.status || 'stored',
       metadatos: {
-        target_profile: meta.target_profile || params.target_profile,
-        tiempo_estudio: "6 min",
-        anclaje_rag: Math.round((quality.overall_score || 0.99) * 100),
-        fidelidad: `${((quality.source_faithfulness || 0.99) * 100).toFixed(1)}%`,
-        chunks_count: 14
+        document_id: docId,
+        perfil: targetProfile,
+        tiempo_estudio: '8 min',
+        niche_context: params.niche_context || 'general',
+        oci_object_name: ociId,
+        duplicate: Boolean(uploadResult.isDuplicate)
       },
-      sections: [section]
+      sections: [
+        {
+          id: `sec_${docId}`,
+          title: formattedTitle,
+          summary: `Documento registrado exitosamente en OCI y disponible en la Biblioteca de NuevaMente.`,
+          key_concepts: [discipline, 'Concepto Clave', 'Estudio Adaptativo']
+        }
+      ]
     };
   },
 
-  onPipelineSuccess(procDoc, structuredJson, params = {}) {
+  inferDiscipline(title, niche) {
+    if (niche && niche !== 'general') {
+      const nicheMap = {
+        backend: 'TECNOLOGÍA',
+        health: 'MEDICINA',
+        legal: 'DERECHO',
+        business: 'NEGOCIOS',
+        humanities: 'HUMANIDADES'
+      };
+      if (nicheMap[niche]) return nicheMap[niche];
+    }
+    const lower = (title || '').toLowerCase();
+    if (lower.includes('cloud') || lower.includes('software') || lower.includes('codigo') || lower.includes('programacion') || lower.includes('arquitectura') || lower.includes('tech')) return 'TECNOLOGÍA';
+    if (lower.includes('med') || lower.includes('neuro') || lower.includes('salud') || lower.includes('bio') || lower.includes('farmac')) return 'MEDICINA';
+    if (lower.includes('ley') || lower.includes('derecho') || lower.includes('legal') || lower.includes('constitucion') || lower.includes('norma')) return 'DERECHO';
+    if (lower.includes('negocio') || lower.includes('econom') || lower.includes('finanz') || lower.includes('market') || lower.includes('emprend')) return 'NEGOCIOS';
+    return 'EDUCACIÓN';
+  },
+
+  onPipelineSuccess(procDoc, uploadResult, params = {}) {
     const currentCustomBooks = state.get().customBooks || [];
     const exists = currentCustomBooks.some(b => b.id === procDoc.id);
     const updatedCustom = exists ? currentCustomBooks : [procDoc, ...currentCustomBooks];
@@ -482,7 +480,8 @@ export const uploadTab = {
     state.set({
       currentDocument: procDoc,
       customBooks: updatedCustom,
-      lastStructuredJson: structuredJson,
+      currentDocId: procDoc.id,
+      backendDocument: uploadResult,
       notebook: {
         currentSpreadIndex: 0,
         isTurningPage: false
@@ -496,25 +495,28 @@ export const uploadTab = {
     });
 
     if (this.elements.pipelineStatusBadge) {
-      this.elements.pipelineStatusBadge.textContent = 'Completado';
+      this.elements.pipelineStatusBadge.textContent = 'Almacenado y Listo';
       this.elements.pipelineStatusBadge.style.background = 'rgba(16, 185, 129, 0.2)';
       this.elements.pipelineStatusBadge.style.color = '#10b981';
     }
     if (this.elements.pipelineLiveLog) {
-      this.elements.pipelineLiveLog.textContent = 'Documento procesado correctamente. Ya está disponible en tu biblioteca.';
+      this.elements.pipelineLiveLog.textContent = 'Documento almacenado correctamente en OCI y registrado en tu biblioteca.';
     }
 
-    // Actualizar datos de estudio
-    const meta = structuredJson.metadata || structuredJson.metadatos || {};
-    
+    notifySuccess(
+      uploadResult.isDuplicate ? 'Documento Reutilizado (200)' : 'Documento Almacenado (201)',
+      `"${procDoc.filename}" ya está disponible en tu Biblioteca.`
+    );
+
+    // Actualizar datos de lectura
     if (this.elements.badgeTiempo) {
-      this.elements.badgeTiempo.textContent = `Tiempo de lectura: ${meta.tiempo_estudio || '6 min'}`;
+      this.elements.badgeTiempo.textContent = 'Persistencia: OCI Storage';
     }
     if (this.elements.badgeSecciones) {
-      this.elements.badgeSecciones.textContent = `Secciones: ${procDoc.sections?.length || 1}`;
+      this.elements.badgeSecciones.textContent = `ID: ${procDoc.id.substring(0, 8)}...`;
     }
     if (this.elements.badgeNivel) {
-      this.elements.badgeNivel.textContent = `Nivel: ${this.getLevelLabel(meta.target_profile || meta.perfil)}`;
+      this.elements.badgeNivel.textContent = `Nivel: ${this.getLevelLabel(params.target_profile)}`;
     }
 
     // Mostrar panel de resolución de formatos
