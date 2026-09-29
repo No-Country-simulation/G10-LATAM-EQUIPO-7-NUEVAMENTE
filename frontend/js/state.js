@@ -15,8 +15,8 @@ const internalState = {
   // Navegación principal: 'library' | 'upload' | 'notebook' | 'study'
   activeTab: 'library',
 
-  // Modo de API: 'mock' | 'real'
-  apiMode: localStorage.getItem(CONFIG.STORAGE_KEYS.API_MODE) || 'mock',
+  // Modo de API: Exclusivo Backend Real ('real') para Sprint 2
+  apiMode: 'real',
 
   // Archivo seleccionado por el usuario en la pestaña de carga
   selectedFile: {

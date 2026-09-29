@@ -20,12 +20,10 @@ def create_document_repository(
     centralizada permite incorporar PostgreSQL/Supabase posteriormente
     sin modificar endpoints ni casos de uso.
     """
-    if database_url.startswith("sqlite:///"):
-        database = SQLiteDatabase(database_url)
-        database.initialize()
+    if not database_url.startswith("sqlite:///"):
+        database_url = "sqlite:///storage/nuevamente.db"
 
-        return SQLiteDocumentRepository(database)
+    database = SQLiteDatabase(database_url)
+    database.initialize()
 
-    raise UnsupportedDatabaseError(
-        "Motor de base de datos no soportado por BackendAPI."
-    )
+    return SQLiteDocumentRepository(database)

@@ -20,9 +20,9 @@ export const CONFIG = {
     TIMEOUT_MS: 30000
   },
 
-  // Restricciones de carga de documentos
+  // Restricciones de carga de documentos (Sprint 2: Límite estricto 10 MB)
   UPLOAD: {
-    MAX_SIZE_MB: 25,
+    MAX_SIZE_MB: 10,
     ALLOWED_EXTENSIONS: ['pdf', 'md', 'txt']
   },
 

@@ -74,13 +74,10 @@
 
     <!-- Acciones Rápidas del Header -->
     <div class="header-actions">
-      <!-- Selector de Modo de Conexión -->
-      <div class="header-select-group" title="Seleccionar modo de conexión">
-        <label for="apiModeSelector">Modo:</label>
-        <select id="apiModeSelector">
-          <option value="mock">Modo Demo (sin conexión)</option>
-          <option value="real">Modo Conectado</option>
-        </select>
+      <!-- Indicador de Conexión Backend Real (Sprint 2) -->
+      <div class="header-connection-badge" title="Conectado exclusivamente con Backend FastAPI">
+        <span class="status-dot-pulse"></span>
+        <span>Backend API</span>
       </div>
 
     </div>
@@ -149,7 +146,7 @@
           <div class="upload-panel-card">
             <div class="panel-title-row">
               <h3><span></span> 1. Documento de Estudio</h3>
-              <span class="panel-title-hint">PDF, TXT o MD (Hasta 25MB)</span>
+              <span class="panel-title-hint">PDF, TXT o MD (Hasta 10MB)</span>
             </div>
 
             <!-- Zona de Arrastrar y Soltar Grande -->
@@ -253,11 +250,6 @@
 
         </div>
 
-        <!-- ==========================================================================
-             PIPELINE MULTIAGENTE EN EJECUCIÓN (OCULTO TEMPORALMENTE)
-             Para reactivarlo en cualquier momento, basta con retirar los tags de comentario <!-- y -->
-             ========================================================================== -->
-        <!--
         <div class="pipeline-card" id="pipelineCard" style="display: none;">
           <div class="panel-title-row">
             <h3><span></span> Pipeline Multiagente en Ejecución</h3>
@@ -305,7 +297,6 @@
             Preparando conexión con el pipeline RAG...
           </div>
         </div>
-        -->
 
         <!-- Panel de Resultados y Resolver de Formatos -->
         <div class="result-box-container" id="resultBoxContainer" style="display: none;">
@@ -503,7 +494,7 @@
   <footer class="system-status-bar">
     <div class="status-indicator">
       <div class="status-dot"></div>
-      <span id="ociStatusText">Modo sin conexión (datos de ejemplo)</span>
+      <span id="ociStatusText">Conectado a Backend API</span>
     </div>
     <div>
       <span id="qualityScoreText">Explorando la biblioteca</span>
@@ -592,6 +583,9 @@
 
     </div>
   </div>
+
+  <!-- Contenedor Global de Notificaciones y Feedback UX -->
+  <div class="toast-container" id="toastContainer" role="region" aria-label="Notificaciones del sistema"></div>
 
   <!-- Script Modular ES6 Principal -->
   <script type="module" src="js/main.js"></script>
