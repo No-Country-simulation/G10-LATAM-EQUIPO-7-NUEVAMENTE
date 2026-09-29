@@ -5,6 +5,9 @@ from pathlib import Path
 from fastapi import Request
 
 from app.application.document_service import DocumentService
+from app.application.rag_integration_service import (
+    RAGIntegrationService,
+)
 from app.core.config import settings
 from app.infrastructure.storage.local_temporary_storage_adapter import (
     LocalTemporaryStorageAdapter,
@@ -47,6 +50,24 @@ def get_object_storage(
         )
 
     return storage
+
+
+def get_rag_integration_service(
+    request: Request,
+) -> RAGIntegrationService:
+    """Obtiene la integración BackendAPI-RAG configurada."""
+    service = getattr(
+        request.app.state,
+        "rag_integration_service",
+        None,
+    )
+
+    if service is None:
+        raise RuntimeError(
+            "RAGIntegrationService no fue inicializado."
+        )
+
+    return service
 
 
 def get_temporary_storage() -> TemporaryStoragePort:

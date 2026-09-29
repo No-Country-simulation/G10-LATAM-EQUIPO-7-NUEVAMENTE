@@ -63,23 +63,82 @@ class Settings(BaseSettings):
     OCI_CONFIG_FILE: str = "~/.oci/config"
     OCI_CONFIG_PROFILE: str = "DEFAULT"
 
-    @field_validator("BACKEND_CORS_ORIGINS", mode="before")
+    # --- Agentes / RAG ---
+    RAG_BASE_URL: str = "http://localhost:8001"
+    RAG_INDEX_PATH: str = "/api/v1/index"
+    RAG_TIMEOUT_SECONDS: float = Field(
+        default=30.0,
+        gt=0,
+    )
+
+    @field_validator(
+        "BACKEND_CORS_ORIGINS",
+        mode="before",
+    )
     @classmethod
-    def _parse_origins(cls, value: object) -> object:
+    def _parse_origins(
+        cls,
+        value: object,
+    ) -> object:
         """Acepta una lista JSON o una cadena separada por comas."""
-        if not isinstance(value, str):
+        if not isinstance(
+            value,
+            str,
+        ):
             return value
 
         raw = value.strip()
 
         if raw.startswith("["):
-            return json.loads(raw)
+            return json.loads(
+                raw
+            )
 
         return [
             origin.strip()
             for origin in raw.split(",")
             if origin.strip()
         ]
+
+    @field_validator("RAG_BASE_URL")
+    @classmethod
+    def _validate_rag_base_url(
+        cls,
+        value: str,
+    ) -> str:
+        """Valida y normaliza la URL base del servicio RAG."""
+        normalized = value.strip().rstrip(
+            "/"
+        )
+
+        if not normalized.startswith(
+            (
+                "http://",
+                "https://",
+            )
+        ):
+            raise ValueError(
+                "RAG_BASE_URL debe utilizar "
+                "http:// o https://."
+            )
+
+        return normalized
+
+    @field_validator("RAG_INDEX_PATH")
+    @classmethod
+    def _validate_rag_index_path(
+        cls,
+        value: str,
+    ) -> str:
+        """Valida la ruta HTTP utilizada para indexación."""
+        normalized = value.strip()
+
+        if not normalized.startswith("/"):
+            raise ValueError(
+                "RAG_INDEX_PATH debe comenzar con '/'."
+            )
+
+        return normalized
 
     @property
     def is_production(self) -> bool:

@@ -40,6 +40,10 @@ class DocumentRetrievalError(Exception):
     """No fue posible recuperar el contenido persistente del documento."""
 
 
+class DocumentIndexingStateError(Exception):
+    """El documento no puede realizar la transición de indexación solicitada."""
+
+
 @dataclass(frozen=True, slots=True)
 class DocumentRegistrationResult:
     """Resultado del registro de un documento.
@@ -227,6 +231,46 @@ class DocumentService:
             content=content,
         )
 
+    def start_indexing(
+        self,
+        document_id: str,
+    ) -> Document:
+        """Marca un documento almacenado como en proceso de indexación."""
+        return self._transition_indexing_status(
+            document_id=document_id,
+            allowed_from={
+                DocumentStatus.STORED,
+                DocumentStatus.INDEXING_FAILED,
+            },
+            target=DocumentStatus.INDEXING,
+        )
+
+    def complete_indexing(
+        self,
+        document_id: str,
+    ) -> Document:
+        """Marca como indexado un documento cuya indexación terminó."""
+        return self._transition_indexing_status(
+            document_id=document_id,
+            allowed_from={
+                DocumentStatus.INDEXING,
+            },
+            target=DocumentStatus.INDEXED,
+        )
+
+    def fail_indexing(
+        self,
+        document_id: str,
+    ) -> Document:
+        """Marca como fallida una indexación previamente iniciada."""
+        return self._transition_indexing_status(
+            document_id=document_id,
+            allowed_from={
+                DocumentStatus.INDEXING,
+            },
+            target=DocumentStatus.INDEXING_FAILED,
+        )
+
     def get_document(
         self,
         document_id: str,
@@ -240,6 +284,43 @@ class DocumentService:
             raise DocumentNotFoundError(
                 f"No existe el documento {document_id}."
             )
+
+        return document
+
+    def _transition_indexing_status(
+        self,
+        *,
+        document_id: str,
+        allowed_from: set[DocumentStatus],
+        target: DocumentStatus,
+    ) -> Document:
+        """Ejecuta y persiste una transición controlada de indexación."""
+        document = self.get_document(
+            document_id
+        )
+
+        if document.status not in allowed_from:
+            allowed_values = ", ".join(
+                sorted(
+                    status.value
+                    for status in allowed_from
+                )
+            )
+
+            raise DocumentIndexingStateError(
+                f"El documento {document_id} está en estado "
+                f"{document.status.value} y no puede pasar a "
+                f"{target.value}. Estados permitidos: "
+                f"{allowed_values}."
+            )
+
+        document.update_status(
+            target
+        )
+
+        self._repository.update(
+            document
+        )
 
         return document
 

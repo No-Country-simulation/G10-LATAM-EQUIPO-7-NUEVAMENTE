@@ -14,6 +14,7 @@ from app.application.rag_integration_service import (
     RAGIntegrationError,
     RAGIntegrationService,
 )
+from app.domain.enums import DocumentStatus
 from tests.fakes import (
     FailingRAGPort,
     FakeDocumentRepository,
@@ -103,6 +104,18 @@ def test_index_document_sends_retrieved_document_to_rag(
     assert (
         received.content
         == original_content
+    )
+
+    persisted_document = (
+        repository.find_by_id(
+            stored_document.document_id
+        )
+    )
+
+    assert persisted_document is not None
+    assert (
+        persisted_document.status
+        == DocumentStatus.INDEXED
     )
 
 
@@ -250,10 +263,10 @@ def test_index_document_requires_stored_content(
     )
 
 
-def test_index_document_translates_rag_error(
+def test_index_document_marks_failure_when_rag_fails(
     tmp_path: Path,
 ) -> None:
-    """Traduce fallos de RAG a un error propio de aplicación."""
+    """Registra INDEXING_FAILED cuando RAG falla."""
     file_path = (
         tmp_path / "manual.txt"
     )
@@ -299,7 +312,7 @@ def test_index_document_translates_rag_error(
     with pytest.raises(
         RAGIntegrationError,
         match=(
-            "No fue posible entregar "
+            "No fue posible indexar "
             "el documento"
         ),
     ):
@@ -308,3 +321,15 @@ def test_index_document_translates_rag_error(
                 stored_document.document_id
             )
         )
+
+    persisted_document = (
+        repository.find_by_id(
+            stored_document.document_id
+        )
+    )
+
+    assert persisted_document is not None
+    assert (
+        persisted_document.status
+        == DocumentStatus.INDEXING_FAILED
+    )
