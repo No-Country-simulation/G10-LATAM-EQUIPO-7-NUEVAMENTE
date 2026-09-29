@@ -47,7 +47,6 @@ def test_upload_valid_document(
     assert body["filename"] == filename
     assert body["status"] == "stored"
     assert body["duplicate"] is False
-    assert body["oci_object_name"] is not None
 
     # El archivo temporal debe eliminarse después del almacenamiento.
     stored_files = list(

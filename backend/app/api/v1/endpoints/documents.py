@@ -250,7 +250,6 @@ async def upload_document(
         filename=document.original_filename,
         status=document.status,
         duplicate=not registration.created,
-        oci_object_name=document.oci_object_name,
     )
 
 
@@ -295,5 +294,4 @@ async def get_document(
         size_bytes=document.size_bytes,
         created_at=document.created_at,
         updated_at=document.updated_at,
-        oci_object_name=document.oci_object_name,
     )

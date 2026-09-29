@@ -15,14 +15,10 @@ from app.core.logging import setup_logging
 from app.infrastructure.persistence.repository_factory import (
     create_document_repository,
 )
-from app.infrastructure.storage.local_object_storage import (
-    LocalObjectStorage,
-)
 from app.infrastructure.storage.oci_object_storage import (
     OCIObjectStorage,
 )
 from app.schemas.common import ErrorResponse
-from pathlib import Path
 
 
 @asynccontextmanager
@@ -38,18 +34,13 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
         document_repository
     )
     
-    if settings.OCI_NAMESPACE and settings.OCI_BUCKET_NAME:
-        app.state.object_storage = OCIObjectStorage(
-            namespace=settings.OCI_NAMESPACE,
-            bucket_name=settings.OCI_BUCKET_NAME,
-            region=settings.OCI_REGION,
-            config_file=settings.OCI_CONFIG_FILE,
-            config_profile=settings.OCI_CONFIG_PROFILE,
-        )
-    else:
-        app.state.object_storage = LocalObjectStorage(
-            base_directory=Path("storage/objects")
-        )
+    app.state.object_storage = OCIObjectStorage(
+        namespace=settings.OCI_NAMESPACE,
+        bucket_name=settings.OCI_BUCKET_NAME,
+        region=settings.OCI_REGION,
+        config_file=settings.OCI_CONFIG_FILE,
+        config_profile=settings.OCI_CONFIG_PROFILE,
+    )
 
     yield
 
