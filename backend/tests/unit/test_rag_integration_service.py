@@ -1,4 +1,4 @@
-"""Pruebas unitarias de RagIntegrationService."""
+"""Pruebas unitarias de RAGIntegrationService."""
 
 import asyncio
 from pathlib import Path
@@ -11,14 +11,14 @@ from app.application.document_service import (
     DocumentService,
 )
 from app.application.rag_integration_service import (
-    RagIntegrationError,
-    RagIntegrationService,
+    RAGIntegrationError,
+    RAGIntegrationService,
 )
 from tests.fakes import (
-    FailingRagPort,
+    FailingRAGPort,
     FakeDocumentRepository,
     FakeObjectStorage,
-    FakeRagPort,
+    FakeRAGPort,
 )
 
 
@@ -26,36 +26,51 @@ def test_index_document_sends_retrieved_document_to_rag(
     tmp_path: Path,
 ) -> None:
     """Entrega a RAG el mismo documento almacenado por BackendAPI."""
-    original_content = b"contenido que debe recibir RAG"
+    original_content = (
+        b"contenido que debe recibir RAG"
+    )
 
-    file_path = tmp_path / "manual.pdf"
-    file_path.write_bytes(original_content)
+    file_path = (
+        tmp_path / "manual.pdf"
+    )
+
+    file_path.write_bytes(
+        original_content
+    )
 
     repository = FakeDocumentRepository()
     storage = FakeObjectStorage()
-    rag = FakeRagPort()
+    rag = FakeRAGPort()
 
     document_service = DocumentService(
         repository
     )
 
-    registration = document_service.register_document(
-        local_path=file_path,
-        original_filename="manual.pdf",
-        content_type="application/pdf",
-        size_bytes=file_path.stat().st_size,
+    registration = (
+        document_service.register_document(
+            local_path=file_path,
+            original_filename="manual.pdf",
+            content_type="application/pdf",
+            size_bytes=file_path.stat().st_size,
+        )
     )
 
-    stored_document = document_service.store_document(
-        document_id=registration.document.document_id,
-        local_path=file_path,
-        object_storage=storage,
+    stored_document = (
+        document_service.store_document(
+            document_id=(
+                registration.document.document_id
+            ),
+            local_path=file_path,
+            object_storage=storage,
+        )
     )
 
-    integration_service = RagIntegrationService(
-        document_service=document_service,
-        object_storage=storage,
-        rag=rag,
+    integration_service = (
+        RAGIntegrationService(
+            document_service=document_service,
+            object_storage=storage,
+            rag=rag,
+        )
     )
 
     asyncio.run(
@@ -64,7 +79,9 @@ def test_index_document_sends_retrieved_document_to_rag(
         )
     )
 
-    assert len(rag.received_documents) == 1
+    assert len(
+        rag.received_documents
+    ) == 1
 
     received = rag.received_documents[0]
 
@@ -72,43 +89,68 @@ def test_index_document_sends_retrieved_document_to_rag(
         received.document_id
         == stored_document.document_id
     )
-    assert received.filename == "manual.pdf"
-    assert received.content_type == "application/pdf"
-    assert received.content == original_content
+
+    assert (
+        received.filename
+        == "manual.pdf"
+    )
+
+    assert (
+        received.content_type
+        == "application/pdf"
+    )
+
+    assert (
+        received.content
+        == original_content
+    )
 
 
 def test_index_document_preserves_backend_document_id(
     tmp_path: Path,
 ) -> None:
-    """El document_id enviado a RAG es el identificador canónico de Backend."""
-    file_path = tmp_path / "documento.txt"
-    file_path.write_bytes(b"contenido")
+    """Conserva el identificador canónico generado por BackendAPI."""
+    file_path = (
+        tmp_path / "documento.txt"
+    )
+
+    file_path.write_bytes(
+        b"contenido"
+    )
 
     repository = FakeDocumentRepository()
     storage = FakeObjectStorage()
-    rag = FakeRagPort()
+    rag = FakeRAGPort()
 
     document_service = DocumentService(
         repository
     )
 
-    registration = document_service.register_document(
-        local_path=file_path,
-        original_filename="documento.txt",
-        content_type="text/plain",
-        size_bytes=file_path.stat().st_size,
+    registration = (
+        document_service.register_document(
+            local_path=file_path,
+            original_filename="documento.txt",
+            content_type="text/plain",
+            size_bytes=file_path.stat().st_size,
+        )
     )
 
-    stored_document = document_service.store_document(
-        document_id=registration.document.document_id,
-        local_path=file_path,
-        object_storage=storage,
+    stored_document = (
+        document_service.store_document(
+            document_id=(
+                registration.document.document_id
+            ),
+            local_path=file_path,
+            object_storage=storage,
+        )
     )
 
-    integration_service = RagIntegrationService(
-        document_service=document_service,
-        object_storage=storage,
-        rag=rag,
+    integration_service = (
+        RAGIntegrationService(
+            document_service=document_service,
+            object_storage=storage,
+            rag=rag,
+        )
     )
 
     asyncio.run(
@@ -127,16 +169,18 @@ def test_index_document_rejects_unknown_document() -> None:
     """No invoca RAG cuando el document_id no existe."""
     repository = FakeDocumentRepository()
     storage = FakeObjectStorage()
-    rag = FakeRagPort()
+    rag = FakeRAGPort()
 
     document_service = DocumentService(
         repository
     )
 
-    integration_service = RagIntegrationService(
-        document_service=document_service,
-        object_storage=storage,
-        rag=rag,
+    integration_service = (
+        RAGIntegrationService(
+            document_service=document_service,
+            object_storage=storage,
+            rag=rag,
+        )
     )
 
     with pytest.raises(
@@ -148,35 +192,47 @@ def test_index_document_rejects_unknown_document() -> None:
             )
         )
 
-    assert rag.received_documents == []
+    assert (
+        rag.received_documents
+        == []
+    )
 
 
 def test_index_document_requires_stored_content(
     tmp_path: Path,
 ) -> None:
-    """No invoca RAG si el documento todavía no está en Object Storage."""
-    file_path = tmp_path / "manual.txt"
-    file_path.write_bytes(b"contenido")
+    """No invoca RAG si el documento todavía no está almacenado."""
+    file_path = (
+        tmp_path / "manual.txt"
+    )
+
+    file_path.write_bytes(
+        b"contenido"
+    )
 
     repository = FakeDocumentRepository()
     storage = FakeObjectStorage()
-    rag = FakeRagPort()
+    rag = FakeRAGPort()
 
     document_service = DocumentService(
         repository
     )
 
-    registration = document_service.register_document(
-        local_path=file_path,
-        original_filename="manual.txt",
-        content_type="text/plain",
-        size_bytes=file_path.stat().st_size,
+    registration = (
+        document_service.register_document(
+            local_path=file_path,
+            original_filename="manual.txt",
+            content_type="text/plain",
+            size_bytes=file_path.stat().st_size,
+        )
     )
 
-    integration_service = RagIntegrationService(
-        document_service=document_service,
-        object_storage=storage,
-        rag=rag,
+    integration_service = (
+        RAGIntegrationService(
+            document_service=document_service,
+            object_storage=storage,
+            rag=rag,
+        )
     )
 
     with pytest.raises(
@@ -188,15 +244,23 @@ def test_index_document_requires_stored_content(
             )
         )
 
-    assert rag.received_documents == []
+    assert (
+        rag.received_documents
+        == []
+    )
 
 
 def test_index_document_translates_rag_error(
     tmp_path: Path,
 ) -> None:
     """Traduce fallos de RAG a un error propio de aplicación."""
-    file_path = tmp_path / "manual.txt"
-    file_path.write_bytes(b"contenido")
+    file_path = (
+        tmp_path / "manual.txt"
+    )
+
+    file_path.write_bytes(
+        b"contenido"
+    )
 
     repository = FakeDocumentRepository()
     storage = FakeObjectStorage()
@@ -205,28 +269,39 @@ def test_index_document_translates_rag_error(
         repository
     )
 
-    registration = document_service.register_document(
-        local_path=file_path,
-        original_filename="manual.txt",
-        content_type="text/plain",
-        size_bytes=file_path.stat().st_size,
+    registration = (
+        document_service.register_document(
+            local_path=file_path,
+            original_filename="manual.txt",
+            content_type="text/plain",
+            size_bytes=file_path.stat().st_size,
+        )
     )
 
-    stored_document = document_service.store_document(
-        document_id=registration.document.document_id,
-        local_path=file_path,
-        object_storage=storage,
+    stored_document = (
+        document_service.store_document(
+            document_id=(
+                registration.document.document_id
+            ),
+            local_path=file_path,
+            object_storage=storage,
+        )
     )
 
-    integration_service = RagIntegrationService(
-        document_service=document_service,
-        object_storage=storage,
-        rag=FailingRagPort(),
+    integration_service = (
+        RAGIntegrationService(
+            document_service=document_service,
+            object_storage=storage,
+            rag=FailingRAGPort(),
+        )
     )
 
     with pytest.raises(
-        RagIntegrationError,
-        match="No fue posible entregar el documento",
+        RAGIntegrationError,
+        match=(
+            "No fue posible entregar "
+            "el documento"
+        ),
     ):
         asyncio.run(
             integration_service.index_document(

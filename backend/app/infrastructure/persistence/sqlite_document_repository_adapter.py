@@ -1,25 +1,33 @@
-"""Implementación SQLite del repositorio de documentos."""
+﻿"""Adaptador SQLite para el puerto de persistencia de documentos."""
 
 import sqlite3
 
 from app.domain.document import Document
 from app.infrastructure.persistence.database import SQLiteDatabase
 from app.infrastructure.persistence.models import DocumentRecord
-from app.ports.document_repository import (
+from app.ports.document_repository_port import (
     DocumentAlreadyExistsError,
     DocumentRepositoryError,
 )
 
 
-class SQLiteDocumentRepository:
-    """Persiste documentos utilizando SQLite."""
+class SQLiteDocumentRepositoryAdapter:
+    """Implementa la persistencia de documentos utilizando SQLite."""
 
-    def __init__(self, database: SQLiteDatabase) -> None:
+    def __init__(
+        self,
+        database: SQLiteDatabase,
+    ) -> None:
         self._database = database
 
-    def create(self, document: Document) -> Document:
+    def create(
+        self,
+        document: Document,
+    ) -> Document:
         """Persiste un documento nuevo."""
-        record = DocumentRecord.from_domain(document)
+        record = DocumentRecord.from_domain(
+            document
+        )
 
         try:
             with self._database.connect() as connection:
@@ -61,23 +69,34 @@ class SQLiteDocumentRepository:
 
         return document
 
-    def find_by_id(self, document_id: str) -> Document | None:
+    def find_by_id(
+        self,
+        document_id: str,
+    ) -> Document | None:
         """Busca un documento por identificador."""
         return self._find_one(
             "SELECT * FROM documents WHERE document_id = ?",
             (document_id,),
         )
 
-    def find_by_sha256(self, sha256: str) -> Document | None:
+    def find_by_sha256(
+        self,
+        sha256: str,
+    ) -> Document | None:
         """Busca un documento por su firma SHA-256."""
         return self._find_one(
             "SELECT * FROM documents WHERE sha256 = ?",
             (sha256,),
         )
 
-    def update(self, document: Document) -> Document:
+    def update(
+        self,
+        document: Document,
+    ) -> Document:
         """Actualiza la metadata persistida de un documento."""
-        record = DocumentRecord.from_domain(document)
+        record = DocumentRecord.from_domain(
+            document
+        )
 
         try:
             with self._database.connect() as connection:
@@ -125,6 +144,7 @@ class SQLiteDocumentRepository:
         query: str,
         parameters: tuple[str, ...],
     ) -> Document | None:
+        """Ejecuta una consulta que debe devolver como máximo un documento."""
         try:
             with self._database.connect() as connection:
                 row = connection.execute(
@@ -139,4 +159,6 @@ class SQLiteDocumentRepository:
         if row is None:
             return None
 
-        return DocumentRecord.from_row(row).to_domain()
+        return DocumentRecord.from_row(
+            row
+        ).to_domain()

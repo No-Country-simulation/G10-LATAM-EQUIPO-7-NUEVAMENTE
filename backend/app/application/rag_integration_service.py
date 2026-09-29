@@ -1,27 +1,29 @@
-"""Casos de uso para la integración entre BackendAPI y RAG."""
+﻿"""Casos de uso para la integración entre BackendAPI y RAG."""
 
 from app.application.document_service import (
     DocumentService,
     RetrievedDocument,
 )
-from app.ports.object_storage import ObjectStoragePort
-from app.ports.rag import (
-    RagDocumentInput,
-    RagError,
-    RagPort,
+from app.ports.object_storage_port import (
+    ObjectStoragePort,
+)
+from app.ports.rag_port import (
+    RAGDocumentInput,
+    RAGError,
+    RAGPort,
 )
 
 
-class RagIntegrationError(Exception):
+class RAGIntegrationError(Exception):
     """No fue posible entregar el documento al módulo RAG."""
 
 
-class RagIntegrationService:
+class RAGIntegrationService:
     """Orquesta la entrega de documentos almacenados al módulo RAG.
 
     La aplicación recupera el documento utilizando las capacidades de
     BackendAPI y posteriormente lo transforma al contrato definido por
-    ``RagPort``.
+    ``RAGPort``.
 
     Este servicio no implementa extracción, limpieza, chunking, embeddings,
     almacenamiento vectorial ni retrieval semántico.
@@ -32,7 +34,7 @@ class RagIntegrationService:
         *,
         document_service: DocumentService,
         object_storage: ObjectStoragePort,
-        rag: RagPort,
+        rag: RAGPort,
     ) -> None:
         self._document_service = document_service
         self._object_storage = object_storage
@@ -51,7 +53,7 @@ class RagIntegrationService:
             DocumentNotFoundError: Si el documento no está registrado.
             DocumentNotStoredError: Si no posee un objeto persistido.
             DocumentRetrievalError: Si no puede recuperarse desde storage.
-            RagIntegrationError: Si RAG rechaza o falla al recibirlo.
+            RAGIntegrationError: Si RAG rechaza o falla al recibirlo.
         """
         retrieved_document = (
             self._document_service.retrieve_document(
@@ -68,8 +70,9 @@ class RagIntegrationService:
             await self._rag.index_document(
                 rag_document
             )
-        except RagError as exc:
-            raise RagIntegrationError(
+
+        except RAGError as exc:
+            raise RAGIntegrationError(
                 "No fue posible entregar el documento "
                 f"{document_id} al módulo RAG."
             ) from exc
@@ -77,9 +80,9 @@ class RagIntegrationService:
     @staticmethod
     def _build_rag_document(
         document: RetrievedDocument,
-    ) -> RagDocumentInput:
+    ) -> RAGDocumentInput:
         """Transforma el resultado de Backend al contrato BackendAPI-RAG."""
-        return RagDocumentInput(
+        return RAGDocumentInput(
             document_id=document.document_id,
             filename=document.filename,
             content_type=document.content_type,

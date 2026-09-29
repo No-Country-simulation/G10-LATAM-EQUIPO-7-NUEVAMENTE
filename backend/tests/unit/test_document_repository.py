@@ -1,12 +1,12 @@
-"""Pruebas del repositorio SQLite de documentos."""
+﻿"""Pruebas del repositorio SQLite de documentos."""
 
 import hashlib
 
 from app.domain.document import Document
 from app.domain.enums import DocumentStatus
 from app.infrastructure.persistence.database import SQLiteDatabase
-from app.infrastructure.persistence.sqlite_document_repository import (
-    SQLiteDocumentRepository,
+from app.infrastructure.persistence.sqlite_document_repository_adapter import (
+    SQLiteDocumentRepositoryAdapter,
 )
 
 
@@ -30,7 +30,7 @@ def test_repository_creates_and_finds_document(tmp_path) -> None:
     )
     database.initialize()
 
-    repository = SQLiteDocumentRepository(database)
+    repository = SQLiteDocumentRepositoryAdapter(database)
     document = build_document()
 
     repository.create(document)
@@ -48,7 +48,7 @@ def test_repository_finds_document_by_sha256(tmp_path) -> None:
     )
     database.initialize()
 
-    repository = SQLiteDocumentRepository(database)
+    repository = SQLiteDocumentRepositoryAdapter(database)
     document = build_document()
 
     repository.create(document)
@@ -65,7 +65,7 @@ def test_repository_updates_document(tmp_path) -> None:
     )
     database.initialize()
 
-    repository = SQLiteDocumentRepository(database)
+    repository = SQLiteDocumentRepositoryAdapter(database)
     document = build_document()
 
     repository.create(document)

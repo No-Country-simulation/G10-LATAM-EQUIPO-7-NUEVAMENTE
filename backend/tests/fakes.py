@@ -1,13 +1,15 @@
-"""Dobles de prueba compartidos por BackendAPI."""
+﻿"""Dobles de prueba compartidos por BackendAPI."""
 
 from copy import deepcopy
 from pathlib import Path
 
 from app.domain.document import Document
-from app.ports.object_storage import ObjectStorageError
-from app.ports.rag import (
-    RagDocumentInput,
-    RagError,
+from app.ports.object_storage_port import (
+    ObjectStorageError,
+)
+from app.ports.rag_port import (
+    RAGDocumentInput,
+    RAGError,
 )
 
 
@@ -15,13 +17,18 @@ class FakeDocumentRepository:
     """Repositorio de documentos en memoria para pruebas."""
 
     def __init__(self) -> None:
-        self.documents: dict[str, Document] = {}
+        self.documents: dict[
+            str,
+            Document,
+        ] = {}
 
     def create(
         self,
         document: Document,
     ) -> Document:
-        self.documents[document.document_id] = deepcopy(
+        self.documents[
+            document.document_id
+        ] = deepcopy(
             document
         )
 
@@ -38,7 +45,9 @@ class FakeDocumentRepository:
         if document is None:
             return None
 
-        return deepcopy(document)
+        return deepcopy(
+            document
+        )
 
     def find_by_sha256(
         self,
@@ -47,7 +56,8 @@ class FakeDocumentRepository:
         document = next(
             (
                 document
-                for document in self.documents.values()
+                for document
+                in self.documents.values()
                 if document.sha256 == sha256
             ),
             None,
@@ -56,13 +66,17 @@ class FakeDocumentRepository:
         if document is None:
             return None
 
-        return deepcopy(document)
+        return deepcopy(
+            document
+        )
 
     def update(
         self,
         document: Document,
     ) -> Document:
-        self.documents[document.document_id] = deepcopy(
+        self.documents[
+            document.document_id
+        ] = deepcopy(
             document
         )
 
@@ -73,7 +87,10 @@ class FakeObjectStorage:
     """Almacenamiento en memoria para pruebas."""
 
     def __init__(self) -> None:
-        self.uploaded_objects: dict[str, bytes] = {}
+        self.uploaded_objects: dict[
+            str,
+            bytes,
+        ] = {}
 
     def upload_file(
         self,
@@ -82,15 +99,17 @@ class FakeObjectStorage:
         object_name: str,
         content_type: str | None = None,
     ) -> None:
-        self.uploaded_objects[object_name] = (
-            local_path.read_bytes()
-        )
+        self.uploaded_objects[
+            object_name
+        ] = local_path.read_bytes()
 
     def download_file(
         self,
         object_name: str,
     ) -> bytes:
-        return self.uploaded_objects[object_name]
+        return self.uploaded_objects[
+            object_name
+        ]
 
     def delete_object(
         self,
@@ -102,7 +121,9 @@ class FakeObjectStorage:
         )
 
 
-class FailingObjectStorage(FakeObjectStorage):
+class FailingObjectStorage(
+    FakeObjectStorage
+):
     """Simula un fallo durante la escritura en Object Storage."""
 
     def upload_file(
@@ -117,7 +138,9 @@ class FailingObjectStorage(FakeObjectStorage):
         )
 
 
-class FailingDownloadObjectStorage(FakeObjectStorage):
+class FailingDownloadObjectStorage(
+    FakeObjectStorage
+):
     """Simula un fallo durante la lectura desde Object Storage."""
 
     def download_file(
@@ -125,11 +148,14 @@ class FailingDownloadObjectStorage(FakeObjectStorage):
         object_name: str,
     ) -> bytes:
         raise ObjectStorageError(
-            f"Fallo simulado al recuperar {object_name}."
+            "Fallo simulado al recuperar "
+            f"{object_name}."
         )
 
 
-class FailingDeleteObjectStorage(FakeObjectStorage):
+class FailingDeleteObjectStorage(
+    FakeObjectStorage
+):
     """Simula un fallo durante una compensación de Object Storage."""
 
     def delete_object(
@@ -137,34 +163,35 @@ class FailingDeleteObjectStorage(FakeObjectStorage):
         object_name: str,
     ) -> None:
         raise ObjectStorageError(
-            f"Fallo simulado al eliminar {object_name}."
+            "Fallo simulado al eliminar "
+            f"{object_name}."
         )
 
 
-class FakeRagPort:
+class FakeRAGPort:
     """RAG falso que registra los documentos recibidos."""
 
     def __init__(self) -> None:
         self.received_documents: list[
-            RagDocumentInput
+            RAGDocumentInput
         ] = []
 
     async def index_document(
         self,
-        document: RagDocumentInput,
+        document: RAGDocumentInput,
     ) -> None:
         self.received_documents.append(
             document
         )
 
 
-class FailingRagPort:
+class FailingRAGPort:
     """RAG falso que simula un fallo al recibir documentos."""
 
     async def index_document(
         self,
-        document: RagDocumentInput,
+        document: RAGDocumentInput,
     ) -> None:
-        raise RagError(
+        raise RAGError(
             "Fallo simulado del módulo RAG."
         )

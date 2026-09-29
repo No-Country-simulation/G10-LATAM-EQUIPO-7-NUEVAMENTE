@@ -1,4 +1,4 @@
-"""Contrato para la persistencia de documentos."""
+"""Puerto para la persistencia de documentos."""
 
 from typing import Protocol
 
@@ -8,13 +8,18 @@ from app.domain.document import Document
 class DocumentRepositoryError(Exception):
     """Error general al acceder a la persistencia de documentos."""
 
+
 class DocumentAlreadyExistsError(DocumentRepositoryError):
     """El documento ya existe en el repositorio."""
-    
-class DocumentRepository(Protocol):
+
+
+class DocumentRepositoryPort(Protocol):
     """Define las operaciones de persistencia requeridas por BackendAPI."""
 
-    def create(self, document: Document) -> Document:
+    def create(
+        self,
+        document: Document,
+    ) -> Document:
         """Persiste un documento nuevo.
 
         Args:
@@ -25,7 +30,10 @@ class DocumentRepository(Protocol):
         """
         ...
 
-    def find_by_id(self, document_id: str) -> Document | None:
+    def find_by_id(
+        self,
+        document_id: str,
+    ) -> Document | None:
         """Busca un documento mediante su identificador interno.
 
         Args:
@@ -36,7 +44,10 @@ class DocumentRepository(Protocol):
         """
         ...
 
-    def find_by_sha256(self, sha256: str) -> Document | None:
+    def find_by_sha256(
+        self,
+        sha256: str,
+    ) -> Document | None:
         """Busca un documento mediante su firma SHA-256.
 
         Args:
@@ -47,7 +58,10 @@ class DocumentRepository(Protocol):
         """
         ...
 
-    def update(self, document: Document) -> Document:
+    def update(
+        self,
+        document: Document,
+    ) -> Document:
         """Actualiza la información persistida de un documento.
 
         Args:

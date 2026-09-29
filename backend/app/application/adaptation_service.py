@@ -1,12 +1,14 @@
-"""Casos de uso relacionados con adaptación educativa."""
+﻿"""Casos de uso relacionados con adaptación educativa."""
 
 from app.domain.enums import DocumentStatus
-from app.ports.agents import (
+from app.ports.agents_port import (
     AgentAdaptationInput,
     AgentAdaptationResult,
     AgentsPort,
 )
-from app.ports.document_repository import DocumentRepository
+from app.ports.document_repository_port import (
+    DocumentRepositoryPort,
+)
 
 
 class AdaptationDocumentNotFoundError(Exception):
@@ -22,7 +24,7 @@ class AdaptationService:
 
     def __init__(
         self,
-        repository: DocumentRepository,
+        repository: DocumentRepositoryPort,
         agents: AgentsPort,
     ) -> None:
         self._repository = repository
@@ -38,14 +40,19 @@ class AdaptationService:
         detail_level: str,
     ) -> AgentAdaptationResult:
         """Solicita contenido adaptado para un documento indexado."""
-        document = self._repository.find_by_id(document_id)
+        document = self._repository.find_by_id(
+            document_id
+        )
 
         if document is None:
             raise AdaptationDocumentNotFoundError(
                 f"No existe el documento {document_id}."
             )
 
-        if document.status != DocumentStatus.INDEXED:
+        if (
+            document.status
+            != DocumentStatus.INDEXED
+        ):
             raise DocumentNotReadyError(
                 f"El documento {document_id} todavía no está indexado."
             )
@@ -58,4 +65,6 @@ class AdaptationService:
             detail_level=detail_level,
         )
 
-        return await self._agents.generate_adaptation(request)
+        return await self._agents.generate_adaptation(
+            request
+        )

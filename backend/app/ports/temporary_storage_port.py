@@ -1,4 +1,4 @@
-"""Contrato para almacenamiento temporal de archivos."""
+"""Puerto para almacenamiento temporal de archivos."""
 
 from collections.abc import AsyncIterable
 from dataclasses import dataclass
@@ -26,7 +26,7 @@ class TemporaryStoredFile:
 
 
 class TemporaryStoragePort(Protocol):
-    """Define el almacenamiento temporal requerido por BackendAPI."""
+    """Define las operaciones de staging temporal requeridas por BackendAPI."""
 
     async def save(
         self,
@@ -38,12 +38,12 @@ class TemporaryStoragePort(Protocol):
 
         Args:
             original_filename: Nombre original recibido desde el cliente.
-            chunks: Flujo asíncrono del contenido del archivo.
+            chunks: Flujo asíncrono del contenido.
 
         Returns:
             Información del archivo temporal creado.
 
         Raises:
-            FileTooLargeError: Si el contenido supera el límite configurado.
+            FileTooLargeError: Si el archivo supera el límite configurado.
         """
         ...

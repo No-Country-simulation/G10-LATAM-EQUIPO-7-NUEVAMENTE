@@ -1,18 +1,18 @@
-"""Implementación de ObjectStoragePort utilizando OCI Object Storage."""
+﻿"""Adaptador OCI para almacenamiento persistente de objetos."""
 
 from pathlib import Path
 from typing import Any
 
 import oci
 
-from app.ports.object_storage import (
+from app.ports.object_storage_port import (
     ObjectStorageConfigurationError,
     ObjectStorageError,
 )
 
 
-class OCIObjectStorage:
-    """Gestiona objetos persistentes en un bucket de OCI."""
+class OCIObjectStorageAdapter:
+    """Implementa ObjectStoragePort mediante OCI Object Storage."""
 
     def __init__(
         self,
@@ -50,8 +50,10 @@ class OCIObjectStorage:
                     put_object_body=file_stream,
                     content_type=content_type,
                 )
+
         except ObjectStorageConfigurationError:
             raise
+
         except Exception as exc:
             raise ObjectStorageError(
                 f"No fue posible cargar el objeto {object_name} en OCI."
@@ -72,8 +74,10 @@ class OCIObjectStorage:
             )
 
             return response.data.content
+
         except ObjectStorageConfigurationError:
             raise
+
         except Exception as exc:
             raise ObjectStorageError(
                 f"No fue posible descargar el objeto {object_name}."
@@ -92,8 +96,10 @@ class OCIObjectStorage:
                 bucket_name=self._bucket_name,
                 object_name=object_name,
             )
+
         except ObjectStorageConfigurationError:
             raise
+
         except Exception as exc:
             raise ObjectStorageError(
                 f"No fue posible eliminar el objeto {object_name}."
@@ -112,14 +118,16 @@ class OCIObjectStorage:
             )
 
     def _get_client(self) -> Any:
-        """Crea de forma diferida el cliente de OCI."""
+        """Obtiene o crea de forma diferida el cliente OCI."""
         if self._client is not None:
             return self._client
 
         try:
             config = oci.config.from_file(
                 file_location=str(
-                    Path(self._config_file).expanduser()
+                    Path(
+                        self._config_file
+                    ).expanduser()
                 ),
                 profile_name=self._config_profile,
             )
@@ -132,6 +140,7 @@ class OCIObjectStorage:
                     config
                 )
             )
+
         except Exception as exc:
             raise ObjectStorageConfigurationError(
                 "No fue posible inicializar OCI Object Storage."

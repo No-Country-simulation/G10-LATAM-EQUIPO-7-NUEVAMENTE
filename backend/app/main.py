@@ -1,4 +1,4 @@
-"""Punto de entrada de la aplicación FastAPI."""
+﻿"""Punto de entrada de la aplicación FastAPI."""
 
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
@@ -15,14 +15,16 @@ from app.core.logging import setup_logging
 from app.infrastructure.persistence.repository_factory import (
     create_document_repository,
 )
-from app.infrastructure.storage.oci_object_storage import (
-    OCIObjectStorage,
+from app.infrastructure.storage.oci_object_storage_adapter import (
+    OCIObjectStorageAdapter,
 )
 from app.schemas.common import ErrorResponse
 
 
 @asynccontextmanager
-async def lifespan(app: FastAPI) -> AsyncIterator[None]:
+async def lifespan(
+    app: FastAPI,
+) -> AsyncIterator[None]:
     """Inicializa y libera recursos utilizados por BackendAPI."""
     setup_logging()
 
@@ -33,8 +35,8 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     app.state.document_service = DocumentService(
         document_repository
     )
-    
-    app.state.object_storage = OCIObjectStorage(
+
+    app.state.object_storage = OCIObjectStorageAdapter(
         namespace=settings.OCI_NAMESPACE,
         bucket_name=settings.OCI_BUCKET_NAME,
         region=settings.OCI_REGION,
@@ -46,17 +48,28 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
 
 
 def create_app() -> FastAPI:
+    """Construye la aplicación FastAPI."""
     app = FastAPI(
         title=settings.PROJECT_NAME,
         description=settings.DESCRIPTION,
         version=settings.VERSION,
         docs_url=settings.docs_url,
         redoc_url=None,
-        openapi_url=None if settings.is_production else "/openapi.json",
+        openapi_url=(
+            None
+            if settings.is_production
+            else "/openapi.json"
+        ),
         lifespan=lifespan,
         responses={
-            422: {"model": ErrorResponse, "description": "Error de validación"},
-            500: {"model": ErrorResponse, "description": "Error interno"},
+            422: {
+                "model": ErrorResponse,
+                "description": "Error de validación",
+            },
+            500: {
+                "model": ErrorResponse,
+                "description": "Error interno",
+            },
         },
     )
 
@@ -68,16 +81,29 @@ def create_app() -> FastAPI:
         allow_headers=["*"],
     )
 
-    register_exception_handlers(app)
-    app.include_router(api_router, prefix=settings.API_V1_PREFIX)
+    register_exception_handlers(
+        app
+    )
 
-    @app.get("/", tags=["root"], summary="Información del servicio")
+    app.include_router(
+        api_router,
+        prefix=settings.API_V1_PREFIX,
+    )
+
+    @app.get(
+        "/",
+        tags=["root"],
+        summary="Información del servicio",
+    )
     async def root() -> dict[str, str]:
         return {
             "service": settings.PROJECT_NAME,
             "version": settings.VERSION,
             "environment": settings.ENVIRONMENT,
-            "docs": settings.docs_url or "deshabilitado en producción",
+            "docs": (
+                settings.docs_url
+                or "deshabilitado en producción"
+            ),
         }
 
     return app

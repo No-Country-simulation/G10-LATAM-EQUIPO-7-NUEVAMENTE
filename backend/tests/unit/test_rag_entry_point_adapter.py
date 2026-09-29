@@ -1,23 +1,26 @@
-"""Pruebas unitarias del adaptador BackendAPI-RAG."""
+﻿"""Pruebas unitarias del adapter provisional BackendAPI-RAG."""
 
 import asyncio
 
 import pytest
 
-from app.infrastructure.integrations.rag_adapter import (
-    RagAdapter,
+from app.infrastructure.integrations.rag_entry_point_adapter import (
+    RAGEntryPointAdapter,
 )
-from app.ports.rag import (
-    RagDocumentInput,
-    RagError,
+from app.ports.rag_port import (
+    RAGDocumentInput,
+    RAGError,
 )
 
 
-class RecordingRagEntryPoint:
+class RecordingRAGEntryPoint:
     """Entry point controlado que registra los argumentos recibidos."""
 
     def __init__(self) -> None:
-        self.received: dict[str, object] | None = None
+        self.received: dict[
+            str,
+            object,
+        ] | None = None
 
     async def index_document(
         self,
@@ -35,7 +38,7 @@ class RecordingRagEntryPoint:
         }
 
 
-class FailingRagEntryPoint:
+class FailingRAGEntryPoint:
     """Entry point que simula un fallo interno de RAG."""
 
     async def index_document(
@@ -51,15 +54,15 @@ class FailingRagEntryPoint:
         )
 
 
-def test_rag_adapter_maps_document_contract() -> None:
-    """Traduce correctamente RagDocumentInput al entry point."""
-    entry_point = RecordingRagEntryPoint()
+def test_rag_entry_point_adapter_maps_document_contract() -> None:
+    """Traduce correctamente el contrato interno al entry point."""
+    entry_point = RecordingRAGEntryPoint()
 
-    adapter = RagAdapter(
+    adapter = RAGEntryPointAdapter(
         entry_point=entry_point
     )
 
-    document = RagDocumentInput(
+    document = RAGDocumentInput(
         document_id="doc_123",
         filename="manual.pdf",
         content_type="application/pdf",
@@ -67,7 +70,9 @@ def test_rag_adapter_maps_document_contract() -> None:
     )
 
     asyncio.run(
-        adapter.index_document(document)
+        adapter.index_document(
+            document
+        )
     )
 
     assert entry_point.received == {
@@ -78,13 +83,13 @@ def test_rag_adapter_maps_document_contract() -> None:
     }
 
 
-def test_rag_adapter_translates_external_error() -> None:
-    """Convierte errores del entry point externo a RagError."""
-    adapter = RagAdapter(
-        entry_point=FailingRagEntryPoint()
+def test_rag_entry_point_adapter_translates_external_error() -> None:
+    """Convierte errores del entry point externo a RAGError."""
+    adapter = RAGEntryPointAdapter(
+        entry_point=FailingRAGEntryPoint()
     )
 
-    document = RagDocumentInput(
+    document = RAGDocumentInput(
         document_id="doc_123",
         filename="manual.pdf",
         content_type="application/pdf",
@@ -92,9 +97,14 @@ def test_rag_adapter_translates_external_error() -> None:
     )
 
     with pytest.raises(
-        RagError,
-        match="El módulo RAG no pudo recibir el documento doc_123.",
+        RAGError,
+        match=(
+            "El módulo RAG no pudo recibir "
+            "el documento doc_123."
+        ),
     ):
         asyncio.run(
-            adapter.index_document(document)
+            adapter.index_document(
+                document
+            )
         )

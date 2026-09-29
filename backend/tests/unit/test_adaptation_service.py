@@ -1,4 +1,4 @@
-"""Pruebas unitarias de AdaptationService."""
+﻿"""Pruebas unitarias de AdaptationService."""
 
 import asyncio
 import hashlib
@@ -11,7 +11,7 @@ from app.application.adaptation_service import (
 )
 from app.domain.document import Document
 from app.domain.enums import DocumentStatus
-from app.ports.agents import (
+from app.ports.agents_port import (
     AgentAdaptationInput,
     AgentAdaptationResult,
 )
