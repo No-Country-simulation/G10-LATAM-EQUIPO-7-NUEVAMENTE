@@ -1,16 +1,26 @@
 /**
  * uploadTab.js
  * Controlador de la Pestaña Completa de Ingesta, Parámetros Pedagógicos y Pipeline RAG.
+ * Incorpora límite estricto de 10 MB (Tarea 4) y manejo UX de errores y estados (Tarea 5).
  */
 
+import { CONFIG } from '../config.js';
 import { state } from '../state.js';
 import { sampleLibrary } from '../data/sampleLibrary.js';
 import { mockService } from '../api/mockService.js';
-import { apiClient } from '../api/apiClient.js';
+import { apiClient, ApiError } from '../api/apiClient.js';
 import { router } from './router.js';
+import { statusDialog } from './statusDialog.js';
+import {
+  notifySuccess,
+  notifyWarning,
+  notifyError,
+  notifyInfo
+} from './notifications.js';
 
 export const uploadTab = {
   elements: {},
+  currentActiveStep: null,
 
   init() {
     this.bindElements();
@@ -19,6 +29,7 @@ export const uploadTab = {
     this.setupParamListeners();
     this.setupExecution();
     this.setupResolverActions();
+    this.setupDemoStatusTester();
     this.syncInitialState();
   },
 
@@ -100,11 +111,69 @@ export const uploadTab = {
     }
   },
 
+  /**
+   * Valida el archivo: límite 10 MB (Tarea 4), formato admitido y no vacío (Tarea 5)
+   * @param {File} file 
+   */
   handleFileChosen(file) {
+    if (!file) return;
+
+    // Validación 1: Formato / extensión permitida
     const ext = file.name.split('.').pop().toLowerCase();
-    const allowed = ['pdf', 'md', 'txt'];
+    const allowed = CONFIG.UPLOAD.ALLOWED_EXTENSIONS || ['pdf', 'md', 'txt'];
     if (!allowed.includes(ext)) {
-      alert(`Formato de archivo no soportado (.${ext}). Solo se admiten archivos PDF, Markdown (.md) y TXT.`);
+      this.flashDropzoneError();
+      statusDialog.showError({
+        status: 415,
+        code: 'UNSUPPORTED_MEDIA_TYPE',
+        message: `Formato de archivo .${ext} no soportado. Se admiten archivos PDF, Markdown (.md) y TXT.`,
+        filename: file.name
+      });
+      notifyError(
+        'Formato No Soportado (415)',
+        `El archivo .${ext} no está permitido. Solo se admiten archivos: ${allowed.map(e => '.' + e).join(', ')}.`
+      );
+      this.clearFile();
+      return;
+    }
+
+    // Validación 2: Límite de 10 MB en Frontend (Tarea 4)
+    const maxSizeBytes = CONFIG.UPLOAD.MAX_SIZE_MB * 1024 * 1024;
+    if (file.size > maxSizeBytes) {
+      this.flashDropzoneError();
+      const currentSizeMb = (file.size / (1024 * 1024)).toFixed(1);
+      statusDialog.showError({
+        status: 413,
+        code: 'FILE_TOO_LARGE',
+        message: `El archivo supera el tamaño máximo permitido de ${CONFIG.UPLOAD.MAX_SIZE_MB} MB (${currentSizeMb} MB).`,
+        details: [
+          `Tamaño detectado: ${currentSizeMb} MB`,
+          `Límite admitido: ${CONFIG.UPLOAD.MAX_SIZE_MB} MB`
+        ],
+        filename: file.name
+      });
+      notifyError(
+        'Archivo Demasiado Grande (413)',
+        `"${file.name}" (${currentSizeMb} MB) supera el límite máximo permitido de ${CONFIG.UPLOAD.MAX_SIZE_MB} MB.`
+      );
+      this.clearFile();
+      return;
+    }
+
+    // Validación 3: Archivo vacío (0 bytes)
+    if (file.size === 0) {
+      this.flashDropzoneError();
+      statusDialog.showError({
+        status: 400,
+        code: 'BAD_REQUEST',
+        message: 'El documento seleccionado está vacío (0 bytes).',
+        filename: file.name
+      });
+      notifyError(
+        'Documento Vacío (400)',
+        'El archivo seleccionado no tiene contenido (0 bytes).'
+      );
+      this.clearFile();
       return;
     }
 
@@ -123,6 +192,20 @@ export const uploadTab = {
 
     // Desactivar botones de muestra rápida
     this.elements.quickSampleBtns.forEach(btn => btn.classList.remove('active'));
+
+    notifyInfo(
+      'Archivo Seleccionado',
+      `"${file.name}" (${sizeMb} MB) verificado y listo para procesar.`
+    );
+  },
+
+  flashDropzoneError() {
+    const dropArea = this.elements.dropArea;
+    if (!dropArea) return;
+    dropArea.classList.add('dropzone-error');
+    setTimeout(() => {
+      dropArea.classList.remove('dropzone-error');
+    }, 1200);
   },
 
   setupSampleButtons() {
@@ -180,7 +263,15 @@ export const uploadTab = {
     this.elements.btnLanzarProcesamiento.addEventListener('click', async () => {
       const { selectedFile, adaptationParams, apiMode } = state.get();
       if (!selectedFile) {
-        alert('Por favor selecciona o arrastra un documento para procesar.');
+        statusDialog.showError({
+          status: 400,
+          code: 'NO_FILE_SELECTED',
+          message: 'Por favor selecciona o arrastra un documento antes de iniciar el procesamiento.'
+        });
+        notifyWarning(
+          'Documento Requerido',
+          'Por favor selecciona o arrastra un archivo antes de procesar.'
+        );
         return;
       }
 
@@ -205,86 +296,112 @@ export const uploadTab = {
     const nicheContext = params.niche_context || 'general';
 
     try {
-      if (apiMode === 'real' && selectedFile.rawFile) {
-        // Paso 1: Subir el documento al backend FastAPI (POST /api/v1/documents)
-        this.setStepActive(this.elements.stepOci, 'Persistiendo archivo en backend (POST /api/v1/documents)...');
-        const uploadResult = await apiClient.uploadFile(selectedFile.rawFile);
-        console.log('[Backend API /documents] Respuesta recibida:', uploadResult);
+      let docId;
+      let uploadResult;
 
-        const docId = uploadResult.document_id;
-        if (!docId) {
-          throw new Error('El backend no retornó un document_id válido.');
-        }
+      // Paso 1: Subir el documento al backend (POST /api/v1/documents)
+      this.currentActiveStep = this.elements.stepOci;
+      this.setStepActive(this.elements.stepOci, 'Guardando tu documento...');
 
-        state.set({
-          backendDocument: uploadResult,
-          currentDocId: docId
-        });
-        this.setStepCompleted(this.elements.stepOci, this.elements.line1);
-
-        // Paso 2: Indexación y preparación
-        this.setStepActive(this.elements.stepChroma, `Indexando chunks para document_id [${docId}]...`);
-        await this.wait(400);
-        this.setStepCompleted(this.elements.stepChroma, this.elements.line2);
-
-        // Paso 3: Llamar al contrato v1 de adaptación pedagógica (POST /api/v1/adaptations)
-        this.setStepActive(this.elements.stepGen, `Generando adaptación en backend (POST /api/v1/adaptations) para perfil [${targetProfile}]...`);
-        
-        const adaptationPayload = {
-          document_id: docId,
-          target_profile: targetProfile,
-          output_format: outputFormat,
-          niche_context: nicheContext
-        };
-        console.log('[Backend API /adaptations] Enviando payload v1:', adaptationPayload);
-
-        const adaptationResult = await apiClient.adaptContent(adaptationPayload);
-        console.log('[Backend API /adaptations] Respuesta recibida:', adaptationResult);
-        this.setStepCompleted(this.elements.stepGen, this.elements.line3);
-
-        // Paso 4: Agente Revisor / Validación final
-        this.setStepActive(this.elements.stepCritic, 'Validando estructura pedagógica y calidad de respuesta...');
-        await this.wait(350);
-        this.setStepCompleted(this.elements.stepCritic, null);
-
-        // Mapear resultado del backend al modelo de visualización del frontend
-        const procDoc = this.mapBackendResponseToDocument(selectedFile, adaptationResult, params);
-        this.onPipelineSuccess(procDoc, adaptationResult, params);
-
+      if (selectedFile.rawFile) {
+        uploadResult = await apiClient.uploadFile(selectedFile.rawFile);
       } else {
-        // Modo Mock (o muestra precargada sin archivo físico)
-        this.setStepActive(this.elements.stepOci, 'Almacenando documento en OCI Object Storage...');
-        await this.wait(500);
-        this.setStepCompleted(this.elements.stepOci, this.elements.line1);
-
-        this.setStepActive(this.elements.stepChroma, 'ChromaDB: particionando documento y calculando embeddings...');
-        await this.wait(600);
-        this.setStepCompleted(this.elements.stepChroma, this.elements.line2);
-
-        this.setStepActive(this.elements.stepGen, `Agente Generador: Extrayendo conceptos para perfil [${targetProfile}] en formato [${outputFormat}]...`);
-        await this.wait(650);
-        this.setStepCompleted(this.elements.stepGen, this.elements.line3);
-
-        this.setStepActive(this.elements.stepCritic, 'Agente Revisor: Evaluando fidelidad conceptual y estructura JSON v1...');
-        await this.wait(500);
-        this.setStepCompleted(this.elements.stepCritic, null);
-
-        const { document: procDoc, structuredJson } = await mockService.processMockPipeline(selectedFile, {
-          target_profile: targetProfile,
-          output_format: outputFormat,
-          niche_context: nicheContext
-        });
-        this.onPipelineSuccess(procDoc, structuredJson, params);
+        // Muestra enviada como texto
+        const sampleName = (selectedFile.name || 'documento_estudio').replace(/\.[^/.]+$/, "") + ".txt";
+        const sampleBlob = new Blob([`Documento de estudio: ${selectedFile.name}\nAnalizado por NuevaMente RAG.`], { type: 'text/plain' });
+        const mockFile = new File([sampleBlob], sampleName, { type: 'text/plain' });
+        uploadResult = await apiClient.uploadFile(mockFile);
       }
+
+      docId = uploadResult.document_id;
+      if (!docId) {
+        throw new ApiError(500, { message: 'El backend no retornó un document_id válido.' });
+      }
+
+      state.set({
+        backendDocument: uploadResult,
+        currentDocId: docId
+      });
+      this.setStepCompleted(this.elements.stepOci, this.elements.line1);
+
+      // Notificar con statusDialog el resultado (201 Stored nuevo o 200 Duplicado)
+      const ext = (selectedFile.format || 'pdf').toLowerCase();
+      const ociId = uploadResult.oci_object_name || `documents/${docId}/original.${ext}`;
+      statusDialog.showStored({
+        documentId: docId,
+        ociId: ociId,
+        filename: uploadResult.filename || selectedFile.name,
+        httpStatus: uploadResult.httpStatus || (uploadResult.isDuplicate ? 200 : 201),
+        duplicate: Boolean(uploadResult.isDuplicate),
+        isMock: false
+      });
+
+      // Paso 2: Indexación y preparación
+      this.currentActiveStep = this.elements.stepChroma;
+      this.setStepActive(this.elements.stepChroma, 'Analizando el contenido del documento...');
+      await this.wait(400);
+      this.setStepCompleted(this.elements.stepChroma, this.elements.line2);
+
+      // Paso 3: Llamar al contrato v1 de adaptación pedagógica (POST /api/v1/adaptations)
+      this.currentActiveStep = this.elements.stepGen;
+      this.setStepActive(this.elements.stepGen, `Generando material de estudio para nivel [${this.getLevelLabel(targetProfile)}]...`);
+      
+      const adaptationPayload = {
+        document_id: docId,
+        target_profile: targetProfile,
+        output_format: outputFormat,
+        niche_context: nicheContext
+      };
+
+      const adaptationResult = await apiClient.adaptContent(adaptationPayload);
+      this.setStepCompleted(this.elements.stepGen, this.elements.line3);
+
+      // Paso 4: Agente Revisor / Validación final
+      this.currentActiveStep = this.elements.stepCritic;
+      this.setStepActive(this.elements.stepCritic, 'Validando estructura pedagógica y calidad de respuesta...');
+      await this.wait(350);
+      this.setStepCompleted(this.elements.stepCritic, null);
+
+      // Mapear resultado del backend al modelo de visualización del frontend
+      const procDoc = this.mapBackendResponseToDocument(selectedFile, adaptationResult, params);
+      this.onPipelineSuccess(procDoc, adaptationResult, params);
+
     } catch (err) {
       console.error('[Pipeline Error]:', err);
-      if (this.elements.pipelineLiveLog) this.elements.pipelineLiveLog.textContent = `Error: ${err.message}`;
+      
+      if (this.currentActiveStep) {
+        this.setStepFailed(this.currentActiveStep, err.message);
+      }
+
+      if (this.elements.pipelineLiveLog) {
+        this.elements.pipelineLiveLog.textContent = `Error: ${err.message}`;
+      }
+
       if (this.elements.pipelineStatusBadge) {
-        this.elements.pipelineStatusBadge.textContent = 'Fallo';
+        this.elements.pipelineStatusBadge.textContent = `Error ${err.status || 500}`;
         this.elements.pipelineStatusBadge.style.background = 'rgba(239, 68, 68, 0.2)';
         this.elements.pipelineStatusBadge.style.color = '#ef4444';
       }
-      alert(`No se pudo completar el procesamiento: ${err.message}`);
+
+      // Desplegar diálogo temporal con detalles exactos del error devuelto por backend
+      statusDialog.showError({
+        status: err.status || 500,
+        code: err.code || 'PIPELINE_ERROR',
+        message: err.message,
+        details: err.details || [],
+        filename: selectedFile ? selectedFile.name : ''
+      });
+
+      notifyError(
+        `Error HTTP ${err.status || 500}: ${err.code || 'PIPELINE_ERROR'}`,
+        err.message,
+        {
+          actionText: 'Reintentar',
+          onAction: () => {
+            if (selectedFile) this.runPipeline(selectedFile, params, apiMode);
+          }
+        }
+      );
     } finally {
       if (btnLanzarProcesamiento) {
         btnLanzarProcesamiento.disabled = false;
@@ -307,7 +424,7 @@ export const uploadTab = {
     const section = {
       id: "sec_adapted_1",
       title: cleanTitle,
-      summary: adapted.summary?.executive_summary || "Contenido adaptado generado por NuevaMente RAG.",
+      summary: adapted.summary?.executive_summary || "Contenido adaptado generado automáticamente por NuevaMente.",
       key_concepts: adapted.summary?.key_terms || ["Concepto Clave", "Arquitectura"],
       flashcards: (adapted.flashcards || []).map(f => ({
         front: f.front || f.frente,
@@ -337,7 +454,7 @@ export const uploadTab = {
       filename: selectedFile.name,
       discipline: discipline,
       title: cleanTitle.charAt(0).toUpperCase() + cleanTitle.slice(1),
-      description: `Contenido educativo adaptado para perfil [${meta.target_profile || params.target_profile}].`,
+      description: `Contenido educativo adaptado para nivel ${this.getLevelLabel(meta.target_profile || params.target_profile)}.`,
       filesize: selectedFile.size || "2.0 MB",
       metadatos: {
         target_profile: meta.target_profile || params.target_profile,
@@ -379,17 +496,16 @@ export const uploadTab = {
     });
 
     if (this.elements.pipelineStatusBadge) {
-      this.elements.pipelineStatusBadge.textContent = 'Completado ✓';
+      this.elements.pipelineStatusBadge.textContent = 'Completado';
       this.elements.pipelineStatusBadge.style.background = 'rgba(16, 185, 129, 0.2)';
       this.elements.pipelineStatusBadge.style.color = '#10b981';
     }
     if (this.elements.pipelineLiveLog) {
-      this.elements.pipelineLiveLog.textContent = 'Documento procesado correctamente según el contrato v1. Ya está disponible en tu biblioteca.';
+      this.elements.pipelineLiveLog.textContent = 'Documento procesado correctamente. Ya está disponible en tu biblioteca.';
     }
 
     // Actualizar datos de estudio
     const meta = structuredJson.metadata || structuredJson.metadatos || {};
-    const quality = structuredJson.quality_evaluation || structuredJson.evaluacion_calidad || {};
     
     if (this.elements.badgeTiempo) {
       this.elements.badgeTiempo.textContent = `Tiempo de lectura: ${meta.tiempo_estudio || '6 min'}`;
@@ -421,7 +537,6 @@ export const uploadTab = {
   },
 
   setupResolverActions() {
-    // Tarjetas del resolver (Flashcards, Quiz, Video, Resumen)
     this.elements.resolverFormatCards.forEach(card => {
       card.addEventListener('click', () => {
         const targetFormat = card.getAttribute('data-resolve-format');
@@ -435,7 +550,6 @@ export const uploadTab = {
       });
     });
 
-    // Botón para ir a la biblioteca
     if (this.elements.btnIrALaBiblioteca) {
       this.elements.btnIrALaBiblioteca.addEventListener('click', () => {
         router.navigate('library');
@@ -453,7 +567,7 @@ export const uploadTab = {
   renderSelectedFile(fileData) {
     if (!fileData) return;
     this.elements.selectedFileName.textContent = fileData.name;
-    this.elements.selectedFileSize.textContent = `${fileData.size} · Listo para indexación`;
+    this.elements.selectedFileSize.textContent = `${fileData.size} · Listo para procesar`;
     this.elements.fileFormatBadge.textContent = fileData.format || 'DOC';
     this.elements.selectedFileCard.style.display = 'flex';
     this.elements.dropArea.style.display = 'none';
@@ -471,7 +585,7 @@ export const uploadTab = {
     const steps = [this.elements.stepOci, this.elements.stepChroma, this.elements.stepGen, this.elements.stepCritic];
     const lines = [this.elements.line1, this.elements.line2, this.elements.line3];
 
-    steps.forEach(s => s && s.classList.remove('active', 'completed'));
+    steps.forEach(s => s && s.classList.remove('active', 'completed', 'step-error'));
     lines.forEach(l => l && l.classList.remove('completed'));
 
     if (this.elements.pipelineStatusBadge) {
@@ -482,19 +596,49 @@ export const uploadTab = {
   },
 
   setStepActive(stepEl, logText) {
+    this.currentActiveStep = stepEl;
     if (stepEl) stepEl.classList.add('active');
     if (this.elements.pipelineLiveLog) this.elements.pipelineLiveLog.textContent = logText;
   },
 
   setStepCompleted(stepEl, lineEl) {
     if (stepEl) {
-      stepEl.classList.remove('active');
+      stepEl.classList.remove('active', 'step-error');
       stepEl.classList.add('completed');
     }
     if (lineEl) lineEl.classList.add('completed');
   },
 
+  setStepFailed(stepEl, logText) {
+    if (stepEl) {
+      stepEl.classList.remove('active');
+      stepEl.classList.add('step-error');
+    }
+    if (this.elements.pipelineLiveLog) {
+      this.elements.pipelineLiveLog.textContent = logText;
+    }
+  },
+
   wait(ms) {
     return new Promise(resolve => setTimeout(resolve, ms));
+  },
+
+  setupDemoStatusTester() {
+    const testBtns = document.querySelectorAll('[data-status-test]');
+    testBtns.forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        e.preventDefault();
+        const code = parseInt(btn.getAttribute('data-status-test'), 10);
+        statusDialog.triggerDemoStatus(code);
+
+        if (code === 201) {
+          notifySuccess('Demo HTTP 201: Creado', 'Documento nuevo persistido exitosamente en OCI.');
+        } else if (code === 200) {
+          notifyWarning('Demo HTTP 200: Duplicado', 'Documento ya existente detectado (SHA-256).');
+        } else {
+          notifyError(`Demo HTTP ${code}`, `Simulación de respuesta ${code} del backend.`);
+        }
+      });
+    });
   }
 };

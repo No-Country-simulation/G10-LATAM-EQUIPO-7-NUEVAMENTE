@@ -10,9 +10,13 @@ import { uploadTab } from './modules/uploadTab.js';
 import { studyHub } from './modules/studyHub.js';
 import { bookshelf } from './modules/bookshelf.js';
 import { portada } from './modules/portada.js';
+import { statusDialog } from './modules/statusDialog.js';
 
 document.addEventListener('DOMContentLoaded', () => {
-  // 1. Inicializar Enrutador de Pestañas Principales (3 Pilares)
+  // 1. Inicializar Diálogo Temporal de Estados / Errores
+  statusDialog.init();
+
+  // 2. Inicializar Enrutador de Pestañas Principales (3 Pilares)
   router.init();
 
   // 3. Inicializar La Biblioteca de NuevaMente
@@ -32,6 +36,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // 8. Suscribir estado al footer de estado
   setupSystemStatusBar();
+
+  // 9. Mostrar y permitir configurar la URL del Backend en el header
+  setupBackendBadge();
 });
 
 function setupApiModeSelector() {
@@ -63,6 +70,22 @@ function setupSystemStatusBar() {
       qualityScoreText.textContent = doc
         ? `Estudiando: ${doc.title}`
         : 'Explorando la biblioteca';
+    }
+  });
+}
+
+function setupBackendBadge() {
+  const badge = document.querySelector('.header-connection-badge');
+  if (!badge) return;
+  badge.title = `Conectado a Backend API: ${CONFIG.API.DEFAULT_BASE_URL} (Clic para cambiar)`;
+  badge.style.cursor = 'pointer';
+  badge.addEventListener('click', () => {
+    const current = CONFIG.API.DEFAULT_BASE_URL;
+    const nextUrl = prompt('Configurar URL del Backend (FastAPI):', current);
+    if (nextUrl !== null && nextUrl.trim() !== current) {
+      if (typeof window.setBackendUrl === 'function') {
+        window.setBackendUrl(nextUrl.trim());
+      }
     }
   });
 }

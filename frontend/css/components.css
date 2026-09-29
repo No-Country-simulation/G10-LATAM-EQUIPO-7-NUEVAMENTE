@@ -180,3 +180,177 @@
   font-size: 0.76rem;
   font-weight: 600;
 }
+
+/* ==========================================================================
+   SISTEMA DE NOTIFICACIONES TOAST (UX FEEDBACK)
+   Alertas Glassmorphism para respuestas HTTP y estados del sistema
+   ========================================================================== */
+
+.toast-container {
+  position: fixed;
+  top: 1.5rem;
+  right: 1.5rem;
+  z-index: 99999;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  max-width: 440px;
+  width: calc(100% - 3rem);
+  pointer-events: none;
+}
+
+.toast-item {
+  pointer-events: auto;
+  background: rgba(18, 24, 34, 0.92);
+  border: 1px solid var(--border-ui);
+  border-radius: 14px;
+  backdrop-filter: blur(16px);
+  padding: 1rem 1.15rem;
+  display: flex;
+  align-items: flex-start;
+  gap: 0.85rem;
+  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.5), 0 2px 6px rgba(0, 0, 0, 0.3);
+  transform: translateX(110%);
+  opacity: 0;
+  transition: transform 0.35s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.3s ease;
+  position: relative;
+  overflow: hidden;
+}
+
+.toast-item.toast-visible {
+  transform: translateX(0);
+  opacity: 1;
+}
+
+.toast-item.toast-hiding {
+  transform: translateX(110%);
+  opacity: 0;
+}
+
+/* Bordes e iconos por severidad */
+.toast-item.toast-success {
+  border-left: 4px solid var(--accent-green);
+}
+.toast-item.toast-success .toast-icon {
+  background: rgba(16, 185, 129, 0.2);
+  color: var(--accent-green);
+}
+
+.toast-item.toast-warning {
+  border-left: 4px solid var(--accent-gold);
+}
+.toast-item.toast-warning .toast-icon {
+  background: rgba(245, 158, 11, 0.2);
+  color: var(--accent-gold);
+}
+
+.toast-item.toast-error {
+  border-left: 4px solid var(--accent-red);
+}
+.toast-item.toast-error .toast-icon {
+  background: rgba(239, 68, 68, 0.2);
+  color: var(--accent-red);
+}
+
+.toast-item.toast-info {
+  border-left: 4px solid var(--accent-cyan);
+}
+.toast-item.toast-info .toast-icon {
+  background: rgba(6, 182, 212, 0.2);
+  color: var(--accent-cyan);
+}
+
+.toast-icon {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.95rem;
+  font-weight: 800;
+  flex-shrink: 0;
+}
+
+.toast-body {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.toast-title {
+  font-size: 0.92rem;
+  font-weight: 700;
+  color: var(--text-main);
+  line-height: 1.3;
+}
+
+.toast-message {
+  font-size: 0.82rem;
+  color: var(--text-secondary);
+  line-height: 1.45;
+  word-break: break-word;
+}
+
+.toast-action-btn {
+  align-self: flex-start;
+  margin-top: 0.4rem;
+  background: rgba(245, 158, 11, 0.15);
+  border: 1px solid rgba(245, 158, 11, 0.4);
+  color: var(--accent-gold);
+  font-size: 0.76rem;
+  font-weight: 700;
+  padding: 0.3rem 0.75rem;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.toast-action-btn:hover {
+  background: rgba(245, 158, 11, 0.3);
+  transform: translateY(-1px);
+}
+
+.toast-close-btn {
+  background: transparent;
+  border: none;
+  color: var(--text-muted);
+  font-size: 1.25rem;
+  line-height: 1;
+  cursor: pointer;
+  padding: 0.2rem;
+  border-radius: 4px;
+  transition: color var(--transition-fast);
+  margin-left: -0.25rem;
+}
+
+.toast-close-btn:hover {
+  color: var(--text-main);
+}
+
+/* Estado de error en dropzone y stepper */
+.file-dropzone-large.dropzone-error {
+  border-color: var(--accent-red) !important;
+  background: rgba(239, 68, 68, 0.06) !important;
+  animation: shakeDropzone 0.4s ease-in-out;
+}
+
+@keyframes shakeDropzone {
+  0%, 100% { transform: translateX(0); }
+  25% { transform: translateX(-6px); }
+  50% { transform: translateX(6px); }
+  75% { transform: translateX(-4px); }
+}
+
+.step-item.step-error .step-circle {
+  border-color: var(--accent-red) !important;
+  color: var(--accent-red) !important;
+  background: rgba(239, 68, 68, 0.2) !important;
+  box-shadow: 0 0 12px rgba(239, 68, 68, 0.4);
+}
+
+.step-item.step-error .step-info strong {
+  color: var(--accent-red) !important;
+}
+
