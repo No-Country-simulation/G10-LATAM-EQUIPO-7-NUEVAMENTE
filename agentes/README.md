@@ -114,9 +114,9 @@ pip install -r requirements.txt
 pytest agentes/tests/
 ```
 
-## Endpoints de Integración (Sprint 2)
+## Endpoints de Integración
 
-El módulo expone una API basada en FastAPI con los siguientes contratos activos para Backend:
+El módulo expone una API local (puerto 8001) basada en FastAPI con los siguientes contratos activos para la integración con Backend:
 
-- **`POST /api/v1/index`**: Recibe el documento crudo con `document_id`, `nombre`, `mime_type` y `contenido`, ejecutando el pipeline de limpieza, chunking e indexación en ChromaDB.
-- **`POST /api/v1/generate`**: Endpoint de generación atómica. Recibe `document_id`, una lista de `formats` (`quiz`, `flashcards`), `profile`, `niche` y `detail_level`, aplicando retrieval filtrado por documento y prompt engineering.
+- **`POST /api/v1/index`**: Endpoint `multipart/form-data`. Recibe el archivo físico original (`file`) y su `document_id`. Ejecuta el pipeline de extracción (PDF/MD/TXT), limpieza, segmentación (generando IDs de chunks únicos basados en `document_id` para evitar colisiones) e indexación vectorial en ChromaDB.
+- **`POST /api/v1/generate`**: Endpoint de generación atómica. Recibe un JSON con `document_id`, `formats` (`quiz`, `flashcards`), `profile`, `niche` y `detail_level`, aplicando retrieval filtrado estrictamente por documento.
