@@ -64,7 +64,6 @@ export const statusDialog = {
                 <div class="meta-copyable-row">
                   <code class="meta-code" id="statusOciId">documents/doc_xxx/original.pdf</code>
                   <button type="button" class="btn-copy-oci" id="btnCopyOciId" title="Copiar ID de OCI">
-                    <span class="copy-icon">📋</span>
                     <span id="btnCopyOciText">Copiar</span>
                   </button>
                 </div>

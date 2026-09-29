@@ -299,9 +299,9 @@ export const uploadTab = {
       let docId;
       let uploadResult;
 
-      // Paso 1: Subir el documento al backend FastAPI (POST /api/v1/documents)
+      // Paso 1: Subir el documento al backend (POST /api/v1/documents)
       this.currentActiveStep = this.elements.stepOci;
-      this.setStepActive(this.elements.stepOci, 'Persistiendo archivo en backend (POST /api/v1/documents)...');
+      this.setStepActive(this.elements.stepOci, 'Guardando tu documento...');
 
       if (selectedFile.rawFile) {
         uploadResult = await apiClient.uploadFile(selectedFile.rawFile);
@@ -338,13 +338,13 @@ export const uploadTab = {
 
       // Paso 2: Indexación y preparación
       this.currentActiveStep = this.elements.stepChroma;
-      this.setStepActive(this.elements.stepChroma, `Indexando chunks para document_id [${docId}]...`);
+      this.setStepActive(this.elements.stepChroma, 'Analizando el contenido del documento...');
       await this.wait(400);
       this.setStepCompleted(this.elements.stepChroma, this.elements.line2);
 
       // Paso 3: Llamar al contrato v1 de adaptación pedagógica (POST /api/v1/adaptations)
       this.currentActiveStep = this.elements.stepGen;
-      this.setStepActive(this.elements.stepGen, `Generando adaptación en backend para perfil [${targetProfile}]...`);
+      this.setStepActive(this.elements.stepGen, `Generando material de estudio para nivel [${this.getLevelLabel(targetProfile)}]...`);
       
       const adaptationPayload = {
         document_id: docId,
@@ -424,7 +424,7 @@ export const uploadTab = {
     const section = {
       id: "sec_adapted_1",
       title: cleanTitle,
-      summary: adapted.summary?.executive_summary || "Contenido adaptado generado por NuevaMente RAG.",
+      summary: adapted.summary?.executive_summary || "Contenido adaptado generado automáticamente por NuevaMente.",
       key_concepts: adapted.summary?.key_terms || ["Concepto Clave", "Arquitectura"],
       flashcards: (adapted.flashcards || []).map(f => ({
         front: f.front || f.frente,
@@ -454,7 +454,7 @@ export const uploadTab = {
       filename: selectedFile.name,
       discipline: discipline,
       title: cleanTitle.charAt(0).toUpperCase() + cleanTitle.slice(1),
-      description: `Contenido educativo adaptado para perfil [${meta.target_profile || params.target_profile}].`,
+      description: `Contenido educativo adaptado para nivel ${this.getLevelLabel(meta.target_profile || params.target_profile)}.`,
       filesize: selectedFile.size || "2.0 MB",
       metadatos: {
         target_profile: meta.target_profile || params.target_profile,
@@ -496,7 +496,7 @@ export const uploadTab = {
     });
 
     if (this.elements.pipelineStatusBadge) {
-      this.elements.pipelineStatusBadge.textContent = 'Completado ✓';
+      this.elements.pipelineStatusBadge.textContent = 'Completado';
       this.elements.pipelineStatusBadge.style.background = 'rgba(16, 185, 129, 0.2)';
       this.elements.pipelineStatusBadge.style.color = '#10b981';
     }
@@ -567,7 +567,7 @@ export const uploadTab = {
   renderSelectedFile(fileData) {
     if (!fileData) return;
     this.elements.selectedFileName.textContent = fileData.name;
-    this.elements.selectedFileSize.textContent = `${fileData.size} · Listo para indexación`;
+    this.elements.selectedFileSize.textContent = `${fileData.size} · Listo para procesar`;
     this.elements.fileFormatBadge.textContent = fileData.format || 'DOC';
     this.elements.selectedFileCard.style.display = 'flex';
     this.elements.dropArea.style.display = 'none';

@@ -22,13 +22,6 @@ function getOrCreateContainer() {
   return container;
 }
 
-const ICONS = {
-  success: '✓',
-  warning: '⚠️',
-  error: '✕',
-  info: 'ℹ️'
-};
-
 /**
  * Muestra una notificación toast interactiva y accesible
  * @param {Object} options
@@ -57,7 +50,6 @@ export function showToast({
 
   const iconEl = document.createElement('div');
   iconEl.className = 'toast-icon';
-  iconEl.textContent = ICONS[type] || 'ℹ️';
 
   const bodyEl = document.createElement('div');
   bodyEl.className = 'toast-body';
