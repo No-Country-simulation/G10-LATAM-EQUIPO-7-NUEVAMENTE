@@ -114,12 +114,9 @@ pip install -r requirements.txt
 pytest agentes/tests/
 ```
 
-## Pendiente / próximos pasos
+## Endpoints de Integración (Sprint 2)
 
-- **Integración con Backend**: falta adaptar la ingestión para
-  recibir el documento y su `document_id` desde Backend (quien lo
-  recupera de OCI Object Storage), y habilitar retrieval filtrado
-  por `document_id`.
-- Confirmar con Data/IA si, además de `chunks_v1.csv`, habrá un
-  `chunks_v2.csv` cuando se agreguen documentos nuevos fuera del
-  corpus congelado.
+El módulo expone una API basada en FastAPI con los siguientes contratos activos para Backend:
+
+- **`POST /api/v1/index`**: Recibe el documento crudo con `document_id`, `nombre`, `mime_type` y `contenido`, ejecutando el pipeline de limpieza, chunking e indexación en ChromaDB.
+- **`POST /api/v1/generate`**: Endpoint de generación atómica. Recibe `document_id`, una lista de `formats` (`quiz`, `flashcards`), `profile`, `niche` y `detail_level`, aplicando retrieval filtrado por documento y prompt engineering.
