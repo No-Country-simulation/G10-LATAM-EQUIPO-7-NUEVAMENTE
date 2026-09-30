@@ -6,7 +6,6 @@
 
 import { CONFIG } from '../config.js';
 import { state } from '../state.js';
-import { sampleLibrary } from '../data/sampleLibrary.js';
 import { apiClient, ApiError } from '../api/apiClient.js';
 import { router } from './router.js';
 import { statusDialog } from './statusDialog.js';
@@ -24,11 +23,9 @@ export const uploadTab = {
   init() {
     this.bindElements();
     this.setupDropzone();
-    this.setupSampleButtons();
     this.setupParamListeners();
     this.setupExecution();
     this.setupResolverActions();
-    this.setupDemoStatusTester();
     this.syncInitialState();
   },
 
@@ -41,7 +38,6 @@ export const uploadTab = {
       selectedFileSize: document.getElementById('selectedFileSize'),
       fileFormatBadge: document.getElementById('fileFormatBadge'),
       btnRemoveFile: document.getElementById('btnRemoveFile'),
-      quickSampleBtns: document.querySelectorAll('.btn-quick-sample'),
 
       // Parámetros
       paramPerfil: document.getElementById('paramPerfil'),
@@ -189,9 +185,6 @@ export const uploadTab = {
     state.set({ selectedFile: fileData });
     this.renderSelectedFile(fileData);
 
-    // Desactivar botones de muestra rápida
-    this.elements.quickSampleBtns.forEach(btn => btn.classList.remove('active'));
-
     notifyInfo(
       'Archivo Seleccionado',
       `"${file.name}" (${sizeMb} MB) verificado y listo para procesar.`
@@ -205,39 +198,6 @@ export const uploadTab = {
     setTimeout(() => {
       dropArea.classList.remove('dropzone-error');
     }, 1200);
-  },
-
-  setupSampleButtons() {
-    this.elements.quickSampleBtns.forEach(btn => {
-      btn.addEventListener('click', () => {
-        const sampleKey = btn.getAttribute('data-sample');
-        const sample = sampleLibrary[sampleKey];
-        if (!sample) return;
-
-        this.elements.quickSampleBtns.forEach(b => b.classList.remove('active'));
-        btn.classList.add('active');
-
-        const fileData = {
-          name: sample.filename,
-          size: sample.filesize,
-          format: sample.filename.split('.').pop().toUpperCase(),
-          sampleKey: sampleKey,
-          rawFile: null
-        };
-
-        state.set({ selectedFile: fileData });
-        this.renderSelectedFile(fileData);
-
-        // Preseleccionar parámetros sugeridos
-        if (sample.metadatos) {
-          if (this.elements.paramPerfil) {
-            const rawPerfil = sample.metadatos.target_profile || sample.metadatos.perfil;
-            const map = { principiante: 'beginner', intermedio: 'intermediate', avanzado: 'advanced' };
-            this.elements.paramPerfil.value = map[rawPerfil] || rawPerfil || 'intermediate';
-          }
-        }
-      });
-    });
   },
 
   setupParamListeners() {
@@ -302,15 +262,10 @@ export const uploadTab = {
       this.currentActiveStep = this.elements.stepOci;
       this.setStepActive(this.elements.stepOci, 'Guardando tu documento...');
 
-      if (selectedFile.rawFile) {
-        uploadResult = await apiClient.uploadFile(selectedFile.rawFile);
-      } else {
-        // Muestra enviada como texto
-        const sampleName = (selectedFile.name || 'documento_estudio').replace(/\.[^/.]+$/, "") + ".txt";
-        const sampleBlob = new Blob([`Documento de estudio: ${selectedFile.name}\nAnalizado por NuevaMente RAG.`], { type: 'text/plain' });
-        const mockFile = new File([sampleBlob], sampleName, { type: 'text/plain' });
-        uploadResult = await apiClient.uploadFile(mockFile);
+      if (!selectedFile.rawFile) {
+        throw new ApiError(400, { message: 'Por favor selecciona un archivo real desde tu dispositivo para subir.' });
       }
+      uploadResult = await apiClient.uploadFile(selectedFile.rawFile);
 
       docId = uploadResult.document_id;
       if (!docId) {
@@ -579,7 +534,6 @@ export const uploadTab = {
     state.set({ selectedFile: null });
     this.elements.selectedFileCard.style.display = 'none';
     this.elements.dropArea.style.display = 'flex';
-    this.elements.quickSampleBtns.forEach(btn => btn.classList.remove('active'));
     if (this.elements.docFileInput) this.elements.docFileInput.value = '';
   },
 
@@ -623,24 +577,5 @@ export const uploadTab = {
 
   wait(ms) {
     return new Promise(resolve => setTimeout(resolve, ms));
-  },
-
-  setupDemoStatusTester() {
-    const testBtns = document.querySelectorAll('[data-status-test]');
-    testBtns.forEach(btn => {
-      btn.addEventListener('click', (e) => {
-        e.preventDefault();
-        const code = parseInt(btn.getAttribute('data-status-test'), 10);
-        statusDialog.triggerDemoStatus(code);
-
-        if (code === 201) {
-          notifySuccess('Demo HTTP 201: Creado', 'Documento nuevo persistido exitosamente en OCI.');
-        } else if (code === 200) {
-          notifyWarning('Demo HTTP 200: Duplicado', 'Documento ya existente detectado (SHA-256).');
-        } else {
-          notifyError(`Demo HTTP ${code}`, `Simulación de respuesta ${code} del backend.`);
-        }
-      });
-    });
   }
 };
