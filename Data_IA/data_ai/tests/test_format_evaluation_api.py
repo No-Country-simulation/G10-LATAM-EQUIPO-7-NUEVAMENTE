@@ -5,6 +5,8 @@ Valida:
 - GET /health -> 200
 - POST /evaluate con Quiz válido -> 501 temporal
 - POST /evaluate con Flashcards válidas -> 501 temporal
+- POST /evaluate sin learning_objective -> 501 temporal
+- POST /evaluate sin generation_context -> 422
 - POST /evaluate con payload inválido -> 422
 """
 
@@ -73,6 +75,44 @@ def test_valid_flashcards_reaches_evaluator_placeholder():
     assert body["detail"]["code"] == "QUALITY_EVALUATOR_NOT_IMPLEMENTED"
     assert body["detail"]["document_id"] == "DOC-001"
     assert body["detail"]["format"] == "flashcards"
+
+
+def test_request_without_learning_objective_reaches_evaluator_placeholder():
+    """
+    learning_objective es opcional, por lo que su ausencia no debe impedir
+    que un request válido llegue al evaluator.
+    """
+    payload = load_mock("evaluation_quiz_valid_v1.json")
+    payload["generation_context"].pop("learning_objective")
+
+    response = client.post("/evaluate", json=payload)
+
+    assert response.status_code == 501
+
+    body = response.json()
+    assert body["detail"]["code"] == "QUALITY_EVALUATOR_NOT_IMPLEMENTED"
+    assert body["detail"]["document_id"] == "DOC-001"
+    assert body["detail"]["format"] == "quiz"
+
+
+def test_missing_generation_context_returns_422():
+    """Un request sin generation_context debe ser rechazado."""
+    payload = load_mock("evaluation_quiz_valid_v1.json")
+    payload.pop("generation_context")
+
+    response = client.post("/evaluate", json=payload)
+
+    assert response.status_code == 422
+
+    body = response.json()
+    assert "detail" in body
+
+    errors = body["detail"]
+
+    assert any(
+        "generation_context" in str(error.get("loc", []))
+        for error in errors
+    )
 
 
 def test_invalid_quiz_returns_422():
