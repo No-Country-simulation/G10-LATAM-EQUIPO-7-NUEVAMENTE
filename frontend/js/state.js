@@ -4,43 +4,34 @@
  * Implementa el patrón Observable para notificar a los módulos sobre cambios de estado.
  */
 
-import { sampleLibrary } from './data/sampleLibrary.js';
 import { CONFIG } from './config.js';
 
-// Documento por defecto cargado inicialmente
-const initialSampleKey = 'cloud_architecture';
-const initialDocument = sampleLibrary[initialSampleKey];
+function loadCustomBooksFromStorage() {
+  try {
+    const raw = localStorage.getItem('nuevamente_custom_books');
+    if (raw) {
+      const parsed = JSON.parse(raw);
+      if (Array.isArray(parsed)) return parsed;
+    }
+  } catch {}
+  return [];
+}
 
 const internalState = {
-  // Navegación principal: 'library' | 'upload' | 'notebook' | 'study'
+  // Navegación principal: 'library' | 'upload' | 'study'
   activeTab: 'library',
 
   // Modo de API: Exclusivo Backend Real ('real') para Sprint 2
   apiMode: 'real',
 
   // Archivo seleccionado por el usuario en la pestaña de carga
-  selectedFile: {
-    name: initialDocument.filename,
-    size: initialDocument.filesize,
-    format: initialDocument.filename.split('.').pop().toUpperCase(),
-    sampleKey: initialSampleKey,
-    rawFile: null
-  },
+  selectedFile: null,
 
-  // Documento activo procesado por el pipeline RAG
-  currentDocument: {
-    id: initialDocument.id,
-    title: initialDocument.title,
-    discipline: initialDocument.discipline,
-    description: initialDocument.description,
-    filename: initialDocument.filename,
-    filesize: initialDocument.filesize,
-    metadatos: initialDocument.metadatos,
-    sections: initialDocument.sections
-  },
+  // Documento activo seleccionado o procesado
+  currentDocument: null,
 
-  // Libros y documentos personalizados subidos por el usuario durante la sesión
-  customBooks: [],
+  // Libros y documentos personalizados subidos por el usuario
+  customBooks: loadCustomBooksFromStorage(),
 
   // Parámetros de adaptación seleccionados (contrato v1)
   adaptationParams: {
@@ -51,13 +42,14 @@ const internalState = {
 
   // Estado del Cuaderno Interactivo Dinámico
   notebook: {
-    currentSpreadIndex: 0, // 0: Portada, 1+: Spreads de secciones, Último: Índice
+    currentSpreadIndex: 0,
     isTurningPage: false
   },
 
   // Estado del Hub de Estudio Multi-formato
   studyHub: {
-    activeSectionId: initialDocument.sections[0]?.id || null,
+    activeSectionId: null,
+    formats: null, // Formatos cargados desde GET /documents/{id}/formats
     activeFormat: 'flashcards', // 'flashcards', 'quiz', 'video', 'sintesis'
     currentCardIndex: 0,
     isFlipped: false
@@ -92,6 +84,11 @@ export const state = {
    */
   set(partialState) {
     Object.assign(internalState, partialState);
+    if (partialState.customBooks) {
+      try {
+        localStorage.setItem('nuevamente_custom_books', JSON.stringify(partialState.customBooks));
+      } catch {}
+    }
     this.notify();
   },
 

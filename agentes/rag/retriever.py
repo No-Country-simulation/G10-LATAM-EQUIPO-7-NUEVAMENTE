@@ -16,11 +16,12 @@ class RetrieverService:
     def __init__(self, vector_store: VectorStore):
         self.vector_store = vector_store
 
-    def retrieve(self, query: str, top_k: int = 5) -> list[SearchResult]:
+    def retrieve(self, query: str, top_k: int = 5, document_id: str = None) -> list[SearchResult]:
         self._validate_query(query)
         self._validate_top_k(top_k)
 
-        return self.vector_store.search(query=query, top_k=top_k)
+        # Pasamos el document_id al vector store para filtrar
+        return self.vector_store.search(query=query, top_k=top_k, document_id=document_id)
 
     def retrieve_for_evaluation(
         self,
@@ -42,6 +43,7 @@ class RetrieverService:
         try:
             self._validate_query(query)
             self._validate_top_k(top_k)
+            # Para la evaluación global de Data/IA no filtramos por document_id
             results = self.vector_store.search(query=query, top_k=top_k)
         except ValueError as exc:
             return build_error_response(

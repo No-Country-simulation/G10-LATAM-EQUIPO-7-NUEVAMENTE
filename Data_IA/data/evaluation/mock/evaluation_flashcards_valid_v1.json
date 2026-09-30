@@ -1,0 +1,35 @@
+{
+  "document_id": "DOC-001",
+  "format": "flashcards",
+  "generation_context": {
+    "profile": "student",
+    "niche": "technology",
+    "detail_level": "beginner",
+    "learning_objective": "Comprender conceptos básicos de FastAPI"
+  },
+  "generated_content": {
+    "title": "Flashcards sobre FastAPI",
+    "instructions": "Intenta responder antes de revisar el reverso.",
+    "cards": [
+      {
+        "card_id": "F1",
+        "front": "¿Qué clase se usa para crear una aplicación FastAPI?",
+        "back": "FastAPI"
+      },
+      {
+        "card_id": "F2",
+        "front": "¿Desde qué paquete se importa la clase FastAPI?",
+        "back": "Desde el paquete fastapi."
+      }
+    ]
+  },
+  "chunks_used": [
+    {
+      "chunk_id": "DOC-001_CH_001",
+      "document_id": "DOC-001",
+      "rank": 1,
+      "score": 0.91,
+      "text": "Para crear una aplicación se importa FastAPI desde el paquete fastapi y se instancia la clase FastAPI."
+    }
+  ]
+}
