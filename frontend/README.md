@@ -105,10 +105,10 @@ frontend/
 
 El Frontend está alineado con el contrato v1 cerrado y funcional del Backend.
 
-### 1. Carga del documento
+### 1. Carga del documento (POST /api/v1/documents)
 
 - **Endpoint:** `POST {BASE_URL}/api/v1/documents`
-- **Body:** `multipart/form-data` con campo `file`
+- **Body:** `multipart/form-data` con campo `file` (PDF, DOCX, TXT, MD; máx. 10 MB)
 - **Respuesta (201 Creado / 200 Duplicado existente):**
   ```json
   {
@@ -118,77 +118,125 @@ El Frontend está alineado con el contrato v1 cerrado y funcional del Backend.
     "duplicate": false
   }
   ```
-- Errores posibles: `400` (documento vacío), `413` (supera 10 MB), `415` (formato no soportado), `502` (fallo al almacenar).
+- **Errores:** `400` (vacío), `413` (>10 MB), `415` (no soportado), `502` (fallo de persistencia OCI).
 
-### 2. Adaptación pedagógica del contenido
+### 2. Listar documentos para La Biblioteca (GET /api/v1/documents)
 
-- **Endpoint:** `POST {BASE_URL}/api/v1/adaptations`
+- **Endpoint:** `GET {BASE_URL}/api/v1/documents`
 - **Content-Type:** `application/json`
-- **Request Body:**
+- **Respuesta (200 OK):** Soporta tanto array directo `[...]` como wrapper `{ "items": [...] }`.
+  ```json
+  [
+    {
+      "document_id": "doc_123",
+      "filename": "manual.pdf",
+      "status": "stored",
+      "size_bytes": 1048576,
+      "created_at": "2026-09-30T12:00:00Z",
+      "title": "Manual de Arquitectura",
+      "summary": "Resumen ejecutivo del documento analizado."
+    }
+  ]
+  ```
+
+### 3. Consultar detalle del documento (GET /api/v1/documents/{document_id})
+
+- **Endpoint:** `GET {BASE_URL}/api/v1/documents/{document_id}`
+- **Respuesta (200 OK):**
   ```json
   {
-    "document_id": "doc_e7a935bc87ff",
-    "target_profile": "beginner",
-    "output_format": "flashcards",
-    "niche_context": "backend"
+    "document_id": "doc_123",
+    "filename": "manual.pdf",
+    "status": "indexed",
+    "content_type": "application/pdf",
+    "size_bytes": 1048576,
+    "created_at": "2026-09-30T12:00:00Z",
+    "updated_at": "2026-09-30T12:05:00Z",
+    "title": "Manual de Arquitectura",
+    "summary": "Resumen ejecutivo del documento analizado.",
+    "estimated_time": "10 min"
   }
   ```
 
-  | Campo | Valores permitidos |
-  |---|---|
-  | `target_profile` | `beginner` \| `intermediate` \| `advanced` |
-  | `output_format` | `flashcards` \| `quiz` \| `tutorial` \| `summary` \| `all` |
-  | `niche_context` | `general` \| `backend` \| `health` \| `legal` \| `business` \| `humanities` |
+### 4. Consultar formatos generados (GET /api/v1/documents/{document_id}/formats)
 
-- **Response Body (200 OK):**
+- **Endpoint:** `GET {BASE_URL}/api/v1/documents/{document_id}/formats`
+- **Respuesta (200 OK):** Contrato canónico acordado entre Backend, Agentes, Data/IA y Frontend.
   ```json
   {
-    "status": "completed",
-    "document_id": "doc_e7a935bc87ff",
-    "metadata": {
-      "target_profile": "beginner",
-      "output_format": "flashcards",
-      "niche_context": "backend"
-    },
-    "quality_evaluation": {
-      "source_faithfulness": 0.99,
-      "pedagogical_coherence": 0.98,
-      "overall_score": 0.985
-    },
-    "adapted_content": {
-      "title": "Arquitectura Backend & Servidores",
-      "flashcards": [
-        {
-          "front": "¿Qué es un Endpoint en una REST API?",
-          "back": "Es una dirección URL específica para consultar o modificar datos en el servidor.",
-          "didactic_hint": "Es como el buzón específico al que envías una solicitud."
-        }
-      ]
+    "document_id": "doc_123",
+    "status": "ready",
+    "formats": {
+      "quiz": {
+        "format_id": "fmt_quiz_123",
+        "status": "success",
+        "content": {
+          "title": "Quiz de arquitectura de software",
+          "instructions": "Seleccione la respuesta correcta.",
+          "questions": [
+            {
+              "question_id": "q1",
+              "question": "¿Qué caracteriza a un microservicio?",
+              "options": [
+                "Despliegue independiente",
+                "Base de datos obligatoriamente compartida",
+                "Una única aplicación monolítica",
+                "Ausencia de interfaces"
+              ],
+              "correct_answer": "Despliegue independiente",
+              "explanation": "Un microservicio puede desplegarse y evolucionar de manera independiente."
+            }
+          ]
+        },
+        "error_message": null
+      },
+      "flashcards": {
+        "format_id": "fmt_flashcards_123",
+        "status": "success",
+        "content": {
+          "title": "Flashcards de arquitectura de software",
+          "instructions": "Revise cada concepto y su explicación.",
+          "cards": [
+            {
+              "card_id": "card_1",
+              "front": "Microservicio",
+              "back": "Servicio pequeño que puede desplegarse y evolucionar independientemente."
+            }
+          ]
+        },
+        "error_message": null
+      }
     }
   }
   ```
 
-  El contenido de `adapted_content` varía según `output_format` solicitado:
-
-  | `output_format` | Campo presente en `adapted_content` | Forma |
-  |---|---|---|
-  | `flashcards` | `flashcards` | Array de `{ front, back, didactic_hint }` |
-  | `quiz` | `quiz` | `{ question, options[], correct_answer, explanation }` |
-  | `tutorial` | `tutorial` | `{ title, duration, key_points[] }` |
-  | `summary` | `summary` | `{ executive_summary, key_takeaways[], key_terms[] }` |
-  | `all` | los cuatro campos anteriores juntos | — |
-
-  `detail_level` está excluido del contrato v1: la profundidad y el tono se derivan directamente de `target_profile`.
+  - **Estados por formato:** `success`, `failed`, `no_results`.
+  - **Estados globales del endpoint:** `processing`, `ready`, `partial`, `error`.
+  - **Resolución didáctica:** En Frontend, `quiz.js` resuelve `correct_answer` tanto por texto exacto de la opción como por índice numérico; `flashcards.js` renderiza `content.cards` y mensajes pedagógicos ante fallos parciales o estados en proceso (`processing`).
 
 ### Manejo de errores
 
-Ambos endpoints devuelven errores en un formato consistente que el Frontend traduce a mensajes legibles (`js/api/apiClient.js`), y que se muestran al usuario mediante el diálogo de estado (`statusDialog.js`) y notificaciones toast (`notifications.js`). Códigos contemplados: `400`, `404`, `408` (timeout), `413`, `415`, `422`, `500`, `502`, y `0` (Backend no disponible / CORS).
+El cliente HTTP (`js/api/apiClient.js`) traduce las respuestas del Backend a mensajes legibles, desplegados mediante el diálogo de estado (`statusDialog.js`) y notificaciones toast (`notifications.js`). Códigos contemplados y probados: `200`, `201`, `400`, `404`, `408` (timeout de 30s), `413` (límite 10 MB), `415`, `422`, `500`, `502` (error OCI), y `0` (Backend no disponible / fallo de red).
 
 ---
 
-## Estado actual de la integración
+## Estado Actual de la Integración (Sprint 2)
 
-- Carga y persistencia real de documentos contra el Backend: **funcional**.
-- Solicitud de adaptación pedagógica (`/adaptations`) contra el Backend: **funcional**, usando el contrato descrito arriba.
-- Manejo de errores end-to-end (archivo inválido, backend caído, timeout, duplicados): **implementado**.
-- Configuración de la URL del Backend por entorno (sin hardcodear): **pendiente**.
+- **Carga y persistencia real en Backend y OCI (`POST /documents`):** ✅ **Funcional** (Tarea 1).
+- **Límite máximo de 10 MB validado en cliente:** ✅ **Funcional** (Tarea 4).
+- **Manejo UX integral de códigos HTTP y errores:** ✅ **Funcional** (Tarea 5).
+- **Consulta y renderizado de la biblioteca (`GET /documents`):** ✅ **Funcional** (Tarea 6).
+- **Consulta de formatos del libro (`GET /documents/{id}/formats`):** ✅ **Funcional** (Tarea 7).
+- **Visualizador pedagógico de Quiz y Flashcards:** ✅ **Funcional** (Tarea 8).
+- **Configuración desacoplada y Vite.js (sin URL hardcodeada):** ✅ **Funcional** (Tarea 3).
+- **Modo único real (sin mocks):** ✅ **Completado**.
+
+---
+
+## 📌 Deuda Técnica Registrada (Integración Pipeline RAG / Agentes)
+
+> **Registro Oficial de Deuda Técnica (Sprint 2):**  
+> Actualmente la interfaz marca como completados los pasos posteriores a la subida en el stepper de carga (*Indexación/Embeddings*, *Vinculación de Formatos* y *Validación del Crítico*) mediante estados visuales temporales (`wait`), sin confirmación real en tiempo de ejecución por parte del Backend/Agentes (cuyo pipeline RAG opera de forma asíncrona).
+>
+> **Acción Futura Requerida (Sprint 3 / Próxima Iteración):**  
+> Cuando el equipo de Backend y Agentes exponga el endpoint de seguimiento de procesos asíncronos (e.g. `GET /processes/{id}` o eventos en tiempo real SSE / WebSockets), estos pasos deberán sustituir la espera simulada por una escucha reactiva o sondeo del estado real del servicio (`PENDING` ➔ `PROCESSING` ➔ `COMPLETED` / `FAILED`), reflejando con fidelidad matemática el progreso del pipeline.

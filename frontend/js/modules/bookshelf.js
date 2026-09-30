@@ -388,6 +388,7 @@ export const bookshelf = {
       studyHub: {
         activeSectionId: book.sections?.[0]?.id || null,
         formats: null,
+        formatsStatus: 'loading',
         activeFormat: targetFormat,
         currentCardIndex: 0,
         isFlipped: false
@@ -400,17 +401,23 @@ export const bookshelf = {
     if (book.id) {
       try {
         const formats = await apiClient.getDocumentFormats(book.id);
-        if (formats && (formats.flashcards || formats.quiz || formats.summary || formats.tutorial || formats.formats)) {
-          const resolvedFormats = formats.formats || formats;
-          state.set({
-            studyHub: {
-              ...state.get().studyHub,
-              formats: resolvedFormats
-            }
-          });
-        }
+        const resolvedFormats = formats?.formats || formats;
+        const globalStatus = formats?.status || (resolvedFormats ? 'ready' : 'empty');
+        state.set({
+          studyHub: {
+            ...state.get().studyHub,
+            formats: resolvedFormats,
+            formatsStatus: globalStatus
+          }
+        });
       } catch (err) {
         console.log('[StudyHub] Formatos aún no disponibles en backend para este documento:', err.message);
+        state.set({
+          studyHub: {
+            ...state.get().studyHub,
+            formatsStatus: 'error'
+          }
+        });
       }
     }
   }
