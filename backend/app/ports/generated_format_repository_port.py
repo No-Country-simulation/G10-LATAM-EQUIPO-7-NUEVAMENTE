@@ -19,6 +19,12 @@ class GeneratedFormatAlreadyExistsError(
     """El formato generado ya existe."""
 
 
+class GeneratedFormatDocumentNotFoundError(
+    GeneratedFormatRepositoryError
+):
+    """El documento asociado al formato no existe."""
+
+
 class GeneratedFormatRepositoryPort(
     Protocol
 ):
