@@ -26,27 +26,52 @@ export const portada = {
 
   setupEvents() {
     const { welcomePortada, portadaCard, btnEnterLibrary, brandHeader } = this.elements;
-    if (!welcomePortada) return;
-
-    // Al hacer clic en el botón principal de ingreso
-    if (btnEnterLibrary) {
-      btnEnterLibrary.addEventListener('click', (e) => {
-        e.stopPropagation();
+    // Si existe la portada legacy (para retrocompatibilidad)
+    if (welcomePortada) {
+      if (btnEnterLibrary) {
+        btnEnterLibrary.addEventListener('click', (e) => {
+          e.stopPropagation();
+          this.enterLibrary();
+        });
+      }
+      welcomePortada.addEventListener('click', (e) => {
         this.enterLibrary();
       });
     }
 
-    // Al hacer clic en el fondo de la portada
-    welcomePortada.addEventListener('click', (e) => {
-      // Si hace clic en la tarjeta o en el fondo, ingresa al librero
-      this.enterLibrary();
-    });
+    // Botones de la Pantalla de Inicio Cósmica
+    const btnHomeEnter = document.getElementById('btnHomeEnterLibrary');
+    if (btnHomeEnter) {
+      btnHomeEnter.addEventListener('click', (e) => {
+        e.preventDefault();
+        router.navigate('library');
+      });
+    }
 
-    // Permitir volver a abrir la portada al hacer clic en el logo de la cabecera
+    const btnHomeUpload = document.getElementById('btnHomeUpload');
+    if (btnHomeUpload) {
+      btnHomeUpload.addEventListener('click', (e) => {
+        e.preventDefault();
+        router.navigate('upload');
+      });
+    }
+
+    // Toggle de Modo Interactivo (3D vs Lista)
+    const btnToggleInteractive = document.getElementById('btnToggleInteractive');
+    if (btnToggleInteractive) {
+      btnToggleInteractive.addEventListener('click', (e) => {
+        e.preventDefault();
+        const isInteractive = document.body.classList.toggle('interactive-mode-active');
+        btnToggleInteractive.innerHTML = isInteractive ? '<span>📋 Modo Lista</span>' : '<span>✦ Modo Interactivo</span>';
+        router.navigate('library');
+      });
+    }
+
+    // Permitir volver a Inicio al hacer clic en el logo de la cabecera
     if (brandHeader) {
       brandHeader.addEventListener('click', (e) => {
         e.preventDefault();
-        this.openPortada();
+        router.navigate('home');
       });
     }
   },

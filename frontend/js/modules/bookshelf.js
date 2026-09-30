@@ -11,10 +11,14 @@ export const bookshelf = {
   elements: {},
   currentSelectedBook: null,
   booksFromBackend: [],
+  allBooks: [],
+  currentSearchQuery: '',
+  activeCategory: null,
   isLoadingBackend: false,
 
   async init() {
     this.bindElements();
+    this.setupSearchEvents();
     this.renderShelf();
     this.setupModalEvents();
 
@@ -174,9 +178,37 @@ export const bookshelf = {
     }
 
     const books = Array.from(booksMap.values());
+    this.allBooks = books;
 
-    // Si no hay libros aún: mostrar estado vacío elegante en la estantería
+    // Actualizar contadores métricos del Catálogo Cósmico
+    const metricCount = document.getElementById('metricDocCount');
+    if (metricCount) metricCount.textContent = books.length;
+
+    const countList = document.getElementById('searchCountList');
+    if (countList) countList.textContent = `${books.length} documento${books.length === 1 ? '' : 's'}`;
+
+    // Renderizar catálogo en lista
+    this.renderCatalogList(books);
+
+    // Si no hay libros aún: mostrar estado vacío elegante en la estantería y catálogo
     if (books.length === 0) {
+      const docListEl = document.getElementById('cosmicDocList');
+      if (docListEl) {
+        docListEl.innerHTML = `
+          <div style="text-align: center; padding: 3rem 1rem; color: #a1a1aa;">
+            <div style="font-size: 2.5rem; margin-bottom: 0.75rem;">📚</div>
+            <h4 style="font-size: 1.15rem; color: #f8fafc; margin-bottom: 0.35rem;">Tu Catálogo está Listo</h4>
+            <p style="font-size: 0.9rem; margin-bottom: 1.25rem;">Aún no hay documentos en el servidor. Sube tu primer archivo PDF, Markdown o TXT.</p>
+            <button type="button" class="btn-cosmic-primary" id="btnCatalogEmptyUpload" style="padding: 0.6rem 1.4rem;">
+              <span>+ Subir Mi Primer Documento</span>
+            </button>
+          </div>
+        `;
+        docListEl.querySelector('#btnCatalogEmptyUpload')?.addEventListener('click', () => {
+          router.navigate('upload');
+        });
+      }
+
       const emptyContainer = document.createElement('div');
       emptyContainer.className = 'shelf-empty-state';
       emptyContainer.innerHTML = `
@@ -267,6 +299,7 @@ export const bookshelf = {
     const spine = document.createElement('div');
     const colorClass = `spine-${book.spineColor || 'navy'}`;
     spine.className = `book-spine ${colorClass}`;
+    spine.setAttribute('data-book-id', book.id);
     spine.title = `${book.title} (${book.discipline})`;
 
     const shortTag = this.getShortDisciplineTag(book.discipline);
@@ -411,6 +444,209 @@ export const bookshelf = {
         }
       } catch (err) {
         console.log('[StudyHub] Formatos aún no disponibles en backend para este documento:', err.message);
+      }
+    }
+  },
+
+  /**
+   * Renderiza las tarjetas del Catálogo en formato lista (Modo Ejecutivo)
+   */
+  renderCatalogList(booksToRender) {
+    const docListEl = document.getElementById('cosmicDocList');
+    if (!docListEl) return;
+
+    if (!booksToRender || booksToRender.length === 0) {
+      docListEl.innerHTML = `
+        <div style="text-align: center; padding: 2.5rem 1rem; color: #a1a1aa;">
+          <span style="font-size: 2rem;">🔍</span>
+          <p style="margin-top: 0.5rem; font-size: 0.95rem;">No se encontraron documentos que coincidan con la búsqueda.</p>
+        </div>
+      `;
+      return;
+    }
+
+    docListEl.innerHTML = booksToRender.map(book => {
+      const ext = (book.filename || '').split('.').pop().toUpperCase() || 'PDF';
+      const pages = book.sections?.length ? `${book.sections.length * 6} págs` : '12 págs';
+      const size = book.filesize || '1.5 MB';
+      const tag = book.discipline || 'General';
+
+      return `
+        <div class="cosmic-doc-card" data-book-id="${book.id}">
+          <div style="display: flex; align-items: center; gap: 1rem;">
+            <div class="cosmic-format-tag">${ext}</div>
+            <div>
+              <h3 style="font-size: 1rem; font-weight: 600; color: #ffffff; margin: 0;">${book.title}</h3>
+              <div style="display: flex; align-items: center; gap: 0.5rem; font-size: 0.75rem; color: #a1a1aa; margin-top: 0.25rem;">
+                <span>${book.id || 'doc'}</span> • <span>${pages}</span> • <span>${size}</span> • <span style="background: rgba(88,28,135,0.4); color: #d8b4fe; padding: 2px 6px; border-radius: 4px;">${tag}</span>
+              </div>
+            </div>
+          </div>
+          <div style="display: flex; align-items: center; gap: 0.75rem;">
+            <span style="font-size: 0.75rem; color: #d8b4fe; background: rgba(88,28,135,0.3); padding: 4px 8px; border-radius: 6px; border: 1px solid rgba(168,85,247,0.3);">Quiz</span>
+            <span style="font-size: 0.75rem; color: #f472b6; background: rgba(88,28,135,0.3); padding: 4px 8px; border-radius: 6px; border: 1px solid rgba(244,114,182,0.3);">Flashcards</span>
+            <button type="button" class="btn-cosmic-primary btn-study-doc" data-book-id="${book.id}" style="padding: 0.5rem 1rem; font-size: 0.75rem;">Estudiar →</button>
+          </div>
+        </div>
+      `;
+    }).join('');
+
+    docListEl.querySelectorAll('.cosmic-doc-card').forEach(card => {
+      const bookId = card.getAttribute('data-book-id');
+      const book = (this.allBooks || []).find(b => b.id === bookId);
+      if (!book) return;
+
+      card.addEventListener('click', () => {
+        this.openBookModal(book);
+      });
+
+      const btnStudy = card.querySelector('.btn-study-doc');
+      if (btnStudy) {
+        btnStudy.addEventListener('click', (e) => {
+          e.stopPropagation();
+          this.selectBookAndStudy(book, 'flashcards');
+        });
+      }
+    });
+  },
+
+  /**
+   * Configura eventos de búsqueda sincronizada (en Catálogo y en Estantería 3D)
+   */
+  setupSearchEvents() {
+    const searchList = document.getElementById('searchDocList');
+    const search3D = document.getElementById('searchDoc3D');
+    const clearList = document.getElementById('btnClearSearchList');
+    const clear3D = document.getElementById('btnClearSearch3D');
+    const chips = document.querySelectorAll('.cosmic-chip');
+
+    const handleSearchInput = (value) => {
+      this.currentSearchQuery = value.trim();
+
+      if (searchList && searchList.value !== value) searchList.value = value;
+      if (search3D && search3D.value !== value) search3D.value = value;
+
+      if (clearList) clearList.style.display = value ? 'flex' : 'none';
+      if (clear3D) clear3D.style.display = value ? 'flex' : 'none';
+
+      this.filterBooks();
+    };
+
+    if (searchList) {
+      searchList.addEventListener('input', (e) => handleSearchInput(e.target.value));
+    }
+    if (search3D) {
+      search3D.addEventListener('input', (e) => handleSearchInput(e.target.value));
+    }
+
+    if (clearList) {
+      clearList.addEventListener('click', () => {
+        handleSearchInput('');
+        if (searchList) searchList.focus();
+      });
+    }
+    if (clear3D) {
+      clear3D.addEventListener('click', () => {
+        handleSearchInput('');
+        if (search3D) search3D.focus();
+      });
+    }
+
+    // Filtros por Categoría (Chips)
+    chips.forEach(chip => {
+      chip.addEventListener('click', () => {
+        chips.forEach(c => c.classList.remove('active'));
+        chip.classList.add('active');
+        const text = chip.textContent.trim().toLowerCase();
+        if (text.startsWith('todos')) {
+          this.activeCategory = null;
+        } else if (text.includes('tecnología') || text.includes('cloud')) {
+          this.activeCategory = 'tecnología';
+        } else if (text.includes('legal') || text.includes('compliance')) {
+          this.activeCategory = 'legal';
+        } else if (text.includes('operaciones')) {
+          this.activeCategory = 'operaciones';
+        } else if (text.includes('rrhh') || text.includes('human')) {
+          this.activeCategory = 'rrhh';
+        } else {
+          this.activeCategory = null;
+        }
+        this.filterBooks();
+      });
+    });
+  },
+
+  /**
+   * Filtra tanto el Catálogo en Lista como la Estantería 3D en tiempo real
+   */
+  filterBooks() {
+    const q = (this.currentSearchQuery || '').toLowerCase();
+    const cat = this.activeCategory;
+    const all = this.allBooks || [];
+
+    const matchesCategory = (book) => {
+      if (!cat) return true;
+      const disc = (book.discipline || '').toLowerCase();
+      if (cat === 'tecnología') {
+        return disc.includes('software') || disc.includes('cloud') || disc.includes('ingeniería') || disc.includes('inteligencia') || disc.includes('datos');
+      }
+      if (cat === 'legal') {
+        return disc.includes('derecho') || disc.includes('leyes') || disc.includes('jurídicas') || disc.includes('compliance');
+      }
+      if (cat === 'operaciones') {
+        return disc.includes('economía') || disc.includes('negocios') || disc.includes('finanzas') || disc.includes('operaciones');
+      }
+      if (cat === 'rrhh') {
+        return disc.includes('humanidades') || disc.includes('filosofía') || disc.includes('psicología') || disc.includes('rrhh') || disc.includes('recursos');
+      }
+      return true;
+    };
+
+    const matchesQuery = (book) => {
+      if (!q) return true;
+      return (
+        (book.title || '').toLowerCase().includes(q) ||
+        (book.discipline || '').toLowerCase().includes(q) ||
+        (book.description || '').toLowerCase().includes(q) ||
+        (book.filename || '').toLowerCase().includes(q)
+      );
+    };
+
+    const matchingBooks = all.filter(b => matchesCategory(b) && matchesQuery(b));
+    const matchingIds = new Set(matchingBooks.map(b => b.id));
+
+    // 1. Actualizar Catálogo en Lista
+    this.renderCatalogList(matchingBooks);
+
+    // Actualizar Contador en Lista
+    const countList = document.getElementById('searchCountList');
+    if (countList) {
+      countList.textContent = `${matchingBooks.length} de ${all.length} documentos`;
+    }
+
+    // 2. Actualizar Estantería 3D
+    const spines = document.querySelectorAll('.shelf-row .book-spine:not(.book-spine-upload)');
+    spines.forEach(spine => {
+      const bookId = spine.getAttribute('data-book-id');
+      if (!q && !cat) {
+        spine.classList.remove('book-spine-dimmed', 'book-spine-highlighted');
+      } else if (matchingIds.has(bookId)) {
+        spine.classList.remove('book-spine-dimmed');
+        spine.classList.add('book-spine-highlighted');
+      } else {
+        spine.classList.remove('book-spine-highlighted');
+        spine.classList.add('book-spine-dimmed');
+      }
+    });
+
+    // Actualizar Contador en 3D
+    const count3D = document.getElementById('searchCount3D');
+    if (count3D) {
+      if (q || cat) {
+        count3D.style.display = 'inline-block';
+        count3D.textContent = `${matchingBooks.length} tomo(s) coincidente(s) de ${all.length}`;
+      } else {
+        count3D.style.display = 'none';
       }
     }
   }

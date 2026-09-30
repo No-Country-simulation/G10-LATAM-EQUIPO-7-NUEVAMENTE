@@ -26,6 +26,7 @@ export const uploadTab = {
     this.setupParamListeners();
     this.setupExecution();
     this.setupResolverActions();
+    this.setupDemoStatusTester();
     this.syncInitialState();
   },
 
@@ -205,15 +206,15 @@ export const uploadTab = {
       state.set({
         adaptationParams: {
           target_profile: this.elements.paramPerfil?.value || 'intermediate',
-          output_format: this.elements.paramFormato?.value || 'all',
-          niche_context: this.elements.paramNicho?.value || 'general'
+          output_format: 'all',
+          niche_context: 'general'
         }
       });
     };
 
-    [this.elements.paramPerfil, this.elements.paramFormato, this.elements.paramNicho].forEach(el => {
-      if (el) el.addEventListener('change', updateParams);
-    });
+    if (this.elements.paramPerfil) {
+      this.elements.paramPerfil.addEventListener('change', updateParams);
+    }
   },
 
   setupExecution() {
@@ -587,5 +588,24 @@ export const uploadTab = {
 
   wait(ms) {
     return new Promise(resolve => setTimeout(resolve, ms));
+  },
+
+  setupDemoStatusTester() {
+    const testBtns = document.querySelectorAll('[data-status-test]');
+    testBtns.forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        e.preventDefault();
+        const code = parseInt(btn.getAttribute('data-status-test'), 10);
+        statusDialog.triggerDemoStatus(code);
+
+        if (code === 201) {
+          notifySuccess('Demo HTTP 201: Creado', 'Documento nuevo persistido exitosamente en OCI.');
+        } else if (code === 200) {
+          notifyWarning('Demo HTTP 200: Duplicado', 'Documento ya existente detectado (SHA-256).');
+        } else {
+          notifyError(`Demo HTTP ${code}`, `Simulación de respuesta ${code} del backend.`);
+        }
+      });
+    });
   }
 };

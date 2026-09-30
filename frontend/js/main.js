@@ -11,18 +11,20 @@ import { studyHub } from './modules/studyHub.js';
 import { bookshelf } from './modules/bookshelf.js';
 import { portada } from './modules/portada.js';
 import { statusDialog } from './modules/statusDialog.js';
+import { backendStatus } from './modules/backendStatus.js';
 
 document.addEventListener('DOMContentLoaded', () => {
   // 1. Inicializar Diálogo Temporal de Estados / Errores
   statusDialog.init();
 
-  // 2. Inicializar Enrutador de Pestañas Principales (3 Pilares)
+  // 2. Inicializar Enrutador de Pestañas Principales
   router.init();
+  window.router = router;
 
   // 3. Inicializar La Biblioteca de NuevaMente
   bookshelf.init();
 
-  // 4. Inicializar Portada de Bienvenida
+  // 4. Inicializar Portada / Inicio Cósmico
   portada.init();
 
   // 5. Inicializar Pestaña de Ingesta & Pipeline RAG
@@ -31,11 +33,11 @@ document.addEventListener('DOMContentLoaded', () => {
   // 6. Inicializar Centro de Estudio Multi-Formato
   studyHub.init();
 
-  // 7. Suscribir estado al footer de estado
-  setupSystemStatusBar();
+  // 7. Inicializar Monitor en Tiempo Real de Backend FastAPI
+  backendStatus.init();
 
-  // 8. Mostrar y permitir configurar la URL del Backend en el header
-  setupBackendBadge();
+  // 8. Suscribir estado al footer de estado
+  setupSystemStatusBar();
 });
 
 function setupSystemStatusBar() {

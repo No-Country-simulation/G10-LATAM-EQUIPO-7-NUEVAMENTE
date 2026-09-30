@@ -11,6 +11,7 @@ export const router = {
 
   init() {
     this.views = {
+      home: document.getElementById('viewHome'),
       library: document.getElementById('viewLibrary'),
       upload: document.getElementById('viewUpload'),
       study: document.getElementById('viewStudy')
@@ -48,6 +49,16 @@ export const router = {
    * Actualiza el DOM según la pestaña activa
    */
   renderTab(tabName) {
+    document.body.setAttribute('data-active-view', tabName);
+    const bgEl = document.getElementById('globalCosmicBg');
+    if (bgEl) {
+      bgEl.style.opacity = (tabName === 'home') ? '0.75' : '0.35';
+    }
+    const starsEl = document.getElementById('globalCosmicStars');
+    if (starsEl) {
+      starsEl.style.opacity = (tabName === 'home') ? '0.80' : '0.40';
+    }
+
     // Alternar vistas
     Object.keys(this.views).forEach(key => {
       const viewEl = this.views[key];

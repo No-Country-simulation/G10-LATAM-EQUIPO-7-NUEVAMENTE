@@ -12,74 +12,53 @@
 </head>
 <body>
 
+  <!-- Fondo Cósmico Persistente en Toda la Aplicación -->
+  <div class="global-cosmic-bg" id="globalCosmicBg"></div>
+  <div class="global-cosmic-stars" id="globalCosmicStars"></div>
+  <div class="global-cosmic-overlay"></div>
+
   <!-- ========================================================================
-       PORTADA DE BIENVENIDA (SPLASH COVER INMERSIVO)
-       Fondo fotográfico de alta resolución con atmósfera de biblioteca clásica.
-       Al hacer clic en cualquier parte o en el botón dorado, se ingresa al Gran Librero.
+       ENCABEZADO DE LA APLICACIÓN & BARRA DE PESTAÑAS (SPA DESKTOP)
        ======================================================================== -->
-  <aside class="welcome-portada" id="welcomePortada" aria-label="Portada de Bienvenida de NuevaMente">
-    <div class="portada-card" id="portadaCard">
-      <div class="portada-crest">
-        <span class="crest-badge">HACKATHON ONE · GRUPO 10 · LATAM</span>
+  <header class="app-header cosmic-header">
+    <div class="cosmic-brand-group" id="brandHeader" title="NuevaMente - Ir a Inicio" style="cursor: pointer;">
+      <div class="cosmic-window-dots">
+        <span class="cosmic-dot active-dot"></span>
+        <span class="cosmic-dot"></span>
+        <span class="cosmic-dot"></span>
       </div>
+      <div class="cosmic-brand-divider"></div>
+      <img src="LogoPropuesta - Editado.png" alt="Logo NuevaMente" class="header-brand-logo" style="height: 28px;">
+      <span class="cosmic-brand-title">NuevaMente</span>
+      <span class="cosmic-badge-os">Cosmic OS</span>
+    </div>
 
-      <h1 class="portada-title">
-        <span class="portada-welcome-prefix">Bienvenidos a</span>
-        <img src="LogoPropuesta - Editado.png" alt="NuevaMente" class="portada-title-logo">
-      </h1>
-
-      <p class="portada-description">
-        El portal donde cualquier documento o libro cobra vida pedagógica. Explora nuestra colección o procesa tus propios archivos en <strong>Flashcards 3D</strong>, <strong>Quizzes</strong> y <strong>Guiones didácticos</strong> con IA.
-      </p>
-
-      <div class="portada-stats-pill-row">
-        <span class="portada-stat-pill">10 Tomos Clásicos</span>
-        <span class="portada-stat-pill">Contenido Adaptativo</span>
-        <span class="portada-stat-pill">4 Formatos de Estudio</span>
-      </div>
-
-      <button type="button" class="btn-enter-library" id="btnEnterLibrary">
-        <span class="btn-enter-icon"></span>
-        <span class="btn-enter-label">Ingresar a La Biblioteca</span>
-        <span class="btn-enter-arrow">&rarr;</span>
+    <!-- Navegación por Pestañas Principales (SPA) -->
+    <nav class="main-nav-tabs cosmic-nav-tabs" aria-label="Navegación principal">
+      <button type="button" class="nav-tab-btn active cosmic-tab-btn" data-tab="home" title="Inicio / Portada Cósmica">
+        <span>Inicio</span>
       </button>
-
-      <p class="portada-click-anywhere-hint">
-        Haz clic en el botón o en cualquier lugar para ingresar al librero
-      </p>
-    </div>
-  </aside>
-
-  <!-- ========================================================================
-       ENCABEZADO DE LA APLICACIÓN & BARRA DE PESTAÑAS PRINCIPALES (SPA)
-       ======================================================================== -->
-  <header class="app-header">
-    <div class="brand" id="brandHeader" title="NuevaMente - Clic para volver a la Portada de Bienvenida" style="cursor: pointer;">
-      <img src="LogoPropuesta - Editado.png" alt="Logo NuevaMente" class="header-brand-logo">
-      <span class="badge">Hackathon ONE · G10</span>
-    </div>
-
-    <!-- Navegación por Pestañas Principales (3 Pilares) -->
-    <nav class="main-nav-tabs" aria-label="Navegación principal">
-      <button type="button" class="nav-tab-btn active" data-tab="library" title="La Biblioteca de NuevaMente">
+      <button type="button" class="nav-tab-btn cosmic-tab-btn" data-tab="library" title="La Biblioteca de Documentos">
         <span>La Biblioteca</span>
       </button>
-      <button type="button" class="nav-tab-btn" data-tab="upload" title="Carga de Documento">
+      <button type="button" class="nav-tab-btn cosmic-tab-btn" data-tab="upload" title="Carga de Documento">
         <span>Cargar Documento</span>
       </button>
-      <button type="button" class="nav-tab-btn" data-tab="study" title="Centro de Estudio Multi-Formato">
+      <button type="button" class="nav-tab-btn cosmic-tab-btn" data-tab="study" title="Centro de Estudio Multi-Formato">
         <span>Centro de Estudio</span>
       </button>
     </nav>
 
     <!-- Acciones Rápidas del Header -->
     <div class="header-actions">
-      <!-- Indicador de Conexión Backend Real (Sprint 2) -->
-      <div class="header-connection-badge" title="Conectado exclusivamente con Backend FastAPI">
-        <span class="status-dot-pulse"></span>
-        <span>Backend API</span>
-      </div>
+      <button type="button" class="btn-toggle-interactive-mode" id="btnToggleInteractive" title="Alternar entre catálogo ejecutivo y estantería 3D interactiva">
+        <span>✦ Modo Interactivo</span>
+      </button>
 
+      <div class="header-connection-badge status-checking" id="headerBackendBadge" title="Verificando conexión con Backend FastAPI">
+        <span class="status-dot-pulse" id="headerBackendDot"></span>
+        <span id="headerBackendText">Verificando Backend...</span>
+      </div>
     </div>
   </header>
 
@@ -89,33 +68,135 @@
   <main class="app-container">
 
     <!-- ----------------------------------------------------------------------
-         PESTAÑA 1: LA BIBLIOTECA DE NUEVAMENTE
+         PESTAÑA 0: INICIO (HERO CÓSMICO / NEBULA NEURAL)
          ---------------------------------------------------------------------- -->
-    <section id="viewLibrary" class="tab-view active">
-      <div class="library-view-container">
-        
-        <!-- Hero Header del Librero -->
-        <div class="library-hero-header">
-          <span class="library-hero-badge">Tu Espacio de Aprendizaje con IA</span>
-          <h2 class="library-hero-title">
-            <span class="library-title-prefix">La Biblioteca de</span>
-            <img src="LogoPropuesta - Editado.png" alt="NuevaMente" class="library-hero-logo" height="92">
-          </h2>
-          <p class="library-hero-subtitle">
-            Cada libro en la estantería representa un documento analizado. Haz clic en cualquiera para abrirlo y estudiar o añade tu propio PDF a la colección.
-          </p>
+    <section id="viewHome" class="tab-view active">
+      <div class="cosmic-hero-container">
+        <div class="cosmic-crest-pill">
+          <span class="cosmic-crest-dot"></span>
+          <span>HACKATHON ONE · GRUPO 10 · LATAM</span>
         </div>
 
-        <!-- Estantería de Madera con Libros en 3D -->
-        <div class="bookshelf-rack">
-          <!-- Estante Superior (Row 1) -->
-          <div class="shelf-row" id="shelfRow1">
-            <div class="shelf-plank"></div>
+        <h1 class="cosmic-hero-title">
+          El portal donde tu conocimiento <br />
+          <span class="cosmic-gradient-text">cobra vida con Inteligencia Artificial.</span>
+        </h1>
+
+        <p class="cosmic-hero-subtitle">
+          Subí cualquier material de estudio o documento complejo y transformalo con Inteligencia Artificial en múltiples experiencias de aprendizaje interactivo adaptadas a tu nivel y ritmo.
+        </p>
+
+        <div class="cosmic-hero-actions">
+          <button type="button" class="btn-cosmic-primary" id="btnHomeEnterLibrary">
+            <span>Ingresar a la Biblioteca</span>
+            <span>→</span>
+          </button>
+          <button type="button" class="btn-cosmic-secondary" id="btnHomeUpload">
+            <span>+ Cargar Documento</span>
+          </button>
+        </div>
+
+        <div class="cosmic-pillars-grid">
+          <div class="cosmic-pillar-card">
+            <span style="font-weight: 700; color: #c084fc; font-family: monospace;">01</span>
+            <h3 style="font-size: 0.95rem; font-weight: 600; color: #ffffff; margin: 0;">Análisis Inteligente</h3>
+            <p style="font-size: 0.8rem; color: #d4d4d8; line-height: 1.5; margin: 0;">Procesá libros, artículos o apuntes y extraé automáticamente los conceptos e ideas fundamentales.</p>
+          </div>
+          <div class="cosmic-pillar-card">
+            <span style="font-weight: 700; color: #e879f9; font-family: monospace;">02</span>
+            <h3 style="font-size: 0.95rem; font-weight: 600; color: #ffffff; margin: 0;">Formatos Adaptativos</h3>
+            <p style="font-size: 0.8rem; color: #d4d4d8; line-height: 1.5; margin: 0;">Generá dinámicas de estudio personalizadas que se ajustan al estilo y profundidad que necesitás.</p>
+          </div>
+          <div class="cosmic-pillar-card">
+            <span style="font-weight: 700; color: #f472b6; font-family: monospace;">03</span>
+            <h3 style="font-size: 0.95rem; font-weight: 600; color: #ffffff; margin: 0;">Aprendizaje Activo</h3>
+            <p style="font-size: 0.8rem; color: #d4d4d8; line-height: 1.5; margin: 0;">Practicá, evaluá tu progreso en tiempo real y potenciá tu retención de conocimiento a largo plazo.</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ----------------------------------------------------------------------
+         PESTAÑA 1: LA BIBLIOTECA DE NUEVAMENTE
+         ---------------------------------------------------------------------- -->
+    <section id="viewLibrary" class="tab-view">
+      <div class="library-view-container">
+        
+        <!-- Catálogo Cósmico Ejecutivo (Visible por defecto) -->
+        <div class="cosmic-library-catalog">
+          <!-- Ribbon de KPIs -->
+          <div class="cosmic-metrics-grid">
+            <div class="cosmic-metric-card">
+              <span class="cosmic-metric-label">Documentos Indexados</span>
+              <div class="cosmic-metric-val"><span id="metricDocCount">0</span> <span class="cosmic-metric-sub">activos</span></div>
+            </div>
+            <div class="cosmic-metric-card" id="metricBackendCard" title="Clic para reverificar conexión con FastAPI" style="cursor: pointer;">
+              <span class="cosmic-metric-label">Estado Backend</span>
+              <div class="cosmic-metric-val" id="metricBackendVal" style="font-size: 1.25rem;">
+                <span id="metricBackendText">Verificando...</span>
+                <span class="status-dot-pulse" id="metricBackendDot" style="margin-left: 6px;"></span>
+              </div>
+            </div>
           </div>
 
-          <!-- Estante Inferior (Row 2) -->
-          <div class="shelf-row" id="shelfRow2">
-            <div class="shelf-plank"></div>
+          <!-- Barra de Búsqueda del Catálogo -->
+          <div class="cosmic-search-wrapper">
+            <div class="cosmic-search-input-box">
+              <span class="cosmic-search-icon">🔍</span>
+              <input type="text" id="searchDocList" class="cosmic-search-input" placeholder="Buscar documento por título, materia o palabra clave..." autocomplete="off">
+              <button type="button" class="cosmic-search-clear" id="btnClearSearchList" title="Limpiar búsqueda" style="display: none;">&times;</button>
+            </div>
+            <div class="cosmic-search-count" id="searchCountList">0 documentos</div>
+          </div>
+
+          <!-- Filtros Rápidos -->
+          <div class="cosmic-filters-row">
+            <button type="button" class="cosmic-chip active">Todos</button>
+            <button type="button" class="cosmic-chip">Tecnología & Cloud</button>
+            <button type="button" class="cosmic-chip">Legal & Compliance</button>
+            <button type="button" class="cosmic-chip">Operaciones</button>
+            <button type="button" class="cosmic-chip">RRHH</button>
+          </div>
+
+          <!-- Lista de Documentos -->
+          <div class="cosmic-doc-list" id="cosmicDocList">
+            <!-- Renderizado dinámicamente por bookshelf.js -->
+          </div>
+        </div>
+
+        <!-- Estantería de Madera con Libros en 3D (Se activa con Modo Interactivo) -->
+        <div class="interactive-bookshelf-wrapper" id="interactiveBookshelfWrapper">
+          <div class="interactive-shelf-header">
+            <div class="interactive-shelf-badge">
+              <span class="interactive-badge-dot"></span>
+              <span>✦ MODO INTERACTIVO 3D</span>
+            </div>
+            <h2 class="interactive-shelf-title">Tu Estantería de Aprendizaje</h2>
+            <p class="interactive-shelf-subtitle">
+              Explorá los tomos indexados. Hacé clic en cualquiera para abrir su cuaderno de estudio o generar nuevos formatos.
+            </p>
+
+            <!-- Barra de Búsqueda 3D -->
+            <div class="interactive-search-container">
+              <div class="cosmic-search-input-box search-box-3d">
+                <span class="cosmic-search-icon">🔍</span>
+                <input type="text" id="searchDoc3D" class="cosmic-search-input" placeholder="Buscar tomo por título o disciplina..." autocomplete="off">
+                <button type="button" class="cosmic-search-clear" id="btnClearSearch3D" title="Limpiar búsqueda" style="display: none;">&times;</button>
+              </div>
+              <div class="interactive-search-count" id="searchCount3D" style="display: none;"></div>
+            </div>
+          </div>
+
+          <div class="bookshelf-rack">
+            <!-- Estante Superior (Row 1) -->
+            <div class="shelf-row" id="shelfRow1">
+              <div class="shelf-plank"></div>
+            </div>
+
+            <!-- Estante Inferior (Row 2) -->
+            <div class="shelf-row" id="shelfRow2">
+              <div class="shelf-plank"></div>
+            </div>
           </div>
         </div>
 
@@ -182,7 +263,7 @@
               <!-- Perfil (target_profile) -->
               <div class="param-field">
                 <label for="paramPerfil" class="param-label">
-                  <strong>Perfil del Estudiante:</strong>
+                  <strong>Nivel Pedagógico Deseado:</strong>
                 </label>
                 <select id="paramPerfil" class="custom-select">
                   <option value="beginner">Principiante / Conceptos base, analogías y tono accesible</option>
@@ -191,33 +272,15 @@
                 </select>
               </div>
 
-              <!-- Nicho / Temática (niche_context) -->
-              <div class="param-field">
-                <label for="paramNicho" class="param-label">
-                  <strong>Área Temática / Especialidad:</strong>
-                </label>
-                <select id="paramNicho" class="custom-select">
-                  <option value="general" selected>General / Detección universal del documento</option>
-                  <option value="backend">Ingeniería & Software (Backend)</option>
-                  <option value="health">Ciencias Médicas & Salud</option>
-                  <option value="legal">Ciencias Jurídicas & Derecho</option>
-                  <option value="business">Economía & Negocios</option>
-                  <option value="humanities">Humanidades & Educación</option>
-                </select>
-              </div>
-
-              <!-- Formato Inicial de Salida (output_format) -->
-              <div class="param-field">
-                <label for="paramFormato" class="param-label">
-                  <strong>Formato de Salida Solicitado:</strong>
-                </label>
-                <select id="paramFormato" class="custom-select">
-                  <option value="all" selected>Resolver los 4 Formatos (Flashcards, Quiz, Video, Resumen)</option>
-                  <option value="flashcards">Flashcards (Mnemotecnia y Repetición)</option>
-                  <option value="quiz">Quiz (Autoevaluación con Retroalimentación)</option>
-                  <option value="tutorial">Tutorial (Video y Guion Didáctico)</option>
-                  <option value="summary">Resumen (Síntesis Ejecutiva)</option>
-                </select>
+              <!-- Nota informativa de IA / RAG -->
+              <div class="param-auto-info-box">
+                <span class="auto-info-icon">✦</span>
+                <div>
+                  <strong style="color: #e9d5ff;">Detección y Generación Automática por IA:</strong>
+                  <div style="font-size: 0.78rem; color: #a1a1aa; margin-top: 2px;">
+                    El pipeline RAG clasifica automáticamente la materia y genera todos los formatos interactivos (Quiz y Flashcards).
+                  </div>
+                </div>
               </div>
 
               <!-- Botón de Lanzamiento -->
@@ -225,6 +288,43 @@
                 <button type="button" class="btn-launch-rag" id="btnLanzarProcesamiento" style="width: 100%;">
                   <span>Procesar Documento</span>
                 </button>
+              </div>
+
+              <!-- Panel de Pruebas de Códigos de Respuesta Backend (Para Demo) -->
+              <div class="demo-status-tester">
+                <div class="tester-title-row">
+                  <span class="tester-title">Códigos de Respuesta Backend (Demo)</span>
+                  <span class="tester-tag">Dialog Temporal OCI</span>
+                </div>
+                <div class="tester-buttons-grid">
+                  <button type="button" class="btn-tester-code code-success" data-status-test="201" title="Documento nuevo almacenado en OCI">
+                    201 Stored (Nuevo)
+                  </button>
+                  <button type="button" class="btn-tester-code code-success" data-status-test="200" title="Documento duplicado reutilizado">
+                    200 Stored (Duplicado)
+                  </button>
+                  <button type="button" class="btn-tester-code code-error" data-status-test="400" title="Documento inválido o vacío">
+                    400 Vacío / Inválido
+                  </button>
+                  <button type="button" class="btn-tester-code code-error" data-status-test="404" title="Recurso inexistente">
+                    404 Inexistente
+                  </button>
+                  <button type="button" class="btn-tester-code code-error" data-status-test="413" title="Archivo demasiado grande">
+                    413 &gt;10MB
+                  </button>
+                  <button type="button" class="btn-tester-code code-error" data-status-test="415" title="Formato no soportado">
+                    415 Formato/MIME
+                  </button>
+                  <button type="button" class="btn-tester-code code-error" data-status-test="422" title="Validación del request">
+                    422 Validación
+                  </button>
+                  <button type="button" class="btn-tester-code code-error" data-status-test="502" title="Fallo de almacenamiento en OCI">
+                    502 Fallo OCI
+                  </button>
+                  <button type="button" class="btn-tester-code code-error" data-status-test="500" title="Error no controlado en servidor">
+                    500 Error Servidor
+                  </button>
+                </div>
               </div>
             </div>
           </div>
@@ -474,8 +574,8 @@
        ======================================================================== -->
   <footer class="system-status-bar">
     <div class="status-indicator">
-      <div class="status-dot"></div>
-      <span id="ociStatusText">Conectado a Backend API</span>
+      <div class="status-dot" id="footerBackendDot"></div>
+      <span id="ociStatusText">Verificando conexión con Backend...</span>
     </div>
     <div>
       <span id="qualityScoreText">Explorando la biblioteca</span>

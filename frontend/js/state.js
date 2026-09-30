@@ -18,8 +18,8 @@ function loadCustomBooksFromStorage() {
 }
 
 const internalState = {
-  // Navegación principal: 'library' | 'upload' | 'study'
-  activeTab: 'library',
+  // Navegación principal: 'home' | 'library' | 'upload' | 'study'
+  activeTab: 'home',
 
   // Modo de API: Exclusivo Backend Real ('real') para Sprint 2
   apiMode: 'real',

@@ -13,6 +13,16 @@
   --border-ui: rgba(255, 255, 255, 0.1);
   --border-focus: rgba(245, 158, 11, 0.5);
 
+  /* Paleta Cósmica / Nebula Neural */
+  --cosmic-bg: #060609;
+  --cosmic-surface: rgba(14, 12, 25, 0.75);
+  --cosmic-surface-elevated: rgba(22, 19, 38, 0.85);
+  --cosmic-border: rgba(168, 85, 247, 0.20);
+  --cosmic-border-hover: rgba(192, 132, 252, 0.50);
+  --cosmic-accent-purple: #c084fc;
+  --cosmic-accent-magenta: #d946ef;
+  --cosmic-accent-glow: 0 0 20px rgba(168, 85, 247, 0.35);
+
   /* Tipografía y Textos */
   --text-main: #f8fafc;
   --text-secondary: #94a3b8;
