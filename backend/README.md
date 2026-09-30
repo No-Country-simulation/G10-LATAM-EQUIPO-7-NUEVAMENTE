@@ -428,6 +428,40 @@ incluyendo:
 - errores explícitos ante `format_id` duplicado;
 - errores explícitos ante `document_id` inexistente.
 
+### 5. Persistencia validada de documentos y ruta OCI
+
+La relación entre el identificador canónico del documento y su ubicación lógica en Object Storage quedó validada usando `DocumentService`, `SQLiteDocumentRepositoryAdapter` y un `ObjectStoragePort` de prueba.
+
+Flujo comprobado:
+
+```text
+archivo local
+   ↓
+DocumentService.register_document()
+   ↓
+documents.document_id
+   ↓
+DocumentService.store_document()
+   ↓
+documents/{document_id}/original.ext
+   ↓
+documents.oci_object_name
+   ↓
+SQLite
+```
+
+La validación manual confirmó que, después del almacenamiento:
+
+```text
+status = stored
+document_id = doc_...
+oci_object_name = documents/doc_.../original.ext
+```
+
+y que el objeto asociado existe en Object Storage.
+
+Esto garantiza que BackendAPI conserva en la BD de negocio la referencia necesaria para recuperar posteriormente el archivo original sin persistir rutas locales temporales.
+
 ---
 
 ## Stack
@@ -907,7 +941,7 @@ python -m pytest
 
 ```text
 Ruff: All checks passed!
-Pytest: 79 passed
+Pytest: 80 passed
 ```
 
 La suite cubre, entre otros:
@@ -919,6 +953,8 @@ La suite cubre, entre otros:
 - staging temporal;
 - SHA-256 y deduplicación;
 - persistencia de metadata;
+- persistencia de `document_id` y `oci_object_name` en SQLite;
+- reconstrucción desde BD de la relación `document_id → ruta lógica OCI`;
 - almacenamiento y recuperación mediante OCI/Object Storage;
 - compensación ante inconsistencia OCI/BD;
 - transiciones de indexación;
@@ -978,6 +1014,17 @@ status
 content
 chunks_used
 generation_context
+```
+
+Adicionalmente, se validó manualmente la persistencia del documento y su ruta lógica en Object Storage. El flujo creó un `document_id`, almacenó el archivo y volvió a consultar el registro desde SQLite.
+
+Resultado comprobado:
+
+```text
+Document ID: doc_...
+Estado: stored
+Ruta OCI: documents/doc_.../original.ext
+Existe en Object Storage: True
 ```
 
 ---
