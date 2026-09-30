@@ -20,9 +20,18 @@ export const quiz = {
   },
 
   render(quizData) {
-    // Normalizar entrada a un arreglo de preguntas
+    this.quizMeta = {
+      status: quizData?.status || 'success',
+      errorMessage: quizData?.error_message || null,
+      title: quizData?.content?.title || quizData?.title || null,
+      instructions: quizData?.content?.instructions || quizData?.instructions || null
+    };
+
+    // Normalizar entrada a un arreglo de preguntas (soporta content.questions y direct questions)
     if (Array.isArray(quizData)) {
       this.questions = quizData;
+    } else if (quizData && quizData.content && Array.isArray(quizData.content.questions)) {
+      this.questions = quizData.content.questions;
     } else if (quizData && Array.isArray(quizData.questions)) {
       this.questions = quizData.questions;
     } else if (quizData && (quizData.question || quizData.pregunta)) {
@@ -42,17 +51,40 @@ export const quiz = {
     if (feedbackBox) feedbackBox.style.display = 'none';
 
     if (this.questions.length === 0) {
-      questionText.textContent = 'El cuestionario de autoevaluación (Quiz) está en proceso de generación.';
-      optionsList.innerHTML = `
-        <div style="text-align: center; padding: 2rem 1rem; color: var(--text-secondary);">
-          <p style="font-size: 0.95rem; margin-bottom: 0.5rem;">
-            Las preguntas de autoevaluación se generarán automáticamente a partir del contenido indexado por el Backend.
-          </p>
-          <span style="font-size: 0.8rem; color: var(--accent-gold);">
-            Consejo: Asegúrate de que el pipeline RAG haya finalizado de analizar tu documento.
-          </span>
-        </div>
-      `;
+      if (this.quizMeta?.status === 'failed') {
+        questionText.textContent = 'Cuestionario (Quiz) No Disponible';
+        optionsList.innerHTML = `
+          <div style="text-align: center; padding: 2rem 1rem; color: #ef4444;">
+            <p style="font-size: 0.95rem; margin-bottom: 0.5rem;">
+              ${this.quizMeta.errorMessage || 'Ocurrió un error al generar las preguntas de autoevaluación.'}
+            </p>
+            <span style="font-size: 0.8rem; color: var(--text-secondary);">
+              Puedes continuar estudiando con las Flashcards mientras el sistema reintenta este formato.
+            </span>
+          </div>
+        `;
+      } else if (this.quizMeta?.status === 'no_results') {
+        questionText.textContent = 'Sin preguntas generadas';
+        optionsList.innerHTML = `
+          <div style="text-align: center; padding: 2rem 1rem; color: var(--text-secondary);">
+            <p style="font-size: 0.95rem; margin-bottom: 0.5rem;">
+              El documento no contiene suficiente información para formular un cuestionario.
+            </p>
+          </div>
+        `;
+      } else {
+        questionText.textContent = 'El cuestionario de autoevaluación (Quiz) está en proceso de generación.';
+        optionsList.innerHTML = `
+          <div style="text-align: center; padding: 2rem 1rem; color: var(--text-secondary);">
+            <p style="font-size: 0.95rem; margin-bottom: 0.5rem;">
+              Las preguntas de autoevaluación se generarán automáticamente a partir del contenido indexado por el Backend.
+            </p>
+            <span style="font-size: 0.8rem; color: var(--accent-gold);">
+              Consejo: Asegúrate de que el pipeline RAG haya finalizado de analizar tu documento.
+            </span>
+          </div>
+        `;
+      }
       return;
     }
 
@@ -89,10 +121,21 @@ export const quiz = {
     const allButtons = optionsList.querySelectorAll('.quiz-option-btn');
     allButtons.forEach(b => b.disabled = true);
 
-    let correctIndex = currentQ.correct_answer;
-    if (correctIndex === undefined) correctIndex = currentQ.correct_index;
-    if (correctIndex === undefined) correctIndex = currentQ.correcta;
-    if (correctIndex === undefined && typeof currentQ.answer === 'number') correctIndex = currentQ.answer;
+    const options = currentQ.options || currentQ.opciones || currentQ.choices || [];
+
+    // Resolver correctIndex soportando tanto texto exacto como número de índice
+    let correctIndex = -1;
+    const rawCorrect = currentQ.correct_answer ?? currentQ.correct_index ?? currentQ.correcta ?? currentQ.answer;
+
+    if (typeof rawCorrect === 'number') {
+      correctIndex = rawCorrect;
+    } else if (typeof rawCorrect === 'string') {
+      // Búsqueda insensible a mayúsculas y espacios en la lista de opciones
+      correctIndex = options.findIndex(opt => opt.trim().toLowerCase() === rawCorrect.trim().toLowerCase());
+      if (correctIndex === -1 && !isNaN(parseInt(rawCorrect, 10))) {
+        correctIndex = parseInt(rawCorrect, 10);
+      }
+    }
 
     const isCorrect = selectedIndex === correctIndex;
 
@@ -104,7 +147,7 @@ export const quiz = {
       }
     } else {
       allButtons[selectedIndex]?.classList.add('incorrect');
-      if (correctIndex !== undefined && allButtons[correctIndex]) {
+      if (correctIndex >= 0 && allButtons[correctIndex]) {
         allButtons[correctIndex].classList.add('correct');
       }
       if (feedbackBadge) {
