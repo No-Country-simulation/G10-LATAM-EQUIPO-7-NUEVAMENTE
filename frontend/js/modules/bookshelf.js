@@ -6,6 +6,7 @@
 import { state } from '../state.js';
 import { apiClient } from '../api/apiClient.js';
 import { router } from './router.js';
+import { showcaseWorlds } from '../data/showcaseWorlds.js';
 
 export const bookshelf = {
   elements: {},
@@ -115,6 +116,25 @@ export const bookshelf = {
     return 'Ciencias Generales';
   },
 
+  getShortDisciplineTag(discipline) {
+    if (!discipline) return 'General';
+    const d = discipline.toLowerCase();
+    if (d.includes('software') || d.includes('cloud')) return 'Cloud & Dev';
+    if (d.includes('médica') || d.includes('neuro') || d.includes('salud') || d.includes('bio')) return 'Biología';
+    if (d.includes('inteligencia') || d.includes('ia') || d.includes('machine')) return 'Inteligencia Art.';
+    if (d.includes('derecho') || d.includes('legal') || d.includes('juríd')) return 'Derecho';
+    if (d.includes('economía') || d.includes('negocios')) return 'Economía';
+    if (d.includes('filosofía') || d.includes('human')) return 'Humanidades';
+    return discipline;
+  },
+
+  getLevelLabel(perfil) {
+    const p = (perfil || '').toLowerCase();
+    if (p === 'beginner' || p === 'principiante') return 'Principiante';
+    if (p === 'advanced' || p === 'avanzado') return 'Avanzado';
+    return 'Intermedio';
+  },
+
   bindElements() {
     this.elements = {
       solarPlanetsLayer: document.getElementById('solarPlanetsLayer'),
@@ -173,6 +193,14 @@ export const bookshelf = {
         spineColor: currentDoc.spineColor || 'amber'
       });
     }
+
+    // Incorporar los Mundos de estudio del Sistema Solar (showcaseWorlds)
+    // para que la galaxia se mantenga viva, poblada y navegable visualmente
+    showcaseWorlds.forEach(sw => {
+      if (!booksMap.has(sw.id)) {
+        booksMap.set(sw.id, sw);
+      }
+    });
 
     const books = Array.from(booksMap.values());
     this.allBooks = books;
@@ -439,7 +467,7 @@ export const bookshelf = {
     router.navigate('study');
 
     // Tarea 7: Solicitar los formatos al Backend del libro abierto (GET /documents/{id}/formats)
-    if (book.id) {
+    if (book.id && !book.id.startsWith('world_')) {
       try {
         const formats = await apiClient.getDocumentFormats(book.id);
         if (formats && (formats.flashcards || formats.quiz || formats.summary || formats.tutorial || formats.formats)) {
