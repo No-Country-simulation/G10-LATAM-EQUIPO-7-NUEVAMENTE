@@ -1,6 +1,12 @@
 {
   "document_id": "DOC-001",
   "format": "flashcards",
+  "generation_context": {
+    "profile": "student",
+    "niche": "technology",
+    "detail_level": "beginner",
+    "learning_objective": "Comprender conceptos básicos de FastAPI"
+  },
   "generated_content": {
     "title": "Flashcards sobre FastAPI",
     "instructions": "Intenta responder antes de revisar el reverso.",

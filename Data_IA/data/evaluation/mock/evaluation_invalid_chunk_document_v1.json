@@ -1,6 +1,12 @@
 {
   "document_id": "DOC-001",
   "format": "quiz",
+  "generation_context": {
+    "profile": "student",
+    "niche": "technology",
+    "detail_level": "beginner",
+    "learning_objective": "Comprender conceptos básicos de FastAPI"
+  },
   "generated_content": {
     "title": "Quiz con chunk inválido",
     "instructions": "Selecciona la respuesta correcta.",

@@ -1,9 +1,12 @@
 """
 Tests automáticos del contrato de evaluación de formatos.
 
-Valida los cinco mocks de Sprint 2:
+Valida los mocks de Sprint 2 y el contexto de generación:
 - 2 payloads válidos deben ser aceptados.
 - 3 payloads inválidos deben fallar por la razón esperada.
+- generation_context debe ser obligatorio.
+- learning_objective debe ser opcional.
+- no se permiten campos adicionales en generation_context.
 """
 
 import json
@@ -49,6 +52,14 @@ def test_valid_format_evaluation_payloads(filename: str, expected_format: str):
     assert result.format == expected_format
     assert len(result.chunks_used) >= 1
 
+    assert result.generation_context.profile == "student"
+    assert result.generation_context.niche == "technology"
+    assert result.generation_context.detail_level == "beginner"
+    assert (
+        result.generation_context.learning_objective
+        == "Comprender conceptos básicos de FastAPI"
+    )
+
 
 @pytest.mark.parametrize(
     ("filename", "expected_error"),
@@ -78,3 +89,38 @@ def test_invalid_format_evaluation_payloads_fail_for_expected_reason(
         evaluation_request_adapter.validate_python(payload)
 
     assert expected_error in str(exc_info.value)
+
+
+def test_missing_generation_context_is_rejected():
+    """generation_context es obligatorio."""
+    payload = load_mock("evaluation_quiz_valid_v1.json")
+    payload.pop("generation_context")
+
+    with pytest.raises(ValidationError) as exc_info:
+        evaluation_request_adapter.validate_python(payload)
+
+    assert "generation_context" in str(exc_info.value)
+
+
+def test_learning_objective_is_optional():
+    """learning_objective puede omitirse sin invalidar el request."""
+    payload = load_mock("evaluation_quiz_valid_v1.json")
+    payload["generation_context"].pop("learning_objective")
+
+    result = evaluation_request_adapter.validate_python(payload)
+
+    assert result.generation_context.profile == "student"
+    assert result.generation_context.niche == "technology"
+    assert result.generation_context.detail_level == "beginner"
+    assert result.generation_context.learning_objective is None
+
+
+def test_generation_context_rejects_unknown_fields():
+    """generation_context no permite campos adicionales."""
+    payload = load_mock("evaluation_quiz_valid_v1.json")
+    payload["generation_context"]["unknown_field"] = "unexpected"
+
+    with pytest.raises(ValidationError) as exc_info:
+        evaluation_request_adapter.validate_python(payload)
+
+    assert "unknown_field" in str(exc_info.value)

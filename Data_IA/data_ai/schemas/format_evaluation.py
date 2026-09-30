@@ -7,6 +7,7 @@ Sprint 2:
     document_id
     format
     generated_content
+    generation_context
     chunks_used
 - Data/IA devuelve:
     document_id
@@ -209,6 +210,52 @@ class ChunkUsed(StrictModel):
         description="Texto del chunk utilizado como evidencia.",
     )
 
+# ============================================================
+# CONTEXTO DE GENERACIÓN
+# ============================================================
+
+class GenerationContext(StrictModel):
+    """
+    Contexto utilizado por Agentes para adaptar el contenido generado.
+
+    Estos valores deben corresponder a los mismos parámetros utilizados
+    durante /generate para que Data/IA pueda evaluar la adaptación
+    didáctica con una referencia explícita.
+    """
+
+    profile: str = Field(
+        ...,
+        min_length=1,
+        description=(
+            "Perfil objetivo utilizado durante la generación "
+            "(por ejemplo: student, professional, general_public)."
+        ),
+    )
+
+    niche: str = Field(
+        ...,
+        min_length=1,
+        description=(
+            "Área, dominio o nicho para el que se generó el contenido."
+        ),
+    )
+
+    detail_level: str = Field(
+        ...,
+        min_length=1,
+        description=(
+            "Nivel de profundidad utilizado durante la generación."
+        ),
+    )
+
+    learning_objective: str | None = Field(
+        default=None,
+        min_length=1,
+        description=(
+            "Objetivo de aprendizaje específico, si fue proporcionado "
+            "durante la generación."
+        ),
+    )
 
 # ============================================================
 # REQUEST BASE
@@ -221,6 +268,13 @@ class EvaluationRequestBase(StrictModel):
         ...,
         min_length=1,
         description="Identificador del documento original.",
+    )
+    generation_context: GenerationContext = Field(
+        ...,
+        description=(
+            "Contexto utilizado durante la generación del contenido. "
+            "Sirve como referencia para evaluar adaptación didáctica."
+        ),
     )
     chunks_used: List[ChunkUsed] = Field(
         ...,
@@ -392,6 +446,7 @@ class EvaluationResponse(StrictModel):
 
 __all__ = [
     "ChunkUsed",
+    "GenerationContext",
     "EvaluationRequest",
     "EvaluationRequestBase",
     "EvaluationResponse",
