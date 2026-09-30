@@ -42,8 +42,9 @@ def health() -> dict[str, str]:
 )
 def evaluate_format(request: EvaluationRequest) -> EvaluationResponse:
     """
-    Recibe un Quiz o conjunto de Flashcards junto con los chunks usados
-    como evidencia.
+    Recibe un Quiz o conjunto de Flashcards junto con:
+    - el contexto utilizado durante la generación;
+    - los chunks usados como evidencia.
 
     FastAPI + Pydantic validan el contrato antes de entrar a esta función.
     La lógica de calidad se integrará aquí cuando el reviewer/evaluator
@@ -55,6 +56,7 @@ def evaluate_format(request: EvaluationRequest) -> EvaluationResponse:
     # result = quality_evaluator.evaluate(
     #     generated_content=request.generated_content,
     #     chunks_used=request.chunks_used,
+    #     generation_context=request.generation_context,
     # )
     #
     # return EvaluationResponse(
