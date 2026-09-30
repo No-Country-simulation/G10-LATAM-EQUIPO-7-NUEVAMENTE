@@ -1,20 +1,20 @@
-"""Contrato entre BackendAPI y el módulo RAG."""
+"""Puerto para la integración entre BackendAPI y RAG."""
 
 from dataclasses import dataclass
 from typing import Protocol
 
 
-class RagError(Exception):
-    """Error general durante una operación solicitada al módulo RAG."""
+class RAGError(Exception):
+    """Error general durante una operación solicitada a RAG."""
 
 
 @dataclass(frozen=True, slots=True)
-class RagDocumentInput:
+class RAGDocumentInput:
     """Documento entregado por BackendAPI al módulo RAG.
 
-    BackendAPI es responsable de recuperar físicamente el archivo desde
-    Object Storage antes de construir este contrato. RAG no necesita conocer
-    detalles de OCI ni referencias internas de almacenamiento.
+    BackendAPI recupera físicamente el archivo desde Object Storage antes
+    de construir este contrato. RAG no necesita conocer detalles de OCI
+    ni referencias internas de almacenamiento.
 
     Attributes:
         document_id: Identificador canónico generado por BackendAPI.
@@ -29,20 +29,19 @@ class RagDocumentInput:
     content: bytes
 
 
-class RagPort(Protocol):
-    """Operaciones del módulo RAG requeridas por BackendAPI."""
+class RAGPort(Protocol):
+    """Define las operaciones de RAG requeridas por BackendAPI."""
 
     async def index_document(
         self,
-        document: RagDocumentInput,
+        document: RAGDocumentInput,
     ) -> None:
-        """Entrega un documento al módulo RAG para iniciar su indexación.
+        """Entrega un documento al módulo RAG para su indexación.
 
         Args:
             document: Documento recuperado y preparado por BackendAPI.
 
         Raises:
-            RagError: Si el módulo RAG no acepta o no puede procesar
-                la solicitud.
+            RAGError: Si RAG no acepta o no puede procesar la solicitud.
         """
         ...

@@ -1,0 +1,1 @@
+﻿"""Configuración y utilidades transversales de BackendAPI."""

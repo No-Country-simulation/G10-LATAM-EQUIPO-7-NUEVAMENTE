@@ -1,4 +1,4 @@
-"""Contrato para almacenamiento persistente de objetos."""
+"""Puerto para almacenamiento persistente de objetos."""
 
 from pathlib import Path
 from typing import Protocol
@@ -11,8 +11,9 @@ class ObjectStorageError(Exception):
 class ObjectStorageConfigurationError(ObjectStorageError):
     """La configuración del proveedor de objetos es inválida."""
 
+
 class ObjectStoragePort(Protocol):
-    """Define las operaciones requeridas sobre almacenamiento de objetos."""
+    """Define las operaciones de almacenamiento requeridas por BackendAPI."""
 
     def upload_file(
         self,
@@ -27,10 +28,17 @@ class ObjectStoragePort(Protocol):
             local_path: Ruta temporal del archivo que será almacenado.
             object_name: Identificador lógico del objeto.
             content_type: MIME type del contenido, cuando esté disponible.
+
+        Raises:
+            ObjectStorageError: Si el proveedor no permite almacenar
+                el objeto.
         """
         ...
 
-    def download_file(self, object_name: str) -> bytes:
+    def download_file(
+        self,
+        object_name: str,
+    ) -> bytes:
         """Recupera el contenido completo de un objeto.
 
         Args:
@@ -38,13 +46,24 @@ class ObjectStoragePort(Protocol):
 
         Returns:
             Contenido binario del objeto.
+
+        Raises:
+            ObjectStorageError: Si el proveedor no permite recuperar
+                el objeto.
         """
         ...
 
-    def delete_object(self, object_name: str) -> None:
+    def delete_object(
+        self,
+        object_name: str,
+    ) -> None:
         """Elimina un objeto almacenado.
 
         Args:
             object_name: Identificador del objeto.
+
+        Raises:
+            ObjectStorageError: Si el proveedor no permite eliminar
+                el objeto.
         """
         ...

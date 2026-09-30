@@ -1,4 +1,4 @@
-"""Endpoints HTTP relacionados con documentos."""
+﻿"""Endpoints HTTP relacionados con documentos."""
 
 from collections.abc import AsyncIterator
 from pathlib import Path
@@ -25,8 +25,8 @@ from app.application.document_service import (
     DocumentStorageError,
 )
 from app.core.config import settings
-from app.ports.object_storage import ObjectStoragePort
-from app.ports.temporary_storage import (
+from app.ports.object_storage_port import ObjectStoragePort
+from app.ports.temporary_storage_port import (
     FileTooLargeError,
     TemporaryStoragePort,
 )

@@ -1,21 +1,29 @@
-"""Pruebas unitarias de la integración con OCI Object Storage."""
+﻿"""Pruebas unitarias del adaptador OCI Object Storage."""
 
 from types import SimpleNamespace
 
 import pytest
 
-from app.infrastructure.storage.oci_object_storage import (
-    OCIObjectStorage,
+from app.infrastructure.storage.oci_object_storage_adapter import (
+    OCIObjectStorageAdapter,
 )
-from app.ports.object_storage import ObjectStorageError
+from app.ports.object_storage_port import (
+    ObjectStorageError,
+)
 
 
 class FakeOCIClient:
     """Cliente OCI controlado para verificar operaciones de lectura."""
 
-    def __init__(self, content: bytes) -> None:
+    def __init__(
+        self,
+        content: bytes,
+    ) -> None:
         self._content = content
-        self.last_request: dict[str, str] | None = None
+        self.last_request: dict[
+            str,
+            str,
+        ] | None = None
 
     def get_object(
         self,
@@ -54,11 +62,15 @@ class FailingOCIClient:
 
 def test_download_file_returns_object_content() -> None:
     """Devuelve exactamente los bytes recibidos desde OCI."""
-    expected_content = b"contenido almacenado en OCI"
+    expected_content = (
+        b"contenido almacenado en OCI"
+    )
 
-    client = FakeOCIClient(expected_content)
+    client = FakeOCIClient(
+        expected_content
+    )
 
-    storage = OCIObjectStorage(
+    storage = OCIObjectStorageAdapter(
         namespace="namespace-test",
         bucket_name="bucket-test",
         client=client,
@@ -83,7 +95,7 @@ def test_download_file_returns_object_content() -> None:
 
 def test_download_file_wraps_oci_error() -> None:
     """Un error del SDK se expone mediante ObjectStorageError."""
-    storage = OCIObjectStorage(
+    storage = OCIObjectStorageAdapter(
         namespace="namespace-test",
         bucket_name="bucket-test",
         client=FailingOCIClient(),

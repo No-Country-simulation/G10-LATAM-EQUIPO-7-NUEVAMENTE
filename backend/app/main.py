@@ -1,28 +1,37 @@
-"""Punto de entrada de la aplicación FastAPI."""
+﻿"""Punto de entrada de la aplicación FastAPI."""
 
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
 
+import httpx
 import uvicorn
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.api.v1.router import api_router
 from app.application.document_service import DocumentService
+from app.application.rag_integration_service import (
+    RAGIntegrationService,
+)
 from app.core.config import settings
 from app.core.exceptions import register_exception_handlers
 from app.core.logging import setup_logging
+from app.infrastructure.integrations.http_rag_adapter import (
+    HTTPRAGAdapter,
+)
 from app.infrastructure.persistence.repository_factory import (
     create_document_repository,
 )
-from app.infrastructure.storage.oci_object_storage import (
-    OCIObjectStorage,
+from app.infrastructure.storage.oci_object_storage_adapter import (
+    OCIObjectStorageAdapter,
 )
 from app.schemas.common import ErrorResponse
 
 
 @asynccontextmanager
-async def lifespan(app: FastAPI) -> AsyncIterator[None]:
+async def lifespan(
+    app: FastAPI,
+) -> AsyncIterator[None]:
     """Inicializa y libera recursos utilizados por BackendAPI."""
     setup_logging()
 
@@ -30,11 +39,11 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
         settings.DATABASE_URL
     )
 
-    app.state.document_service = DocumentService(
+    document_service = DocumentService(
         document_repository
     )
-    
-    app.state.object_storage = OCIObjectStorage(
+
+    object_storage = OCIObjectStorageAdapter(
         namespace=settings.OCI_NAMESPACE,
         bucket_name=settings.OCI_BUCKET_NAME,
         region=settings.OCI_REGION,
@@ -42,21 +51,53 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
         config_profile=settings.OCI_CONFIG_PROFILE,
     )
 
-    yield
+    async with httpx.AsyncClient(
+        base_url=settings.RAG_BASE_URL,
+        timeout=settings.RAG_TIMEOUT_SECONDS,
+    ) as rag_http_client:
+        rag_adapter = HTTPRAGAdapter(
+            client=rag_http_client,
+            index_path=settings.RAG_INDEX_PATH,
+        )
+
+        rag_integration_service = RAGIntegrationService(
+            document_service=document_service,
+            object_storage=object_storage,
+            rag=rag_adapter,
+        )
+
+        app.state.document_service = document_service
+        app.state.object_storage = object_storage
+        app.state.rag_integration_service = (
+            rag_integration_service
+        )
+
+        yield
 
 
 def create_app() -> FastAPI:
+    """Construye la aplicación FastAPI."""
     app = FastAPI(
         title=settings.PROJECT_NAME,
         description=settings.DESCRIPTION,
         version=settings.VERSION,
         docs_url=settings.docs_url,
         redoc_url=None,
-        openapi_url=None if settings.is_production else "/openapi.json",
+        openapi_url=(
+            None
+            if settings.is_production
+            else "/openapi.json"
+        ),
         lifespan=lifespan,
         responses={
-            422: {"model": ErrorResponse, "description": "Error de validación"},
-            500: {"model": ErrorResponse, "description": "Error interno"},
+            422: {
+                "model": ErrorResponse,
+                "description": "Error de validación",
+            },
+            500: {
+                "model": ErrorResponse,
+                "description": "Error interno",
+            },
         },
     )
 
@@ -68,16 +109,29 @@ def create_app() -> FastAPI:
         allow_headers=["*"],
     )
 
-    register_exception_handlers(app)
-    app.include_router(api_router, prefix=settings.API_V1_PREFIX)
+    register_exception_handlers(
+        app
+    )
 
-    @app.get("/", tags=["root"], summary="Información del servicio")
+    app.include_router(
+        api_router,
+        prefix=settings.API_V1_PREFIX,
+    )
+
+    @app.get(
+        "/",
+        tags=["root"],
+        summary="Información del servicio",
+    )
     async def root() -> dict[str, str]:
         return {
             "service": settings.PROJECT_NAME,
             "version": settings.VERSION,
             "environment": settings.ENVIRONMENT,
-            "docs": settings.docs_url or "deshabilitado en producción",
+            "docs": (
+                settings.docs_url
+                or "deshabilitado en producción"
+            ),
         }
 
     return app
