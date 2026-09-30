@@ -110,17 +110,20 @@ export const studyHub = {
 
     // Tarea 7 y 8: Resolver formatos generados por Backend (GET /documents/{id}/formats)
     const backendFormats = hubState.formats || {};
+    const globalStatus = hubState.formatsStatus;
 
     // 1. Flashcards (Tarea 8)
     const flashcardsData = backendFormats.flashcards 
       || activeSection?.flashcards 
-      || (backendFormats.cards ? backendFormats.cards : null);
+      || (backendFormats.cards ? backendFormats.cards : null)
+      || (globalStatus === 'processing' ? { status: 'processing' } : null);
     flashcards.render(flashcardsData);
 
     // 2. Quiz (Tarea 8)
     const quizData = backendFormats.quiz 
       || activeSection?.quiz 
-      || (backendFormats.questions ? backendFormats.questions : null);
+      || (backendFormats.questions ? backendFormats.questions : null)
+      || (globalStatus === 'processing' ? { status: 'processing' } : null);
     quiz.render(quizData);
 
     // 3. Tutorial / Video (Extensible)

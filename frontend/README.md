@@ -105,10 +105,10 @@ frontend/
 
 El Frontend está alineado con el contrato v1 cerrado y funcional del Backend.
 
-### 1. Carga del documento
+### 1. Carga del documento (POST /api/v1/documents)
 
 - **Endpoint:** `POST {BASE_URL}/api/v1/documents`
-- **Body:** `multipart/form-data` con campo `file`
+- **Body:** `multipart/form-data` con campo `file` (PDF, DOCX, TXT, MD; máx. 10 MB)
 - **Respuesta (201 Creado / 200 Duplicado existente):**
   ```json
   {
@@ -118,67 +118,101 @@ El Frontend está alineado con el contrato v1 cerrado y funcional del Backend.
     "duplicate": false
   }
   ```
-- Errores posibles: `400` (documento vacío), `413` (supera 10 MB), `415` (formato no soportado), `502` (fallo al almacenar).
+- **Errores:** `400` (vacío), `413` (>10 MB), `415` (no soportado), `502` (fallo de persistencia OCI).
 
-### 2. Adaptación pedagógica del contenido
+### 2. Listar documentos para La Biblioteca (GET /api/v1/documents)
 
-- **Endpoint:** `POST {BASE_URL}/api/v1/adaptations`
+- **Endpoint:** `GET {BASE_URL}/api/v1/documents`
 - **Content-Type:** `application/json`
-- **Request Body:**
+- **Respuesta (200 OK):** Soporta tanto array directo `[...]` como wrapper `{ "items": [...] }`.
+  ```json
+  [
+    {
+      "document_id": "doc_123",
+      "filename": "manual.pdf",
+      "status": "stored",
+      "size_bytes": 1048576,
+      "created_at": "2026-09-30T12:00:00Z",
+      "title": "Manual de Arquitectura",
+      "summary": "Resumen ejecutivo del documento analizado."
+    }
+  ]
+  ```
+
+### 3. Consultar detalle del documento (GET /api/v1/documents/{document_id})
+
+- **Endpoint:** `GET {BASE_URL}/api/v1/documents/{document_id}`
+- **Respuesta (200 OK):**
   ```json
   {
-    "document_id": "doc_e7a935bc87ff",
-    "target_profile": "beginner",
-    "output_format": "flashcards",
-    "niche_context": "backend"
+    "document_id": "doc_123",
+    "filename": "manual.pdf",
+    "status": "indexed",
+    "content_type": "application/pdf",
+    "size_bytes": 1048576,
+    "created_at": "2026-09-30T12:00:00Z",
+    "updated_at": "2026-09-30T12:05:00Z",
+    "title": "Manual de Arquitectura",
+    "summary": "Resumen ejecutivo del documento analizado.",
+    "estimated_time": "10 min"
   }
   ```
 
-  | Campo | Valores permitidos |
-  |---|---|
-  | `target_profile` | `beginner` \| `intermediate` \| `advanced` |
-  | `output_format` | `flashcards` \| `quiz` \| `tutorial` \| `summary` \| `all` |
-  | `niche_context` | `general` \| `backend` \| `health` \| `legal` \| `business` \| `humanities` |
+### 4. Consultar formatos generados (GET /api/v1/documents/{document_id}/formats)
 
-- **Response Body (200 OK):**
+- **Endpoint:** `GET {BASE_URL}/api/v1/documents/{document_id}/formats`
+- **Respuesta (200 OK):** Contrato canónico acordado entre Backend, Agentes, Data/IA y Frontend.
   ```json
   {
-    "status": "completed",
-    "document_id": "doc_e7a935bc87ff",
-    "metadata": {
-      "target_profile": "beginner",
-      "output_format": "flashcards",
-      "niche_context": "backend"
-    },
-    "quality_evaluation": {
-      "source_faithfulness": 0.99,
-      "pedagogical_coherence": 0.98,
-      "overall_score": 0.985
-    },
-    "adapted_content": {
-      "title": "Arquitectura Backend & Servidores",
-      "flashcards": [
-        {
-          "front": "¿Qué es un Endpoint en una REST API?",
-          "back": "Es una dirección URL específica para consultar o modificar datos en el servidor.",
-          "didactic_hint": "Es como el buzón específico al que envías una solicitud."
-        }
-      ]
+    "document_id": "doc_123",
+    "status": "ready",
+    "formats": {
+      "quiz": {
+        "format_id": "fmt_quiz_123",
+        "status": "success",
+        "content": {
+          "title": "Quiz de arquitectura de software",
+          "instructions": "Seleccione la respuesta correcta.",
+          "questions": [
+            {
+              "question_id": "q1",
+              "question": "¿Qué caracteriza a un microservicio?",
+              "options": [
+                "Despliegue independiente",
+                "Base de datos obligatoriamente compartida",
+                "Una única aplicación monolítica",
+                "Ausencia de interfaces"
+              ],
+              "correct_answer": "Despliegue independiente",
+              "explanation": "Un microservicio puede desplegarse y evolucionar de manera independiente."
+            }
+          ]
+        },
+        "error_message": null
+      },
+      "flashcards": {
+        "format_id": "fmt_flashcards_123",
+        "status": "success",
+        "content": {
+          "title": "Flashcards de arquitectura de software",
+          "instructions": "Revise cada concepto y su explicación.",
+          "cards": [
+            {
+              "card_id": "card_1",
+              "front": "Microservicio",
+              "back": "Servicio pequeño que puede desplegarse y evolucionar independientemente."
+            }
+          ]
+        },
+        "error_message": null
+      }
     }
   }
   ```
 
-  El contenido de `adapted_content` varía según `output_format` solicitado:
-
-  | `output_format` | Campo presente en `adapted_content` | Forma |
-  |---|---|---|
-  | `flashcards` | `flashcards` | Array de `{ front, back, didactic_hint }` |
-  | `quiz` | `quiz` | `{ question, options[], correct_answer, explanation }` |
-  | `tutorial` | `tutorial` | `{ title, duration, key_points[] }` |
-  | `summary` | `summary` | `{ executive_summary, key_takeaways[], key_terms[] }` |
-  | `all` | los cuatro campos anteriores juntos | — |
-
-  `detail_level` está excluido del contrato v1: la profundidad y el tono se derivan directamente de `target_profile`.
+  - **Estados por formato:** `success`, `failed`, `no_results`.
+  - **Estados globales del endpoint:** `processing`, `ready`, `partial`, `error`.
+  - **Resolución didáctica:** En Frontend, `quiz.js` resuelve `correct_answer` tanto por texto exacto de la opción como por índice numérico; `flashcards.js` renderiza `content.cards` y mensajes pedagógicos ante fallos parciales o estados en proceso (`processing`).
 
 ### Manejo de errores
 
