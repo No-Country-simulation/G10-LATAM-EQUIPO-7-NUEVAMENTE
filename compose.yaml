@@ -1,0 +1,28 @@
+services:
+  backend:
+    build:
+      context: ./backend
+
+    container_name: nuevamente-backend
+
+    restart: unless-stopped
+
+    ports:
+      - "127.0.0.1:8000:8000"
+
+    environment:
+      ENVIRONMENT: staging
+      DEBUG: "false"
+
+      DATABASE_URL: sqlite:///storage/nuevamente.db
+
+      OCI_CONFIG_FILE: /run/oci/config
+      OCI_CONFIG_PROFILE: DEFAULT
+      OCI_NAMESPACE: axrhuqxl8oyi
+      OCI_BUCKET_NAME: bucket-nuevamente-2026
+      OCI_REGION: sa-bogota-1
+
+    volumes:
+      - /opt/nuevamente/data/backend:/app/storage
+      - /opt/nuevamente/secrets/oci/config:/run/oci/config:ro
+      - /opt/nuevamente/secrets/oci/backend.pem:/run/oci/backend.pem:ro
