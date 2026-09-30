@@ -70,6 +70,23 @@ class FakeDocumentRepository:
             document
         )
 
+    def find_all(
+        self,
+    ) -> list[Document]:
+        """Retorna documentos desde el más reciente."""
+        documents = sorted(
+            self.documents.values(),
+            key=lambda document: document.created_at,
+            reverse=True,
+        )
+
+        return [
+            deepcopy(
+                document
+            )
+            for document in documents
+        ]
+
     def update(
         self,
         document: Document,

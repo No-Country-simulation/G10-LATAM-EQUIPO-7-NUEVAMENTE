@@ -22,6 +22,7 @@ Actualmente están implementados:
 - Endpoint de salud.
 - `POST /api/v1/documents` para cargar documentos mediante `multipart/form-data`.
 - `GET /api/v1/documents/{document_id}` para consultar metadata y estado.
+- `GET /api/v1/documents` para  listar documentos de la biblioteca
 - Admisión de archivos PDF, Markdown (`.md`) y TXT.
 - Validación de extensión y MIME type declarado.
 - Rechazo de archivos vacíos.
@@ -872,7 +873,6 @@ El modelo y el caso de uso ya están preparados.
 Pendiente exponer el flujo que utilizará Frontend para:
 
 - solicitar generación;
-- consultar biblioteca de documentos;
 - consultar formatos persistidos;
 - recuperar metadata enriquecida;
 - incorporar `detail_level` en el contrato Frontend → Backend.

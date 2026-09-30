@@ -46,3 +46,15 @@ class DocumentResponse(DocumentBaseResponse):
     )
     created_at: datetime
     updated_at: datetime
+
+
+class DocumentListResponse(BaseSchema):
+    """Listado de documentos disponibles en la biblioteca."""
+
+    documents: list[DocumentResponse] = Field(
+        default_factory=list,
+        description=(
+            "Documentos activos disponibles para consulta "
+            "desde la biblioteca."
+        ),
+    )

@@ -25,6 +25,7 @@ from app.application.document_service import (
     DocumentStorageError,
 )
 from app.core.config import settings
+from app.domain.document import Document
 from app.ports.object_storage_port import ObjectStoragePort
 from app.ports.temporary_storage_port import (
     FileTooLargeError,
@@ -32,6 +33,7 @@ from app.ports.temporary_storage_port import (
 )
 from app.schemas.document import (
     DocumentCreatedResponse,
+    DocumentListResponse,
     DocumentResponse,
 )
 
@@ -109,6 +111,21 @@ def _validate_document_type(
                 "con un formato admitido."
             ),
         )
+
+
+def _to_document_response(
+    document: Document,
+) -> DocumentResponse:
+    """Convierte la entidad de dominio al contrato HTTP público."""
+    return DocumentResponse(
+        document_id=document.document_id,
+        filename=document.original_filename,
+        status=document.status,
+        content_type=document.content_type,
+        size_bytes=document.size_bytes,
+        created_at=document.created_at,
+        updated_at=document.updated_at,
+    )
 
 
 @router.post(
@@ -254,6 +271,37 @@ async def upload_document(
 
 
 @router.get(
+    "",
+    response_model=DocumentListResponse,
+    status_code=status.HTTP_200_OK,
+    summary="Listar documentos activos",
+    description=(
+        "Retorna los documentos persistidos y disponibles "
+        "para consulta desde la biblioteca."
+    ),
+)
+async def list_documents(
+    document_service: Annotated[
+        DocumentService,
+        Depends(get_document_service),
+    ],
+) -> DocumentListResponse:
+    """Obtiene los documentos activos de la biblioteca."""
+    documents = (
+        document_service.list_active_documents()
+    )
+
+    return DocumentListResponse(
+        documents=[
+            _to_document_response(
+                document
+            )
+            for document in documents
+        ]
+    )
+
+
+@router.get(
     "/{document_id}",
     response_model=DocumentResponse,
     status_code=status.HTTP_200_OK,
@@ -286,12 +334,6 @@ async def get_document(
             detail=str(exc),
         ) from exc
 
-    return DocumentResponse(
-        document_id=document.document_id,
-        filename=document.original_filename,
-        status=document.status,
-        content_type=document.content_type,
-        size_bytes=document.size_bytes,
-        created_at=document.created_at,
-        updated_at=document.updated_at,
+    return _to_document_response(
+        document
     )
