@@ -1,0 +1,30 @@
+{
+  "document_id": "DOC-001",
+  "format": "quiz",
+  "generated_content": {
+    "title": "Quiz inválido",
+    "instructions": "Selecciona la respuesta correcta.",
+    "questions": [
+      {
+        "question_id": "Q1",
+        "question": "¿Qué clase se utiliza para crear una aplicación FastAPI?",
+        "options": [
+          "FastAPI",
+          "Flask",
+          "Django"
+        ],
+        "correct_answer": "Bottle",
+        "explanation": "Este caso debe fallar porque la respuesta correcta no está en options."
+      }
+    ]
+  },
+  "chunks_used": [
+    {
+      "chunk_id": "DOC-001_CH_001",
+      "document_id": "DOC-001",
+      "rank": 1,
+      "score": 0.91,
+      "text": "Para crear una aplicación se instancia la clase FastAPI."
+    }
+  ]
+}

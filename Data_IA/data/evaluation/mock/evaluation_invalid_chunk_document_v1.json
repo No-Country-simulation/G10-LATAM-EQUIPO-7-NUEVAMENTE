@@ -1,0 +1,29 @@
+{
+  "document_id": "DOC-001",
+  "format": "quiz",
+  "generated_content": {
+    "title": "Quiz con chunk inválido",
+    "instructions": "Selecciona la respuesta correcta.",
+    "questions": [
+      {
+        "question_id": "Q1",
+        "question": "¿Qué clase se utiliza?",
+        "options": [
+          "FastAPI",
+          "Flask"
+        ],
+        "correct_answer": "FastAPI",
+        "explanation": "La respuesta correcta es FastAPI."
+      }
+    ]
+  },
+  "chunks_used": [
+    {
+      "chunk_id": "DOC-999_CH_001",
+      "document_id": "DOC-999",
+      "rank": 1,
+      "score": 0.88,
+      "text": "Este chunk pertenece a otro documento y debe provocar error."
+    }
+  ]
+}
