@@ -4,7 +4,12 @@ from pathlib import Path
 
 from fastapi import Request
 
-from app.application.document_service import DocumentService
+from app.application.document_service import (
+    DocumentService,
+)
+from app.application.generated_format_query_service import (
+    GeneratedFormatQueryService,
+)
 from app.application.rag_integration_service import (
     RAGIntegrationService,
 )
@@ -12,8 +17,12 @@ from app.core.config import settings
 from app.infrastructure.storage.local_temporary_storage_adapter import (
     LocalTemporaryStorageAdapter,
 )
-from app.ports.object_storage_port import ObjectStoragePort
-from app.ports.temporary_storage_port import TemporaryStoragePort
+from app.ports.object_storage_port import (
+    ObjectStoragePort,
+)
+from app.ports.temporary_storage_port import (
+    TemporaryStoragePort,
+)
 
 
 def get_document_service(
@@ -29,6 +38,24 @@ def get_document_service(
     if service is None:
         raise RuntimeError(
             "DocumentService no fue inicializado."
+        )
+
+    return service
+
+
+def get_generated_format_query_service(
+    request: Request,
+) -> GeneratedFormatQueryService:
+    """Obtiene el servicio de consulta de formatos generado."""
+    service = getattr(
+        request.app.state,
+        "generated_format_query_service",
+        None,
+    )
+
+    if service is None:
+        raise RuntimeError(
+            "GeneratedFormatQueryService no fue inicializado."
         )
 
     return service
