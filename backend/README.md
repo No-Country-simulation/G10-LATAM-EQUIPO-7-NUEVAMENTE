@@ -23,6 +23,13 @@ Actualmente están implementados:
 - `POST /api/v1/documents` para cargar documentos mediante `multipart/form-data`.
 - `GET /api/v1/documents/{document_id}` para consultar metadata y estado.
 - `GET /api/v1/documents` para listar documentos disponibles en la biblioteca.
+- Contrato de detalle preparado para metadata enriquecida futura mediante:
+  - `title`
+  - `summary`
+  - `estimated_time`
+- Los campos enriquecidos anteriores son opcionales y actualmente se exponen como `null` mientras no exista una fuente real para calcularlos.
+- `formats_status` no forma parte del detalle del documento; el estado de formatos se expondrá mediante `GET /api/v1/documents/{document_id}/formats`.
+- El contrato de `GET /api/v1/documents` permanece independiente del contrato de detalle y no incluye los campos enriquecidos anteriores.
 - Admisión de archivos PDF, Markdown (`.md`) y TXT.
 - Validación de extensión y MIME type declarado.
 - Rechazo de archivos vacíos.
@@ -330,7 +337,7 @@ permite conservar historial de evaluaciones sin sobrescribir resultados anterior
 
 ## Cambios recientes
 
-Los últimos cambios relevantes de BackendAPI consolidan cuatro frentes.
+Los últimos cambios relevantes de BackendAPI consolidan seis frentes.
 
 ### 1. Estandarización de Ports y Adapters
 
@@ -338,11 +345,11 @@ Convención actual:
 
 ```text
 ports/
-├── agents_port.py               → AgentsPort
-├── document_repository_port.py  → DocumentRepositoryPort
-├── object_storage_port.py       → ObjectStoragePort
-├── rag_port.py                  → RAGPort
-└── temporary_storage_port.py    → TemporaryStoragePort
+├── agents_port.py                → AgentsPort
+├── document_repository_port.py   → DocumentRepositoryPort
+├── object_storage_port.py        → ObjectStoragePort
+├── rag_port.py                   → RAGPort
+└── temporary_storage_port.py     → TemporaryStoragePort
 ```
 
 Implementaciones concretas:
@@ -461,6 +468,53 @@ oci_object_name = documents/doc_.../original.ext
 y que el objeto asociado existe en Object Storage.
 
 Esto garantiza que BackendAPI conserva en la BD de negocio la referencia necesaria para recuperar posteriormente el archivo original sin persistir rutas locales temporales.
+
+### 6. Contrato de detalle de documento preparado para Frontend
+
+El contrato HTTP de detalle quedó preparado para metadata enriquecida futura sin modificar el contrato ya cerrado del listado de biblioteca.
+
+`GET /api/v1/documents/{document_id}` expone:
+
+```json
+{
+  "document_id": "doc_123",
+  "filename": "manual.pdf",
+  "status": "indexed",
+  "content_type": "application/pdf",
+  "size_bytes": 1024,
+  "created_at": "2026-09-30T12:00:00Z",
+  "updated_at": "2026-09-30T12:05:00Z",
+  "title": null,
+  "summary": null,
+  "estimated_time": null
+}
+```
+
+Los campos:
+
+```text
+title
+summary
+estimated_time
+```
+
+son opcionales y actualmente permanecen en `null` hasta que exista una fuente real para calcularlos.
+
+`formats_status` se excluye deliberadamente de este recurso. La disponibilidad y el estado de Quiz y Flashcards pertenecerán a:
+
+```text
+GET /api/v1/documents/{document_id}/formats
+```
+
+De esta forma se evita mantener dos representaciones potencialmente inconsistentes del estado de generación.
+
+El contrato de biblioteca permanece independiente:
+
+```text
+GET /api/v1/documents
+```
+
+y continúa exponiendo solamente la metadata base de cada documento.
 
 ---
 
@@ -797,6 +851,8 @@ backend/
 │   ├── unit/
 │   │   ├── test_document_service.py
 │   │   ├── test_document_indexing_state.py
+│   │   ├── test_document_schemas.py
+│   │   ├── test_documents_list_api.py
 │   │   ├── test_rag_integration_service.py
 │   │   ├── test_http_rag_adapter.py
 │   │   ├── test_format_generation_service.py
@@ -844,10 +900,53 @@ Formatos soportados:
 GET /api/v1/documents
 ```
 
+Contrato actual:
+
+```json
+{
+  "documents": [
+    {
+      "document_id": "doc_123",
+      "filename": "manual.pdf",
+      "status": "indexed",
+      "content_type": "application/pdf",
+      "size_bytes": 1024,
+      "created_at": "2026-09-30T12:00:00Z",
+      "updated_at": "2026-09-30T12:05:00Z"
+    }
+  ]
+}
+```
+
 ### Consultar documento
 
 ```text
 GET /api/v1/documents/{document_id}
+```
+
+Contrato actual:
+
+```json
+{
+  "document_id": "doc_123",
+  "filename": "manual.pdf",
+  "status": "indexed",
+  "content_type": "application/pdf",
+  "size_bytes": 1024,
+  "created_at": "2026-09-30T12:00:00Z",
+  "updated_at": "2026-09-30T12:05:00Z",
+  "title": null,
+  "summary": null,
+  "estimated_time": null
+}
+```
+
+Los campos `title`, `summary` y `estimated_time` forman parte del contrato público, pero su cálculo o enriquecimiento todavía no está implementado.
+
+`formats_status` no forma parte de este endpoint. El estado de los formatos se expondrá desde el recurso específico:
+
+```text
+GET /api/v1/documents/{document_id}/formats
 ```
 
 > La generación de formatos y la evaluación continúan siendo casos de uso internos de BackendAPI. Los endpoints públicos adicionales hacia Frontend se incorporarán en las tarjetas correspondientes.
@@ -978,7 +1077,11 @@ La suite cubre, entre otros:
 - persistencia de generaciones fallidas;
 - rechazo explícito de `format_id` duplicado;
 - rechazo explícito de formatos asociados a documentos inexistentes;
-- modelo y persistencia preparados para evaluaciones.
+- modelo y persistencia preparados para evaluaciones;
+- contrato HTTP del detalle de documento;
+- presencia de `title`, `summary` y `estimated_time` como metadata opcional;
+- exclusión de `formats_status` del detalle del documento;
+- separación entre el contrato de listado y el contrato de detalle.
 
 La BD fue validada manualmente para comprobar las tablas:
 
@@ -1027,6 +1130,29 @@ Ruta OCI: documents/doc_.../original.ext
 Existe en Object Storage: True
 ```
 
+También se realizó una validación HTTP manual del contrato de detalle usando un documento real previamente indexado.
+
+Se comprobó:
+
+```text
+GET /api/v1/documents/{document_id}
+→ status = indexed
+→ title = null
+→ summary = null
+→ estimated_time = null
+→ formats_status ausente
+```
+
+y posteriormente:
+
+```text
+GET /api/v1/documents
+```
+
+continuó devolviendo únicamente la metadata base, sin incorporar `title`, `summary`, `estimated_time` ni `formats_status`.
+
+Esta prueba confirma que el contrato de detalle puede evolucionar de forma independiente sin modificar el contrato de biblioteca ya integrado por Frontend.
+
 ---
 
 ## Pendientes
@@ -1048,10 +1174,10 @@ El contrato acordado debe entregar:
 ```text
 document_id
 results[]
-  ├── format
-  ├── status
-  ├── content canónico
-  └── chunks_used completos
+ ├── format
+ ├── status
+ ├── content canónico
+ └── chunks_used completos
 ```
 
 ### Backend → Data/IA
@@ -1074,8 +1200,8 @@ Pendiente exponer el flujo que utilizará Frontend para:
 
 - solicitar generación;
 - consultar formatos persistidos mediante `GET /documents/{id}/formats`;
-- recuperar metadata enriquecida;
-- incorporar `detail_level` en el contrato Frontend → Backend.
+- incorporar `detail_level` en el contrato Frontend → Backend;
+- poblar posteriormente `title`, `summary` y `estimated_time` cuando exista una fuente real para generar esos valores.
 
 ### Otros pendientes
 

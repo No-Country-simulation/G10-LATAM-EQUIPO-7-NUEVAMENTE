@@ -6,7 +6,10 @@ import pytest
 from fastapi.testclient import TestClient
 
 from app.core.config import settings
-from tests.fakes import FailingObjectStorage, FakeObjectStorage
+from tests.fakes import (
+    FailingObjectStorage,
+    FakeObjectStorage,
+)
 
 
 @pytest.mark.parametrize(
@@ -43,22 +46,26 @@ def test_upload_valid_document(
 
     body = response.json()
 
-    assert body["document_id"].startswith("doc_")
+    assert body["document_id"].startswith(
+        "doc_"
+    )
     assert body["filename"] == filename
     assert body["status"] == "stored"
     assert body["duplicate"] is False
 
-    # El archivo temporal debe eliminarse después del almacenamiento.
     stored_files = list(
         temporary_upload_directory.iterdir()
     )
 
     assert stored_files == []
 
-    # El archivo debe haberse enviado al Object Storage falso.
-    assert len(object_storage.uploaded_objects) == 1
+    assert len(
+        object_storage.uploaded_objects
+    ) == 1
 
-    extension = Path(filename).suffix.lower()
+    extension = Path(
+        filename
+    ).suffix.lower()
 
     expected_object_name = (
         f"documents/{body['document_id']}/"
@@ -243,15 +250,15 @@ def test_duplicate_document_reuses_document_id(
     assert first_body["duplicate"] is False
     assert second_body["duplicate"] is True
 
-    # Ninguna copia temporal debe permanecer después de los requests.
     stored_files = list(
         temporary_upload_directory.iterdir()
     )
 
     assert stored_files == []
 
-    # El mismo contenido solo debe existir una vez en Object Storage.
-    assert len(object_storage.uploaded_objects) == 1
+    assert len(
+        object_storage.uploaded_objects
+    ) == 1
 
     expected_object_name = (
         f"documents/{first_body['document_id']}/"
@@ -276,7 +283,10 @@ def test_upload_requires_document(
     )
 
     assert response.status_code == 422
-    assert response.json()["errors"][0]["field"] == "file"
+    assert (
+        response.json()["errors"][0]["field"]
+        == "file"
+    )
 
 
 def test_get_registered_document(
@@ -285,7 +295,7 @@ def test_get_registered_document(
     temporary_upload_directory: Path,
     object_storage: FakeObjectStorage,
 ) -> None:
-    """Consulta la metadata de un documento almacenado."""
+    """Consulta la metadata pública de un documento almacenado."""
     file_content = b"contenido persistido"
 
     create_response = client.post(
@@ -301,7 +311,9 @@ def test_get_registered_document(
 
     assert create_response.status_code == 201
 
-    document_id = create_response.json()["document_id"]
+    document_id = (
+        create_response.json()["document_id"]
+    )
 
     response = client.get(
         f"{api_prefix}/documents/{document_id}"
@@ -315,11 +327,25 @@ def test_get_registered_document(
     assert body["filename"] == "manual.txt"
     assert body["status"] == "stored"
     assert body["content_type"] == "text/plain"
-    assert body["size_bytes"] == len(file_content)
+    assert (
+        body["size_bytes"]
+        == len(file_content)
+    )
+
     assert "created_at" in body
     assert "updated_at" in body
 
-    # El documento debe existir en el almacenamiento persistente falso.
+    # Metadata enriquecida acordada con Frontend.
+    # Mientras no exista una fuente real para calcularla,
+    # debe formar parte del contrato con valor null.
+    assert body["title"] is None
+    assert body["summary"] is None
+    assert body["estimated_time"] is None
+
+    # El estado de los formatos pertenece al endpoint
+    # GET /documents/{document_id}/formats.
+    assert "formats_status" not in body
+
     expected_object_name = (
         f"documents/{document_id}/original.txt"
     )
@@ -331,7 +357,6 @@ def test_get_registered_document(
         == file_content
     )
 
-    # El temporal ya no debe existir.
     assert list(
         temporary_upload_directory.iterdir()
     ) == []
