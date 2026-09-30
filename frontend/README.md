@@ -182,13 +182,27 @@ El Frontend está alineado con el contrato v1 cerrado y funcional del Backend.
 
 ### Manejo de errores
 
-Ambos endpoints devuelven errores en un formato consistente que el Frontend traduce a mensajes legibles (`js/api/apiClient.js`), y que se muestran al usuario mediante el diálogo de estado (`statusDialog.js`) y notificaciones toast (`notifications.js`). Códigos contemplados: `400`, `404`, `408` (timeout), `413`, `415`, `422`, `500`, `502`, y `0` (Backend no disponible / CORS).
+El cliente HTTP (`js/api/apiClient.js`) traduce las respuestas del Backend a mensajes legibles, desplegados mediante el diálogo de estado (`statusDialog.js`) y notificaciones toast (`notifications.js`). Códigos contemplados y probados: `200`, `201`, `400`, `404`, `408` (timeout de 30s), `413` (límite 10 MB), `415`, `422`, `500`, `502` (error OCI), y `0` (Backend no disponible / fallo de red).
 
 ---
 
-## Estado actual de la integración
+## Estado Actual de la Integración (Sprint 2)
 
-- Carga y persistencia real de documentos contra el Backend: **funcional**.
-- Solicitud de adaptación pedagógica (`/adaptations`) contra el Backend: **funcional**, usando el contrato descrito arriba.
-- Manejo de errores end-to-end (archivo inválido, backend caído, timeout, duplicados): **implementado**.
-- Configuración de la URL del Backend por entorno (sin hardcodear): **pendiente**.
+- **Carga y persistencia real en Backend y OCI (`POST /documents`):** ✅ **Funcional** (Tarea 1).
+- **Límite máximo de 10 MB validado en cliente:** ✅ **Funcional** (Tarea 4).
+- **Manejo UX integral de códigos HTTP y errores:** ✅ **Funcional** (Tarea 5).
+- **Consulta y renderizado de la biblioteca (`GET /documents`):** ✅ **Funcional** (Tarea 6).
+- **Consulta de formatos del libro (`GET /documents/{id}/formats`):** ✅ **Funcional** (Tarea 7).
+- **Visualizador pedagógico de Quiz y Flashcards:** ✅ **Funcional** (Tarea 8).
+- **Configuración desacoplada y Vite.js (sin URL hardcodeada):** ✅ **Funcional** (Tarea 3).
+- **Modo único real (sin mocks):** ✅ **Completado**.
+
+---
+
+## 📌 Deuda Técnica Registrada (Integración Pipeline RAG / Agentes)
+
+> **Registro Oficial de Deuda Técnica (Sprint 2):**  
+> Actualmente la interfaz marca como completados los pasos posteriores a la subida en el stepper de carga (*Indexación/Embeddings*, *Vinculación de Formatos* y *Validación del Crítico*) mediante estados visuales temporales (`wait`), sin confirmación real en tiempo de ejecución por parte del Backend/Agentes (cuyo pipeline RAG opera de forma asíncrona).
+>
+> **Acción Futura Requerida (Sprint 3 / Próxima Iteración):**  
+> Cuando el equipo de Backend y Agentes exponga el endpoint de seguimiento de procesos asíncronos (e.g. `GET /processes/{id}` o eventos en tiempo real SSE / WebSockets), estos pasos deberán sustituir la espera simulada por una escucha reactiva o sondeo del estado real del servicio (`PENDING` ➔ `PROCESSING` ➔ `COMPLETED` / `FAILED`), reflejando con fidelidad matemática el progreso del pipeline.
