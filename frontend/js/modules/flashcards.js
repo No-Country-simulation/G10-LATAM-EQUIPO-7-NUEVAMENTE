@@ -77,7 +77,17 @@ export const flashcards = {
   },
 
   render(cardsList) {
-    this.cards = cardsList || [];
+    if (Array.isArray(cardsList)) {
+      this.cards = cardsList;
+    } else if (cardsList && Array.isArray(cardsList.cards)) {
+      this.cards = cardsList.cards;
+    } else if (cardsList && Array.isArray(cardsList.flashcards)) {
+      this.cards = cardsList.flashcards;
+    } else if (cardsList && Array.isArray(cardsList.items)) {
+      this.cards = cardsList.items;
+    } else {
+      this.cards = [];
+    }
     this.currentIndex = 0;
     this.isFlipped = false;
     this.updateCardDisplay();
@@ -118,8 +128,9 @@ export const flashcards = {
     card.classList.remove('flipped');
 
     if (this.cards.length === 0) {
-      if (frontText) frontText.textContent = 'No hay flashcards disponibles para esta sección.';
-      if (backText) backText.textContent = '';
+      if (frontText) frontText.textContent = 'No hay flashcards generadas aún para este documento.';
+      if (backText) backText.textContent = 'Las flashcards se generarán automáticamente a través del pipeline RAG.';
+      if (hintText) hintText.textContent = 'Consejo: Sube un documento o espera a que el Backend complete la indexación.';
       if (progressTop) progressTop.textContent = '0 / 0';
       if (counterText) counterText.textContent = '0 de 0';
       if (btnPrev) btnPrev.disabled = true;
@@ -131,9 +142,29 @@ export const flashcards = {
     const total = this.cards.length;
     const currentNum = this.currentIndex + 1;
 
-    if (frontText) frontText.textContent = currentCard.front || currentCard.frente;
-    if (backText) backText.textContent = currentCard.back || currentCard.dorso;
-    if (hintText) hintText.textContent = currentCard.didactic_hint || currentCard.pista_didactica || 'Reflexiona sobre el concepto clave de la pregunta.';
+    if (frontText) {
+      frontText.textContent = currentCard.front 
+        || currentCard.frente 
+        || currentCard.question 
+        || currentCard.pregunta 
+        || currentCard.concept 
+        || 'Concepto clave';
+    }
+    if (backText) {
+      backText.textContent = currentCard.back 
+        || currentCard.dorso 
+        || currentCard.answer 
+        || currentCard.respuesta 
+        || currentCard.definition 
+        || 'Explicación didáctica';
+    }
+    if (hintText) {
+      hintText.textContent = currentCard.didactic_hint 
+        || currentCard.pista_didactica 
+        || currentCard.hint 
+        || currentCard.pista 
+        || 'Reflexiona sobre el concepto clave de la pregunta.';
+    }
 
     if (progressTop) progressTop.textContent = `${currentNum} / ${total}`;
     if (counterText) counterText.textContent = `Tarjeta ${currentNum} de ${total}`;

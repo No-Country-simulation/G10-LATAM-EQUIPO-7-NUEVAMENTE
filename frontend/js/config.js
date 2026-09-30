@@ -68,8 +68,10 @@ export const CONFIG = {
     V1_PREFIX: '/api/v1',
     ENDPOINTS: {
       HEALTH: '/health',
+      DOCUMENTS: '/documents',
       UPLOAD_FILE: '/documents',
-      ADAPT_RAG: '/adaptations' // Endpoint de pipeline RAG (contrato v1)
+      DOCUMENT_DETAILS: (id) => `/documents/${id}`,
+      DOCUMENT_FORMATS: (id) => `/documents/${id}/formats`
     },
     TIMEOUT_MS: resolveTimeoutMs()
   },

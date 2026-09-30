@@ -11,28 +11,31 @@ Debido al uso de módulos nativos ES6 (`import` / `export`), los navegadores req
 
 Tienes cualquiera de estas 3 formas sencillas:
 
-### Opción 1: Con Python
+### Opción 1: Con Vite (Estándar recomendado)
+Abre tu terminal en la carpeta `frontend` y ejecuta:
+```bash
+npm install
+npm run dev
+```
+Vite iniciará el servidor de desarrollo en [http://localhost:3000](http://localhost:3000) con Hot Module Replacement (HMR).
+
+### Opción 2: Con Python
 Abre tu terminal en la carpeta `frontend` y ejecuta:
 ```bash
 python -m http.server 3000
 ```
-Luego abre en tu navegador: [http://localhost:3000](http://localhost:3000)
 
-### Opción 2: Con la extensión Live Server de VS Code
+### Opción 3: Con la extensión Live Server de VS Code
 1. Abre la carpeta `frontend` en Visual Studio Code.
 2. Haz clic derecho sobre `index.html`.
 3. Selecciona **"Open with Live Server"**.
 
-### Opción 3: Con Node / npx
-```bash
-npx serve .
-```
+### Conexión con Backend (FastAPI)
 
-### Backend en paralelo
-
-El Frontend está conectado exclusivamente al Backend real (FastAPI) — ya no existe un modo demo/mock alternable desde la interfaz. Para que la carga y generación de contenido funcionen, el Backend debe estar corriendo en simultáneo (por defecto en `http://localhost:8000`, ver [`../backend/README.md`](../backend/README.md)), con CORS habilitado para el origen donde sirvas el Frontend.
-
-> **Limitación conocida:** la URL del Backend está definida como constante en `js/config.js` (`CONFIG.API.DEFAULT_BASE_URL`). Si corrés el Backend en otro host/puerto, hay que editar ese archivo a mano. Reemplazar esto por variables de entorno (por ejemplo mediante Vite) es una tarea pendiente del Sprint 2, todavía no implementada.
+El Frontend está conectado exclusivamente al Backend real (FastAPI). La URL se desacopló completamente:
+- Se configura en el archivo `.env` mediante `VITE_API_BASE_URL` (ver `.env.example`).
+- Soporta configuración dinámica en caliente desde la interfaz haciendo clic en el badge **"Backend API"** del header.
+- Por defecto apunta a `http://localhost:8000` con timeout de 30 segundos.
 
 ---
 
@@ -42,6 +45,9 @@ El Frontend está conectado exclusivamente al Backend real (FastAPI) — ya no e
 frontend/
 ├── index.html                   # Orquestador de vistas SPA (Single Page Application)
 ├── README.md                    # Este documento
+├── package.json                 # Scripts y dependencias de Vite.js
+├── vite.config.js               # Configuración del servidor de desarrollo Vite
+├── .env.example                 # Plantilla pública de variables de entorno
 ├── css/
 │   ├── main.css                 # Importador central de hojas de estilo modulares
 │   ├── variables.css            # Tokens de diseño, Glassmorphism y paleta dorada/cyan
@@ -54,16 +60,11 @@ frontend/
 │   ├── portada.css              # Portada de bienvenida a pantalla completa
 │   └── modals.css               # Modales de utilidad y diálogo de estado del Backend
 └── js/
-    ├── config.js                # Configuración global, endpoints del Backend y límites
+    ├── config.js                # Configuración desacoplada (Vite .env, runtime y límites)
     ├── state.js                 # Almacén de estado reactivo global (Store con Observable)
     ├── main.js                  # Punto de entrada y montaje de la aplicación
     ├── api/
-    │   ├── apiClient.js         # Cliente HTTP fetch hacia el Backend (multipart, adaptación)
-    │   └── mockService.js       # Utilidades compartidas de generación (inferencia de disciplina)
-    │
-    ├── data/
-    │   └── sampleLibrary.js     # Banco de documentos de muestra precargados
-    │
+    │   └── apiClient.js         # Cliente HTTP fetch hacia el Backend (FastAPI real)
     └── modules/
         ├── router.js            # Enrutador de pestañas (Biblioteca, Carga, Centro de Estudio)
         ├── portada.js           # Controlador de la portada de bienvenida y transición

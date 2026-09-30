@@ -4,25 +4,111 @@
  */
 
 import { state } from '../state.js';
-import { sampleLibrary } from '../data/sampleLibrary.js';
+import { apiClient } from '../api/apiClient.js';
 import { router } from './router.js';
 
 export const bookshelf = {
   elements: {},
   currentSelectedBook: null,
+  booksFromBackend: [],
+  isLoadingBackend: false,
 
-  init() {
+  async init() {
     this.bindElements();
     this.renderShelf();
     this.setupModalEvents();
 
-    // Re-renderizar si cambia el documento cargado o la biblioteca
+    // Tarea 6: Solicitar los libros existentes al Backend (GET /api/v1/documents)
+    await this.fetchBackendBooks();
+
+    // Re-renderizar si cambia el documento cargado o si el usuario navega a La Biblioteca
     state.subscribe((s) => {
-      // Si el documento activo no está en la biblioteca visual, lo agregamos dinámicamente
-      if (s.currentDocument && !sampleLibrary[s.currentDocument.id]) {
+      if (s.activeTab === 'library' || s.currentDocument) {
         this.renderShelf();
       }
     });
+  },
+
+  /**
+   * Consulta los documentos persistidos en el Backend (GET /documents)
+   * Diagrama C - Flujo de Consulta desde la Biblioteca
+   */
+  async fetchBackendBooks() {
+    try {
+      this.isLoadingBackend = true;
+      this.showShelfLoading(true);
+
+      const docs = await apiClient.getDocuments();
+
+      if (Array.isArray(docs) && docs.length > 0) {
+        const customColors = ['gold-custom', 'ruby', 'cyan', 'purple', 'emerald', 'sapphire', 'amber'];
+        this.booksFromBackend = docs.map((doc, idx) => {
+          const rawTitle = doc.title || doc.filename || doc.original_filename || `Documento ${idx + 1}`;
+          const cleanTitle = rawTitle.replace(/\.[^/.]+$/, '').replace(/[-_]/g, ' ').trim();
+          const formattedTitle = cleanTitle.charAt(0).toUpperCase() + cleanTitle.slice(1);
+          const docId = doc.document_id || doc.id || `doc_${idx}`;
+          const ext = (doc.filename || doc.original_filename || 'pdf').split('.').pop().toUpperCase();
+          const discipline = doc.discipline || this.inferDiscipline(cleanTitle);
+
+          return {
+            id: docId,
+            title: formattedTitle,
+            filename: doc.filename || doc.original_filename || `${cleanTitle}.pdf`,
+            discipline: discipline,
+            spineColor: customColors[idx % customColors.length],
+            description: doc.summary || doc.description || `Documento persistido en Backend y OCI Object Storage.`,
+            filesize: doc.size_bytes ? `${(doc.size_bytes / (1024 * 1024)).toFixed(1)} MB` : '1.5 MB',
+            status: doc.status || 'stored',
+            metadatos: {
+              document_id: docId,
+              tiempo_estudio: doc.estimated_time || '8 min',
+              perfil: doc.target_profile || 'intermediate',
+              formato: ext
+            },
+            sections: doc.sections || [
+              {
+                id: `sec_${docId}`,
+                title: formattedTitle,
+                summary: doc.summary || `Contenido de ${formattedTitle} analizado por NuevaMente.`,
+                key_concepts: [discipline, 'Concepto Clave', 'Persistencia OCI']
+              }
+            ]
+          };
+        });
+        console.log(`[Bookshelf] ${this.booksFromBackend.length} libros recuperados desde Backend API.`);
+      } else {
+        this.booksFromBackend = [];
+      }
+    } catch (err) {
+      console.log('[Bookshelf] Backend GET /documents no disponible aún o sin conexión:', err.message);
+      this.booksFromBackend = [];
+    } finally {
+      this.isLoadingBackend = false;
+      this.showShelfLoading(false);
+      this.renderShelf();
+    }
+  },
+
+  showShelfLoading(isLoading) {
+    const subtitle = document.querySelector('.library-hero-subtitle');
+    if (!subtitle) return;
+    if (isLoading) {
+      subtitle.setAttribute('data-original-text', subtitle.textContent);
+      subtitle.innerHTML = '<span class="status-dot-pulse" style="display:inline-block; margin-right:6px;"></span> Sincronizando libros con Backend API...';
+    } else {
+      const orig = subtitle.getAttribute('data-original-text');
+      if (orig) subtitle.textContent = orig;
+    }
+  },
+
+  inferDiscipline(title) {
+    const lower = (title || '').toLowerCase();
+    if (lower.includes('cloud') || lower.includes('software') || lower.includes('codigo') || lower.includes('programacion') || lower.includes('arquitectura') || lower.includes('microservicio') || lower.includes('api')) return 'Ingeniería de Software';
+    if (lower.includes('med') || lower.includes('neuro') || lower.includes('salud') || lower.includes('bio') || lower.includes('farmac') || lower.includes('clinica')) return 'Ciencias Médicas & Biología';
+    if (lower.includes('ley') || lower.includes('derecho') || lower.includes('legal') || lower.includes('constitucion') || lower.includes('norma') || lower.includes('jurid')) return 'Ciencias Jurídicas & Derecho';
+    if (lower.includes('negocio') || lower.includes('econom') || lower.includes('finanz') || lower.includes('market') || lower.includes('empresa')) return 'Economía & Negocios';
+    if (lower.includes('data') || lower.includes('ia') || lower.includes('inteligencia') || lower.includes('machine') || lower.includes('learning')) return 'Inteligencia Artificial';
+    return 'Ciencias Generales';
   },
 
   bindElements() {
@@ -52,29 +138,69 @@ export const bookshelf = {
     if (!shelfRow1) return;
 
     shelfRow1.innerHTML = '<div class="shelf-plank"></div>';
-    if (shelfRow2) shelfRow2.innerHTML = '<div class="shelf-plank"></div>';
+    if (shelfRow2) {
+      shelfRow2.innerHTML = '<div class="shelf-plank"></div>';
+      shelfRow2.style.display = 'flex';
+    }
 
-    const books = Object.values(sampleLibrary);
-    
-    // Si hay libros personalizados en customBooks o en currentDocument, los agregamos primero al estante
+    // Unificar libros reales sin duplicados:
+    // 1. Libros recuperados desde Backend (GET /documents)
+    // 2. Libros subidos en cliente (state.customBooks)
+    const booksMap = new Map();
     const customBooks = state.get().customBooks || [];
-    const customColors = ['gold-custom', 'ruby', 'cyan', 'purple', 'emerald'];
-    
+    const customColors = ['gold-custom', 'ruby', 'cyan', 'purple', 'emerald', 'sapphire', 'amber'];
+
+    // Priorizar customBooks subidos por el usuario en esta u otras sesiones
     customBooks.forEach((cDoc, idx) => {
-      if (!books.find(b => b.id === cDoc.id)) {
-        books.unshift({
-          ...cDoc,
-          spineColor: cDoc.spineColor || customColors[idx % customColors.length]
-        });
+      booksMap.set(cDoc.id, {
+        ...cDoc,
+        spineColor: cDoc.spineColor || customColors[idx % customColors.length]
+      });
+    });
+
+    // Agregar libros provenientes del Backend si no están ya en el mapa
+    (this.booksFromBackend || []).forEach(b => {
+      if (!booksMap.has(b.id)) {
+        booksMap.set(b.id, b);
       }
     });
 
     const currentDoc = state.get().currentDocument;
-    if (currentDoc && !books.find(b => b.id === currentDoc.id)) {
-      books.unshift({
+    if (currentDoc && !booksMap.has(currentDoc.id)) {
+      booksMap.set(currentDoc.id, {
         ...currentDoc,
         spineColor: currentDoc.spineColor || 'gold-custom'
       });
+    }
+
+    const books = Array.from(booksMap.values());
+
+    // Si no hay libros aún: mostrar estado vacío elegante en la estantería
+    if (books.length === 0) {
+      const emptyContainer = document.createElement('div');
+      emptyContainer.className = 'shelf-empty-state';
+      emptyContainer.innerHTML = `
+        <div class="empty-shelf-card">
+          <div class="empty-shelf-icon">📚</div>
+          <h4>Tu Biblioteca está Lista</h4>
+          <p>Aún no hay documentos en el servidor. Sube tu primer archivo PDF, Markdown o TXT para comenzar.</p>
+          <button type="button" class="btn-primary-action btn-empty-upload" id="btnEmptyUpload">
+            <span>+ Subir Mi Primer Documento</span>
+          </button>
+        </div>
+      `;
+
+      emptyContainer.querySelector('#btnEmptyUpload')?.addEventListener('click', () => {
+        router.navigate('upload');
+      });
+
+      shelfRow1.appendChild(emptyContainer);
+      shelfRow1.appendChild(this.createUploadSlotSpine());
+
+      if (shelfRow2) {
+        shelfRow2.style.display = 'none';
+      }
+      return;
     }
 
     // Dividimos los libros entre el estante superior (Row 1) y el inferior (Row 2)
@@ -87,12 +213,15 @@ export const bookshelf = {
     });
 
     if (shelfRow2) {
+      shelfRow2.style.display = 'flex';
       row2Books.forEach(book => {
         shelfRow2.appendChild(this.createBookSpine(book));
       });
 
       // Agregar el Tomo Especial: "+ Subir Nuevo Documento" al final del estante
       shelfRow2.appendChild(this.createUploadSlotSpine());
+    } else {
+      shelfRow1.appendChild(this.createUploadSlotSpine());
     }
   },
 
@@ -250,18 +379,39 @@ export const bookshelf = {
     });
   },
 
-  selectBookAndStudy(book, targetFormat) {
+  async selectBookAndStudy(book, targetFormat) {
+    this.closeBookModal();
+
+    // Estado inmediato para navegación rápida
     state.set({
       currentDocument: book,
       studyHub: {
         activeSectionId: book.sections?.[0]?.id || null,
+        formats: null,
         activeFormat: targetFormat,
         currentCardIndex: 0,
         isFlipped: false
       }
     });
 
-    this.closeBookModal();
     router.navigate('study');
+
+    // Tarea 7: Solicitar los formatos al Backend del libro abierto (GET /documents/{id}/formats)
+    if (book.id) {
+      try {
+        const formats = await apiClient.getDocumentFormats(book.id);
+        if (formats && (formats.flashcards || formats.quiz || formats.summary || formats.tutorial || formats.formats)) {
+          const resolvedFormats = formats.formats || formats;
+          state.set({
+            studyHub: {
+              ...state.get().studyHub,
+              formats: resolvedFormats
+            }
+          });
+        }
+      } catch (err) {
+        console.log('[StudyHub] Formatos aún no disponibles en backend para este documento:', err.message);
+      }
+    }
   }
 };

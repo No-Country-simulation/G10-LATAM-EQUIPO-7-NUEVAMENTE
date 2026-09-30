@@ -156,6 +156,122 @@ export const apiClient = {
   },
 
   /**
+   * Obtiene la lista de documentos persistidos en el backend (GET /api/v1/documents)
+   * Diagrama C - Flujo de Consulta desde la Biblioteca (Tarea 6)
+   */
+  async getDocuments() {
+    const url = `${CONFIG.API.DEFAULT_BASE_URL}${CONFIG.API.V1_PREFIX}${CONFIG.API.ENDPOINTS.DOCUMENTS}`;
+
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), CONFIG.API.TIMEOUT_MS);
+
+    try {
+      const response = await fetch(url, {
+        method: 'GET',
+        headers: { 'Accept': 'application/json' },
+        signal: controller.signal
+      });
+
+      clearTimeout(timeoutId);
+
+      const json = await response.json().catch(() => ([]));
+
+      if (!response.ok) {
+        throw new ApiError(response.status, json);
+      }
+
+      if (Array.isArray(json)) return json;
+      if (Array.isArray(json.items)) return json.items;
+      if (Array.isArray(json.documents)) return json.documents;
+      return [];
+    } catch (err) {
+      if (err.name === 'AbortError') {
+        throw new ApiError(408, { message: 'Tiempo de espera agotado al consultar los documentos.' });
+      }
+      if (err instanceof TypeError && err.message.toLowerCase().includes('fetch')) {
+        throw new ApiError(0, {
+          code: 'CONNECTION_REFUSED',
+          message: `No se pudo conectar con el Backend (FastAPI). Verifica que esté activo en ${CONFIG.API.DEFAULT_BASE_URL}`
+        });
+      }
+      throw err;
+    }
+  },
+
+  /**
+   * Consulta la metadata de un documento individual (GET /api/v1/documents/{id})
+   */
+  async getDocumentById(documentId) {
+    const endpoint = typeof CONFIG.API.ENDPOINTS.DOCUMENT_DETAILS === 'function'
+      ? CONFIG.API.ENDPOINTS.DOCUMENT_DETAILS(documentId)
+      : `/documents/${documentId}`;
+    const url = `${CONFIG.API.DEFAULT_BASE_URL}${CONFIG.API.V1_PREFIX}${endpoint}`;
+
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), CONFIG.API.TIMEOUT_MS);
+
+    try {
+      const response = await fetch(url, {
+        method: 'GET',
+        headers: { 'Accept': 'application/json' },
+        signal: controller.signal
+      });
+
+      clearTimeout(timeoutId);
+
+      const json = await response.json().catch(() => ({}));
+
+      if (!response.ok) {
+        throw new ApiError(response.status, json);
+      }
+
+      return json;
+    } catch (err) {
+      if (err.name === 'AbortError') {
+        throw new ApiError(408, { message: 'Tiempo de espera agotado al consultar el documento.' });
+      }
+      throw err;
+    }
+  },
+
+  /**
+   * Obtiene los formatos persistidos generados para un documento (GET /api/v1/documents/{id}/formats)
+   * Diagrama C - Formatos Quiz y Flashcards (Tarea 7)
+   */
+  async getDocumentFormats(documentId) {
+    const endpoint = typeof CONFIG.API.ENDPOINTS.DOCUMENT_FORMATS === 'function'
+      ? CONFIG.API.ENDPOINTS.DOCUMENT_FORMATS(documentId)
+      : `/documents/${documentId}/formats`;
+    const url = `${CONFIG.API.DEFAULT_BASE_URL}${CONFIG.API.V1_PREFIX}${endpoint}`;
+
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), CONFIG.API.TIMEOUT_MS);
+
+    try {
+      const response = await fetch(url, {
+        method: 'GET',
+        headers: { 'Accept': 'application/json' },
+        signal: controller.signal
+      });
+
+      clearTimeout(timeoutId);
+
+      const json = await response.json().catch(() => ({}));
+
+      if (!response.ok) {
+        throw new ApiError(response.status, json);
+      }
+
+      return json;
+    } catch (err) {
+      if (err.name === 'AbortError') {
+        throw new ApiError(408, { message: 'Tiempo de espera agotado al consultar los formatos.' });
+      }
+      throw err;
+    }
+  },
+
+  /**
    * Llama al endpoint de procesamiento RAG adaptativo
    * @param {Object} adaptationRequest 
    */
