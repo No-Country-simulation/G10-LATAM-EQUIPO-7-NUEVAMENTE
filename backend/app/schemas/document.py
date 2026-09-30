@@ -33,8 +33,8 @@ class DocumentCreatedResponse(DocumentBaseResponse):
     )
 
 
-class DocumentResponse(DocumentBaseResponse):
-    """Información pública detallada de un documento."""
+class DocumentListItemResponse(DocumentBaseResponse):
+    """Metadata de un documento expuesta en la biblioteca."""
 
     content_type: str | None = Field(
         default=None,
@@ -48,10 +48,33 @@ class DocumentResponse(DocumentBaseResponse):
     updated_at: datetime
 
 
+class DocumentResponse(DocumentListItemResponse):
+    """Información pública detallada de un documento."""
+
+    title: str | None = Field(
+        default=None,
+        description=(
+            "Título enriquecido del documento cuando esté disponible."
+        ),
+    )
+    summary: str | None = Field(
+        default=None,
+        description=(
+            "Resumen breve del documento cuando esté disponible."
+        ),
+    )
+    estimated_time: str | None = Field(
+        default=None,
+        description=(
+            "Tiempo estimado de estudio cuando esté disponible."
+        ),
+    )
+
+
 class DocumentListResponse(BaseSchema):
     """Listado de documentos disponibles en la biblioteca."""
 
-    documents: list[DocumentResponse] = Field(
+    documents: list[DocumentListItemResponse] = Field(
         default_factory=list,
         description=(
             "Documentos activos disponibles para consulta "
