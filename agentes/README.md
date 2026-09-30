@@ -114,12 +114,9 @@ pip install -r requirements.txt
 pytest agentes/tests/
 ```
 
-## Pendiente / próximos pasos
+## Endpoints de Integración
 
-- **Integración con Backend**: falta adaptar la ingestión para
-  recibir el documento y su `document_id` desde Backend (quien lo
-  recupera de OCI Object Storage), y habilitar retrieval filtrado
-  por `document_id`.
-- Confirmar con Data/IA si, además de `chunks_v1.csv`, habrá un
-  `chunks_v2.csv` cuando se agreguen documentos nuevos fuera del
-  corpus congelado.
+El módulo expone una API local (puerto 8001) basada en FastAPI con los siguientes contratos activos para la integración con Backend:
+
+- **`POST /api/v1/index`**: Endpoint `multipart/form-data`. Recibe el archivo físico original (`file`) y su `document_id`. Ejecuta el pipeline de extracción (PDF/MD/TXT), limpieza, segmentación (generando IDs de chunks únicos basados en `document_id` para evitar colisiones) e indexación vectorial en ChromaDB.
+- **`POST /api/v1/generate`**: Endpoint de generación atómica. Recibe un JSON con `document_id`, `formats` (`quiz`, `flashcards`), `profile`, `niche` y `detail_level`, aplicando retrieval filtrado estrictamente por documento.
