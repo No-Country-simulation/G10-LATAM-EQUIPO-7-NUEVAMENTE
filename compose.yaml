@@ -26,3 +26,19 @@ services:
       - /opt/nuevamente/data/backend:/app/storage
       - /opt/nuevamente/secrets/oci/config:/run/oci/config:ro
       - /opt/nuevamente/secrets/oci/backend.pem:/run/oci/backend.pem:ro
+      
+  frontend:
+    build:
+      context: ./frontend
+      args:
+        VITE_API_BASE_URL: /
+
+    container_name: nuevamente-frontend
+
+    restart: unless-stopped
+
+    depends_on:
+      - backend
+
+    ports:
+      - "127.0.0.1:8080:80"
