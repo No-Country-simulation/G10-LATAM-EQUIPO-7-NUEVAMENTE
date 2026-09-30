@@ -375,7 +375,7 @@ export const bookshelf = {
   },
 
   /**
-   * Abre el modal del "Cuaderno Abierto" que sale a pantalla con las opciones de estudio
+   * Abre el modal holográfico del Mundo Seleccionado con animación de apertura cósmica
    */
   openBookModal(book) {
     this.currentSelectedBook = book;
@@ -386,8 +386,30 @@ export const bookshelf = {
 
     if (!openBookOverlay) return;
 
-    // Poblar Hoja Izquierda
-    if (openedBadge) openedBadge.textContent = book.discipline;
+    // Renderizar la Esfera 3D del Mundo Seleccionado con animación de florecimiento cósmico
+    const sphereStage = document.getElementById('openedPlanetSphereStage');
+    if (sphereStage) {
+      const colorClass = `world-${book.spineColor || 'cyan'}`;
+      const hasRing = Boolean(book.hasRing || book.spineColor === 'purple' || book.spineColor === 'sapphire');
+      const ringHtml = hasRing ? '<div class="planet-ring modal-planet-ring"></div>' : '';
+
+      sphereStage.className = `world-sphere-stage ${colorClass}`;
+      sphereStage.innerHTML = `
+        <div class="modal-planetary-halo"></div>
+        <div class="modal-shockwave-ring"></div>
+        <div class="world-sphere modal-world-sphere">
+          ${ringHtml}
+        </div>
+      `;
+    }
+
+    const coordsEl = document.getElementById('openedPlanetCoords');
+    if (coordsEl) {
+      coordsEl.innerHTML = `<span class="pulse-beacon"></span> ÓRBITA DE APRENDIZAJE • ${(book.discipline || 'MUNDO').toUpperCase()}`;
+    }
+
+    // Poblar Ficha del Documento
+    if (openedBadge) openedBadge.textContent = book.discipline || 'Mundo de Estudio';
     if (openedTitle) openedTitle.textContent = book.title;
     if (openedSummary) openedSummary.textContent = book.description;
 
@@ -399,7 +421,15 @@ export const bookshelf = {
     // Chips de conceptos clave de la primera sección
     if (openedChips) {
       const concepts = book.sections?.[0]?.key_concepts || ['Concepto Base', 'Metodología', 'Estudio'];
-      openedChips.innerHTML = concepts.map(c => `<span class="concept-chip">${c}</span>`).join('');
+      openedChips.innerHTML = concepts.map(c => `<span class="concept-chip cosmic-concept-chip">${c}</span>`).join('');
+    }
+
+    // Reiniciar animación del modal (apertura y bloom cósmico)
+    const modalEl = document.getElementById('cosmicWorldModal');
+    if (modalEl) {
+      modalEl.classList.remove('modal-animating');
+      void modalEl.offsetWidth; // Forzar reflow
+      modalEl.classList.add('modal-animating');
     }
 
     // Mostrar modal
@@ -417,6 +447,11 @@ export const bookshelf = {
 
     if (btnCloseOverlay) {
       btnCloseOverlay.addEventListener('click', () => this.closeBookModal());
+    }
+
+    const btnCloseX = document.getElementById('btnCloseWorldModalX');
+    if (btnCloseX) {
+      btnCloseX.addEventListener('click', () => this.closeBookModal());
     }
 
     if (openBookOverlay) {

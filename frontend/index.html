@@ -589,82 +589,118 @@
     </div>
   </footer>
 
-  <!-- Modal Principal: Cuaderno Abierto que Sale a Pantalla -->
+  <!-- Modal Principal: Portal Planetario de Exploración Cósmica -->
   <div class="open-book-modal-backdrop" id="openBookOverlay" style="display: none;">
-    <div class="open-notebook-spread">
+    <div class="cosmic-world-modal modal-animating" id="cosmicWorldModal">
       
-      <!-- Hoja Izquierda: Ficha del Documento -->
-      <div class="notebook-page-left">
-        <div class="doc-badge-row">
-          <span class="badge-pill badge-gold" id="openedDocBadge">DISCIPLINA</span>
+      <!-- Botón de Cerrar Modal Cósmico (X flotante) -->
+      <button type="button" class="btn-cosmic-modal-close" id="btnCloseWorldModalX" title="Volver al Sistema Solar">
+        &times;
+      </button>
+
+      <!-- Panel Izquierdo: Proyección Holográfica del Mundo & Ficha -->
+      <div class="world-modal-left">
+        <!-- Escenario Holográfico del Planeta Seleccionado -->
+        <div class="world-hologram-stage">
+          <div class="world-sphere-stage" id="openedPlanetSphereStage">
+            <!-- Esfera 3D dinámica del planeta con animación de apertura -->
+          </div>
+          <div class="world-orbital-tag" id="openedPlanetCoords">
+            <span class="pulse-beacon"></span> ÓRBITA DE APRENDIZAJE • SISTEMA SOLAR
+          </div>
         </div>
 
-        <div style="display: flex; flex-direction: column; gap: 0.75rem;">
+        <div class="world-info-content">
+          <div class="doc-badge-row">
+            <span class="badge-pill badge-cosmic-glow" id="openedDocBadge">DISCIPLINA</span>
+            <span class="world-status-tag">✦ Sincronizado</span>
+          </div>
+
           <h3 class="opened-doc-title" id="openedDocTitle">Título del Documento</h3>
           <p class="opened-doc-summary" id="openedDocSummary">Descripción y resumen del contenido analizado...</p>
-        </div>
 
-        <div class="study-meta-box">
-          <div>Tiempo de lectura: <strong id="openedDocTime">10 min</strong></div>
-          <div>Secciones: <strong id="openedDocSections">4</strong></div>
-          <div>Nivel: <strong id="openedDocLevel">Intermedio</strong></div>
-        </div>
+          <div class="study-meta-box cosmic-meta-box">
+            <div class="meta-item">
+              <span class="meta-icon">⏱️</span>
+              <div>
+                <span class="meta-label">Estudio</span>
+                <strong id="openedDocTime">10 min</strong>
+              </div>
+            </div>
+            <div class="meta-item">
+              <span class="meta-icon">🪐</span>
+              <div>
+                <span class="meta-label">Módulos</span>
+                <strong id="openedDocSections">4</strong>
+              </div>
+            </div>
+            <div class="meta-item">
+              <span class="meta-icon">🎯</span>
+              <div>
+                <span class="meta-label">Nivel</span>
+                <strong id="openedDocLevel">Intermedio</strong>
+              </div>
+            </div>
+          </div>
 
-        <div>
-          <span style="font-size: 0.74rem; font-weight: 700; color: var(--text-muted); text-transform: uppercase; display: block; margin-bottom: 0.4rem;">
-            Conceptos Clave del Módulo:
-          </span>
-          <div class="concept-chips" id="openedDocChips">
-            <!-- Chips inyectados dinámicamente -->
+          <div class="world-concepts-wrapper">
+            <span class="concepts-label">Nodos Conceptuales Clave:</span>
+            <div class="concept-chips" id="openedDocChips">
+              <!-- Chips inyectados dinámicamente -->
+            </div>
           </div>
         </div>
       </div>
 
-      <!-- Hoja Derecha: Opciones de Estudio -->
-      <div class="notebook-page-right">
+      <!-- Panel Derecho: Módulos de Misión y Aterrizaje -->
+      <div class="world-modal-right">
         <div class="study-choice-header">
-          <span class="badge-pill badge-green" style="margin-bottom: 0.4rem; display: inline-block;">Modalidades Disponibles</span>
-          <h4>¿Cómo quieres estudiar este material?</h4>
-          <p>Selecciona un formato interactivo para comenzar tu sesión:</p>
+          <span class="badge-pill badge-purple" style="margin-bottom: 0.4rem; display: inline-block;">✦ Módulos de Aprendizaje</span>
+          <h4>¿Cómo quieres explorar este Mundo?</h4>
+          <p>Selecciona una modalidad interactiva para descender a la superficie de conocimiento:</p>
         </div>
 
-        <div class="study-options-mini-grid">
-          <button type="button" class="btn-study-choice-card" data-study-format="flashcards">
-            <span class="choice-icon"></span>
+        <div class="study-options-mini-grid cosmic-options-grid">
+          <button type="button" class="btn-study-choice-card cosmic-choice-card" data-study-format="flashcards">
+            <span class="choice-icon">🃏</span>
             <div class="choice-info">
               <strong>Flashcards 3D</strong>
-              <span>Mnemotecnia activa</span>
+              <span>Mnemotecnia y retención activa</span>
             </div>
+            <span class="choice-arrow">→</span>
           </button>
-          <button type="button" class="btn-study-choice-card" data-study-format="quiz">
-            <span class="choice-icon"></span>
+          <button type="button" class="btn-study-choice-card cosmic-choice-card" data-study-format="quiz">
+            <span class="choice-icon">⚡</span>
             <div class="choice-info">
-              <strong>Quiz</strong>
-              <span>Autoevaluación directa</span>
+              <strong>Quiz de Retención</strong>
+              <span>Autoevaluación de precisión</span>
             </div>
+            <span class="choice-arrow">→</span>
           </button>
-          <button type="button" class="btn-study-choice-card" data-study-format="video">
-            <span class="choice-icon"></span>
+          <button type="button" class="btn-study-choice-card cosmic-choice-card" data-study-format="video">
+            <span class="choice-icon">🎬</span>
             <div class="choice-info">
-              <strong>Tutorial</strong>
-              <span>Guion pedagógico</span>
+              <strong>Tutorial Guiado</strong>
+              <span>Guion pedagógico adaptativo</span>
             </div>
+            <span class="choice-arrow">→</span>
           </button>
-          <button type="button" class="btn-study-choice-card" data-study-format="sintesis">
-            <span class="choice-icon"></span>
+          <button type="button" class="btn-study-choice-card cosmic-choice-card" data-study-format="sintesis">
+            <span class="choice-icon">📜</span>
             <div class="choice-info">
-              <strong>Resumen</strong>
-              <span>Síntesis ejecutiva</span>
+              <strong>Síntesis Ejecutiva</strong>
+              <span>Resumen conceptual clave</span>
             </div>
+            <span class="choice-arrow">→</span>
           </button>
         </div>
 
-        <div class="notebook-action-footer">
-          <button type="button" class="btn-close-notebook-shelf" id="btnCloseNotebookOverlay">
-            <span>Devolver al Estante</span>
+        <div class="notebook-action-footer cosmic-action-footer">
+          <button type="button" class="btn-close-notebook-shelf btn-cosmic-ghost" id="btnCloseNotebookOverlay">
+            <span>← Volver a la Órbita</span>
           </button>
-          <button type="button" class="btn-primary-action" id="btnStartStudying">
-            <span>Comenzar a Estudiar &rarr;</span>
+          <button type="button" class="btn-primary-action btn-cosmic-glow-cta" id="btnStartStudying">
+            <span>🚀 Aterrizar y Estudiar &rarr;</span>
           </button>
         </div>
       </div>
