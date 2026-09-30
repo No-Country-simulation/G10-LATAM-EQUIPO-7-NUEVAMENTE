@@ -72,6 +72,18 @@ export const quiz = {
             </p>
           </div>
         `;
+      } else if (this.quizMeta?.status === 'processing') {
+        questionText.textContent = 'Generando Cuestionario de Autoevaluación...';
+        optionsList.innerHTML = `
+          <div style="text-align: center; padding: 2rem 1rem; color: var(--text-secondary);">
+            <p style="font-size: 0.95rem; margin-bottom: 0.5rem;">
+              El pipeline de IA está formulando las preguntas a partir del contenido indexado.
+            </p>
+            <span style="font-size: 0.8rem; color: var(--accent-gold);">
+              Por favor espera unos instantes.
+            </span>
+          </div>
+        `;
       } else {
         questionText.textContent = 'El cuestionario de autoevaluación (Quiz) está en proceso de generación.';
         optionsList.innerHTML = `

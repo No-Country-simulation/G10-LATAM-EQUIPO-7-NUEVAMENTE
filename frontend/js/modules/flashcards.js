@@ -145,6 +145,10 @@ export const flashcards = {
         if (frontText) frontText.textContent = 'Sin conceptos suficientes';
         if (backText) backText.textContent = 'El documento no contiene suficiente información para extraer flashcards.';
         if (hintText) hintText.textContent = 'Intenta con un documento más extenso o detallado.';
+      } else if (this.formatMeta?.status === 'processing') {
+        if (frontText) frontText.textContent = 'Generando Flashcards...';
+        if (backText) backText.textContent = 'El pipeline de IA está procesando los conceptos del documento.';
+        if (hintText) hintText.textContent = 'Por favor espera unos instantes mientras se sintetiza el material.';
       } else {
         if (frontText) frontText.textContent = 'No hay flashcards generadas aún para este documento.';
         if (backText) backText.textContent = 'Las flashcards se generarán automáticamente a través del pipeline RAG.';
