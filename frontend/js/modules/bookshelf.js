@@ -117,13 +117,13 @@ export const bookshelf = {
 
   bindElements() {
     this.elements = {
-      shelfRow1: document.getElementById('shelfRow1'),
-      shelfRow2: document.getElementById('shelfRow2'),
+      solarPlanetsLayer: document.getElementById('solarPlanetsLayer'),
+      solarCenterSun: document.getElementById('solarCenterSun'),
       openBookOverlay: document.getElementById('openBookOverlay'),
       btnCloseOverlay: document.getElementById('btnCloseNotebookOverlay'),
       btnStartStudying: document.getElementById('btnStartStudying'),
 
-      // Campos de la Hoja Izquierda
+      // Campos de la Ficha / Expediente del Documento
       openedBadge: document.getElementById('openedDocBadge'),
       openedTitle: document.getElementById('openedDocTitle'),
       openedSummary: document.getElementById('openedDocSummary'),
@@ -132,27 +132,24 @@ export const bookshelf = {
       openedLevel: document.getElementById('openedDocLevel'),
       openedChips: document.getElementById('openedDocChips'),
 
-      // Opciones de Estudio de la Hoja Derecha
+      // Opciones de Estudio
       studyChoiceCards: document.querySelectorAll('.btn-study-choice-card')
     };
+
+    if (this.elements.solarCenterSun) {
+      this.elements.solarCenterSun.addEventListener('click', () => {
+        router.navigate('home');
+      });
+    }
   },
 
   renderShelf() {
-    const { shelfRow1, shelfRow2 } = this.elements;
-    if (!shelfRow1) return;
-
-    shelfRow1.innerHTML = '<div class="shelf-plank"></div>';
-    if (shelfRow2) {
-      shelfRow2.innerHTML = '<div class="shelf-plank"></div>';
-      shelfRow2.style.display = 'flex';
-    }
-
     // Unificar libros reales sin duplicados:
     // 1. Libros recuperados desde Backend (GET /documents)
     // 2. Libros subidos en cliente (state.customBooks)
     const booksMap = new Map();
     const customBooks = state.get().customBooks || [];
-    const customColors = ['gold-custom', 'ruby', 'cyan', 'purple', 'emerald', 'sapphire', 'amber'];
+    const customColors = ['cyan', 'purple', 'ruby', 'amber', 'emerald', 'sapphire'];
 
     // Priorizar customBooks subidos por el usuario en esta u otras sesiones
     customBooks.forEach((cDoc, idx) => {
@@ -173,7 +170,7 @@ export const bookshelf = {
     if (currentDoc && !booksMap.has(currentDoc.id)) {
       booksMap.set(currentDoc.id, {
         ...currentDoc,
-        spineColor: currentDoc.spineColor || 'gold-custom'
+        spineColor: currentDoc.spineColor || 'amber'
       });
     }
 
@@ -187,20 +184,23 @@ export const bookshelf = {
     const countList = document.getElementById('searchCountList');
     if (countList) countList.textContent = `${books.length} documento${books.length === 1 ? '' : 's'}`;
 
-    // Renderizar catálogo en lista
+    // 1. Renderizar catálogo en lista (Modo Ejecutivo)
     this.renderCatalogList(books);
 
-    // Si no hay libros aún: mostrar estado vacío elegante en la estantería y catálogo
+    // 2. Renderizar Sistema Solar Interactivo (Modo 3D)
+    this.renderSolarSystem(books);
+
+    // Si no hay libros aún: mostrar estado vacío elegante en el catálogo de lista
     if (books.length === 0) {
       const docListEl = document.getElementById('cosmicDocList');
       if (docListEl) {
         docListEl.innerHTML = `
           <div style="text-align: center; padding: 3rem 1rem; color: #a1a1aa;">
-            <div style="font-size: 2.5rem; margin-bottom: 0.75rem;">📚</div>
-            <h4 style="font-size: 1.15rem; color: #f8fafc; margin-bottom: 0.35rem;">Tu Catálogo está Listo</h4>
-            <p style="font-size: 0.9rem; margin-bottom: 1.25rem;">Aún no hay documentos en el servidor. Sube tu primer archivo PDF, Markdown o TXT.</p>
+            <div style="font-size: 2.5rem; margin-bottom: 0.75rem;">🪐</div>
+            <h4 style="font-size: 1.15rem; color: #f8fafc; margin-bottom: 0.35rem;">Tu Universo de Estudio está Listo</h4>
+            <p style="font-size: 0.9rem; margin-bottom: 1.25rem;">Aún no hay Mundos en órbita. Sube tu primer archivo PDF o documento para encender el sistema solar.</p>
             <button type="button" class="btn-cosmic-primary" id="btnCatalogEmptyUpload" style="padding: 0.6rem 1.4rem;">
-              <span>+ Subir Mi Primer Documento</span>
+              <span>+ Crear Mi Primer Mundo</span>
             </button>
           </div>
         `;
@@ -208,133 +208,142 @@ export const bookshelf = {
           router.navigate('upload');
         });
       }
+    }
+  },
 
-      const emptyContainer = document.createElement('div');
-      emptyContainer.className = 'shelf-empty-state';
-      emptyContainer.innerHTML = `
-        <div class="empty-shelf-card">
-          <div class="empty-shelf-icon">📚</div>
-          <h4>Tu Biblioteca está Lista</h4>
-          <p>Aún no hay documentos en el servidor. Sube tu primer archivo PDF, Markdown o TXT para comenzar.</p>
-          <button type="button" class="btn-primary-action btn-empty-upload" id="btnEmptyUpload">
-            <span>+ Subir Mi Primer Documento</span>
-          </button>
-        </div>
+  /**
+   * Renderiza el Sistema Solar Interactivo con los Mundos orbitando el núcleo
+   */
+  renderSolarSystem(books) {
+    const layer = this.elements.solarPlanetsLayer || document.getElementById('solarPlanetsLayer');
+    if (!layer) return;
+
+    layer.innerHTML = '';
+
+    if (!books || books.length === 0) {
+      const emptyEl = document.createElement('div');
+      emptyEl.className = 'solar-empty-system';
+      emptyEl.innerHTML = `
+        <div class="solar-empty-icon">🪐</div>
+        <h4>Tu Universo de Estudio está Listo</h4>
+        <p>Aún no hay Mundos en órbita. Sube tu primer archivo PDF o documento para encender el sistema solar.</p>
+        <button type="button" class="btn-cosmic-primary" id="btnSolarEmptyUpload" style="padding: 0.65rem 1.4rem;">
+          <span>+ Crear Mi Primer Mundo</span>
+        </button>
       `;
-
-      emptyContainer.querySelector('#btnEmptyUpload')?.addEventListener('click', () => {
+      emptyEl.querySelector('#btnSolarEmptyUpload')?.addEventListener('click', () => {
         router.navigate('upload');
       });
-
-      shelfRow1.appendChild(emptyContainer);
-      shelfRow1.appendChild(this.createUploadSlotSpine());
-
-      if (shelfRow2) {
-        shelfRow2.style.display = 'none';
-      }
+      layer.appendChild(emptyEl);
       return;
     }
 
-    // Dividimos los libros entre el estante superior (Row 1) y el inferior (Row 2)
-    const mid = Math.ceil(books.length / 2);
-    const row1Books = books.slice(0, mid);
-    const row2Books = books.slice(mid);
+    // Configuración de Slots Orbitales elípticos armónicos
+    const ORBITAL_SLOTS = [
+      // Órbita 1 (Interior)
+      { rx: 110, ry: 90, angle: -45, size: 'world-size-sm', hasRing: false },
+      { rx: 110, ry: 90, angle: 135, size: 'world-size-sm', hasRing: false },
 
-    row1Books.forEach(book => {
-      shelfRow1.appendChild(this.createBookSpine(book));
+      // Órbita 2 (Media)
+      { rx: 215, ry: 160, angle: -110, size: 'world-size-md', hasRing: true },
+      { rx: 215, ry: 160, angle: 25, size: 'world-size-md', hasRing: false },
+      { rx: 215, ry: 160, angle: 95, size: 'world-size-md', hasRing: false },
+      { rx: 215, ry: 160, angle: 200, size: 'world-size-md', hasRing: true },
+
+      // Órbita 3 (Exterior)
+      { rx: 320, ry: 220, angle: -155, size: 'world-size-lg', hasRing: true },
+      { rx: 320, ry: 220, angle: -65, size: 'world-size-sm', hasRing: false },
+      { rx: 320, ry: 220, angle: 50, size: 'world-size-lg', hasRing: true },
+      { rx: 320, ry: 220, angle: 120, size: 'world-size-md', hasRing: false },
+      { rx: 320, ry: 220, angle: 235, size: 'world-size-sm', hasRing: false },
+
+      // Órbita 4 (Espacio Profundo)
+      { rx: 420, ry: 270, angle: -130, size: 'world-size-md', hasRing: false },
+      { rx: 420, ry: 270, angle: -25, size: 'world-size-md', hasRing: false },
+      { rx: 420, ry: 270, angle: 75, size: 'world-size-sm', hasRing: false },
+      { rx: 420, ry: 270, angle: 170, size: 'world-size-md', hasRing: false }
+    ];
+
+    books.forEach((book, idx) => {
+      const slot = ORBITAL_SLOTS[idx % ORBITAL_SLOTS.length];
+      const rad = (slot.angle * Math.PI) / 180;
+      const x = Math.round(slot.rx * Math.cos(rad));
+      const y = Math.round(slot.ry * Math.sin(rad));
+
+      const worldNode = this.createPlanetNode(book, x, y, slot);
+      layer.appendChild(worldNode);
     });
 
-    if (shelfRow2) {
-      shelfRow2.style.display = 'flex';
-      row2Books.forEach(book => {
-        shelfRow2.appendChild(this.createBookSpine(book));
-      });
-
-      // Agregar el Tomo Especial: "+ Subir Nuevo Documento" al final del estante
-      shelfRow2.appendChild(this.createUploadSlotSpine());
-    } else {
-      shelfRow1.appendChild(this.createUploadSlotSpine());
-    }
+    // Añadir el nodo especial "+ Descubrir Nuevo Mundo" en la órbita exterior
+    const uploadSlot = { rx: 420, ry: 270, angle: -50 };
+    const radUp = (uploadSlot.angle * Math.PI) / 180;
+    const upX = Math.round(uploadSlot.rx * Math.cos(radUp));
+    const upY = Math.round(uploadSlot.ry * Math.sin(radUp));
+    layer.appendChild(this.createUploadPlanetNode(upX, upY));
   },
 
-  getShortDisciplineTag(discipline) {
-    if (!discipline) return 'LIBRO';
-    const map = {
-      'Ingeniería de Software': 'SOFTWARE',
-      'Arquitectura de Software': 'SOFTWARE',
-      'Desarrollo Web & UX': 'DEV WEB',
-      'Ciencia de Datos': 'DATA SCI',
-      'Inteligencia Artificial': 'IA & DATA',
-      'Cloud & DevOps': 'DEVOPS',
-      'Neurociencias & Medicina': 'NEURO',
-      'Ciencias Médicas & Biología': 'MEDICINA',
-      'Derecho & Ciberseguridad': 'LEYES',
-      'Ciencias Jurídicas & Derecho': 'DERECHO',
-      'Economía & Negocios': 'ECONOMÍA',
-      'Economía & Finanzas': 'FINANZAS',
-      'Biología & Genética': 'GENÉTICA',
-      'Ciberseguridad': 'SEGURIDAD',
-      'Humanidades & Filosofía': 'HISTORIA',
-      'Humanidades & Ciencias Sociales': 'HUMANID',
-      'Psicología & Neurociencia': 'PSICOLOGÍA',
-      'Física & Ciencias Exactas': 'FÍSICA',
-      'Ciencias Generales': 'CIENCIA',
-      'Ciencias & Disciplinas Generales': 'CIENCIA'
-    };
-    if (map[discipline]) return map[discipline];
-    const firstWord = discipline.split(' ')[0].toUpperCase();
-    return firstWord.length > 8 ? firstWord.slice(0, 8) : firstWord;
-  },
-
-  getLevelLabel(perfil) {
-    const map = {
-      principiante: 'Principiante',
-      intermedio: 'Intermedio',
-      avanzado: 'Avanzado'
-    };
-    return map[(perfil || '').toLowerCase()] || 'General';
-  },
-
-  createBookSpine(book) {
-    const spine = document.createElement('div');
-    const colorClass = `spine-${book.spineColor || 'navy'}`;
-    spine.className = `book-spine ${colorClass}`;
-    spine.setAttribute('data-book-id', book.id);
-    spine.title = `${book.title} (${book.discipline})`;
+  createPlanetNode(book, x, y, slot) {
+    const node = document.createElement('div');
+    const colorClass = `world-${book.spineColor || 'cyan'}`;
+    node.className = `solar-world-node ${colorClass}`;
+    node.setAttribute('data-book-id', book.id);
+    node.style.left = `calc(50% + ${x}px)`;
+    node.style.top = `calc(50% + ${y}px)`;
 
     const shortTag = this.getShortDisciplineTag(book.discipline);
+    const ringHtml = slot.hasRing ? '<div class="planet-ring"></div>' : '';
 
-    spine.innerHTML = `
-      <div class="spine-top-rib"></div>
-      <span class="spine-title-vertical">${book.title}</span>
-      <span class="spine-code-tag">${shortTag}</span>
-      <div class="spine-bottom-rib"></div>
+    node.innerHTML = `
+      <div class="world-sphere ${slot.size || 'world-size-md'}">
+        ${ringHtml}
+      </div>
+      <div class="world-label-badge">${book.title}</div>
+      <div class="world-hud-tooltip">
+        <div class="hud-discipline">${book.discipline || shortTag}</div>
+        <div class="hud-title">${book.title}</div>
+        <div class="hud-metrics-row">
+          <span class="hud-tag">Quiz</span>
+          <span class="hud-tag">Flashcards</span>
+          <span class="hud-tag" style="background: rgba(16, 185, 129, 0.25); color: #34d399;">Listo</span>
+        </div>
+        <div class="hud-cta">Aterrizar y Estudiar →</div>
+      </div>
     `;
 
-    spine.addEventListener('click', () => {
+    node.addEventListener('click', () => {
       this.openBookModal(book);
     });
 
-    return spine;
+    return node;
   },
 
-  createUploadSlotSpine() {
-    const spine = document.createElement('div');
-    spine.className = 'book-spine book-spine-upload';
-    spine.title = 'Subir y procesar un nuevo documento';
+  createUploadPlanetNode(x, y) {
+    const node = document.createElement('div');
+    node.className = 'solar-world-node world-node-upload';
+    node.title = 'Descubrir / Subir Nuevo Mundo de Estudio';
+    node.style.left = `calc(50% + ${x}px)`;
+    node.style.top = `calc(50% + ${y}px)`;
 
-    spine.innerHTML = `
-      <div class="spine-top-rib"></div>
-      <span class="spine-title-vertical">SUBIR NUEVO PDF</span>
-      <span class="spine-code-tag">NUEVO</span>
-      <div class="spine-bottom-rib"></div>
+    node.innerHTML = `
+      <div class="world-sphere world-size-sm">
+        <span>+</span>
+      </div>
+      <div class="world-label-badge">+ NUEVO MUNDO</div>
+      <div class="world-hud-tooltip">
+        <div class="hud-discipline">NUEVA INGESTA</div>
+        <div class="hud-title">Subir Documento PDF</div>
+        <p style="font-size: 0.72rem; color: #d4d4d8; margin: 0; line-height: 1.4;">
+          Añadí un nuevo PDF para que la IA genere un Mundo con Quiz y Flashcards.
+        </p>
+        <div class="hud-cta">Cargar Documento →</div>
+      </div>
     `;
 
-    spine.addEventListener('click', () => {
+    node.addEventListener('click', () => {
       router.navigate('upload');
     });
 
-    return spine;
+    return node;
   },
 
   /**
@@ -624,18 +633,18 @@ export const bookshelf = {
       countList.textContent = `${matchingBooks.length} de ${all.length} documentos`;
     }
 
-    // 2. Actualizar Estantería 3D
-    const spines = document.querySelectorAll('.shelf-row .book-spine:not(.book-spine-upload)');
-    spines.forEach(spine => {
-      const bookId = spine.getAttribute('data-book-id');
+    // 2. Actualizar Sistema Solar / Planetas
+    const planets = document.querySelectorAll('.solar-planets-layer .solar-world-node:not(.world-node-upload)');
+    planets.forEach(planet => {
+      const bookId = planet.getAttribute('data-book-id');
       if (!q && !cat) {
-        spine.classList.remove('book-spine-dimmed', 'book-spine-highlighted');
+        planet.classList.remove('world-dimmed', 'world-highlighted');
       } else if (matchingIds.has(bookId)) {
-        spine.classList.remove('book-spine-dimmed');
-        spine.classList.add('book-spine-highlighted');
+        planet.classList.remove('world-dimmed');
+        planet.classList.add('world-highlighted');
       } else {
-        spine.classList.remove('book-spine-highlighted');
-        spine.classList.add('book-spine-dimmed');
+        planet.classList.remove('world-highlighted');
+        planet.classList.add('world-dimmed');
       }
     });
 
@@ -644,7 +653,7 @@ export const bookshelf = {
     if (count3D) {
       if (q || cat) {
         count3D.style.display = 'inline-block';
-        count3D.textContent = `${matchingBooks.length} tomo(s) coincidente(s) de ${all.length}`;
+        count3D.textContent = `${matchingBooks.length} mundo(s) coincidente(s) de ${all.length}`;
       } else {
         count3D.style.display = 'none';
       }

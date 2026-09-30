@@ -51,8 +51,8 @@
 
     <!-- Acciones Rápidas del Header -->
     <div class="header-actions">
-      <button type="button" class="btn-toggle-interactive-mode" id="btnToggleInteractive" title="Alternar entre catálogo ejecutivo y estantería 3D interactiva">
-        <span>✦ Modo Interactivo</span>
+      <button type="button" class="btn-toggle-interactive-mode" id="btnToggleInteractive" title="Alternar entre catálogo ejecutivo y sistema solar interactivo">
+        <span>✦ Sistema Solar 3D</span>
       </button>
 
       <div class="header-connection-badge status-checking" id="headerBackendBadge" title="Verificando conexión con Backend FastAPI">
@@ -164,39 +164,46 @@
           </div>
         </div>
 
-        <!-- Estantería de Madera con Libros en 3D (Se activa con Modo Interactivo) -->
-        <div class="interactive-bookshelf-wrapper" id="interactiveBookshelfWrapper">
-          <div class="interactive-shelf-header">
-            <div class="interactive-shelf-badge">
-              <span class="interactive-badge-dot"></span>
-              <span>✦ MODO INTERACTIVO 3D</span>
+        <!-- Sistema Solar de Aprendizaje (Se activa con Modo Interactivo) -->
+        <div class="interactive-solar-wrapper" id="interactiveSolarWrapper">
+          <div class="solar-system-header">
+            <div class="solar-system-badge">
+              <span class="solar-badge-dot"></span>
+              <span>✦ SISTEMA SOLAR INTERACTIVO</span>
             </div>
-            <h2 class="interactive-shelf-title">Tu Estantería de Aprendizaje</h2>
-            <p class="interactive-shelf-subtitle">
-              Explorá los tomos indexados. Hacé clic en cualquiera para abrir su cuaderno de estudio o generar nuevos formatos.
+            <h2 class="solar-system-title">Tu Universo de Conocimiento</h2>
+            <p class="solar-system-subtitle">
+              Cada documento es un Mundo de Estudio orbitando en tu mente. Hacé clic en cualquier planeta para aterrizar y estudiar o descubrir nuevos horizontes.
             </p>
 
-            <!-- Barra de Búsqueda 3D -->
+            <!-- Barra de Búsqueda 3D en el Sistema Solar -->
             <div class="interactive-search-container">
               <div class="cosmic-search-input-box search-box-3d">
                 <span class="cosmic-search-icon">🔍</span>
-                <input type="text" id="searchDoc3D" class="cosmic-search-input" placeholder="Buscar tomo por título o disciplina..." autocomplete="off">
+                <input type="text" id="searchDoc3D" class="cosmic-search-input" placeholder="Buscar planeta por título o disciplina..." autocomplete="off">
                 <button type="button" class="cosmic-search-clear" id="btnClearSearch3D" title="Limpiar búsqueda" style="display: none;">&times;</button>
               </div>
               <div class="interactive-search-count" id="searchCount3D" style="display: none;"></div>
             </div>
           </div>
 
-          <div class="bookshelf-rack">
-            <!-- Estante Superior (Row 1) -->
-            <div class="shelf-row" id="shelfRow1">
-              <div class="shelf-plank"></div>
+          <!-- Escenario Orbital del Sistema Solar -->
+          <div class="solar-system-stage" id="solarSystemStage">
+            <!-- Pistas Órbitas Concéntricas -->
+            <div class="solar-orbit-track orbit-track-1"></div>
+            <div class="solar-orbit-track orbit-track-2"></div>
+            <div class="solar-orbit-track orbit-track-3"></div>
+            <div class="solar-orbit-track orbit-track-4"></div>
+
+            <!-- Núcleo / Sol Central (NuevaMente Core) -->
+            <div class="solar-center-sun" id="solarCenterSun" title="NuevaMente Core — Núcleo de Inteligencia Artificial">
+              <div class="solar-corona"></div>
+              <img src="LogoPropuesta - Editado.png" alt="Core" class="sun-core-logo">
+              <span class="sun-core-label">Core AI</span>
             </div>
 
-            <!-- Estante Inferior (Row 2) -->
-            <div class="shelf-row" id="shelfRow2">
-              <div class="shelf-plank"></div>
-            </div>
+            <!-- Capa donde se renderizan los Planetas (Mundos) dinámicamente -->
+            <div class="solar-planets-layer" id="solarPlanetsLayer"></div>
           </div>
         </div>
 

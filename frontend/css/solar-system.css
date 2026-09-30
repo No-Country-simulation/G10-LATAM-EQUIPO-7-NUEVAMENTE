@@ -1,0 +1,454 @@
+/* ==========================================================================
+   SISTEMA SOLAR DE APRENDIZAJE — NUEVAMENTE
+   Visualización orbital cósmica interactiva donde cada documento es un mundo
+   ========================================================================== */
+
+/* Contenedor principal del Sistema Solar (reemplaza la estantería clásica) */
+.interactive-solar-wrapper {
+  display: none;
+  width: 100%;
+  max-width: 1100px;
+  margin: 0 auto;
+  flex-direction: column;
+  align-items: center;
+  position: relative;
+  z-index: 10;
+  animation: fadeInSolar 0.6s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+body.interactive-mode-active .interactive-solar-wrapper {
+  display: flex;
+}
+
+body.interactive-mode-active .cosmic-library-catalog {
+  display: none;
+}
+
+@keyframes fadeInSolar {
+  from {
+    opacity: 0;
+    transform: translateY(20px) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+/* Encabezado del Sistema Solar */
+.solar-system-header {
+  text-align: center;
+  margin-bottom: 1.75rem;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.6rem;
+  max-width: 760px;
+}
+
+.solar-system-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.3rem 0.9rem;
+  background: rgba(192, 132, 252, 0.15);
+  border: 1px solid rgba(192, 132, 252, 0.35);
+  border-radius: 9999px;
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: #e9d5ff;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.solar-badge-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #c084fc;
+  box-shadow: 0 0 10px #c084fc;
+  animation: pulseSolarDot 2s infinite ease-in-out;
+}
+
+@keyframes pulseSolarDot {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.4; transform: scale(0.7); }
+}
+
+.solar-system-title {
+  font-size: 2.1rem;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  color: #ffffff;
+  margin: 0;
+  text-shadow: 0 0 25px rgba(168, 85, 247, 0.45);
+}
+
+.solar-system-subtitle {
+  font-size: 0.95rem;
+  color: #d4d4d8;
+  line-height: 1.5;
+  margin: 0;
+}
+
+/* Escenario Orbital Cósmico */
+.solar-system-stage {
+  position: relative;
+  width: 100%;
+  max-width: 980px;
+  height: 620px;
+  margin: 0.75rem auto 2rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 28px;
+  background: radial-gradient(circle at center, rgba(32, 22, 58, 0.45) 0%, rgba(12, 10, 24, 0.8) 60%, rgba(6, 6, 12, 0.95) 100%);
+  border: 1px solid rgba(168, 85, 247, 0.25);
+  box-shadow: 0 24px 70px rgba(0, 0, 0, 0.85), inset 0 0 80px rgba(139, 92, 246, 0.14);
+  overflow: visible;
+}
+
+/* Núcleo / Sol Central ("NuevaMente Core") */
+.solar-center-sun {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 94px;
+  height: 94px;
+  border-radius: 50%;
+  background: radial-gradient(circle at 35% 35%, #fffbeb 0%, #fde047 30%, #f59e0b 65%, #d97706 100%);
+  box-shadow: 0 0 45px rgba(245, 158, 11, 0.85), 0 0 95px rgba(245, 158, 11, 0.45), inset -6px -6px 15px rgba(180, 83, 9, 0.8);
+  z-index: 15;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: transform 0.35s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.35s ease;
+  user-select: none;
+}
+
+.solar-center-sun:hover {
+  transform: translate(-50%, -50%) scale(1.08);
+  box-shadow: 0 0 65px rgba(245, 158, 11, 0.95), 0 0 130px rgba(245, 158, 11, 0.65);
+}
+
+.sun-core-logo {
+  width: 44px;
+  height: 44px;
+  object-fit: contain;
+  filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.8));
+}
+
+.sun-core-label {
+  font-size: 0.58rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  color: #78350f;
+  letter-spacing: 0.08em;
+  margin-top: 1px;
+}
+
+/* Corona Solar Pulsante */
+.solar-corona {
+  position: absolute;
+  top: -14px;
+  left: -14px;
+  right: -14px;
+  bottom: -14px;
+  border-radius: 50%;
+  border: 1.5px dashed rgba(254, 240, 138, 0.4);
+  animation: rotateCorona 45s linear infinite;
+  pointer-events: none;
+}
+
+@keyframes rotateCorona {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+/* Pistas Órbitas Concéntricas */
+.solar-orbit-track {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  border-radius: 50%;
+  border: 1px dashed rgba(168, 85, 247, 0.20);
+  pointer-events: none;
+  transition: border-color 0.3s ease;
+}
+
+.orbit-track-1 { width: 220px; height: 180px; }
+.orbit-track-2 { width: 430px; height: 320px; }
+.orbit-track-3 { width: 640px; height: 440px; }
+.orbit-track-4 { width: 840px; height: 540px; }
+
+/* Capa de Planetas */
+.solar-planets-layer {
+  position: absolute;
+  inset: 0;
+  z-index: 20;
+}
+
+/* Nodo de Planeta / Mundo */
+.solar-world-node {
+  position: absolute;
+  transform: translate(-50%, -50%);
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  user-select: none;
+  transition: transform 0.35s cubic-bezier(0.16, 1, 0.3, 1), z-index 0.2s ease, opacity 0.3s ease;
+  z-index: 25;
+}
+
+.solar-world-node:hover {
+  transform: translate(-50%, -50%) scale(1.16);
+  z-index: 70;
+}
+
+/* Efectos de Búsqueda: Highlight y Dimmed */
+.solar-world-node.world-dimmed {
+  opacity: 0.2;
+  filter: grayscale(0.85) blur(1px);
+}
+
+.solar-world-node.world-highlighted {
+  opacity: 1;
+  filter: none;
+  animation: pulseWorldReticle 1.5s infinite alternate ease-in-out;
+}
+
+@keyframes pulseWorldReticle {
+  from { filter: drop-shadow(0 0 10px rgba(254, 240, 138, 0.7)); }
+  to { filter: drop-shadow(0 0 28px rgba(245, 158, 11, 0.95)); }
+}
+
+/* Esfera 3D del Planeta */
+.world-sphere {
+  position: relative;
+  width: 52px;
+  height: 52px;
+  border-radius: 50%;
+  transition: box-shadow 0.3s ease, transform 0.3s ease;
+}
+
+/* Tamaños variados según orden */
+.world-size-sm { width: 44px; height: 44px; }
+.world-size-md { width: 54px; height: 54px; }
+.world-size-lg { width: 64px; height: 64px; }
+
+/* Paleta de Mundos por Disciplina */
+/* 1. Tecnología / Cloud: Planeta Cyan */
+.world-cyan .world-sphere {
+  background: radial-gradient(circle at 35% 30%, #a5f3fc 0%, #06b6d4 40%, #0e7490 75%, #083344 100%);
+  box-shadow: inset -6px -6px 12px rgba(0, 0, 0, 0.8), inset 3px 3px 6px rgba(255, 255, 255, 0.5), 0 0 24px rgba(6, 182, 212, 0.55);
+}
+
+/* 2. Inteligencia Artificial: Planeta Púrpura */
+.world-purple .world-sphere {
+  background: radial-gradient(circle at 35% 30%, #f5d0fe 0%, #c084fc 40%, #7e22ce 75%, #3b0764 100%);
+  box-shadow: inset -6px -6px 12px rgba(0, 0, 0, 0.8), inset 3px 3px 6px rgba(255, 255, 255, 0.5), 0 0 24px rgba(192, 132, 252, 0.6);
+}
+
+/* 3. Ciencias Médicas: Planeta Rubí */
+.world-ruby .world-sphere {
+  background: radial-gradient(circle at 35% 30%, #fecdd3 0%, #f43f5e 40%, #be123c 75%, #4c0519 100%);
+  box-shadow: inset -6px -6px 12px rgba(0, 0, 0, 0.8), inset 3px 3px 6px rgba(255, 255, 255, 0.5), 0 0 24px rgba(244, 63, 94, 0.55);
+}
+
+/* 4. Leyes & Negocios: Planeta Ámbar */
+.world-amber .world-sphere {
+  background: radial-gradient(circle at 35% 30%, #fef08a 0%, #f59e0b 40%, #b45309 75%, #451a03 100%);
+  box-shadow: inset -6px -6px 12px rgba(0, 0, 0, 0.8), inset 3px 3px 6px rgba(255, 255, 255, 0.5), 0 0 24px rgba(245, 158, 11, 0.6);
+}
+
+/* 5. Ciencias & Naturaleza: Planeta Esmeralda */
+.world-emerald .world-sphere {
+  background: radial-gradient(circle at 35% 30%, #a7f3d0 0%, #10b981 40%, #047857 75%, #022c22 100%);
+  box-shadow: inset -6px -6px 12px rgba(0, 0, 0, 0.8), inset 3px 3px 6px rgba(255, 255, 255, 0.5), 0 0 24px rgba(16, 185, 129, 0.55);
+}
+
+/* 6. Humanidades & Filosofía: Planeta Zafiro */
+.world-sapphire .world-sphere {
+  background: radial-gradient(circle at 35% 30%, #bfdbfe 0%, #3b82f6 40%, #1d4ed8 75%, #172554 100%);
+  box-shadow: inset -6px -6px 12px rgba(0, 0, 0, 0.8), inset 3px 3px 6px rgba(255, 255, 255, 0.5), 0 0 24px rgba(59, 130, 246, 0.55);
+}
+
+/* Anillos Planetarios */
+.planet-ring {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 170%;
+  height: 42%;
+  border-radius: 50%;
+  transform: translate(-50%, -50%) rotate(-25deg);
+  border: 2px solid rgba(255, 255, 255, 0.45);
+  box-shadow: 0 0 10px rgba(255, 255, 255, 0.3);
+  pointer-events: none;
+}
+
+/* Etiqueta Flotante Compacta del Planeta */
+.world-label-badge {
+  margin-top: 0.5rem;
+  background: rgba(14, 12, 25, 0.88);
+  border: 1px solid rgba(168, 85, 247, 0.32);
+  backdrop-filter: blur(8px);
+  padding: 0.22rem 0.6rem;
+  border-radius: 6px;
+  font-size: 0.70rem;
+  font-weight: 600;
+  color: #f1f5f9;
+  white-space: nowrap;
+  max-width: 135px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  text-align: center;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.6);
+  pointer-events: none;
+}
+
+/* Tarjeta HUD Tooltip Expandida al Pasar el Mouse */
+.world-hud-tooltip {
+  position: absolute;
+  bottom: calc(100% + 14px);
+  left: 50%;
+  transform: translateX(-50%) translateY(8px);
+  width: 230px;
+  background: rgba(18, 14, 34, 0.96);
+  border: 1px solid rgba(192, 132, 252, 0.45);
+  border-radius: 12px;
+  padding: 0.8rem 0.9rem;
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.9), 0 0 25px rgba(168, 85, 247, 0.3);
+  backdrop-filter: blur(16px);
+  opacity: 0;
+  visibility: hidden;
+  transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+  pointer-events: none;
+  z-index: 90;
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+}
+
+.solar-world-node:hover .world-hud-tooltip {
+  opacity: 1;
+  visibility: visible;
+  transform: translateX(-50%) translateY(0);
+}
+
+.hud-title {
+  font-size: 0.88rem;
+  font-weight: 700;
+  color: #ffffff;
+  line-height: 1.3;
+}
+
+.hud-discipline {
+  font-size: 0.68rem;
+  color: #c084fc;
+  text-transform: uppercase;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+}
+
+.hud-metrics-row {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: 0.68rem;
+}
+
+.hud-tag {
+  background: rgba(88, 28, 135, 0.4);
+  border: 1px solid rgba(168, 85, 247, 0.35);
+  padding: 2px 7px;
+  border-radius: 4px;
+  color: #e9d5ff;
+}
+
+.hud-cta {
+  font-size: 0.74rem;
+  font-weight: 700;
+  color: #fde047;
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+  margin-top: 0.2rem;
+}
+
+/* Nodo Especial: Descubrir / Crear Nuevo Mundo */
+.world-node-upload {
+  cursor: pointer;
+}
+
+.world-node-upload .world-sphere {
+  background: radial-gradient(circle at 35% 30%, rgba(245, 158, 11, 0.35), rgba(168, 85, 247, 0.2));
+  border: 2px dashed rgba(254, 240, 138, 0.6);
+  box-shadow: 0 0 25px rgba(245, 158, 11, 0.25);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #fde047;
+  font-size: 1.4rem;
+  font-weight: 700;
+  animation: pulseUploadWorld 2.5s infinite ease-in-out;
+}
+
+@keyframes pulseUploadWorld {
+  0%, 100% { transform: scale(1); box-shadow: 0 0 15px rgba(245, 158, 11, 0.25); }
+  50% { transform: scale(1.06); box-shadow: 0 0 35px rgba(245, 158, 11, 0.55); }
+}
+
+.world-node-upload:hover .world-sphere {
+  border-color: #fef08a;
+  background: radial-gradient(circle at 35% 30%, rgba(245, 158, 11, 0.6), rgba(168, 85, 247, 0.35));
+}
+
+.world-node-upload .world-label-badge {
+  background: rgba(245, 158, 11, 0.25);
+  border-color: rgba(245, 158, 11, 0.55);
+  color: #fde047;
+  font-weight: 700;
+}
+
+/* Estado Vacío del Sistema Solar */
+.solar-empty-system {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  text-align: center;
+  z-index: 30;
+  max-width: 440px;
+  background: rgba(15, 12, 28, 0.88);
+  border: 1px solid rgba(168, 85, 247, 0.35);
+  backdrop-filter: blur(16px);
+  padding: 2rem 2.5rem;
+  border-radius: 20px;
+  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.8), 0 0 30px rgba(168, 85, 247, 0.2);
+}
+
+.solar-empty-icon {
+  font-size: 2.5rem;
+  margin-bottom: 0.5rem;
+  filter: drop-shadow(0 0 15px rgba(168, 85, 247, 0.6));
+}
+
+.solar-empty-system h4 {
+  font-size: 1.2rem;
+  font-weight: 800;
+  color: #ffffff;
+  margin-bottom: 0.4rem;
+}
+
+.solar-empty-system p {
+  font-size: 0.88rem;
+  color: #a1a1aa;
+  line-height: 1.5;
+  margin-bottom: 1.25rem;
+}

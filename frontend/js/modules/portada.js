@@ -62,7 +62,7 @@ export const portada = {
       btnToggleInteractive.addEventListener('click', (e) => {
         e.preventDefault();
         const isInteractive = document.body.classList.toggle('interactive-mode-active');
-        btnToggleInteractive.innerHTML = isInteractive ? '<span>📋 Modo Lista</span>' : '<span>✦ Modo Interactivo</span>';
+        btnToggleInteractive.innerHTML = isInteractive ? '<span>📋 Modo Lista</span>' : '<span>✦ Sistema Solar 3D</span>';
         router.navigate('library');
       });
     }
