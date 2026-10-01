@@ -62,3 +62,14 @@ services:
     volumes:
       - /opt/nuevamente/data/agents:/app/chroma_db
       - /opt/nuevamente/data/huggingface:/root/.cache/huggingface
+      
+  data-ia:
+    build:
+      context: ./Data_IA
+
+    container_name: nuevamente-data-ia
+
+    restart: unless-stopped
+
+    ports:
+      - "127.0.0.1:8002:8002"
