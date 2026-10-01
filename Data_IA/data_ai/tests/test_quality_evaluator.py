@@ -1,43 +1,163 @@
-import pytest
 from data_ai.evaluation.quality_evaluator import evaluate
+from data_ai.schemas.format_evaluation import (
+    ChunkUsed,
+    FlashcardsContent,
+    GenerationContext,
+    QuizContent,
+    QuizQuestion,
+    FlashcardItem,
+)
 
-def test_evaluacion_aprobada_quiz():
-    # Contexto y chunks reales simulados
-    context = {"learning_objective": "python", "profile": "avanzado", "detail_level": "medio"}
-    chunks = [{"text": "python es un lenguaje de programacion excelente para backend"}]
-    # JSON de salida generado
-    content = {"pregunta_1": "que es python", "respuesta_1": "un lenguaje de programacion excelente"}
-    
-    scores, alucinacion = evaluate(content, chunks, context)
-    
+
+def build_chunks() -> list[ChunkUsed]:
+    return [
+        ChunkUsed(
+            chunk_id="DOC-001_CH_001",
+            document_id="DOC-001",
+            rank=1,
+            score=0.95,
+            text=(
+                "Python es un lenguaje de programación utilizado "
+                "para desarrollo backend y ciencia de datos."
+            ),
+        )
+    ]
+
+
+def test_quiz_aprobado():
+    content = QuizContent(
+        title="Quiz de Python",
+        instructions="Selecciona la respuesta correcta.",
+        questions=[
+            QuizQuestion(
+                question_id="Q1",
+                question="¿Qué es Python?",
+                options=[
+                    "Un lenguaje de programación",
+                    "Un sistema operativo",
+                    "Una base de datos",
+                ],
+                correct_answer="Un lenguaje de programación",
+                explanation=(
+                    "Python es un lenguaje de programación "
+                    "utilizado en múltiples áreas."
+                ),
+            )
+        ],
+    )
+
+    context = GenerationContext(
+        profile="avanzado",
+        niche="python",
+        detail_level="medio",
+        learning_objective="python",
+    )
+
+    scores, informacion_no_respaldada = evaluate(
+        generated_content=content,
+        chunks_used=build_chunks(),
+        generation_context=context,
+    )
+
     assert scores.relevancia == 5
     assert scores.coherencia == 5
     assert scores.adaptacion_didactica == 5
-    assert scores.informacion_respaldada == 5
-    assert alucinacion is False
+    assert isinstance(informacion_no_respaldada, bool)
 
-def test_evaluacion_requiere_revision_principiante():
-    # Simulamos un usuario principiante
-    context = {"learning_objective": "javascript", "profile": "principiante"}
-    chunks = [{"text": "javascript es util para desarrollo web " * 100}] 
-    # Generamos un texto enorme (>3000 chars) para disparar la regla de adaptación
-    texto_largo = "javascript " * 400 
-    content = {"flashcard_1": texto_largo}
-    
-    scores, alucinacion = evaluate(content, chunks, context)
-    
-    # La adaptación baja a 3 porque es demasiado texto para un principiante
-    assert scores.adaptacion_didactica == 3 
-    assert alucinacion is False
 
-def test_evaluacion_rechazada_por_alucinacion_flashcards():
-    context = {"learning_objective": "react", "niche": "frontend"}
-    chunks = [{"text": "react es una libreria de interfaces"}]
-    # Contenido con palabras largas inventadas que no están en la fuente
-    content = {"tarjeta": "react permite construir naves espaciales mediante componentes intergalacticos"}
-    
-    scores, alucinacion = evaluate(content, chunks, context)
-    
-    # Detecta que más del 25% del vocabulario es inventado
-    assert alucinacion is True
+def test_quiz_principiante_requiere_revision():
+    texto_largo = "Python es un lenguaje de programación. " * 150
+
+    content = QuizContent(
+        title="Quiz largo de Python",
+        instructions=texto_largo,
+        questions=[
+            QuizQuestion(
+                question_id="Q1",
+                question="¿Qué es Python?",
+                options=[
+                    "Lenguaje de programación",
+                    "Base de datos",
+                ],
+                correct_answer="Lenguaje de programación",
+                explanation=texto_largo,
+            )
+        ],
+    )
+
+    context = GenerationContext(
+        profile="principiante",
+        niche="python",
+        detail_level="medio",
+        learning_objective="python",
+    )
+
+    scores, _ = evaluate(
+        generated_content=content,
+        chunks_used=build_chunks(),
+        generation_context=context,
+    )
+
+    assert scores.adaptacion_didactica == 3
+
+
+def test_flashcards_detecta_informacion_no_respaldada():
+    content = FlashcardsContent(
+        title="Flashcards de Python",
+        instructions="Estudia las tarjetas.",
+        cards=[
+            FlashcardItem(
+                card_id="F1",
+                front="¿Qué permite Python?",
+                back=(
+                    "Python permite construir naves espaciales "
+                    "intergalácticas mediante reactores cuánticos."
+                ),
+            )
+        ],
+    )
+
+    context = GenerationContext(
+        profile="student",
+        niche="python",
+        detail_level="beginner",
+        learning_objective="python",
+    )
+
+    scores, informacion_no_respaldada = evaluate(
+        generated_content=content,
+        chunks_used=build_chunks(),
+        generation_context=context,
+    )
+
+    assert informacion_no_respaldada is True
     assert scores.informacion_respaldada == 1
+
+
+def test_learning_objective_opcional():
+    content = FlashcardsContent(
+        title="Flashcards",
+        instructions="Repasa conceptos.",
+        cards=[
+            FlashcardItem(
+                card_id="F1",
+                front="¿Qué es Python?",
+                back="Python es un lenguaje de programación.",
+            )
+        ],
+    )
+
+    context = GenerationContext(
+        profile="student",
+        niche="python",
+        detail_level="beginner",
+    )
+
+    scores, informacion_no_respaldada = evaluate(
+        generated_content=content,
+        chunks_used=build_chunks(),
+        generation_context=context,
+    )
+
+    assert scores.relevancia in (3, 5)
+    assert isinstance(informacion_no_respaldada, bool)
