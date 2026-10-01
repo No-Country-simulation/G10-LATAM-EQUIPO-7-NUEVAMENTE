@@ -1,4 +1,7 @@
+"""Motor heurístico de evaluación de calidad para Quiz y Flashcards."""
+
 import json
+import re
 from typing import List, Union
 
 from data_ai.schemas.format_evaluation import (
@@ -16,6 +19,13 @@ GeneratedContent = Union[
 ]
 
 
+def _normalizar_palabras(texto: str) -> list[str]:
+    """
+    Normaliza texto a palabras minúsculas sin puntuación.
+    """
+    return re.findall(r"\b\w+\b", texto.lower(), flags=re.UNICODE)
+
+
 def evaluate(
     generated_content: GeneratedContent,
     chunks_used: List[ChunkUsed],
@@ -23,9 +33,25 @@ def evaluate(
 ) -> tuple[EvaluationScores, bool]:
     """
     Calcula los scores de calidad y detecta información no respaldada.
+
+    Parameters
+    ----------
+    generated_content:
+        Quiz o Flashcards previamente validados.
+
+    chunks_used:
+        Chunks utilizados como evidencia durante la generación.
+
+    generation_context:
+        Contexto empleado para adaptar el contenido.
+
+    Returns
+    -------
+    tuple[EvaluationScores, bool]
+        Scores calculados e indicador de información no respaldada.
     """
 
-    # Convertimos los contratos Pydantic a estructuras internas
+    # Convertir modelos Pydantic a estructuras internas
     content_dict = generated_content.model_dump()
     chunks_dict = [chunk.model_dump() for chunk in chunks_used]
     context_dict = generation_context.model_dump()
@@ -40,22 +66,37 @@ def evaluate(
         for chunk in chunks_dict
     )
 
+    # ========================================================
+    # 1. RELEVANCIA
+    # ========================================================
+
     objetivo = (
         context_dict.get("learning_objective") or ""
     ).lower()
 
-    nicho = context_dict.get("niche", "").lower()
+    nicho = (
+        context_dict.get("niche") or ""
+    ).lower()
+
+    coincide_objetivo = (
+        bool(objetivo)
+        and objetivo in content_text
+    )
+
+    coincide_nicho = (
+        bool(nicho)
+        and nicho in content_text
+    )
 
     relevancia = (
         5
-        if (
-            objetivo and objetivo in content_text
-        )
-        or (
-            nicho and nicho in content_text
-        )
+        if coincide_objetivo or coincide_nicho
         else 3
     )
+
+    # ========================================================
+    # 2. COHERENCIA
+    # ========================================================
 
     coherencia = (
         5
@@ -63,39 +104,55 @@ def evaluate(
         else 2
     )
 
-    perfil = context_dict.get("profile", "").lower()
-    nivel_detalle = context_dict.get(
-        "detail_level",
-        "",
+    # ========================================================
+    # 3. ADAPTACIÓN DIDÁCTICA
+    # ========================================================
+
+    perfil = (
+        context_dict.get("profile") or ""
+    ).lower()
+
+    nivel_detalle = (
+        context_dict.get("detail_level") or ""
     ).lower()
 
     adaptacion = 5
 
-    if perfil == "principiante" and len(content_text) > 3000:
+    if (
+        perfil == "principiante"
+        and len(content_text) > 3000
+    ):
         adaptacion = 3
-    elif nivel_detalle == "alto" and len(content_text) < 200:
+
+    elif (
+        nivel_detalle == "alto"
+        and len(content_text) < 200
+    ):
         adaptacion = 2
 
-    valores_generados = " ".join(
-        str(value)
-        for value in content_dict.values()
-    ).lower()
+    # ========================================================
+    # 4. INFORMACIÓN RESPALDADA
+    # ========================================================
 
-    palabras_clave = [
-        word
-        for word in valores_generados.split()
-        if len(word) > 5
+    palabras_contenido = [
+        palabra
+        for palabra in _normalizar_palabras(content_text)
+        if len(palabra) > 5
     ]
 
+    palabras_chunks = set(
+        _normalizar_palabras(chunks_text)
+    )
+
     palabras_no_respaldadas = [
-        word
-        for word in palabras_clave
-        if word not in chunks_text
+        palabra
+        for palabra in palabras_contenido
+        if palabra not in palabras_chunks
     ]
 
     ratio_no_respaldado = (
         len(palabras_no_respaldadas)
-        / max(len(palabras_clave), 1)
+        / max(len(palabras_contenido), 1)
     )
 
     informacion_no_respaldada = (
@@ -103,8 +160,14 @@ def evaluate(
     )
 
     informacion_respaldada = (
-        1 if informacion_no_respaldada else 5
+        1
+        if informacion_no_respaldada
+        else 5
     )
+
+    # ========================================================
+    # 5. RESULTADO
+    # ========================================================
 
     scores = EvaluationScores(
         relevancia=relevancia,
