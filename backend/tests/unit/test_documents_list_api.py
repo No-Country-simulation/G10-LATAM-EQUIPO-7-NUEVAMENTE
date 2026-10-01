@@ -72,9 +72,24 @@ def test_list_documents_returns_stored_documents(
     }
 
     for document in body["documents"]:
-        assert document["status"] == "stored"
-        assert document["content_type"] == "text/plain"
+        assert (
+            document["status"]
+            == "stored"
+        )
+        assert (
+            document["content_type"]
+            == "text/plain"
+        )
         assert document["size_bytes"] > 0
+
         assert "filename" in document
         assert "created_at" in document
         assert "updated_at" in document
+
+        # GET /documents ya está cerrado con Frontend.
+        # Los campos enriquecidos pertenecen únicamente
+        # al detalle GET /documents/{document_id}.
+        assert "title" not in document
+        assert "summary" not in document
+        assert "estimated_time" not in document
+        assert "formats_status" not in document
