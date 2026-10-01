@@ -1,0 +1,54 @@
+{
+  "document_id": "DOC-001",
+  "format": "quiz",
+  "generation_context": {
+    "profile": "student",
+    "niche": "technology",
+    "detail_level": "beginner",
+    "learning_objective": "Comprender conceptos básicos de FastAPI"
+  },
+  "generated_content": {
+    "title": "Quiz sobre FastAPI",
+    "instructions": "Selecciona la respuesta correcta.",
+    "questions": [
+      {
+        "question_id": "Q1",
+        "question": "¿Qué clase se utiliza para crear una aplicación FastAPI?",
+        "options": [
+          "FastAPI",
+          "Flask",
+          "Django"
+        ],
+        "correct_answer": "FastAPI",
+        "explanation": "La clase FastAPI se utiliza para crear la aplicación."
+      },
+      {
+        "question_id": "Q2",
+        "question": "¿Desde qué paquete se importa FastAPI?",
+        "options": [
+          "fastapi",
+          "django",
+          "flask"
+        ],
+        "correct_answer": "fastapi",
+        "explanation": "FastAPI se importa desde el paquete fastapi."
+      }
+    ]
+  },
+  "chunks_used": [
+    {
+      "chunk_id": "DOC-001_CH_001",
+      "document_id": "DOC-001",
+      "rank": 1,
+      "score": 0.91,
+      "text": "Para crear una aplicación se importa FastAPI desde el paquete fastapi y se instancia la clase FastAPI."
+    },
+    {
+      "chunk_id": "DOC-001_CH_002",
+      "document_id": "DOC-001",
+      "rank": 2,
+      "score": 0.84,
+      "text": "La aplicación se construye a partir de una instancia de FastAPI."
+    }
+  ]
+}

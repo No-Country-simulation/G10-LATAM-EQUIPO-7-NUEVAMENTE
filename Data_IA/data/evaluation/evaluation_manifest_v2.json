@@ -1,0 +1,13 @@
+{
+  "version": "v2",
+  "created_at": "2026-09-25",
+  "documents": 10,
+  "evaluation_cases": 50,
+  "validated_cases": 50,
+  "chunks_file": "chunks_v1.csv",
+  "chunks_sha256": "309167963f1d5255374f3cb71b5533cfdcd97f02c7fd9650a0387c18903190c0",
+  "ground_truth_file": "ground_truth_v2.csv",
+  "ground_truth_sha256": "8cd975bc8b295d4a106470be55a65cfc10d3c25a61606c1f65855d713d95b515",
+  "based_on": "evaluation_manifest_v1.json",
+  "change_reason": "Ampliación manual de chunks relevantes equivalentes en tres casos del Ground Truth para preservar múltiples evidencias válidas sin modificar la referencia congelada v1."
+}
