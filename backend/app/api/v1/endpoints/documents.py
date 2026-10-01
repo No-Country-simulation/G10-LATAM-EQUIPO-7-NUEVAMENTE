@@ -1,4 +1,4 @@
-﻿"""Endpoints HTTP relacionados con documentos."""
+"""Endpoints HTTP relacionados con documentos."""
 
 from collections.abc import AsyncIterator
 from pathlib import Path
@@ -8,17 +8,25 @@ from fastapi import (
     APIRouter,
     Depends,
     File,
+    Form,
     HTTPException,
     Response,
     UploadFile,
     status,
 )
 
+from app.api.adaptation_execution import (
+    execute_adaptation,
+)
 from app.api.dependencies import (
+    get_adaptation_orchestration_service,
     get_document_service,
     get_generated_format_query_service,
     get_object_storage,
     get_temporary_storage,
+)
+from app.application.adaptation_orchestration_service import (
+    AdaptationOrchestrationService,
 )
 from app.application.document_service import (
     DocumentNotFoundError,
@@ -35,6 +43,11 @@ from app.ports.object_storage_port import ObjectStoragePort
 from app.ports.temporary_storage_port import (
     FileTooLargeError,
     TemporaryStoragePort,
+)
+from app.schemas.adaptation import (
+    AdaptationNiche,
+    AdaptationProfile,
+    NonEmptyString,
 )
 from app.schemas.document import (
     DocumentCreatedResponse,
@@ -141,19 +154,28 @@ def _to_document_response(
     "",
     response_model=DocumentCreatedResponse,
     status_code=status.HTTP_201_CREATED,
-    summary="Cargar e identificar documento",
+    summary="Cargar y adaptar documento",
     description=(
-        "Recibe un documento PDF, Markdown o TXT, "
-        "valida sus características e identifica "
-        "su contenido mediante SHA-256."
+        "Recibe un documento PDF, Markdown o TXT junto con "
+        "el contexto pedagógico. Backend valida y almacena "
+        "el archivo, ejecuta la indexación y solicita "
+        "automáticamente Quiz y Flashcards."
     ),
     responses={
         200: {
             "model": DocumentCreatedResponse,
-            "description": "Documento previamente registrado.",
+            "description": (
+                "Documento previamente registrado y procesado."
+            ),
         },
         400: {
             "description": "Documento vacío o inválido.",
+        },
+        409: {
+            "description": (
+                "El documento no se encuentra en un estado "
+                "válido para ejecutar la adaptación."
+            ),
         },
         413: {
             "description": "Documento demasiado grande.",
@@ -162,7 +184,10 @@ def _to_document_response(
             "description": "Formato o MIME type no soportado.",
         },
         502: {
-            "description": "Error al almacenar el documento en OCI.",
+            "description": (
+                "Error durante almacenamiento, indexación "
+                "o generación de formatos."
+            ),
         },
     },
 )
@@ -174,6 +199,30 @@ async def upload_document(
             description=(
                 "Documento PDF, Markdown (.md) "
                 "o texto plano (.txt)."
+            )
+        ),
+    ],
+    profile: Annotated[
+        AdaptationProfile,
+        Form(
+            description=(
+                "Perfil educativo del destinatario."
+            )
+        ),
+    ],
+    niche: Annotated[
+        AdaptationNiche,
+        Form(
+            description=(
+                "Área temática o contexto de aplicación."
+            )
+        ),
+    ],
+    detail_level: Annotated[
+        NonEmptyString,
+        Form(
+            description=(
+                "Nivel de detalle esperado durante la generación."
             )
         ),
     ],
@@ -189,8 +238,23 @@ async def upload_document(
         TemporaryStoragePort,
         Depends(get_temporary_storage),
     ],
+    orchestration_service: Annotated[
+        AdaptationOrchestrationService,
+        Depends(
+            get_adaptation_orchestration_service
+        ),
+    ],
+    learning_objective: Annotated[
+        NonEmptyString | None,
+        Form(
+            description=(
+                "Objetivo de aprendizaje específico, "
+                "cuando sea informado."
+            )
+        ),
+    ] = None,
 ) -> DocumentCreatedResponse:
-    """Valida, registra y almacena permanentemente un documento."""
+    """Ejecuta el flujo completo desde carga hasta adaptación."""
     _validate_document_type(
         file.filename,
         file.content_type,
@@ -263,19 +327,46 @@ async def upload_document(
                 "almacenarse en OCI Object Storage."
             ),
         ) from exc
+
     finally:
         temporary_path.unlink(
             missing_ok=True
         )
 
+    generated_formats = await execute_adaptation(
+        orchestration_service=orchestration_service,
+        document_id=document.document_id,
+        profile=profile,
+        niche=niche,
+        detail_level=detail_level,
+        learning_objective=learning_objective,
+    )
+
+    current_document = (
+        document_service.get_document(
+            document.document_id
+        )
+    )
+
     if not registration.created:
-        response.status_code = status.HTTP_200_OK
+        response.status_code = (
+            status.HTTP_200_OK
+        )
 
     return DocumentCreatedResponse(
-        document_id=document.document_id,
-        filename=document.original_filename,
-        status=document.status,
+        document_id=current_document.document_id,
+        filename=current_document.original_filename,
+        status=current_document.status,
         duplicate=not registration.created,
+        formats={
+            generated_format.format_type: (
+                GeneratedFormatResponse.from_domain(
+                    generated_format
+                )
+            )
+            for generated_format
+            in generated_formats
+        },
     )
 
 
@@ -375,6 +466,7 @@ async def get_document_formats(
         status=result.status,
         formats=formats,
     )
+
 
 @router.get(
     "/{document_id}",

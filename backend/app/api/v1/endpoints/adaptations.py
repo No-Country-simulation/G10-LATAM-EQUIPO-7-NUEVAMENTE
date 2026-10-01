@@ -5,31 +5,17 @@ from typing import Annotated
 from fastapi import (
     APIRouter,
     Depends,
-    HTTPException,
     status,
 )
 
+from app.api.adaptation_execution import (
+    execute_adaptation,
+)
 from app.api.dependencies import (
     get_adaptation_orchestration_service,
 )
 from app.application.adaptation_orchestration_service import (
-    AdaptationDocumentStateError,
     AdaptationOrchestrationService,
-)
-from app.application.document_service import (
-    DocumentIndexingStateError,
-    DocumentNotFoundError,
-    DocumentNotStoredError,
-    DocumentRetrievalError,
-)
-from app.application.format_generation_service import (
-    DocumentNotReadyForGenerationError,
-    FormatGenerationContractError,
-    FormatGenerationDocumentNotFoundError,
-    FormatGenerationIntegrationError,
-)
-from app.application.rag_integration_service import (
-    RAGIntegrationError,
 )
 from app.schemas.adaptation import (
     AdaptationRequest,
@@ -51,9 +37,9 @@ router = APIRouter(
     description=(
         "Ejecuta la adaptación educativa de un documento almacenado. "
         "Backend indexa el documento cuando sea necesario y solicita "
-        "automáticamente Quiz y Flashcards. Los contenidos completos "
-        "pueden consultarse posteriormente mediante "
-        "GET /documents/{document_id}/formats."
+        "automáticamente Quiz y Flashcards. Este endpoint se conserva "
+        "como contrato independiente, aunque el flujo principal de "
+        "Frontend se ejecuta actualmente desde POST /documents."
     ),
     responses={
         404: {
@@ -82,50 +68,17 @@ async def adapt_document(
         ),
     ],
 ) -> AdaptationResponse:
-    """Ejecuta el flujo completo de adaptación de Sprint 2."""
-    try:
-        generated_formats = (
-            await orchestration_service.adapt_document(
-                document_id=payload.document_id,
-                profile=payload.profile,
-                niche=payload.niche,
-                detail_level=payload.detail_level,
-                learning_objective=(
-                    payload.learning_objective
-                ),
-            )
-        )
-
-    except (
-        DocumentNotFoundError,
-        FormatGenerationDocumentNotFoundError,
-    ) as exc:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail=str(exc),
-        ) from exc
-
-    except (
-        AdaptationDocumentStateError,
-        DocumentNotStoredError,
-        DocumentIndexingStateError,
-        DocumentNotReadyForGenerationError,
-    ) as exc:
-        raise HTTPException(
-            status_code=status.HTTP_409_CONFLICT,
-            detail=str(exc),
-        ) from exc
-
-    except (
-        DocumentRetrievalError,
-        RAGIntegrationError,
-        FormatGenerationIntegrationError,
-        FormatGenerationContractError,
-    ) as exc:
-        raise HTTPException(
-            status_code=status.HTTP_502_BAD_GATEWAY,
-            detail=str(exc),
-        ) from exc
+    """Ejecuta explícitamente el flujo de adaptación."""
+    generated_formats = await execute_adaptation(
+        orchestration_service=orchestration_service,
+        document_id=payload.document_id,
+        profile=payload.profile,
+        niche=payload.niche,
+        detail_level=payload.detail_level,
+        learning_objective=(
+            payload.learning_objective
+        ),
+    )
 
     return AdaptationResponse(
         document_id=payload.document_id,
