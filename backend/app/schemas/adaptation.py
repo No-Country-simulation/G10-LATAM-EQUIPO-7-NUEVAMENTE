@@ -2,13 +2,8 @@
 
 from typing import Annotated, Literal
 
-from pydantic import (
-    ConfigDict,
-    Field,
-    StringConstraints,
-)
+from pydantic import ConfigDict, Field, StringConstraints
 
-from app.domain.enums import ProcessStatus
 from app.schemas.common import BaseSchema
 
 NonEmptyString = Annotated[
@@ -72,11 +67,3 @@ class AdaptationRequest(BaseSchema):
             "Objetivo de aprendizaje específico, cuando sea informado."
         ),
     )
-
-
-class AdaptationAcceptedResponse(BaseSchema):
-    """Respuesta provisional aún no utilizada por un endpoint operativo."""
-
-    process_id: str
-    document_id: str
-    status: ProcessStatus
