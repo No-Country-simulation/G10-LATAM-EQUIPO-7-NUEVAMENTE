@@ -551,3 +551,20 @@ def test_get_unknown_document_returns_404(
         response.json()["detail"]
         == "No existe el documento doc_inexistente."
     )
+
+def test_adaptations_endpoint_is_not_public(
+    client: TestClient,
+    api_prefix: str,
+) -> None:
+    """La adaptación se ejecuta internamente y no expone endpoint público."""
+    response = client.post(
+        f"{api_prefix}/adaptations",
+        json={
+            "document_id": "doc_123",
+            "profile": "intermediate",
+            "niche": "backend",
+            "detail_level": "detailed",
+        },
+    )
+
+    assert response.status_code == 404
