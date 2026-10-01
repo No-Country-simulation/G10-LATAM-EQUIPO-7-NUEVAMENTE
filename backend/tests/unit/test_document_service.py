@@ -1,4 +1,4 @@
-"""Pruebas unitarias de DocumentService."""
+﻿"""Pruebas unitarias de DocumentService."""
 
 from pathlib import Path
 
@@ -14,7 +14,7 @@ from app.application.document_service import (
 )
 from app.domain.document import Document
 from app.domain.enums import DocumentStatus
-from app.ports.document_repository import (
+from app.ports.document_repository_port import (
     DocumentRepositoryError,
 )
 from tests.fakes import (
@@ -227,7 +227,7 @@ def test_store_document_reports_consistency_error_when_delete_fails(
 
     with pytest.raises(
         DocumentStorageConsistencyError,
-        match="quedó en un estado inconsistente",
+        match="estado inconsistente",
     ):
         service.store_document(
             document_id=document_id,

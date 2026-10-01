@@ -1,4 +1,4 @@
-"""Pruebas de selección de persistencia de documentos."""
+﻿"""Pruebas de selección de persistencia de documentos."""
 
 import pytest
 
@@ -6,8 +6,8 @@ from app.infrastructure.persistence.repository_factory import (
     UnsupportedDatabaseError,
     create_document_repository,
 )
-from app.infrastructure.persistence.sqlite_document_repository import (
-    SQLiteDocumentRepository,
+from app.infrastructure.persistence.sqlite_document_repository_adapter import (
+    SQLiteDocumentRepositoryAdapter,
 )
 
 
@@ -22,7 +22,7 @@ def test_factory_creates_sqlite_repository(
 
     assert isinstance(
         repository,
-        SQLiteDocumentRepository,
+        SQLiteDocumentRepositoryAdapter,
     )
     assert database_path.exists()
 

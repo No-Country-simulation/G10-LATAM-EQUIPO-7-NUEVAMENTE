@@ -1,4 +1,4 @@
-"""Endpoints HTTP relacionados con documentos."""
+﻿"""Endpoints HTTP relacionados con documentos."""
 
 from collections.abc import AsyncIterator
 from pathlib import Path
@@ -16,6 +16,7 @@ from fastapi import (
 
 from app.api.dependencies import (
     get_document_service,
+    get_generated_format_query_service,
     get_object_storage,
     get_temporary_storage,
 )
@@ -24,15 +25,25 @@ from app.application.document_service import (
     DocumentService,
     DocumentStorageError,
 )
+from app.application.generated_format_query_service import (
+    GeneratedFormatQueryDocumentNotFoundError,
+    GeneratedFormatQueryService,
+)
 from app.core.config import settings
-from app.ports.object_storage import ObjectStoragePort
-from app.ports.temporary_storage import (
+from app.domain.document import Document
+from app.ports.object_storage_port import ObjectStoragePort
+from app.ports.temporary_storage_port import (
     FileTooLargeError,
     TemporaryStoragePort,
 )
 from app.schemas.document import (
     DocumentCreatedResponse,
+    DocumentListResponse,
     DocumentResponse,
+)
+from app.schemas.generated_format import (
+    DocumentFormatsResponse,
+    GeneratedFormatResponse,
 )
 
 router = APIRouter(
@@ -109,6 +120,21 @@ def _validate_document_type(
                 "con un formato admitido."
             ),
         )
+
+
+def _to_document_response(
+    document: Document,
+) -> DocumentResponse:
+    """Convierte la entidad de dominio al contrato HTTP público."""
+    return DocumentResponse(
+        document_id=document.document_id,
+        filename=document.original_filename,
+        status=document.status,
+        content_type=document.content_type,
+        size_bytes=document.size_bytes,
+        created_at=document.created_at,
+        updated_at=document.updated_at,
+    )
 
 
 @router.post(
@@ -254,6 +280,103 @@ async def upload_document(
 
 
 @router.get(
+    "",
+    response_model=DocumentListResponse,
+    status_code=status.HTTP_200_OK,
+    summary="Listar documentos activos",
+    description=(
+        "Retorna los documentos persistidos y disponibles "
+        "para consulta desde la biblioteca."
+    ),
+)
+async def list_documents(
+    document_service: Annotated[
+        DocumentService,
+        Depends(get_document_service),
+    ],
+) -> DocumentListResponse:
+    """Obtiene los documentos activos de la biblioteca."""
+    documents = (
+        document_service.list_active_documents()
+    )
+
+    return DocumentListResponse(
+        documents=[
+            _to_document_response(
+                document
+            )
+            for document in documents
+        ]
+    )
+
+
+@router.get(
+    "/{document_id}/formats",
+    response_model=DocumentFormatsResponse,
+    status_code=status.HTTP_200_OK,
+    summary="Consultar formatos generados",
+    description=(
+        "Retorna Quiz y Flashcards persistidos para "
+        "un documento junto con su estado agregado."
+    ),
+    responses={
+        404: {
+            "description": (
+                "Documento no encontrado."
+            ),
+        },
+    },
+)
+async def get_document_formats(
+    document_id: str,
+    generated_format_query_service: Annotated[
+        GeneratedFormatQueryService,
+        Depends(
+            get_generated_format_query_service
+        ),
+    ],
+) -> DocumentFormatsResponse:
+    """Consulta los formatos pedagógicos de un documento."""
+    try:
+        result = (
+            generated_format_query_service
+            .get_document_formats(
+                document_id
+            )
+        )
+
+    except (
+        GeneratedFormatQueryDocumentNotFoundError
+    ) as exc:
+        raise HTTPException(
+            status_code=(
+                status.HTTP_404_NOT_FOUND
+            ),
+            detail=str(exc),
+        ) from exc
+
+    formats = (
+        {
+            generated_format.format_type: (
+                GeneratedFormatResponse
+                .from_domain(
+                    generated_format
+                )
+            )
+            for generated_format
+            in result.formats
+        }
+        if result.formats
+        else None
+    )
+
+    return DocumentFormatsResponse(
+        document_id=result.document_id,
+        status=result.status,
+        formats=formats,
+    )
+
+@router.get(
     "/{document_id}",
     response_model=DocumentResponse,
     status_code=status.HTTP_200_OK,
@@ -286,12 +409,6 @@ async def get_document(
             detail=str(exc),
         ) from exc
 
-    return DocumentResponse(
-        document_id=document.document_id,
-        filename=document.original_filename,
-        status=document.status,
-        content_type=document.content_type,
-        size_bytes=document.size_bytes,
-        created_at=document.created_at,
-        updated_at=document.updated_at,
+    return _to_document_response(
+        document
     )

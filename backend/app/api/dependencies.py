@@ -1,22 +1,37 @@
-"""Dependencias compartidas por los endpoints de BackendAPI."""
+﻿"""Dependencias compartidas por los endpoints de BackendAPI."""
 
 from pathlib import Path
 
 from fastapi import Request
 
-from app.application.document_service import DocumentService
-from app.core.config import settings
-from app.infrastructure.storage.local_storage import (
-    LocalFileStorage,
+from app.application.document_service import (
+    DocumentService,
 )
-from app.ports.object_storage import ObjectStoragePort
-from app.ports.temporary_storage import TemporaryStoragePort
+from app.application.format_generation_service import (
+    FormatGenerationService,
+)
+from app.application.generated_format_query_service import (
+    GeneratedFormatQueryService,
+)
+from app.application.rag_integration_service import (
+    RAGIntegrationService,
+)
+from app.core.config import settings
+from app.infrastructure.storage.local_temporary_storage_adapter import (
+    LocalTemporaryStorageAdapter,
+)
+from app.ports.object_storage_port import (
+    ObjectStoragePort,
+)
+from app.ports.temporary_storage_port import (
+    TemporaryStoragePort,
+)
 
 
 def get_document_service(
     request: Request,
 ) -> DocumentService:
-    """Obtiene el servicio de documentos configurado en la aplicación."""
+    """Obtiene el servicio de documentos configurado."""
     service = getattr(
         request.app.state,
         "document_service",
@@ -26,6 +41,42 @@ def get_document_service(
     if service is None:
         raise RuntimeError(
             "DocumentService no fue inicializado."
+        )
+
+    return service
+
+
+def get_format_generation_service(
+    request: Request,
+) -> FormatGenerationService:
+    """Obtiene el servicio de generación de formatos configurado."""
+    service = getattr(
+        request.app.state,
+        "format_generation_service",
+        None,
+    )
+
+    if service is None:
+        raise RuntimeError(
+            "FormatGenerationService no fue inicializado."
+        )
+
+    return service
+
+
+def get_generated_format_query_service(
+    request: Request,
+) -> GeneratedFormatQueryService:
+    """Obtiene el servicio de consulta de formatos generado."""
+    service = getattr(
+        request.app.state,
+        "generated_format_query_service",
+        None,
+    )
+
+    if service is None:
+        raise RuntimeError(
+            "GeneratedFormatQueryService no fue inicializado."
         )
 
     return service
@@ -49,14 +100,27 @@ def get_object_storage(
     return storage
 
 
-def get_temporary_storage() -> TemporaryStoragePort:
-    """Construye el almacenamiento temporal configurado.
+def get_rag_integration_service(
+    request: Request,
+) -> RAGIntegrationService:
+    """Obtiene la integración BackendAPI-RAG configurada."""
+    service = getattr(
+        request.app.state,
+        "rag_integration_service",
+        None,
+    )
 
-    La implementación concreta queda encapsulada en la composición
-    de dependencias. Los endpoints consumen únicamente el contrato
-    TemporaryStoragePort.
-    """
-    return LocalFileStorage(
+    if service is None:
+        raise RuntimeError(
+            "RAGIntegrationService no fue inicializado."
+        )
+
+    return service
+
+
+def get_temporary_storage() -> TemporaryStoragePort:
+    """Construye el adaptador de almacenamiento temporal configurado."""
+    return LocalTemporaryStorageAdapter(
         base_directory=Path(
             settings.UPLOAD_DIR
         ),

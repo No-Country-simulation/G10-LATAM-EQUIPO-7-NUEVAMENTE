@@ -25,3 +25,35 @@ class ProcessStatus(StrEnum):
     PROCESSING = "processing"
     COMPLETED = "completed"
     FAILED = "failed"
+
+
+class GeneratedFormatType(StrEnum):
+    """Formatos pedagógicos soportados durante Sprint 2."""
+
+    QUIZ = "quiz"
+    FLASHCARDS = "flashcards"
+
+
+class GeneratedFormatStatus(StrEnum):
+    """Estados posibles de una generación solicitada a Agentes."""
+
+    SUCCESS = "success"
+    FAILED = "failed"
+    NO_RESULTS = "no_results"
+
+
+class DocumentFormatsStatus(StrEnum):
+    """Estado agregado de los formatos expuesto a Frontend."""
+
+    PROCESSING = "processing"
+    READY = "ready"
+    PARTIAL = "partial"
+    ERROR = "error"
+
+
+class FormatEvaluationStatus(StrEnum):
+    """Resultados globales emitidos por Data/IA."""
+
+    APPROVED = "aprobado"
+    REQUIRES_REVIEW = "requiere_revision"
+    REJECTED = "rechazado"

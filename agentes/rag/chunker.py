@@ -39,10 +39,13 @@ def create_chunks(
 
             metadata = dict(document.metadata)
             metadata["chunk_index"] = index
+            
+            # Usamos document_id para garantizar unicidad global y evitar colisiones
+            doc_id = metadata.get("document_id", "unknown_doc")
 
             chunks.append(
                 Chunk(
-                    id=f"{metadata['source']}_{metadata.get('page', 1)}_{index}",
+                    id=f"{doc_id}_{metadata.get('page', 1)}_{index}",
                     text=text,
                     metadata=metadata
                 )

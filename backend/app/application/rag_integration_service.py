@@ -1,30 +1,32 @@
-"""Casos de uso para la integración entre BackendAPI y RAG."""
+﻿"""Casos de uso para la integración entre BackendAPI y RAG."""
 
 from app.application.document_service import (
     DocumentService,
     RetrievedDocument,
 )
-from app.ports.object_storage import ObjectStoragePort
-from app.ports.rag import (
-    RagDocumentInput,
-    RagError,
-    RagPort,
+from app.ports.object_storage_port import (
+    ObjectStoragePort,
+)
+from app.ports.rag_port import (
+    RAGDocumentInput,
+    RAGError,
+    RAGPort,
 )
 
 
-class RagIntegrationError(Exception):
-    """No fue posible entregar el documento al módulo RAG."""
+class RAGIntegrationError(Exception):
+    """No fue posible completar la indexación mediante RAG."""
 
 
-class RagIntegrationService:
-    """Orquesta la entrega de documentos almacenados al módulo RAG.
+class RAGIntegrationService:
+    """Orquesta la indexación de documentos almacenados mediante RAG.
 
-    La aplicación recupera el documento utilizando las capacidades de
-    BackendAPI y posteriormente lo transforma al contrato definido por
-    ``RagPort``.
+    BackendAPI conserva el control del documento original y lo recupera
+    desde Object Storage utilizando su document_id canónico. RAG recibe
+    únicamente el documento necesario para ejecutar extracción, limpieza,
+    chunking, embeddings e indexación.
 
-    Este servicio no implementa extracción, limpieza, chunking, embeddings,
-    almacenamiento vectorial ni retrieval semántico.
+    Este servicio no implementa ninguna operación interna del pipeline RAG.
     """
 
     def __init__(
@@ -32,7 +34,7 @@ class RagIntegrationService:
         *,
         document_service: DocumentService,
         object_storage: ObjectStoragePort,
-        rag: RagPort,
+        rag: RAGPort,
     ) -> None:
         self._document_service = document_service
         self._object_storage = object_storage
@@ -42,7 +44,11 @@ class RagIntegrationService:
         self,
         document_id: str,
     ) -> None:
-        """Recupera un documento y lo entrega al módulo RAG.
+        """Recupera desde OCI e indexa un documento mediante RAG.
+
+        El contenido binario se recupera antes de marcar el documento como
+        INDEXING. Así, un fallo al recuperar OCI continúa siendo un problema
+        de almacenamiento y no se registra erróneamente como fallo de RAG.
 
         Args:
             document_id: Identificador canónico generado por BackendAPI.
@@ -50,14 +56,21 @@ class RagIntegrationService:
         Raises:
             DocumentNotFoundError: Si el documento no está registrado.
             DocumentNotStoredError: Si no posee un objeto persistido.
-            DocumentRetrievalError: Si no puede recuperarse desde storage.
-            RagIntegrationError: Si RAG rechaza o falla al recibirlo.
+            DocumentRetrievalError: Si no puede recuperarse desde OCI.
+            DocumentIndexingStateError: Si el documento no puede iniciar
+                una nueva indexación.
+            RAGIntegrationError: Si RAG rechaza o falla durante la
+                indexación.
         """
         retrieved_document = (
             self._document_service.retrieve_document(
                 document_id=document_id,
                 object_storage=self._object_storage,
             )
+        )
+
+        self._document_service.start_indexing(
+            document_id
         )
 
         rag_document = self._build_rag_document(
@@ -68,18 +81,27 @@ class RagIntegrationService:
             await self._rag.index_document(
                 rag_document
             )
-        except RagError as exc:
-            raise RagIntegrationError(
-                "No fue posible entregar el documento "
-                f"{document_id} al módulo RAG."
+
+        except RAGError as exc:
+            self._document_service.fail_indexing(
+                document_id
+            )
+
+            raise RAGIntegrationError(
+                "No fue posible indexar el documento "
+                f"{document_id} mediante RAG."
             ) from exc
+
+        self._document_service.complete_indexing(
+            document_id
+        )
 
     @staticmethod
     def _build_rag_document(
         document: RetrievedDocument,
-    ) -> RagDocumentInput:
-        """Transforma el resultado de Backend al contrato BackendAPI-RAG."""
-        return RagDocumentInput(
+    ) -> RAGDocumentInput:
+        """Transforma el documento recuperado al contrato interno de RAG."""
+        return RAGDocumentInput(
             document_id=document.document_id,
             filename=document.filename,
             content_type=document.content_type,

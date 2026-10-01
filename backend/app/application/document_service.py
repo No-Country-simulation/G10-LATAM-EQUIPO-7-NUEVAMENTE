@@ -1,4 +1,4 @@
-"""Casos de uso relacionados con documentos."""
+﻿"""Casos de uso relacionados con documentos."""
 
 import logging
 from dataclasses import dataclass
@@ -8,11 +8,11 @@ from uuid import uuid4
 from app.core.hashing import calculate_file_sha256
 from app.domain.document import Document
 from app.domain.enums import DocumentStatus
-from app.ports.document_repository import (
-    DocumentRepository,
+from app.ports.document_repository_port import (
     DocumentRepositoryError,
+    DocumentRepositoryPort,
 )
-from app.ports.object_storage import (
+from app.ports.object_storage_port import (
     ObjectStorageError,
     ObjectStoragePort,
 )
@@ -40,6 +40,10 @@ class DocumentRetrievalError(Exception):
     """No fue posible recuperar el contenido persistente del documento."""
 
 
+class DocumentIndexingStateError(Exception):
+    """El documento no puede realizar la transición de indexación solicitada."""
+
+
 @dataclass(frozen=True, slots=True)
 class DocumentRegistrationResult:
     """Resultado del registro de un documento.
@@ -56,10 +60,6 @@ class DocumentRegistrationResult:
 @dataclass(frozen=True, slots=True)
 class RetrievedDocument:
     """Documento recuperado desde el almacenamiento persistente.
-
-    Esta estructura pertenece a la capa de aplicación y representa el
-    resultado de recuperar físicamente un documento. No constituye todavía
-    el contrato BackendAPI-RAG.
 
     Attributes:
         document_id: Identificador canónico generado por BackendAPI.
@@ -79,7 +79,7 @@ class DocumentService:
 
     def __init__(
         self,
-        repository: DocumentRepository,
+        repository: DocumentRepositoryPort,
     ) -> None:
         self._repository = repository
 
@@ -91,23 +91,16 @@ class DocumentService:
         content_type: str | None,
         size_bytes: int,
     ) -> DocumentRegistrationResult:
-        """Registra un documento validado y detecta contenido duplicado.
+        """Registra un documento validado y detecta contenido duplicado."""
+        sha256 = calculate_file_sha256(
+            local_path
+        )
 
-        El archivo debe haber superado previamente las validaciones técnicas
-        de carga.
-
-        Args:
-            local_path: Ruta temporal del documento.
-            original_filename: Nombre original recibido.
-            content_type: MIME type del documento.
-            size_bytes: Tamaño del archivo en bytes.
-
-        Returns:
-            Resultado con el documento y un indicador de creación.
-        """
-        sha256 = calculate_file_sha256(local_path)
-
-        existing_document = self._repository.find_by_sha256(sha256)
+        existing_document = (
+            self._repository.find_by_sha256(
+                sha256
+            )
+        )
 
         if existing_document is not None:
             return DocumentRegistrationResult(
@@ -123,8 +116,13 @@ class DocumentService:
             size_bytes=size_bytes,
         )
 
-        document.update_status(DocumentStatus.VALIDATED)
-        self._repository.create(document)
+        document.update_status(
+            DocumentStatus.VALIDATED
+        )
+
+        self._repository.create(
+            document
+        )
 
         return DocumentRegistrationResult(
             document=document,
@@ -138,34 +136,22 @@ class DocumentService:
         local_path: Path,
         object_storage: ObjectStoragePort,
     ) -> Document:
-        """Almacena permanentemente un documento previamente registrado.
+        """Almacena permanentemente un documento previamente registrado."""
+        document = self.get_document(
+            document_id
+        )
 
-        Si la carga a Object Storage finaliza correctamente pero falla la
-        persistencia final de metadata, intenta eliminar el objeto cargado
-        para mantener alineados Object Storage y la base de datos.
+        object_name = self._build_object_name(
+            document
+        )
 
-        Args:
-            document_id: Identificador canónico del documento.
-            local_path: Ruta temporal del archivo que será almacenado.
-            object_storage: Proveedor de almacenamiento persistente.
+        document.update_status(
+            DocumentStatus.STORING
+        )
 
-        Returns:
-            Documento almacenado y actualizado en persistencia.
-
-        Raises:
-            DocumentNotFoundError: Si el documento no existe.
-            DocumentStorageError: Si falla el almacenamiento o la
-                persistencia final y la compensación se completa.
-            DocumentStorageConsistencyError: Si ocurre un fallo adicional
-                durante la compensación y no puede garantizarse la
-                consistencia entre persistencia y Object Storage.
-        """
-        document = self.get_document(document_id)
-
-        object_name = self._build_object_name(document)
-
-        document.update_status(DocumentStatus.STORING)
-        self._repository.update(document)
+        self._repository.update(
+            document
+        )
 
         try:
             object_storage.upload_file(
@@ -174,18 +160,30 @@ class DocumentService:
                 content_type=document.content_type,
             )
         except ObjectStorageError as exc:
-            document.update_status(DocumentStatus.STORAGE_FAILED)
-            self._repository.update(document)
+            document.update_status(
+                DocumentStatus.STORAGE_FAILED
+            )
+
+            self._repository.update(
+                document
+            )
 
             raise DocumentStorageError(
                 f"No fue posible almacenar el documento {document_id}."
             ) from exc
 
-        document.assign_oci_object(object_name)
-        document.update_status(DocumentStatus.STORED)
+        document.assign_oci_object(
+            object_name
+        )
+
+        document.update_status(
+            DocumentStatus.STORED
+        )
 
         try:
-            self._repository.update(document)
+            self._repository.update(
+                document
+            )
         except DocumentRepositoryError as exc:
             self._compensate_failed_storage_persistence(
                 document=document,
@@ -206,30 +204,10 @@ class DocumentService:
         document_id: str,
         object_storage: ObjectStoragePort,
     ) -> RetrievedDocument:
-        """Recupera físicamente un documento desde Object Storage.
-
-        El caso de uso obtiene primero la metadata persistida utilizando el
-        ``document_id`` canónico de BackendAPI. Posteriormente utiliza el
-        ``oci_object_name`` asociado para recuperar el contenido binario.
-
-        Esta operación no realiza extracción, limpieza, chunking, embeddings
-        ni indexación. Esas responsabilidades pertenecen al módulo RAG.
-
-        Args:
-            document_id: Identificador canónico del documento.
-            object_storage: Proveedor de almacenamiento configurado.
-
-        Returns:
-            Documento con metadata básica y contenido binario recuperado.
-
-        Raises:
-            DocumentNotFoundError: Si el document_id no está registrado.
-            DocumentNotStoredError: Si no existe una referencia a Object
-                Storage asociada al documento.
-            DocumentRetrievalError: Si Object Storage no permite recuperar
-                el contenido.
-        """
-        document = self.get_document(document_id)
+        """Recupera físicamente un documento desde Object Storage."""
+        document = self.get_document(
+            document_id
+        )
 
         if document.oci_object_name is None:
             raise DocumentNotStoredError(
@@ -253,14 +231,115 @@ class DocumentService:
             content=content,
         )
 
-    def get_document(self, document_id: str) -> Document:
+    def start_indexing(
+        self,
+        document_id: str,
+    ) -> Document:
+        """Marca un documento almacenado como en proceso de indexación."""
+        return self._transition_indexing_status(
+            document_id=document_id,
+            allowed_from={
+                DocumentStatus.STORED,
+                DocumentStatus.INDEXING_FAILED,
+            },
+            target=DocumentStatus.INDEXING,
+        )
+
+    def complete_indexing(
+        self,
+        document_id: str,
+    ) -> Document:
+        """Marca como indexado un documento cuya indexación terminó."""
+        return self._transition_indexing_status(
+            document_id=document_id,
+            allowed_from={
+                DocumentStatus.INDEXING,
+            },
+            target=DocumentStatus.INDEXED,
+        )
+
+    def fail_indexing(
+        self,
+        document_id: str,
+    ) -> Document:
+        """Marca como fallida una indexación previamente iniciada."""
+        return self._transition_indexing_status(
+            document_id=document_id,
+            allowed_from={
+                DocumentStatus.INDEXING,
+            },
+            target=DocumentStatus.INDEXING_FAILED,
+        )
+
+    def list_active_documents(
+        self,
+    ) -> list[Document]:
+        """Obtiene los documentos disponibles en la biblioteca.
+
+        Un documento se considera activo para consulta cuando tiene
+        asociado un objeto persistente en OCI Object Storage.
+
+        Esta operación consulta únicamente metadata persistida. No
+        descarga archivos ni dispara indexación o generación.
+        """
+        documents = self._repository.find_all()
+
+        return [
+            document
+            for document in documents
+            if document.oci_object_name is not None
+        ]
+
+    def get_document(
+        self,
+        document_id: str,
+    ) -> Document:
         """Obtiene un documento registrado por su identificador."""
-        document = self._repository.find_by_id(document_id)
+        document = self._repository.find_by_id(
+            document_id
+        )
 
         if document is None:
             raise DocumentNotFoundError(
                 f"No existe el documento {document_id}."
             )
+
+        return document
+
+    def _transition_indexing_status(
+        self,
+        *,
+        document_id: str,
+        allowed_from: set[DocumentStatus],
+        target: DocumentStatus,
+    ) -> Document:
+        """Ejecuta y persiste una transición controlada de indexación."""
+        document = self.get_document(
+            document_id
+        )
+
+        if document.status not in allowed_from:
+            allowed_values = ", ".join(
+                sorted(
+                    status.value
+                    for status in allowed_from
+                )
+            )
+
+            raise DocumentIndexingStateError(
+                f"El documento {document_id} está en estado "
+                f"{document.status.value} y no puede pasar a "
+                f"{target.value}. Estados permitidos: "
+                f"{allowed_values}."
+            )
+
+        document.update_status(
+            target
+        )
+
+        self._repository.update(
+            document
+        )
 
         return document
 
@@ -271,14 +350,7 @@ class DocumentService:
         object_name: str,
         object_storage: ObjectStoragePort,
     ) -> None:
-        """Compensa una carga OCI cuya metadata final no pudo persistirse.
-
-        Primero elimina el objeto que ya había sido cargado. Después retira
-        la referencia OCI de la entidad y registra ``STORAGE_FAILED``.
-
-        Si alguna de esas operaciones falla, se genera un error explícito de
-        consistencia para evitar ocultar una posible desalineación.
-        """
+        """Compensa una carga OCI cuya metadata final no pudo persistirse."""
         try:
             object_storage.delete_object(
                 object_name
@@ -298,12 +370,15 @@ class DocumentService:
             ) from exc
 
         document.clear_oci_object()
+
         document.update_status(
             DocumentStatus.STORAGE_FAILED
         )
 
         try:
-            self._repository.update(document)
+            self._repository.update(
+                document
+            )
         except DocumentRepositoryError as exc:
             logger.exception(
                 "El objeto del documento %s fue compensado, pero no fue "
@@ -318,9 +393,13 @@ class DocumentService:
             ) from exc
 
     @staticmethod
-    def _build_object_name(document: Document) -> str:
+    def _build_object_name(
+        document: Document,
+    ) -> str:
         """Construye el nombre lógico del objeto persistente."""
-        extension = Path(document.original_filename).suffix.lower()
+        extension = Path(
+            document.original_filename
+        ).suffix.lower()
 
         return (
             f"documents/{document.document_id}/"
