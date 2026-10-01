@@ -116,20 +116,47 @@ export const apiClient = {
   },
 
   /**
-   * Sube un archivo al backend usando multipart/form-data
-   * @param {File} file 
+   * Sube y procesa un documento en el backend usando multipart/form-data (POST /api/v1/documents).
+   * Contrato Sprint 2: El backend recibe el archivo junto con parámetros pedagógicos,
+   * indexa el documento y genera internamente Quiz + Flashcards.
+   *
+   * @param {File} file - Archivo PDF, MD o TXT (máx 10 MB)
+   * @param {Object} pedagogicalParams - { profile, niche, detail_level, learning_objective }
    */
-  async uploadFile(file) {
+  async uploadFile(file, pedagogicalParams = {}) {
     const url = `${CONFIG.API.DEFAULT_BASE_URL}${CONFIG.API.V1_PREFIX}${CONFIG.API.ENDPOINTS.UPLOAD_FILE}`;
     const formData = new FormData();
     formData.append('file', file);
 
+    // Parámetros pedagógicos obligatorios y opcionales según contrato
+    if (pedagogicalParams) {
+      if (pedagogicalParams.profile) {
+        formData.append('profile', pedagogicalParams.profile);
+      }
+      if (pedagogicalParams.niche) {
+        formData.append('niche', pedagogicalParams.niche);
+      }
+      if (pedagogicalParams.detail_level) {
+        formData.append('detail_level', pedagogicalParams.detail_level);
+      }
+      if (pedagogicalParams.learning_objective && typeof pedagogicalParams.learning_objective === 'string' && pedagogicalParams.learning_objective.trim()) {
+        formData.append('learning_objective', pedagogicalParams.learning_objective.trim());
+      }
+    }
+    // IMPORTANTE: Front NO debe enviar document_id, formats, output_format ni chunks.
+    // IMPORTANTE: NO establecer manualmente el header Content-Type (el navegador añade multipart/form-data con boundary).
+
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), CONFIG.API.TIMEOUT_MS);
+    // Timeout extendido para absorver el procesamiento síncrono RAG + LLM si el backend lo ejecuta en el POST
+    const timeoutMs = CONFIG.API.ADAPTATIONS_TIMEOUT_MS || 120000;
+    const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
 
     try {
       const response = await fetch(url, {
         method: 'POST',
+        headers: {
+          'Accept': 'application/json'
+        },
         body: formData,
         signal: controller.signal
       });
@@ -148,8 +175,12 @@ export const apiClient = {
         isDuplicate: response.status === 200 || Boolean(json.duplicate)
       };
     } catch (err) {
+      clearTimeout(timeoutId);
       if (err.name === 'AbortError') {
-        throw new ApiError(408, { message: 'Tiempo de espera agotado al subir el archivo (Timeout de 30s).' });
+        throw new ApiError(408, {
+          code: 'TIMEOUT_ERROR',
+          message: `Tiempo de espera agotado al procesar el archivo (${Math.round(timeoutMs / 1000)}s Timeout).`
+        });
       }
       if (err instanceof TypeError && err.message.toLowerCase().includes('fetch')) {
         throw new ApiError(0, {

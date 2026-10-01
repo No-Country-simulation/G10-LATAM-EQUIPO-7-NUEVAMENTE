@@ -127,6 +127,7 @@ export const studyHub = {
 
     // Tarea 7 y 8: Resolver formatos generados por Backend (GET /documents/{id}/formats)
     const backendFormats = hubState.formats || {};
+    const globalStatus = hubState.formatsStatus || 'ready';
     // Actualizar botón de reintento/sincronización de formatos
     if (this.elements.btnRefreshFormats) {
       this.elements.btnRefreshFormats.style.display = (globalStatus === 'error' || globalStatus === 'partial') ? 'inline-flex' : 'none';

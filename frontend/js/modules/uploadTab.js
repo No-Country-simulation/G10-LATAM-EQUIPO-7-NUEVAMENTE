@@ -267,18 +267,26 @@ export const uploadTab = {
     const detail_level = params.detail_level || CONFIG.PEDAGOGICAL?.DEFAULT_DETAIL_LEVEL || 'detailed';
     const learning_objective = params.learning_objective || null;
 
+    const pedagogicalParams = {
+      profile,
+      niche,
+      detail_level,
+      learning_objective
+    };
+
     try {
       let docId;
       let uploadResult;
 
-      // Paso 1: Subir el documento al backend (POST /api/v1/documents)
+      // Paso 1: Subir el documento al backend con parámetros pedagógicos (POST /api/v1/documents)
+      // Contrato Sprint 2: Frontend envía file, profile, niche, detail_level en multipart/form-data.
       this.currentActiveStep = this.elements.stepOci;
       this.setStepActive(this.elements.stepOci, 'Guardando tu documento en OCI...');
 
       if (!selectedFile.rawFile) {
         throw new ApiError(400, { message: 'Por favor selecciona un archivo real desde tu dispositivo para subir.' });
       }
-      uploadResult = await apiClient.uploadFile(selectedFile.rawFile);
+      uploadResult = await apiClient.uploadFile(selectedFile.rawFile, pedagogicalParams);
 
       docId = uploadResult.document_id;
       if (!docId) {
@@ -303,65 +311,39 @@ export const uploadTab = {
         isMock: false
       });
 
-      // Paso 2: Indexación y procesamiento RAG en Backend
+      // Paso 2: Indexación y embeddings completados por Backend
       this.currentActiveStep = this.elements.stepChroma;
       this.setStepActive(this.elements.stepChroma, 'Indexando contenido y analizando embeddings...');
       this.setStepCompleted(this.elements.stepChroma, this.elements.line2);
 
-      // Paso 3: Generación pedagógica adaptativa (POST /api/v1/adaptations)
-      // Genera automáticamente Quiz y Flashcards con IA en Sprint 2
+      // Paso 3: Generación pedagógica adaptativa (Quiz + Flashcards)
+      // Nota Sprint 2: El backend orquesta RAG + Generación internamente; /adaptations ya no se consume.
       this.currentActiveStep = this.elements.stepGen;
       this.setStepActive(this.elements.stepGen, `Generando Quiz y Flashcards (${this.getLevelLabel(profile)})...`);
-
-      const adaptationPayload = {
-        document_id: docId,
-        profile,
-        niche,
-        detail_level,
-        learning_objective,
-        output_format: 'all'
-      };
-
-      let adaptationResponse = null;
-      try {
-        adaptationResponse = await apiClient.adaptContent(adaptationPayload);
-      } catch (adaptErr) {
-        if (adaptErr.status === 404) {
-          console.warn('[Pipeline] Endpoint /adaptations en integración en backend. Continuando a consulta de formatos...');
-        } else {
-          throw adaptErr;
-        }
-      }
       this.setStepCompleted(this.elements.stepGen, this.elements.line3);
 
-      // Paso 4: Consulta de los formatos persistidos generados (GET /api/v1/documents/{document_id}/formats)
+      // Paso 4: Consulta y sincronización de formatos (quiz + flashcards)
       this.currentActiveStep = this.elements.stepCritic;
       this.setStepActive(this.elements.stepCritic, 'Recuperando formatos de estudio persistidos...');
 
       let formatsResponse = null;
-      try {
-        formatsResponse = await apiClient.getDocumentFormats(docId);
-      } catch (fmtErr) {
-        console.warn('[Pipeline] Formatos no recuperados aún de /formats:', fmtErr);
-        formatsResponse = { status: 'processing', formats: null };
+      // Si el backend ya devolvió los formatos procesados en la respuesta de POST /documents
+      if (uploadResult.formats && typeof uploadResult.formats === 'object' && Object.keys(uploadResult.formats).length > 0) {
+        formatsResponse = { status: 'ready', formats: uploadResult.formats };
+      } else {
+        // En caso contrario o si se generaron en diferido, consultar GET /documents/{id}/formats
+        try {
+          formatsResponse = await apiClient.getDocumentFormats(docId);
+        } catch (fmtErr) {
+          console.warn('[Pipeline] Formatos en proceso o no disponibles aún en /formats:', fmtErr);
+          formatsResponse = { status: 'processing', formats: null };
+        }
       }
       this.setStepCompleted(this.elements.stepCritic, null);
 
       // Crear el documento persistido para el estado global y el librero
-      const procDoc = this.createDocumentFromUpload(selectedFile, uploadResult, {
-        profile,
-        niche,
-        detail_level,
-        target_profile: profile,
-        niche_context: niche
-      });
-      this.onPipelineSuccess(procDoc, uploadResult, {
-        profile,
-        niche,
-        detail_level,
-        target_profile: profile,
-        niche_context: niche
-      }, formatsResponse);
+      const procDoc = this.createDocumentFromUpload(selectedFile, uploadResult, pedagogicalParams);
+      this.onPipelineSuccess(procDoc, uploadResult, pedagogicalParams, formatsResponse);
 
     } catch (err) {
       console.error('[Pipeline Error]:', err);

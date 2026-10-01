@@ -105,40 +105,42 @@ frontend/
 
 El Frontend está alineado con el contrato v1 cerrado y funcional del Backend.
 
-### 1. Carga del documento (POST /api/v1/documents)
+### 1. Carga y procesamiento del documento (POST /api/v1/documents)
 
 - **Endpoint:** `POST {BASE_URL}/api/v1/documents`
-- **Body:** `multipart/form-data` con campo `file` (PDF, TXT, MD; máx. 10 MB)
-- **Respuesta (201 Creado / 200 Duplicado existente):**
+- **Formato:** `multipart/form-data` (el navegador debe establecer el `boundary` de forma automática, sin header `Content-Type` manual).
+- **Campos del FormData:**
+  - `file`: Archivo binario (PDF, TXT o MD; máx. 10 MB) — *Obligatorio*
+  - `profile`: `beginner`, `intermediate`, `advanced` — *Obligatorio*
+  - `niche`: `general`, `backend`, `health`, `legal`, `business`, `humanities` — *Obligatorio*
+  - `detail_level`: Texto no vacío, por ejemplo `detailed`, `standard`, `concise` — *Obligatorio*
+  - `learning_objective`: Texto con el objetivo pedagógico — *Opcional*
+- **Front NO debe enviar:** `document_id`, `formats`, `output_format`, ni `chunks` (Backend los gestiona internamente).
+- **Nota arquitectónica:** El endpoint `/api/v1/adaptations` ya no está expuesto y Front no lo utiliza. Todo el pipeline de guardado en OCI, indexación RAG y generación de formatos (Quiz + Flashcards) se orquesta directamente en esta llamada.
+- **Respuesta (201 Created para nuevo / 200 OK para duplicado):**
   ```json
   {
-    "document_id": "doc_e7a935bc87ff",
-    "filename": "documento.pdf",
-    "status": "stored",
-    "duplicate": false
+    "document_id": "doc_d5a19fdaae6944e6949f0a2a028db22c",
+    "filename": "documento.txt",
+    "status": "indexed",
+    "duplicate": false,
+    "formats": {
+      "quiz": {
+        "format_id": "fmt_781e4a32f54a438f9b7a55c747c8185d",
+        "status": "success",
+        "content": { ... },
+        "error_message": null
+      },
+      "flashcards": {
+        "format_id": "fmt_96da18b75f91401f9c57ae871f56f38b",
+        "status": "success",
+        "content": { ... },
+        "error_message": null
+      }
+    }
   }
   ```
-- **Errores:** `400` (vacío), `413` (>10 MB), `415` (no soportado), `502` (fallo de persistencia OCI).
-
-### 2. Adaptación pedagógica automática (POST /api/v1/adaptations)
-
-- **Endpoint:** `POST {BASE_URL}/api/v1/adaptations`
-- **Content-Type:** `application/json`
-- **Body:**
-  ```json
-  {
-    "document_id": "doc_e7a935bc87ff",
-    "profile": "intermediate",
-    "niche": "general",
-    "detail_level": "detailed",
-    "learning_objective": null
-  }
-  ```
-- **Perfiles válidos:** `beginner`, `intermediate`, `advanced`.
-- **Nichos temáticos:** `general`, `backend`, `health`, `legal`, `business`, `humanities`.
-- **Nivel de detalle:** `detailed`, `standard`, `concise` (texto no vacío obligatorio).
-- **Formatos automáticos:** En Sprint 2 el Backend indexa y genera automáticamente tanto `quiz` como `flashcards`. `output_format` ya no se envía.
-- **Timeout en Frontend:** 120 segundos para permitir el tiempo de respuesta del LLM/RAG en modo síncrono.
+- **Errores:** `400` (vacío/inválido), `413` (>10 MB), `415` (no soportado), `422` (validación), `502` (fallo de persistencia OCI).
 
 ### 3. Listar documentos para La Biblioteca (GET /api/v1/documents)
 
