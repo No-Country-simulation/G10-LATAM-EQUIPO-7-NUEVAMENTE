@@ -155,7 +155,7 @@ export const showcaseWorlds = [
   {
     id: "world_legal",
     title: "Derecho Digital & Privacidad de Datos",
-    filename: "Derecho_Digital_Proteccion_Datos.docx",
+    filename: "Derecho_Digital_Proteccion_Datos.pdf",
     discipline: "Ciencias Jurídicas & Derecho",
     spineColor: "amber",
     description: "Regulaciones de privacidad (GDPR, LPDP), consentimiento informado, responsabilidad algorítmica y ciberseguridad jurídica.",
@@ -165,7 +165,7 @@ export const showcaseWorlds = [
       document_id: "world_legal",
       tiempo_estudio: "8 min",
       perfil: "intermediate",
-      formato: "DOCX"
+      formato: "PDF"
     },
     sections: [
       {

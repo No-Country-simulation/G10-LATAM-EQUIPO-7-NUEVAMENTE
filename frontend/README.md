@@ -108,7 +108,7 @@ El Frontend está alineado con el contrato v1 cerrado y funcional del Backend.
 ### 1. Carga del documento (POST /api/v1/documents)
 
 - **Endpoint:** `POST {BASE_URL}/api/v1/documents`
-- **Body:** `multipart/form-data` con campo `file` (PDF, DOCX, TXT, MD; máx. 10 MB)
+- **Body:** `multipart/form-data` con campo `file` (PDF, TXT, MD; máx. 10 MB)
 - **Respuesta (201 Creado / 200 Duplicado existente):**
   ```json
   {
@@ -159,6 +159,8 @@ El Frontend está alineado con el contrato v1 cerrado y funcional del Backend.
   ```
 
 ### 4. Consultar formatos generados (GET /api/v1/documents/{document_id}/formats)
+
+> **Nota de estado de integración:** El Frontend ya implementa el consumo del contrato canónico acordado. En el Backend (PR #28), este endpoint todavía figura como pendiente de implementación. Por el momento se evita indicar que está funcional o probado E2E; la validación End-to-End se completará en cuanto el endpoint esté disponible en el entorno desplegado.
 
 - **Endpoint:** `GET {BASE_URL}/api/v1/documents/{document_id}/formats`
 - **Respuesta (200 OK):** Contrato canónico acordado entre Backend, Agentes, Data/IA y Frontend.
@@ -226,8 +228,8 @@ El cliente HTTP (`js/api/apiClient.js`) traduce las respuestas del Backend a men
 - **Límite máximo de 10 MB validado en cliente:** ✅ **Funcional** (Tarea 4).
 - **Manejo UX integral de códigos HTTP y errores:** ✅ **Funcional** (Tarea 5).
 - **Consulta y renderizado de la biblioteca (`GET /documents`):** ✅ **Funcional** (Tarea 6).
-- **Consulta de formatos del libro (`GET /documents/{id}/formats`):** ✅ **Funcional** (Tarea 7).
-- **Visualizador pedagógico de Quiz y Flashcards:** ✅ **Funcional** (Tarea 8).
+- **Consulta de formatos del libro (`GET /documents/{id}/formats`):** ⏳ **Consumo implementado en Frontend (pendiente de endpoint en Backend PR #28 / validación E2E)** (Tarea 7).
+- **Visualizador pedagógico de Quiz y Flashcards:** ✅ **Funcional en UI con contrato canónico** (Tarea 8).
 - **Configuración desacoplada y Vite.js (sin URL hardcodeada):** ✅ **Funcional** (Tarea 3).
 - **Modo único real (sin mocks):** ✅ **Completado**.
 
