@@ -186,6 +186,7 @@ export const statusDialog = {
     filename,
     httpStatus = 201,
     duplicate = false,
+    status = 'indexed',
     isMock = false,
     durationMs = 7000
   }) {
@@ -213,8 +214,9 @@ export const statusDialog = {
 
     // Badges informativos
     const isNew = httpStatus === 201 || !duplicate;
+    const resolvedStatusTag = String(status || (isNew ? 'stored' : 'indexed')).toUpperCase();
     badgeRow.innerHTML = `
-      <span class="status-badge badge-status-stored">STATUS: STORED</span>
+      <span class="status-badge badge-status-stored">STATUS: ${resolvedStatusTag}</span>
       <span class="status-badge ${isNew ? 'badge-http-201' : 'badge-http-200'}">
         HTTP ${httpStatus}: ${isNew ? 'NUEVO DOCUMENTO' : 'DUPLICADO EXISTENTE'}
       </span>

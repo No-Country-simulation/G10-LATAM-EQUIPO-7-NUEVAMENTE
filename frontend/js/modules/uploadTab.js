@@ -308,6 +308,7 @@ export const uploadTab = {
         filename: uploadResult.filename || selectedFile.name,
         httpStatus: uploadResult.httpStatus || (uploadResult.isDuplicate ? 200 : 201),
         duplicate: Boolean(uploadResult.isDuplicate),
+        status: uploadResult.status || 'indexed',
         isMock: false
       });
 
