@@ -271,6 +271,25 @@ class DocumentService:
             target=DocumentStatus.INDEXING_FAILED,
         )
 
+    def list_active_documents(
+        self,
+    ) -> list[Document]:
+        """Obtiene los documentos disponibles en la biblioteca.
+
+        Un documento se considera activo para consulta cuando tiene
+        asociado un objeto persistente en OCI Object Storage.
+
+        Esta operación consulta únicamente metadata persistida. No
+        descarga archivos ni dispara indexación o generación.
+        """
+        documents = self._repository.find_all()
+
+        return [
+            document
+            for document in documents
+            if document.oci_object_name is not None
+        ]
+
     def get_document(
         self,
         document_id: str,

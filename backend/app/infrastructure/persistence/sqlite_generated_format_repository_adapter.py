@@ -13,6 +13,7 @@ from app.infrastructure.persistence.models import (
 )
 from app.ports.generated_format_repository_port import (
     GeneratedFormatAlreadyExistsError,
+    GeneratedFormatDocumentNotFoundError,
     GeneratedFormatRepositoryError,
 )
 
@@ -30,7 +31,16 @@ class SQLiteGeneratedFormatRepositoryAdapter:
         self,
         generated_format: GeneratedFormat,
     ) -> GeneratedFormat:
-        """Persiste una nueva generación."""
+        """Persiste una nueva generación.
+
+        Raises:
+            GeneratedFormatAlreadyExistsError:
+                Si format_id ya está registrado.
+            GeneratedFormatDocumentNotFoundError:
+                Si document_id no corresponde a un documento persistido.
+            GeneratedFormatRepositoryError:
+                Ante otro error de persistencia.
+        """
         record = GeneratedFormatRecord.from_domain(
             generated_format
         )
@@ -74,9 +84,36 @@ class SQLiteGeneratedFormatRepositoryAdapter:
                 )
 
         except sqlite3.IntegrityError as exc:
-            raise GeneratedFormatAlreadyExistsError(
-                "No fue posible persistir el formato "
-                f"{generated_format.format_id}."
+            error_message = str(
+                exc
+            ).lower()
+
+            if (
+                "foreign key constraint failed"
+                in error_message
+            ):
+                raise GeneratedFormatDocumentNotFoundError(
+                    "No es posible persistir el formato "
+                    f"{generated_format.format_id}: "
+                    "el documento "
+                    f"{generated_format.document_id} "
+                    "no existe."
+                ) from exc
+
+            if (
+                "unique constraint failed"
+                in error_message
+                or "generated_formats.format_id"
+                in error_message
+            ):
+                raise GeneratedFormatAlreadyExistsError(
+                    "Ya existe el formato generado "
+                    f"{generated_format.format_id}."
+                ) from exc
+
+            raise GeneratedFormatRepositoryError(
+                "No fue posible persistir el formato generado "
+                "por una restricción de integridad."
             ) from exc
 
         except sqlite3.Error as exc:

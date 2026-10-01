@@ -77,8 +77,17 @@ export const flashcards = {
   },
 
   render(cardsList) {
+    this.formatMeta = {
+      status: cardsList?.status || 'success',
+      errorMessage: cardsList?.error_message || null,
+      title: cardsList?.content?.title || cardsList?.title || null,
+      instructions: cardsList?.content?.instructions || cardsList?.instructions || null
+    };
+
     if (Array.isArray(cardsList)) {
       this.cards = cardsList;
+    } else if (cardsList && cardsList.content && Array.isArray(cardsList.content.cards)) {
+      this.cards = cardsList.content.cards;
     } else if (cardsList && Array.isArray(cardsList.cards)) {
       this.cards = cardsList.cards;
     } else if (cardsList && Array.isArray(cardsList.flashcards)) {
@@ -128,9 +137,23 @@ export const flashcards = {
     card.classList.remove('flipped');
 
     if (this.cards.length === 0) {
-      if (frontText) frontText.textContent = 'No hay flashcards generadas aún para este documento.';
-      if (backText) backText.textContent = 'Las flashcards se generarán automáticamente a través del pipeline RAG.';
-      if (hintText) hintText.textContent = 'Consejo: Sube un documento o espera a que el Backend complete la indexación.';
+      if (this.formatMeta?.status === 'failed') {
+        if (frontText) frontText.textContent = 'Flashcards No Disponibles';
+        if (backText) backText.textContent = this.formatMeta.errorMessage || 'Ocurrió un error al procesar este formato en el backend.';
+        if (hintText) hintText.textContent = 'Puedes continuar estudiando con el Quiz interactivo.';
+      } else if (this.formatMeta?.status === 'no_results') {
+        if (frontText) frontText.textContent = 'Sin conceptos suficientes';
+        if (backText) backText.textContent = 'El documento no contiene suficiente información para extraer flashcards.';
+        if (hintText) hintText.textContent = 'Intenta con un documento más extenso o detallado.';
+      } else if (this.formatMeta?.status === 'processing') {
+        if (frontText) frontText.textContent = 'Generando Flashcards...';
+        if (backText) backText.textContent = 'El pipeline de IA está procesando los conceptos del documento.';
+        if (hintText) hintText.textContent = 'Por favor espera unos instantes mientras se sintetiza el material.';
+      } else {
+        if (frontText) frontText.textContent = 'No hay flashcards generadas aún para este documento.';
+        if (backText) backText.textContent = 'Las flashcards se generarán automáticamente a través del pipeline RAG.';
+        if (hintText) hintText.textContent = 'Consejo: Sube un documento o espera a que el Backend complete la indexación.';
+      }
       if (progressTop) progressTop.textContent = '0 / 0';
       if (counterText) counterText.textContent = '0 de 0';
       if (btnPrev) btnPrev.disabled = true;

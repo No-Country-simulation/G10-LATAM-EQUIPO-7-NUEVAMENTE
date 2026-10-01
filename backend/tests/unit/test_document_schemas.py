@@ -17,11 +17,17 @@ def test_document_created_response() -> None:
     )
 
     assert response.document_id == "doc_123"
-    assert response.status == DocumentStatus.STORED
+    assert (
+        response.status
+        == DocumentStatus.STORED
+    )
 
 
 def test_document_response() -> None:
-    now = datetime.now(UTC)
+    """Expone metadata base y campos enriquecidos opcionales."""
+    now = datetime.now(
+        UTC
+    )
 
     response = DocumentResponse(
         document_id="doc_123",
@@ -34,3 +40,6 @@ def test_document_response() -> None:
     )
 
     assert response.size_bytes == 100
+    assert response.title is None
+    assert response.summary is None
+    assert response.estimated_time is None

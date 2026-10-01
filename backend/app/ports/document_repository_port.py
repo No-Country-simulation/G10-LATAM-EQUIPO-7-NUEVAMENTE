@@ -58,6 +58,17 @@ class DocumentRepositoryPort(Protocol):
         """
         ...
 
+    def find_all(
+        self,
+    ) -> list[Document]:
+        """Obtiene todos los documentos persistidos.
+
+        Returns:
+            Documentos ordenados desde el registro más reciente
+            hasta el más antiguo.
+        """
+        ...
+
     def update(
         self,
         document: Document,
