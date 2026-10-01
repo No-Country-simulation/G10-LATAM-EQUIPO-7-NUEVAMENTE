@@ -41,9 +41,15 @@ function resolveApiBaseUrl() {
     if (storedUrl) {
       return storedUrl.replace(/\/+$/, '');
     }
+
+    // 5. Servidor desplegado (OCI / Docker / Nginx reverse proxy):
+    // Si no estamos en localhost, la API es atendida por el mismo host (Nginx en puerto 80)
+    if (window.location.hostname && window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1') {
+      return window.location.origin;
+    }
   }
 
-  // 5. Fallback por defecto
+  // 6. Fallback por defecto (Desarrollo local)
   return 'http://localhost:8000';
 }
 
