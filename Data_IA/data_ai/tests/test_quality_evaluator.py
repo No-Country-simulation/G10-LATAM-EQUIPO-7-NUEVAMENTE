@@ -161,3 +161,33 @@ def test_learning_objective_opcional():
 
     assert scores.relevancia in (3, 5)
     assert isinstance(informacion_no_respaldada, bool)
+
+
+def test_evaluacion_relevancia_nicho_generico():
+    """Valida que un nicho genérico sin objetivo no castigue la relevancia."""
+    content = FlashcardsContent(
+        title="Flashcards",
+        instructions="Repasa conceptos.",
+        cards=[
+            FlashcardItem(
+                card_id="F2",
+                front="¿Qué es Python?",
+                back="Python es un lenguaje de programación.",
+            )
+        ],
+    )
+
+    context = GenerationContext(
+        profile="student",
+        niche="General", 
+        detail_level="beginner",
+        learning_objective="", 
+    )
+
+    scores, _ = evaluate(
+        generated_content=content,
+        chunks_used=build_chunks(),
+        generation_context=context,
+    )
+
+    assert scores.relevancia == 5

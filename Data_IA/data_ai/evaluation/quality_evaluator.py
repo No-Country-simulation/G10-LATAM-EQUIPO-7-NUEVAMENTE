@@ -129,13 +129,17 @@ def evaluate(
 
     objetivo = (
         generation_context.learning_objective or ""
-    )
+    ).strip()
 
-    nicho = generation_context.niche or ""
+    nicho = (generation_context.niche or "").strip()
+
+    # Excepción: omitir exigencia literal para nichos genéricos
+    nichos_genericos = {"general", "todos", "n/a", "ninguno"}
+    nicho_a_evaluar = "" if nicho.lower() in nichos_genericos else nicho
 
     terminos_contexto = set(
         _palabras_significativas(
-            f"{objetivo} {nicho}"
+            f"{objetivo} {nicho_a_evaluar}"
         )
     )
 
@@ -145,7 +149,10 @@ def evaluate(
         )
     )
 
-    if terminos_contexto:
+    # Si el contexto es genérico y sin objetivo, no se puede penalizar por coincidencia léxica
+    if not terminos_contexto:
+        ratio_relevancia = 1.0
+    else:
         coincidencias = (
             terminos_contexto
             & terminos_contenido
@@ -155,8 +162,6 @@ def evaluate(
             len(coincidencias)
             / len(terminos_contexto)
         )
-    else:
-        ratio_relevancia = 1.0
 
     if ratio_relevancia >= 0.50:
         relevancia = 5
