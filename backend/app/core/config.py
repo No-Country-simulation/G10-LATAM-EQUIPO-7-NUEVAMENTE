@@ -9,7 +9,11 @@ from functools import lru_cache
 from typing import Annotated, Literal
 
 from pydantic import Field, field_validator
-from pydantic_settings import BaseSettings, NoDecode, SettingsConfigDict
+from pydantic_settings import (
+    BaseSettings,
+    NoDecode,
+    SettingsConfigDict,
+)
 
 
 class Settings(BaseSettings):
@@ -45,8 +49,13 @@ class Settings(BaseSettings):
     PORT: int = 8000
 
     # --- CORS ---
-    BACKEND_CORS_ORIGINS: Annotated[list[str], NoDecode] = Field(
-        default_factory=lambda: ["http://localhost:3000"]
+    BACKEND_CORS_ORIGINS: Annotated[
+        list[str],
+        NoDecode,
+    ] = Field(
+        default_factory=lambda: [
+            "http://localhost:3000"
+        ]
     )
 
     # --- Documentos / almacenamiento temporal ---
@@ -54,7 +63,9 @@ class Settings(BaseSettings):
     UPLOAD_DIR: str = "storage/uploads"
 
     # --- Base de datos ---
-    DATABASE_URL: str = "sqlite:///storage/nuevamente.db"
+    DATABASE_URL: str = (
+        "sqlite:///storage/nuevamente.db"
+    )
 
     # --- OCI Object Storage ---
     OCI_NAMESPACE: str = ""
@@ -63,11 +74,25 @@ class Settings(BaseSettings):
     OCI_CONFIG_FILE: str = "~/.oci/config"
     OCI_CONFIG_PROFILE: str = "DEFAULT"
 
-    # --- Agentes / RAG ---
-    RAG_BASE_URL: str = "http://localhost:8001"
+    # --- RAG ---
+    RAG_BASE_URL: str = (
+        "http://localhost:8001"
+    )
     RAG_INDEX_PATH: str = "/api/v1/index"
     RAG_TIMEOUT_SECONDS: float = Field(
         default=30.0,
+        gt=0,
+    )
+
+    # --- Agentes ---
+    AGENTS_BASE_URL: str = (
+        "http://localhost:8001"
+    )
+    AGENTS_GENERATE_PATH: str = (
+        "/api/v1/generate"
+    )
+    AGENTS_TIMEOUT_SECONDS: float = Field(
+        default=60.0,
         gt=0,
     )
 
@@ -100,15 +125,18 @@ class Settings(BaseSettings):
             if origin.strip()
         ]
 
-    @field_validator("RAG_BASE_URL")
+    @field_validator(
+        "RAG_BASE_URL",
+        "AGENTS_BASE_URL",
+    )
     @classmethod
-    def _validate_rag_base_url(
+    def _validate_service_base_url(
         cls,
         value: str,
     ) -> str:
-        """Valida y normaliza la URL base del servicio RAG."""
-        normalized = value.strip().rstrip(
-            "/"
+        """Valida y normaliza URLs base de servicios externos."""
+        normalized = (
+            value.strip().rstrip("/")
         )
 
         if not normalized.startswith(
@@ -118,24 +146,28 @@ class Settings(BaseSettings):
             )
         ):
             raise ValueError(
-                "RAG_BASE_URL debe utilizar "
-                "http:// o https://."
+                "Las URLs de servicios externos deben "
+                "utilizar http:// o https://."
             )
 
         return normalized
 
-    @field_validator("RAG_INDEX_PATH")
+    @field_validator(
+        "RAG_INDEX_PATH",
+        "AGENTS_GENERATE_PATH",
+    )
     @classmethod
-    def _validate_rag_index_path(
+    def _validate_service_path(
         cls,
         value: str,
     ) -> str:
-        """Valida la ruta HTTP utilizada para indexación."""
+        """Valida rutas HTTP configuradas para integraciones."""
         normalized = value.strip()
 
         if not normalized.startswith("/"):
             raise ValueError(
-                "RAG_INDEX_PATH debe comenzar con '/'."
+                "Las rutas HTTP de servicios externos "
+                "deben comenzar con '/'."
             )
 
         return normalized
@@ -143,17 +175,32 @@ class Settings(BaseSettings):
     @property
     def is_production(self) -> bool:
         """Indica si la aplicación se ejecuta en producción."""
-        return self.ENVIRONMENT == "production"
+        return (
+            self.ENVIRONMENT
+            == "production"
+        )
 
     @property
-    def max_upload_size_bytes(self) -> int:
+    def max_upload_size_bytes(
+        self,
+    ) -> int:
         """Convierte el límite de carga configurado de MB a bytes."""
-        return self.MAX_UPLOAD_SIZE_MB * 1024 * 1024
+        return (
+            self.MAX_UPLOAD_SIZE_MB
+            * 1024
+            * 1024
+        )
 
     @property
-    def docs_url(self) -> str | None:
+    def docs_url(
+        self,
+    ) -> str | None:
         """Deshabilita Swagger en producción."""
-        return None if self.is_production else "/docs"
+        return (
+            None
+            if self.is_production
+            else "/docs"
+        )
 
 
 @lru_cache

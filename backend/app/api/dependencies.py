@@ -7,6 +7,9 @@ from fastapi import Request
 from app.application.document_service import (
     DocumentService,
 )
+from app.application.format_generation_service import (
+    FormatGenerationService,
+)
 from app.application.generated_format_query_service import (
     GeneratedFormatQueryService,
 )
@@ -38,6 +41,24 @@ def get_document_service(
     if service is None:
         raise RuntimeError(
             "DocumentService no fue inicializado."
+        )
+
+    return service
+
+
+def get_format_generation_service(
+    request: Request,
+) -> FormatGenerationService:
+    """Obtiene el servicio de generación de formatos configurado."""
+    service = getattr(
+        request.app.state,
+        "format_generation_service",
+        None,
+    )
+
+    if service is None:
+        raise RuntimeError(
+            "FormatGenerationService no fue inicializado."
         )
 
     return service
