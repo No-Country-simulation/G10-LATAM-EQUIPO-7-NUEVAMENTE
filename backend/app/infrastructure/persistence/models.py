@@ -220,27 +220,8 @@ class GeneratedFormatRecord:
             format_type
         )
 
-        chunks_data = json.loads(
-            self.chunks_used_json
-        )
-
-        if not isinstance(
-            chunks_data,
-            list,
-        ):
-            raise ValueError(
-                "chunks_used_json debe representar una lista."
-            )
-
-        chunks_used = tuple(
-            ChunkEvidence.from_dict(
-                chunk
-            )
-            for chunk in chunks_data
-            if isinstance(
-                chunk,
-                dict,
-            )
+        chunks_used = (
+            self._deserialize_chunks_used()
         )
 
         return GeneratedFormat(
@@ -299,6 +280,48 @@ class GeneratedFormatRecord:
 
         return FlashcardsContent.from_dict(
             data
+        )
+
+    def _deserialize_chunks_used(
+        self,
+    ) -> tuple[ChunkEvidence, ...]:
+        """Reconstruye íntegramente las evidencias persistidas."""
+        chunks_data = json.loads(
+            self.chunks_used_json
+        )
+
+        if not isinstance(
+            chunks_data,
+            list,
+        ):
+            raise ValueError(
+                "chunks_used_json debe representar una lista."
+            )
+
+        parsed_chunks: list[
+            ChunkEvidence
+        ] = []
+
+        for index, chunk in enumerate(
+            chunks_data
+        ):
+            if not isinstance(
+                chunk,
+                dict,
+            ):
+                raise ValueError(
+                    f"chunks_used_json[{index}] "
+                    "debe representar un objeto."
+                )
+
+            parsed_chunks.append(
+                ChunkEvidence.from_dict(
+                    chunk
+                )
+            )
+
+        return tuple(
+            parsed_chunks
         )
 
 
