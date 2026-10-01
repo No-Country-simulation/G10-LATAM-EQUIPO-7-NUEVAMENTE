@@ -21,6 +21,10 @@ services:
       OCI_NAMESPACE: axrhuqxl8oyi
       OCI_BUCKET_NAME: bucket-nuevamente-2026
       OCI_REGION: sa-bogota-1
+      
+      RAG_BASE_URL: http://agents:8001
+      RAG_INDEX_PATH: /api/v1/index
+      RAG_TIMEOUT_SECONDS: "120"
 
     volumes:
       - /opt/nuevamente/data/backend:/app/storage
