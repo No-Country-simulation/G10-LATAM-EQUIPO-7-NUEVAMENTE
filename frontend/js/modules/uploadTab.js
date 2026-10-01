@@ -322,7 +322,16 @@ export const uploadTab = {
         output_format: 'all'
       };
 
-      const adaptationResponse = await apiClient.adaptContent(adaptationPayload);
+      let adaptationResponse = null;
+      try {
+        adaptationResponse = await apiClient.adaptContent(adaptationPayload);
+      } catch (adaptErr) {
+        if (adaptErr.status === 404) {
+          console.warn('[Pipeline] Endpoint /adaptations en integración en backend. Continuando a consulta de formatos...');
+        } else {
+          throw adaptErr;
+        }
+      }
       this.setStepCompleted(this.elements.stepGen, this.elements.line3);
 
       // Paso 4: Consulta de los formatos persistidos generados (GET /api/v1/documents/{document_id}/formats)
