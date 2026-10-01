@@ -8,7 +8,7 @@ services:
     restart: unless-stopped
 
     ports:
-      - "127.0.0.1:8000:8000"
+      - "8000:8000"
 
     environment:
       ENVIRONMENT: staging
@@ -57,7 +57,7 @@ services:
     restart: unless-stopped
 
     ports:
-      - "127.0.0.1:8001:8001"
+      - "8001:8001"
 
     volumes:
       - /opt/nuevamente/data/agents:/app/chroma_db
@@ -72,4 +72,4 @@ services:
     restart: unless-stopped
 
     ports:
-      - "127.0.0.1:8002:8002"
+      - "8002:8002"
