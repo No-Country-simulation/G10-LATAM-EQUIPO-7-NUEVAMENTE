@@ -6,13 +6,14 @@
 /* Contenedor Principal de la Biblioteca */
 .library-view-container {
   width: 100%;
-  min-height: calc(100vh - 120px);
+  height: 100%;
+  min-height: 0;
   position: relative;
   display: flex;
   flex-direction: column;
   align-items: center;
-  justify-content: flex-start;
-  padding: 2rem 2rem 5rem;
+  justify-content: center;
+  padding: 0.4rem 1rem;
   overflow-x: hidden;
 }
 

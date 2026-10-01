@@ -9,14 +9,14 @@
   --surface-ui: #121822;
   --surface-elevated: #1a2230;
   --surface-subtle: rgba(255, 255, 255, 0.04);
-  --surface-glass: rgba(18, 24, 34, 0.75);
-  --border-ui: rgba(255, 255, 255, 0.1);
+  --surface-glass: rgba(18, 14, 30, 0.92);
+  --border-ui: rgba(168, 85, 247, 0.25);
   --border-focus: rgba(245, 158, 11, 0.5);
 
   /* Paleta Cósmica / Nebula Neural */
   --cosmic-bg: #060609;
-  --cosmic-surface: rgba(14, 12, 25, 0.75);
-  --cosmic-surface-elevated: rgba(22, 19, 38, 0.85);
+  --cosmic-surface: rgba(18, 14, 32, 0.92);
+  --cosmic-surface-elevated: rgba(26, 20, 44, 0.95);
   --cosmic-border: rgba(168, 85, 247, 0.20);
   --cosmic-border-hover: rgba(192, 132, 252, 0.50);
   --cosmic-accent-purple: #c084fc;

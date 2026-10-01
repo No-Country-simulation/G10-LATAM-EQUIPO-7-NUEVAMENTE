@@ -247,8 +247,8 @@ export const bookshelf = {
     layer.innerHTML = '';
 
     if (!books || books.length === 0) {
-      // 1. Mostrar siempre el planeta interactivo de creación de nuevo mundo en la órbita interior
-      const uploadNode = this.createUploadPlanetNode(110, -90);
+      // 1. Mostrar siempre el botón interactivo de creación de nuevo mundo en la esquina
+      const uploadNode = this.createUploadPlanetNode();
       layer.appendChild(uploadNode);
 
       // 2. Banner inferior informativo (sin tapar el Sol central)
@@ -269,30 +269,32 @@ export const bookshelf = {
       return;
     }
 
-    // Configuración de Slots Orbitales elípticos armónicos
+    // Configuración de Slots Orbitales elípticos amplios y distribuidos alternadamente
     const ORBITAL_SLOTS = [
-      // Órbita 1 (Interior)
-      { rx: 110, ry: 90, angle: -45, size: 'world-size-sm', hasRing: false },
-      { rx: 110, ry: 90, angle: 135, size: 'world-size-sm', hasRing: false },
-
-      // Órbita 2 (Media)
-      { rx: 215, ry: 160, angle: -110, size: 'world-size-md', hasRing: true },
-      { rx: 215, ry: 160, angle: 25, size: 'world-size-md', hasRing: false },
-      { rx: 215, ry: 160, angle: 95, size: 'world-size-md', hasRing: false },
-      { rx: 215, ry: 160, angle: 200, size: 'world-size-md', hasRing: true },
-
-      // Órbita 3 (Exterior)
-      { rx: 320, ry: 220, angle: -155, size: 'world-size-lg', hasRing: true },
-      { rx: 320, ry: 220, angle: -65, size: 'world-size-sm', hasRing: false },
-      { rx: 320, ry: 220, angle: 50, size: 'world-size-lg', hasRing: true },
-      { rx: 320, ry: 220, angle: 120, size: 'world-size-md', hasRing: false },
-      { rx: 320, ry: 220, angle: 235, size: 'world-size-sm', hasRing: false },
-
-      // Órbita 4 (Espacio Profundo)
-      { rx: 420, ry: 270, angle: -130, size: 'world-size-md', hasRing: false },
-      { rx: 420, ry: 270, angle: -25, size: 'world-size-md', hasRing: false },
-      { rx: 420, ry: 270, angle: 75, size: 'world-size-sm', hasRing: false },
-      { rx: 420, ry: 270, angle: 170, size: 'world-size-md', hasRing: false }
+      // 1° planeta -> Órbita 2 (Media - superior derecha)
+      { rx: 260, ry: 175, angle: -30, size: 'world-size-md', hasRing: true },
+      // 2° planeta -> Órbita 1 (Interior - centro izquierda)
+      { rx: 160, ry: 115, angle: 160, size: 'world-size-sm', hasRing: false },
+      // 3° planeta -> Órbita 3 (Exterior - inferior derecha)
+      { rx: 360, ry: 225, angle: 65, size: 'world-size-lg', hasRing: true },
+      // 4° planeta -> Órbita 4 (Espacio profundo - superior izquierda)
+      { rx: 450, ry: 265, angle: -135, size: 'world-size-md', hasRing: false },
+      // 5° planeta -> Órbita 2 (Media - inferior izquierda)
+      { rx: 260, ry: 175, angle: 115, size: 'world-size-md', hasRing: false },
+      // 6° planeta -> Órbita 3 (Exterior - superior izquierda)
+      { rx: 360, ry: 225, angle: -155, size: 'world-size-sm', hasRing: false },
+      // 7° planeta -> Órbita 1 (Interior - superior centro)
+      { rx: 160, ry: 115, angle: -75, size: 'world-size-sm', hasRing: false },
+      // 8° planeta -> Órbita 4 (Espacio profundo - derecha)
+      { rx: 450, ry: 265, angle: 30, size: 'world-size-lg', hasRing: true },
+      // 9° planeta -> Órbita 3 (Exterior - superior derecha)
+      { rx: 360, ry: 225, angle: -50, size: 'world-size-md', hasRing: false },
+      // 10° planeta -> Órbita 2 (Media - superior)
+      { rx: 260, ry: 175, angle: -110, size: 'world-size-sm', hasRing: false },
+      // 11° planeta -> Órbita 4 (Espacio profundo - inferior izquierda)
+      { rx: 450, ry: 265, angle: 155, size: 'world-size-sm', hasRing: false },
+      // 12° planeta -> Órbita 1 (Interior - inferior derecha)
+      { rx: 160, ry: 115, angle: 35, size: 'world-size-sm', hasRing: false }
     ];
 
     books.forEach((book, idx) => {
@@ -305,12 +307,8 @@ export const bookshelf = {
       layer.appendChild(worldNode);
     });
 
-    // Añadir el nodo especial "+ Descubrir Nuevo Mundo" en la órbita exterior
-    const uploadSlot = { rx: 420, ry: 270, angle: -50 };
-    const radUp = (uploadSlot.angle * Math.PI) / 180;
-    const upX = Math.round(uploadSlot.rx * Math.cos(radUp));
-    const upY = Math.round(uploadSlot.ry * Math.sin(radUp));
-    layer.appendChild(this.createUploadPlanetNode(upX, upY));
+    // Añadir el nodo especial de esquina "+ Crear Mundo"
+    layer.appendChild(this.createUploadPlanetNode());
   },
 
   createPlanetNode(book, x, y, slot) {
@@ -348,18 +346,16 @@ export const bookshelf = {
     return node;
   },
 
-  createUploadPlanetNode(x, y) {
+  createUploadPlanetNode() {
     const node = document.createElement('div');
     node.className = 'solar-world-node world-node-upload';
     node.title = 'Creación de Mundos (Cargar Documento)';
-    node.style.left = `calc(50% + ${x}px)`;
-    node.style.top = `calc(50% + ${y}px)`;
 
     node.innerHTML = `
-      <div class="world-sphere world-size-sm">
+      <div class="world-sphere">
         <span>+</span>
       </div>
-      <div class="world-label-badge">+ NUEVO MUNDO</div>
+      <div class="world-label-badge">+ CREAR MUNDO</div>
       <div class="world-hud-tooltip">
         <div class="hud-discipline">NUEVA INGESTA</div>
         <div class="hud-title">Crear Nuevo Mundo</div>
