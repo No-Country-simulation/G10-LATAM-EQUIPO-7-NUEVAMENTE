@@ -24,6 +24,13 @@ _FAILED_DOCUMENT_STATUSES = frozenset(
     }
 )
 
+_PROCESSING_DOCUMENT_STATUSES = frozenset(
+    {
+        DocumentStatus.INDEXING,
+        DocumentStatus.INDEXED,
+    }
+)
+
 
 class GeneratedFormatQueryDocumentNotFoundError(
     Exception
@@ -101,16 +108,11 @@ class GeneratedFormatQueryService:
         )
 
         if not history:
-            aggregate_status = (
-                DocumentFormatsStatus.ERROR
-                if document.status
-                in _FAILED_DOCUMENT_STATUSES
-                else DocumentFormatsStatus.PROCESSING
-            )
-
             return DocumentFormatsResult(
                 document_id=document_id,
-                status=aggregate_status,
+                status=self._resolve_empty_history_status(
+                    document.status
+                ),
                 formats=(),
             )
 
@@ -127,6 +129,31 @@ class GeneratedFormatQueryService:
             ),
             formats=selected_formats,
         )
+
+    @staticmethod
+    def _resolve_empty_history_status(
+        document_status: DocumentStatus,
+    ) -> DocumentFormatsStatus:
+        """Resuelve el estado cuando aún no existen generaciones.
+
+        Un documento almacenado pero cuya adaptación no comenzó está
+        pendiente. Durante indexación o después de indexar, mientras
+        todavía no existen resultados persistidos, se considera en
+        procesamiento. Los estados fallidos se exponen como error.
+        """
+        if (
+            document_status
+            in _FAILED_DOCUMENT_STATUSES
+        ):
+            return DocumentFormatsStatus.ERROR
+
+        if (
+            document_status
+            in _PROCESSING_DOCUMENT_STATUSES
+        ):
+            return DocumentFormatsStatus.PROCESSING
+
+        return DocumentFormatsStatus.PENDING
 
     @staticmethod
     def _select_current_formats(

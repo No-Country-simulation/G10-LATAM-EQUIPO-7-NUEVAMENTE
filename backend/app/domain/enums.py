@@ -36,6 +36,7 @@ class GeneratedFormatStatus(StrEnum):
 class DocumentFormatsStatus(StrEnum):
     """Estado agregado de los formatos expuesto a Frontend."""
 
+    PENDING = "pending"
     PROCESSING = "processing"
     READY = "ready"
     PARTIAL = "partial"

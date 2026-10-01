@@ -305,10 +305,40 @@ def test_query_rejects_unknown_document() -> None:
         )
 
 
-def test_query_returns_processing_without_formats() -> None:
-    """Un documento sin resultados expone processing."""
+def test_query_returns_pending_for_stored_document_without_formats() -> None:
+    """Un documento almacenado sin adaptación iniciada está pendiente."""
     service = build_service(
-        document=build_document()
+        document=build_document(
+            status=DocumentStatus.STORED
+        )
+    )
+
+    result = service.get_document_formats(
+        DOCUMENT_ID
+    )
+
+    assert (
+        result.status
+        == DocumentFormatsStatus.PENDING
+    )
+    assert result.formats == ()
+
+
+@pytest.mark.parametrize(
+    "status",
+    [
+        DocumentStatus.INDEXING,
+        DocumentStatus.INDEXED,
+    ],
+)
+def test_query_returns_processing_when_adaptation_is_running(
+    status: DocumentStatus,
+) -> None:
+    """Indexación o generación sin resultados expone processing."""
+    service = build_service(
+        document=build_document(
+            status=status
+        )
     )
 
     result = service.get_document_formats(
