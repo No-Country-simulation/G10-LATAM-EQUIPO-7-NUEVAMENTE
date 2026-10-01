@@ -39,6 +39,7 @@ export const uploadTab = {
       selectedFileSize: document.getElementById('selectedFileSize'),
       fileFormatBadge: document.getElementById('fileFormatBadge'),
       btnRemoveFile: document.getElementById('btnRemoveFile'),
+      btnCrearMundoDirecto: document.getElementById('btnCrearMundoDirecto'),
 
       // Parámetros
       paramPerfil: document.getElementById('paramPerfil'),
@@ -100,9 +101,18 @@ export const uploadTab = {
       }
     });
 
+    if (this.elements.btnCrearMundoDirecto) {
+      this.elements.btnCrearMundoDirecto.addEventListener('click', () => {
+        if (this.elements.btnLanzarProcesamiento) {
+          this.elements.btnLanzarProcesamiento.click();
+        }
+      });
+    }
+
     if (this.elements.btnRemoveFile) {
       this.elements.btnRemoveFile.addEventListener('click', () => {
         this.clearFile();
+        notifyInfo('PDF Eliminado', 'El documento seleccionado fue removido.');
       });
     }
   },
@@ -384,12 +394,17 @@ export const uploadTab = {
     const ext = (selectedFile.format || rawName.split('.').pop() || 'pdf').toLowerCase();
     const ociId = uploadResult.oci_object_name || `documents/${docId}/original.${ext}`;
 
+    // Rotación secuencial armónica de biomas cósmicos para cada nuevo mundo
+    const existingBooks = state.get().customBooks || [];
+    const cosmicColors = ['sapphire', 'purple', 'emerald', 'ruby', 'cyan', 'amber', 'gold'];
+    const assignedColor = cosmicColors[existingBooks.length % cosmicColors.length];
+
     return {
       id: docId,
       filename: rawName,
       title: formattedTitle,
       discipline: discipline,
-      spineColor: 'gold-custom',
+      spineColor: assignedColor,
       description: `Documento procesado y persistido en OCI Object Storage (${uploadResult.isDuplicate ? 'Registro existente reutilizado' : 'Nuevo registro creado'}).`,
       filesize: selectedFile.size || '1.0 MB',
       status: uploadResult.status || 'stored',
@@ -592,9 +607,48 @@ export const uploadTab = {
 
   setupDemoStatusTester() {
     const testBtns = document.querySelectorAll('[data-status-test]');
+    const toggleBtn = document.getElementById('btnToggleTesterDropdown');
+    const popover = document.getElementById('testerPopover');
+    const closeBtn = document.getElementById('btnCloseTesterPopover');
+    const wrapper = document.getElementById('testerDropdownWrapper');
+
+    const closePopover = () => {
+      if (popover) popover.style.display = 'none';
+      if (wrapper) wrapper.classList.remove('open');
+    };
+
+    if (toggleBtn && popover) {
+      toggleBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const isHidden = popover.style.display === 'none' || !popover.style.display;
+        popover.style.display = isHidden ? 'flex' : 'none';
+        if (wrapper) wrapper.classList.toggle('open', isHidden);
+      });
+
+      if (closeBtn) {
+        closeBtn.addEventListener('click', (e) => {
+          e.stopPropagation();
+          closePopover();
+        });
+      }
+
+      document.addEventListener('click', (e) => {
+        if (wrapper && !wrapper.contains(e.target)) {
+          closePopover();
+        }
+      });
+
+      document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape') {
+          closePopover();
+        }
+      });
+    }
+
     testBtns.forEach(btn => {
       btn.addEventListener('click', (e) => {
         e.preventDefault();
+        closePopover();
         const code = parseInt(btn.getAttribute('data-status-test'), 10);
         statusDialog.triggerDemoStatus(code);
 

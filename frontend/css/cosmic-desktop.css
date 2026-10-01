@@ -411,44 +411,66 @@ body.interactive-mode-active .cosmic-library-catalog {
   border: 1px solid rgba(168, 85, 247, 0.3);
 }
 
-/* Navegación por pestañas */
+/* Navegación por pestañas Cósmica */
 .cosmic-nav-tabs {
   display: flex;
   align-items: center;
-  gap: 1.75rem;
+  background: rgba(15, 23, 42, 0.65);
+  border: 1px solid rgba(168, 85, 247, 0.25);
+  border-radius: 14px;
+  padding: 0.35rem 0.45rem;
+  gap: 0.45rem;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.35);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
 }
 
 .cosmic-tab-btn {
-  font-size: 0.875rem;
-  font-weight: 500;
-  color: #a1a1aa;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.88rem;
+  font-weight: 600;
+  color: #94a3b8;
   background: transparent;
-  border: none;
+  border: 1px solid transparent;
+  border-radius: 10px;
   cursor: pointer;
   position: relative;
-  padding: 0.625rem 0;
-  transition: color 0.2s ease;
+  padding: 0.65rem 1.35rem;
+  transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+  white-space: nowrap;
+  user-select: none;
 }
 
+/* Hover: Pintado de púrpura translúcido con glow cósmico */
 .cosmic-tab-btn:hover {
-  color: #ffffff;
+  color: #f3e8ff;
+  background: rgba(147, 51, 234, 0.22);
+  border-color: rgba(192, 132, 252, 0.45);
+  box-shadow: 0 0 16px rgba(168, 85, 247, 0.3);
+  transform: translateY(-1px);
 }
 
+/* Seleccionado / Activo: Recuadro púrpura amplio, luminoso y destacado */
 .cosmic-tab-btn.active {
   color: #ffffff;
-  font-weight: 600;
+  font-weight: 700;
+  background: linear-gradient(135deg, rgba(147, 51, 234, 0.9) 0%, rgba(126, 34, 206, 0.96) 100%);
+  border: 1px solid rgba(216, 180, 254, 0.6);
+  box-shadow: 
+    0 0 20px rgba(168, 85, 247, 0.5),
+    inset 0 1px 1px rgba(255, 255, 255, 0.3);
+  transform: none;
+}
+
+.cosmic-tab-btn.active:hover {
+  background: linear-gradient(135deg, rgba(168, 85, 247, 0.95) 0%, rgba(147, 51, 234, 1) 100%);
+  box-shadow: 0 0 24px rgba(168, 85, 247, 0.65);
 }
 
 .cosmic-tab-btn.active::after {
-  content: '';
-  position: absolute;
-  bottom: 0;
-  left: 0;
-  right: 0;
-  height: 2.5px;
-  background: linear-gradient(90deg, #c084fc, #f472b6);
-  border-radius: 9999px;
-  box-shadow: 0 0 10px rgba(192, 132, 252, 0.8);
+  display: none;
 }
 
 /* Botón Conmutador Modo Interactivo */
@@ -474,6 +496,136 @@ body.interactive-mode-active .cosmic-library-catalog {
   color: #ffffff;
   border-color: rgba(192, 132, 252, 0.6);
   box-shadow: 0 4px 16px rgba(168, 85, 247, 0.35);
+}
+
+/* Selector Desplegable QA Tester en Header */
+.demo-tester-dropdown-wrapper {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+}
+
+.btn-demo-tester-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.4rem 0.75rem;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: #e9d5ff;
+  border-radius: 0.75rem;
+  border: 1px solid rgba(168, 85, 247, 0.35);
+  background: rgba(88, 28, 135, 0.25);
+  cursor: pointer;
+  transition: all 0.25s ease;
+  user-select: none;
+}
+
+.btn-demo-tester-toggle:hover {
+  background: rgba(147, 51, 234, 0.35);
+  border-color: rgba(192, 132, 252, 0.6);
+  color: #ffffff;
+  box-shadow: 0 0 14px rgba(168, 85, 247, 0.35);
+}
+
+.btn-demo-tester-toggle .tester-toggle-icon {
+  font-size: 0.85rem;
+  color: #fbbf24;
+}
+
+.btn-demo-tester-toggle .tester-chevron {
+  font-size: 0.65rem;
+  color: #c084fc;
+  transition: transform 0.2s ease;
+}
+
+.demo-tester-dropdown-wrapper.open .tester-chevron {
+  transform: rotate(180deg);
+}
+
+/* Popover Flotante de Tester */
+.demo-tester-popover {
+  position: absolute;
+  top: calc(100% + 0.65rem);
+  right: 0;
+  width: 330px;
+  background: linear-gradient(135deg, rgba(17, 24, 39, 0.98) 0%, rgba(13, 18, 36, 0.98) 100%);
+  border: 1px solid rgba(168, 85, 247, 0.4);
+  border-radius: 16px;
+  padding: 1.15rem;
+  box-shadow: 
+    0 15px 40px rgba(0, 0, 0, 0.75),
+    0 0 25px rgba(147, 51, 234, 0.25);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  z-index: 500;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  animation: popoverFadeIn 0.2s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+@keyframes popoverFadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(-8px) scale(0.96);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+.tester-popover-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  border-bottom: 1px solid rgba(168, 85, 247, 0.18);
+  padding-bottom: 0.6rem;
+}
+
+.tester-popover-title-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+}
+
+.tester-popover-tag {
+  font-size: 0.62rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  color: #c084fc;
+  text-transform: uppercase;
+}
+
+.tester-popover-header strong {
+  font-size: 0.88rem;
+  color: #ffffff;
+  font-weight: 700;
+}
+
+.btn-close-tester-popover {
+  background: transparent;
+  border: none;
+  color: #94a3b8;
+  font-size: 1.25rem;
+  line-height: 1;
+  cursor: pointer;
+  padding: 0.15rem 0.35rem;
+  border-radius: 6px;
+  transition: all 0.15s ease;
+}
+
+.btn-close-tester-popover:hover {
+  color: #ffffff;
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.tester-popover-desc {
+  font-size: 0.75rem;
+  color: #94a3b8;
+  margin: 0;
+  line-height: 1.35;
 }
 
 /* ========================================================================
@@ -854,6 +1006,16 @@ body.interactive-mode-active .cosmic-library-catalog {
   filter: drop-shadow(0 0 16px rgba(192, 132, 252, 0.35)) !important;
 }
 
+.upload-hero-caption {
+  font-size: 1.05rem !important;
+  font-weight: 600 !important;
+  color: #c084fc !important;
+  letter-spacing: 0.02em !important;
+  margin-top: -0.35rem !important;
+  margin-bottom: 0.75rem !important;
+  opacity: 0.95 !important;
+}
+
 .upload-subtitle {
   font-size: 1rem !important;
   color: #d4d4d8 !important;
@@ -862,17 +1024,23 @@ body.interactive-mode-active .cosmic-library-catalog {
   margin: 0 auto !important;
 }
 
+.upload-grid-layout {
+  align-items: start !important;
+}
+
 .upload-panel-card {
   background: rgba(15, 13, 26, 0.75) !important;
   border: 1px solid rgba(168, 85, 247, 0.2) !important;
   backdrop-filter: blur(16px) !important;
   border-radius: 1.25rem !important;
-  padding: 1.75rem !important;
+  padding: 1.5rem !important;
   display: flex !important;
   flex-direction: column !important;
-  gap: 1.25rem !important;
+  gap: 1.15rem !important;
   box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3) !important;
   transition: border-color 0.2s ease !important;
+  height: fit-content !important;
+  align-self: start !important;
 }
 
 .upload-panel-card:hover {
@@ -881,11 +1049,11 @@ body.interactive-mode-active .cosmic-library-catalog {
 
 .panel-title-row {
   border-bottom: 1px solid rgba(168, 85, 247, 0.15) !important;
-  padding-bottom: 0.85rem !important;
+  padding-bottom: 0.75rem !important;
 }
 
 .panel-title-row h3 {
-  font-size: 1.15rem !important;
+  font-size: 1.1rem !important;
   font-weight: 700 !important;
   color: #ffffff !important;
 }
@@ -895,12 +1063,12 @@ body.interactive-mode-active .cosmic-library-catalog {
   color: #c084fc !important;
 }
 
-/* Dropzone Cósmico */
+/* Dropzone Cósmico Compacto y Elegante */
 .file-dropzone-large {
   border: 2px dashed rgba(168, 85, 247, 0.35) !important;
   background: rgba(88, 28, 135, 0.08) !important;
-  border-radius: 1.25rem !important;
-  padding: 3rem 1.5rem !important;
+  border-radius: 1.15rem !important;
+  padding: 1.85rem 1.25rem !important;
   text-align: center !important;
   cursor: pointer !important;
   transition: all 0.25s ease !important;
@@ -908,7 +1076,7 @@ body.interactive-mode-active .cosmic-library-catalog {
   flex-direction: column !important;
   align-items: center !important;
   justify-content: center !important;
-  gap: 0.85rem !important;
+  gap: 0.55rem !important;
 }
 
 .file-dropzone-large:hover,
@@ -920,27 +1088,29 @@ body.interactive-mode-active .cosmic-library-catalog {
 }
 
 .file-dropzone-large h4 {
-  font-size: 1.2rem !important;
+  font-size: 1.08rem !important;
   font-weight: 700 !important;
   color: #ffffff !important;
+  margin: 0 !important;
 }
 
 .file-dropzone-large p {
-  font-size: 0.9rem !important;
+  font-size: 0.82rem !important;
   color: #a1a1aa !important;
+  margin: 0 !important;
 }
 
 .btn-browse-file {
   background: rgba(88, 28, 135, 0.4) !important;
   border: 1px solid rgba(168, 85, 247, 0.4) !important;
   color: #ffffff !important;
-  font-size: 0.85rem !important;
+  font-size: 0.82rem !important;
   font-weight: 600 !important;
-  padding: 0.6rem 1.4rem !important;
+  padding: 0.5rem 1.25rem !important;
   border-radius: 0.75rem !important;
   cursor: pointer !important;
   transition: all 0.2s ease !important;
-  margin-top: 0.5rem !important;
+  margin-top: 0.35rem !important;
   display: inline-block !important;
 }
 

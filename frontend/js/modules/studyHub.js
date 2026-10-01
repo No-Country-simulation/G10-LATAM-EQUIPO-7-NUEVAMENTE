@@ -64,10 +64,10 @@ export const studyHub = {
     // Si no hay documento seleccionado: estado de bienvenida limpio
     if (!currentDocument) {
       if (this.elements.topicBadge) {
-        this.elements.topicBadge.textContent = 'BIBLIOTECA';
+        this.elements.topicBadge.textContent = '✦ UNIVERSO DE ESTUDIO';
       }
       if (this.elements.topicTitle) {
-        this.elements.topicTitle.textContent = 'Selecciona o sube un documento en La Biblioteca para comenzar a estudiar';
+        this.elements.topicTitle.textContent = 'Aterriza en un Mundo de Estudio o sube un documento para comenzar tu misión';
       }
       flashcards.render([]);
       quiz.render(null);

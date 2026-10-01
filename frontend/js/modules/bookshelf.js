@@ -6,7 +6,7 @@
 import { state } from '../state.js';
 import { apiClient } from '../api/apiClient.js';
 import { router } from './router.js';
-import { showcaseWorlds } from '../data/showcaseWorlds.js';
+import { notifyInfo } from './notifications.js';
 
 export const bookshelf = {
   elements: {},
@@ -22,6 +22,7 @@ export const bookshelf = {
     this.setupSearchEvents();
     this.renderShelf();
     this.setupModalEvents();
+    this.setupGuideModal();
 
     // Tarea 6: Solicitar los libros existentes al Backend (GET /api/v1/documents)
     await this.fetchBackendBooks();
@@ -155,12 +156,6 @@ export const bookshelf = {
       // Opciones de Estudio
       studyChoiceCards: document.querySelectorAll('.btn-study-choice-card')
     };
-
-    if (this.elements.solarCenterSun) {
-      this.elements.solarCenterSun.addEventListener('click', () => {
-        router.navigate('home');
-      });
-    }
   },
 
   renderShelf() {
@@ -169,38 +164,41 @@ export const bookshelf = {
     // 2. Libros subidos en cliente (state.customBooks)
     const booksMap = new Map();
     const customBooks = state.get().customBooks || [];
-    const customColors = ['cyan', 'purple', 'ruby', 'amber', 'emerald', 'sapphire'];
+    const customColors = ['sapphire', 'purple', 'emerald', 'ruby', 'cyan', 'amber', 'gold'];
 
     // Priorizar customBooks subidos por el usuario en esta u otras sesiones
     customBooks.forEach((cDoc, idx) => {
+      const color = (cDoc.spineColor && cDoc.spineColor !== 'gold-custom')
+        ? cDoc.spineColor
+        : customColors[idx % customColors.length];
+
       booksMap.set(cDoc.id, {
         ...cDoc,
-        spineColor: cDoc.spineColor || customColors[idx % customColors.length]
+        spineColor: color
       });
     });
 
     // Agregar libros provenientes del Backend si no están ya en el mapa
     (this.booksFromBackend || []).forEach(b => {
       if (!booksMap.has(b.id)) {
-        booksMap.set(b.id, b);
+        booksMap.set(b.id, {
+          ...b,
+          spineColor: b.spineColor || customColors[booksMap.size % customColors.length]
+        });
       }
     });
 
     const currentDoc = state.get().currentDocument;
     if (currentDoc && !booksMap.has(currentDoc.id)) {
+      const color = (currentDoc.spineColor && currentDoc.spineColor !== 'gold-custom')
+        ? currentDoc.spineColor
+        : customColors[booksMap.size % customColors.length];
+
       booksMap.set(currentDoc.id, {
         ...currentDoc,
-        spineColor: currentDoc.spineColor || 'amber'
+        spineColor: color
       });
     }
-
-    // Incorporar los Mundos de estudio del Sistema Solar (showcaseWorlds)
-    // para que la galaxia se mantenga viva, poblada y navegable visualmente
-    showcaseWorlds.forEach(sw => {
-      if (!booksMap.has(sw.id)) {
-        booksMap.set(sw.id, sw);
-      }
-    });
 
     const books = Array.from(booksMap.values());
     this.allBooks = books;
@@ -249,13 +247,18 @@ export const bookshelf = {
     layer.innerHTML = '';
 
     if (!books || books.length === 0) {
+      // 1. Mostrar siempre el planeta interactivo de creación de nuevo mundo en la órbita interior
+      const uploadNode = this.createUploadPlanetNode(110, -90);
+      layer.appendChild(uploadNode);
+
+      // 2. Banner inferior informativo (sin tapar el Sol central)
       const emptyEl = document.createElement('div');
       emptyEl.className = 'solar-empty-system';
       emptyEl.innerHTML = `
         <div class="solar-empty-icon">🪐</div>
         <h4>Tu Universo de Estudio está Listo</h4>
-        <p>Aún no hay Mundos en órbita. Sube tu primer archivo PDF o documento para encender el sistema solar.</p>
-        <button type="button" class="btn-cosmic-primary" id="btnSolarEmptyUpload" style="padding: 0.65rem 1.4rem;">
+        <p>Aún no hay Mundos en el Backend. Haz clic en el <strong>Sol</strong> para ver la guía o sube tu primer documento.</p>
+        <button type="button" class="btn-cosmic-primary" id="btnSolarEmptyUpload" style="padding: 0.55rem 1.3rem;">
           <span>+ Crear Mi Primer Mundo</span>
         </button>
       `;
@@ -348,7 +351,7 @@ export const bookshelf = {
   createUploadPlanetNode(x, y) {
     const node = document.createElement('div');
     node.className = 'solar-world-node world-node-upload';
-    node.title = 'Descubrir / Subir Nuevo Mundo de Estudio';
+    node.title = 'Creación de Mundos (Cargar Documento)';
     node.style.left = `calc(50% + ${x}px)`;
     node.style.top = `calc(50% + ${y}px)`;
 
@@ -359,11 +362,11 @@ export const bookshelf = {
       <div class="world-label-badge">+ NUEVO MUNDO</div>
       <div class="world-hud-tooltip">
         <div class="hud-discipline">NUEVA INGESTA</div>
-        <div class="hud-title">Subir Documento PDF</div>
+        <div class="hud-title">Crear Nuevo Mundo</div>
         <p style="font-size: 0.72rem; color: #d4d4d8; margin: 0; line-height: 1.4;">
           Añadí un nuevo PDF para que la IA genere un Mundo con Quiz y Flashcards.
         </p>
-        <div class="hud-cta">Cargar Documento →</div>
+        <div class="hud-cta">Creación de Mundos →</div>
       </div>
     `;
 
@@ -405,7 +408,7 @@ export const bookshelf = {
 
     const coordsEl = document.getElementById('openedPlanetCoords');
     if (coordsEl) {
-      coordsEl.innerHTML = `<span class="pulse-beacon"></span> ÓRBITA DE APRENDIZAJE • ${(book.discipline || 'MUNDO').toUpperCase()}`;
+      coordsEl.innerHTML = `<span class="pulse-beacon"></span> TELEMETRÍA ORBITAL • SECTOR EXPLORABLE`;
     }
 
     // Poblar Ficha del Documento
@@ -477,9 +480,84 @@ export const bookshelf = {
       });
     });
 
+    // Botón de Eliminar Mundo desde el Modal
+    const btnDeleteWorld = document.getElementById('btnDeleteCurrentWorld');
+    if (btnDeleteWorld) {
+      btnDeleteWorld.addEventListener('click', () => {
+        if (!this.currentSelectedBook) return;
+        this.confirmAndDeleteBook(this.currentSelectedBook);
+      });
+    }
+
     document.addEventListener('keydown', (e) => {
       if (e.code === 'Escape' && openBookOverlay && openBookOverlay.style.display === 'flex') {
         this.closeBookModal();
+      }
+    });
+  },
+
+  setupGuideModal() {
+    const sunEl = document.getElementById('solarCenterSun');
+    const guideOverlay = document.getElementById('systemGuideOverlay');
+    const btnCloseX = document.getElementById('btnCloseGuideModalX');
+    const btnClose = document.getElementById('btnGuideClose');
+    const btnGoUpload = document.getElementById('btnGuideGoUpload');
+
+    const openGuide = () => {
+      if (guideOverlay) {
+        guideOverlay.style.display = 'flex';
+        document.body.classList.add('modal-open');
+      }
+    };
+
+    const closeGuide = () => {
+      if (guideOverlay) {
+        guideOverlay.style.display = 'none';
+        document.body.classList.remove('modal-open');
+      }
+    };
+
+    if (sunEl) {
+      sunEl.onclick = (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        openGuide();
+      };
+
+      sunEl.onkeydown = (e) => {
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault();
+          openGuide();
+        }
+      };
+    }
+
+    if (btnCloseX) {
+      btnCloseX.onclick = closeGuide;
+    }
+
+    if (btnClose) {
+      btnClose.onclick = closeGuide;
+    }
+
+    if (btnGoUpload) {
+      btnGoUpload.onclick = () => {
+        closeGuide();
+        router.navigate('upload');
+      };
+    }
+
+    if (guideOverlay) {
+      guideOverlay.onclick = (e) => {
+        if (e.target === guideOverlay) {
+          closeGuide();
+        }
+      };
+    }
+
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape' && guideOverlay && guideOverlay.style.display === 'flex') {
+        closeGuide();
       }
     });
   },
@@ -528,6 +606,55 @@ export const bookshelf = {
   },
 
   /**
+   * Solicita confirmación al usuario antes de eliminar un Mundo/Documento
+   * @param {Object} book 
+   */
+  async confirmAndDeleteBook(book) {
+    if (!book) return;
+    const name = book.title || 'este mundo';
+    const confirmed = window.confirm(`¿Estás seguro de que deseas eliminar "${name}" del sistema y de tu galaxia de estudio?`);
+    if (!confirmed) return;
+
+    await this.deleteBook(book.id);
+  },
+
+  /**
+   * Elimina el documento del almacenamiento local y del backend
+   * @param {string} bookId 
+   */
+  async deleteBook(bookId) {
+    if (!bookId) return;
+
+    // 1. Eliminar de los libros personalizados en state y localStorage
+    const customBooks = state.get().customBooks || [];
+    const updatedCustomBooks = customBooks.filter(b => b.id !== bookId);
+    state.set({ customBooks: updatedCustomBooks });
+    try {
+      localStorage.setItem('nuevamente_custom_books', JSON.stringify(updatedCustomBooks));
+    } catch (err) {
+      console.warn('[Bookshelf] No se pudo actualizar localStorage:', err);
+    }
+
+    // 2. Eliminar de la lista de backend en memoria si estaba allí
+    if (this.booksFromBackend) {
+      this.booksFromBackend = this.booksFromBackend.filter(b => b.id !== bookId);
+    }
+
+    // 3. Si era el documento activo, limpiarlo
+    if (state.get().currentDocument?.id === bookId) {
+      state.set({ currentDocument: null });
+    }
+
+    // 4. Cerrar el modal del planeta si estaba abierto
+    this.closeBookModal();
+
+    // 5. Re-renderizar la estantería y catálogo (100% local en frontend)
+    this.renderShelf();
+
+    notifyInfo('Mundo de estudio eliminado de la galaxia.');
+  },
+
+  /**
    * Renderiza las tarjetas del Catálogo en formato lista (Modo Ejecutivo)
    */
   renderCatalogList(booksToRender) {
@@ -565,6 +692,7 @@ export const bookshelf = {
             <span style="font-size: 0.75rem; color: #d8b4fe; background: rgba(88,28,135,0.3); padding: 4px 8px; border-radius: 6px; border: 1px solid rgba(168,85,247,0.3);">Quiz</span>
             <span style="font-size: 0.75rem; color: #f472b6; background: rgba(88,28,135,0.3); padding: 4px 8px; border-radius: 6px; border: 1px solid rgba(244,114,182,0.3);">Flashcards</span>
             <button type="button" class="btn-cosmic-primary btn-study-doc" data-book-id="${book.id}" style="padding: 0.5rem 1rem; font-size: 0.75rem;">Estudiar →</button>
+            <button type="button" class="btn-delete-doc-item" data-book-id="${book.id}" title="Eliminar Mundo">🗑️</button>
           </div>
         </div>
       `;
@@ -584,6 +712,14 @@ export const bookshelf = {
         btnStudy.addEventListener('click', (e) => {
           e.stopPropagation();
           this.selectBookAndStudy(book, 'flashcards');
+        });
+      }
+
+      const btnDelete = card.querySelector('.btn-delete-doc-item');
+      if (btnDelete) {
+        btnDelete.addEventListener('click', (e) => {
+          e.stopPropagation();
+          this.confirmAndDeleteBook(book);
         });
       }
     });

@@ -28,7 +28,6 @@
         <span class="cosmic-dot"></span>
       </div>
       <div class="cosmic-brand-divider"></div>
-      <img src="LogoPropuesta - Editado.png" alt="Logo NuevaMente" class="header-brand-logo" style="height: 28px;">
       <span class="cosmic-brand-title">NuevaMente</span>
       <span class="cosmic-badge-os">Cosmic OS</span>
     </div>
@@ -38,11 +37,11 @@
       <button type="button" class="nav-tab-btn active cosmic-tab-btn" data-tab="home" title="Inicio / Portada Cósmica">
         <span>Inicio</span>
       </button>
-      <button type="button" class="nav-tab-btn cosmic-tab-btn" data-tab="library" title="La Biblioteca de Documentos">
-        <span>La Biblioteca</span>
+      <button type="button" class="nav-tab-btn cosmic-tab-btn" data-tab="library" title="Mundos de Estudio">
+        <span>Mundos de Estudio</span>
       </button>
-      <button type="button" class="nav-tab-btn cosmic-tab-btn" data-tab="upload" title="Carga de Documento">
-        <span>Cargar Documento</span>
+      <button type="button" class="nav-tab-btn cosmic-tab-btn" data-tab="upload" title="Creación de Mundos (Carga de Documento)">
+        <span>Creación de Mundos</span>
       </button>
       <button type="button" class="nav-tab-btn cosmic-tab-btn" data-tab="study" title="Centro de Estudio Multi-Formato">
         <span>Centro de Estudio</span>
@@ -58,6 +57,56 @@
       <div class="header-connection-badge status-checking" id="headerBackendBadge" title="Verificando conexión con Backend FastAPI">
         <span class="status-dot-pulse" id="headerBackendDot"></span>
         <span id="headerBackendText">Verificando Backend...</span>
+      </div>
+
+      <!-- Selector Desplegable QA Tester (Códigos de Respuesta Backend) -->
+      <div class="demo-tester-dropdown-wrapper" id="testerDropdownWrapper">
+        <button type="button" class="btn-demo-tester-toggle" id="btnToggleTesterDropdown" title="Simular códigos de respuesta HTTP de Backend y OCI (Demo/QA)">
+          <span class="tester-toggle-icon">⚡</span>
+          <span>Tester QA</span>
+          <span class="tester-chevron">▾</span>
+        </button>
+
+        <!-- Popover / Menú Desplegable con los códigos -->
+        <div class="demo-tester-popover" id="testerPopover" style="display: none;">
+          <div class="tester-popover-header">
+            <div class="tester-popover-title-group">
+              <span class="tester-popover-tag">DEMO / QA</span>
+              <strong>Respuestas HTTP Backend</strong>
+            </div>
+            <button type="button" class="btn-close-tester-popover" id="btnCloseTesterPopover" title="Cerrar">&times;</button>
+          </div>
+          <p class="tester-popover-desc">Simula códigos de error y diálogos de estado OCI:</p>
+          <div class="tester-buttons-grid">
+            <button type="button" class="btn-tester-code code-success" data-status-test="201" title="Documento nuevo almacenado en OCI">
+              201 Stored (Nuevo)
+            </button>
+            <button type="button" class="btn-tester-code code-success" data-status-test="200" title="Documento duplicado reutilizado">
+              200 Stored (Duplicado)
+            </button>
+            <button type="button" class="btn-tester-code code-error" data-status-test="400" title="Documento inválido o vacío">
+              400 Vacío / Inválido
+            </button>
+            <button type="button" class="btn-tester-code code-error" data-status-test="404" title="Recurso inexistente">
+              404 Inexistente
+            </button>
+            <button type="button" class="btn-tester-code code-error" data-status-test="413" title="Archivo demasiado grande">
+              413 &gt;10MB
+            </button>
+            <button type="button" class="btn-tester-code code-error" data-status-test="415" title="Formato no soportado">
+              415 Formato/MIME
+            </button>
+            <button type="button" class="btn-tester-code code-error" data-status-test="422" title="Validación del request">
+              422 Validación
+            </button>
+            <button type="button" class="btn-tester-code code-error" data-status-test="502" title="Fallo de almacenamiento en OCI">
+              502 Fallo OCI
+            </button>
+            <button type="button" class="btn-tester-code code-error" data-status-test="500" title="Error no controlado en servidor">
+              500 Error Servidor
+            </button>
+          </div>
+        </div>
       </div>
     </div>
   </header>
@@ -88,11 +137,11 @@
 
         <div class="cosmic-hero-actions">
           <button type="button" class="btn-cosmic-primary" id="btnHomeEnterLibrary">
-            <span>Ingresar a la Biblioteca</span>
+            <span>Explorar Mundos de Estudio</span>
             <span>→</span>
           </button>
           <button type="button" class="btn-cosmic-secondary" id="btnHomeUpload">
-            <span>+ Cargar Documento</span>
+            <span>+ Creación de Mundos</span>
           </button>
         </div>
 
@@ -195,11 +244,14 @@
             <div class="solar-orbit-track orbit-track-3"></div>
             <div class="solar-orbit-track orbit-track-4"></div>
 
-            <!-- Núcleo / Sol Central (NuevaMente Core) -->
-            <div class="solar-center-sun" id="solarCenterSun" title="NuevaMente Core — Núcleo de Inteligencia Artificial">
+            <!-- Núcleo / Sol Central (Guía del Sistema) -->
+            <div class="solar-center-sun" id="solarCenterSun" role="button" tabindex="0" title="¿Cómo funciona el sistema? Haz clic para ver la guía">
               <div class="solar-corona"></div>
-              <img src="LogoPropuesta - Editado.png" alt="Core" class="sun-core-logo">
-              <span class="sun-core-label">Core AI</span>
+              <div class="solar-core-energy"></div>
+              <div class="solar-sun-badge">
+                <span class="sun-badge-spark">✦</span>
+                <span>¿Cómo funciona?</span>
+              </div>
             </div>
 
             <!-- Capa donde se renderizan los Planetas (Mundos) dinámicamente -->
@@ -220,7 +272,8 @@
         <div class="upload-hero-header">
           <div class="upload-hero-title-box">
             <span class="badge-pill badge-gold">Subí tu Documento</span>
-            <h2>Carga de Documento y Generación de Material de Estudio</h2>
+            <h2>Creación de Mundos</h2>
+            <p class="upload-hero-caption">(Carga de Documento y Generación de Material de Estudio)</p>
             <p class="upload-subtitle">
               Sube cualquier documento de estudio (medicina, ingeniería, leyes, economía, etc.) y generamos automáticamente flashcards, quiz, un video guía y un resumen para que lo estudies como prefieras.
             </p>
@@ -255,7 +308,14 @@
                   <span id="selectedFileSize">2.4 MB · Listo para procesar</span>
                 </div>
               </div>
-              <button type="button" class="btn-remove-file" id="btnRemoveFile" title="Quitar archivo">&times;</button>
+              <div class="file-card-actions">
+                <button type="button" class="btn-create-world-direct" id="btnCrearMundoDirecto" title="Crear Mundo ahora con este documento">
+                  <span>⚡ Crear Mundo</span>
+                </button>
+                <button type="button" class="btn-remove-file-full" id="btnRemoveFile" title="Eliminar / Quitar este PDF">
+                  <span>🗑️ Eliminar PDF</span>
+                </button>
+              </div>
             </div>
           </div>
 
@@ -295,43 +355,6 @@
                 <button type="button" class="btn-launch-rag" id="btnLanzarProcesamiento" style="width: 100%;">
                   <span>Procesar Documento</span>
                 </button>
-              </div>
-
-              <!-- Panel de Pruebas de Códigos de Respuesta Backend (Para Demo) -->
-              <div class="demo-status-tester">
-                <div class="tester-title-row">
-                  <span class="tester-title">Códigos de Respuesta Backend (Demo)</span>
-                  <span class="tester-tag">Dialog Temporal OCI</span>
-                </div>
-                <div class="tester-buttons-grid">
-                  <button type="button" class="btn-tester-code code-success" data-status-test="201" title="Documento nuevo almacenado en OCI">
-                    201 Stored (Nuevo)
-                  </button>
-                  <button type="button" class="btn-tester-code code-success" data-status-test="200" title="Documento duplicado reutilizado">
-                    200 Stored (Duplicado)
-                  </button>
-                  <button type="button" class="btn-tester-code code-error" data-status-test="400" title="Documento inválido o vacío">
-                    400 Vacío / Inválido
-                  </button>
-                  <button type="button" class="btn-tester-code code-error" data-status-test="404" title="Recurso inexistente">
-                    404 Inexistente
-                  </button>
-                  <button type="button" class="btn-tester-code code-error" data-status-test="413" title="Archivo demasiado grande">
-                    413 &gt;10MB
-                  </button>
-                  <button type="button" class="btn-tester-code code-error" data-status-test="415" title="Formato no soportado">
-                    415 Formato/MIME
-                  </button>
-                  <button type="button" class="btn-tester-code code-error" data-status-test="422" title="Validación del request">
-                    422 Validación
-                  </button>
-                  <button type="button" class="btn-tester-code code-error" data-status-test="502" title="Fallo de almacenamiento en OCI">
-                    502 Fallo OCI
-                  </button>
-                  <button type="button" class="btn-tester-code code-error" data-status-test="500" title="Error no controlado en servidor">
-                    500 Error Servidor
-                  </button>
-                </div>
               </div>
             </div>
           </div>
@@ -440,7 +463,7 @@
 
             <div class="secondary-actions-row">
               <button type="button" class="btn-primary-action" id="btnIrALaBiblioteca">
-                <span>Ver en La Biblioteca</span>
+                <span>Ver en Mundos de Estudio</span>
               </button>
             </div>
           </div>
@@ -458,8 +481,8 @@
         <!-- Encabezado del Hub de Estudio -->
         <div class="study-hub-header">
           <div class="study-topic-meta">
-            <span class="topic-badge-pill" id="studyTopicBadge">DISCIPLINA</span>
-            <h3 class="study-topic-title" id="studyTopicTitle">Sección de Estudio</h3>
+            <span class="topic-badge-pill" id="studyTopicBadge">✦ UNIVERSO DE ESTUDIO</span>
+            <h3 class="study-topic-title" id="studyTopicTitle">Aterriza en un Mundo de Estudio o sube un documento para comenzar tu misión</h3>
           </div>
         </div>
 
@@ -585,7 +608,7 @@
       <span id="ociStatusText">Verificando conexión con Backend...</span>
     </div>
     <div>
-      <span id="qualityScoreText">Explorando la biblioteca</span>
+      <span id="qualityScoreText">Explorando Mundos de Estudio</span>
     </div>
   </footer>
 
@@ -593,15 +616,22 @@
   <div class="open-book-modal-backdrop" id="openBookOverlay" style="display: none;">
     <div class="cosmic-world-modal modal-animating" id="cosmicWorldModal">
       
+      <!-- Esquinas Sci-Fi de Enfoque Holográfico -->
+      <div class="modal-corner-bracket corner-tl"></div>
+      <div class="modal-corner-bracket corner-tr"></div>
+      <div class="modal-corner-bracket corner-bl"></div>
+      <div class="modal-corner-bracket corner-br"></div>
+
       <!-- Botón de Cerrar Modal Cósmico (X flotante) -->
       <button type="button" class="btn-cosmic-modal-close" id="btnCloseWorldModalX" title="Volver al Sistema Solar">
         &times;
       </button>
 
-      <!-- Panel Izquierdo: Proyección Holográfica del Mundo & Ficha -->
+      <!-- Panel Izquierdo: Observación del Mundo y Topografía (50%) -->
       <div class="world-modal-left">
         <!-- Escenario Holográfico del Planeta Seleccionado -->
         <div class="world-hologram-stage">
+          <div class="planet-radar-sweep"></div>
           <div class="world-sphere-stage" id="openedPlanetSphereStage">
             <!-- Esfera 3D dinámica del planeta con animación de apertura -->
           </div>
@@ -619,32 +649,8 @@
           <h3 class="opened-doc-title" id="openedDocTitle">Título del Documento</h3>
           <p class="opened-doc-summary" id="openedDocSummary">Descripción y resumen del contenido analizado...</p>
 
-          <div class="study-meta-box cosmic-meta-box">
-            <div class="meta-item">
-              <span class="meta-icon">⏱️</span>
-              <div>
-                <span class="meta-label">Estudio</span>
-                <strong id="openedDocTime">10 min</strong>
-              </div>
-            </div>
-            <div class="meta-item">
-              <span class="meta-icon">🪐</span>
-              <div>
-                <span class="meta-label">Módulos</span>
-                <strong id="openedDocSections">4</strong>
-              </div>
-            </div>
-            <div class="meta-item">
-              <span class="meta-icon">🎯</span>
-              <div>
-                <span class="meta-label">Nivel</span>
-                <strong id="openedDocLevel">Intermedio</strong>
-              </div>
-            </div>
-          </div>
-
           <div class="world-concepts-wrapper">
-            <span class="concepts-label">Nodos Conceptuales Clave:</span>
+            <span class="concepts-label">Sectores de Conocimiento Explorables:</span>
             <div class="concept-chips" id="openedDocChips">
               <!-- Chips inyectados dinámicamente -->
             </div>
@@ -652,10 +658,15 @@
         </div>
       </div>
 
-      <!-- Panel Derecho: Módulos de Misión y Aterrizaje -->
+      <!-- Separador Central de Haz de Energía Cósmica -->
+      <div class="world-modal-central-divider">
+        <div class="divider-beacon">✦</div>
+      </div>
+
+      <!-- Panel Derecho: Bahías de Descenso y Misión (50%) -->
       <div class="world-modal-right">
         <div class="study-choice-header">
-          <span class="badge-pill badge-purple" style="margin-bottom: 0.4rem; display: inline-block;">✦ Módulos de Aprendizaje</span>
+          <span class="badge-pill badge-purple" style="margin-bottom: 0.4rem; display: inline-block;">✦ Bahías de Descenso</span>
           <h4>¿Cómo quieres explorar este Mundo?</h4>
           <p>Selecciona una modalidad interactiva para descender a la superficie de conocimiento:</p>
         </div>
@@ -672,15 +683,15 @@
           <button type="button" class="btn-study-choice-card cosmic-choice-card" data-study-format="quiz">
             <span class="choice-icon">⚡</span>
             <div class="choice-info">
-              <strong>Quiz de Retención</strong>
-              <span>Autoevaluación de precisión</span>
+              <strong>Quiz de Precisión</strong>
+              <span>Autoevaluación de conocimientos</span>
             </div>
             <span class="choice-arrow">→</span>
           </button>
           <button type="button" class="btn-study-choice-card cosmic-choice-card" data-study-format="video">
             <span class="choice-icon">🎬</span>
             <div class="choice-info">
-              <strong>Tutorial Guiado</strong>
+              <strong>Bitácora Guiada</strong>
               <span>Guion pedagógico adaptativo</span>
             </div>
             <span class="choice-arrow">→</span>
@@ -688,7 +699,7 @@
           <button type="button" class="btn-study-choice-card cosmic-choice-card" data-study-format="sintesis">
             <span class="choice-icon">📜</span>
             <div class="choice-info">
-              <strong>Síntesis Ejecutiva</strong>
+              <strong>Síntesis de Superficie</strong>
               <span>Resumen conceptual clave</span>
             </div>
             <span class="choice-arrow">→</span>
@@ -696,15 +707,115 @@
         </div>
 
         <div class="notebook-action-footer cosmic-action-footer">
-          <button type="button" class="btn-close-notebook-shelf btn-cosmic-ghost" id="btnCloseNotebookOverlay">
-            <span>← Volver a la Órbita</span>
+          <button type="button" class="btn-danger-ghost" id="btnDeleteCurrentWorld" title="Eliminar este Mundo de Estudio">
+            <span>🗑️ Eliminar Mundo</span>
           </button>
-          <button type="button" class="btn-primary-action btn-cosmic-glow-cta" id="btnStartStudying">
-            <span>🚀 Aterrizar y Estudiar &rarr;</span>
-          </button>
+          <div style="display: flex; align-items: center; gap: 0.75rem;">
+            <button type="button" class="btn-close-notebook-shelf btn-cosmic-ghost" id="btnCloseNotebookOverlay">
+              <span>← Volver a la Órbita</span>
+            </button>
+            <button type="button" class="btn-primary-action btn-cosmic-glow-cta" id="btnStartStudying">
+              <span>🚀 Aterrizar y Estudiar &rarr;</span>
+            </button>
+          </div>
         </div>
       </div>
 
+    </div>
+  </div>
+
+  <!-- Modal Explicativo: Guía del Sistema Cósmico (Al hacer clic en el Sol) -->
+  <div class="system-guide-modal-backdrop" id="systemGuideOverlay" style="display: none;" role="dialog" aria-modal="true" aria-labelledby="guideModalTitle">
+    <div class="system-guide-modal" id="systemGuideModal">
+      <!-- Esquinas Sci-Fi de Enfoque Holográfico -->
+      <div class="modal-corner-bracket corner-tl"></div>
+      <div class="modal-corner-bracket corner-tr"></div>
+      <div class="modal-corner-bracket corner-bl"></div>
+      <div class="modal-corner-bracket corner-br"></div>
+
+      <!-- Botón de Cerrar Modal (X flotante) -->
+      <button type="button" class="btn-guide-modal-close" id="btnCloseGuideModalX" title="Cerrar guía (Esc)">&times;</button>
+
+      <!-- Cabecera -->
+      <div class="guide-modal-header">
+        <div class="guide-sun-orb">
+          <div class="guide-sun-pulse"></div>
+          <span>✦</span>
+        </div>
+        <div class="guide-header-text">
+          <div class="guide-badge-pill">
+            <span class="guide-badge-dot"></span>
+            GUÍA DE VIAJE Y FUNCIONAMIENTO
+          </div>
+          <h2 id="guideModalTitle">¿Qué es NuevaMente y cómo funciona?</h2>
+          <p class="guide-header-subtitle">
+            Un universo inteligente donde cada documento se transforma en un mundo de estudio interactivo gracias a la Inteligencia Artificial.
+          </p>
+        </div>
+      </div>
+
+      <!-- Cuerpo: Las 3 fases del sistema -->
+      <div class="guide-steps-grid">
+        <!-- Paso 1 -->
+        <div class="guide-step-card">
+          <div class="guide-step-header">
+            <span class="guide-step-number">01</span>
+            <span class="guide-step-icon">☀️</span>
+          </div>
+          <h3>El Sol Central</h3>
+          <p>
+            Es el <strong>núcleo de Inteligencia Artificial</strong>. Analiza, indexa y comprende el contenido de tus documentos para extraer los conceptos esenciales sin pérdida de rigor.
+          </p>
+        </div>
+
+        <!-- Paso 2 -->
+        <div class="guide-step-card">
+          <div class="guide-step-header">
+            <span class="guide-step-number">02</span>
+            <span class="guide-step-icon">🪐</span>
+          </div>
+          <h3>Mundos de Estudio</h3>
+          <p>
+            Cada <strong>planeta en órbita</strong> representa un documento cargado (apuntes, libros o PDFs). Haz clic en cualquier mundo para explorar su ficha y descender a estudiar.
+          </p>
+        </div>
+
+        <!-- Paso 3 -->
+        <div class="guide-step-card">
+          <div class="guide-step-header">
+            <span class="guide-step-number">03</span>
+            <span class="guide-step-icon">🚀</span>
+          </div>
+          <h3>Creación de Mundos</h3>
+          <p>
+            En la barra superior podés <strong>subir nuevos documentos</strong> (hasta 10 MB). El pipeline RAG genera automáticamente materiales de estudio dinámicos y adaptativos.
+          </p>
+        </div>
+      </div>
+
+      <!-- Tiras de Formatos Disponibles -->
+      <div class="guide-formats-banner">
+        <div class="guide-format-box">
+          <span class="guide-format-badge">🗂️ FLASHCARDS</span>
+          <strong>Memorización Activa</strong>
+          <p>Tarjetas de preguntas y respuestas mnemotécnicas para afianzar conceptos clave y retención a largo plazo.</p>
+        </div>
+        <div class="guide-format-box">
+          <span class="guide-format-badge">🎯 QUIZ INTERACTIVO</span>
+          <strong>Evaluación Continua</strong>
+          <p>Pruebas de opción múltiple con retroalimentación instantánea, explicaciones y cálculo de aciertos.</p>
+        </div>
+      </div>
+
+      <!-- Pie de Diálogo -->
+      <div class="guide-modal-footer">
+        <button type="button" class="btn-guide-secondary" id="btnGuideGoUpload">
+          <span>+ Crear Nuevo Mundo</span>
+        </button>
+        <button type="button" class="btn-guide-primary" id="btnGuideClose">
+          <span>¡Entendido, Explorar Mundos! &rarr;</span>
+        </button>
+      </div>
     </div>
   </div>
 

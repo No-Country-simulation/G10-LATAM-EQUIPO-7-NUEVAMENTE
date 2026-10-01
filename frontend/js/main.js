@@ -53,7 +53,7 @@ function setupSystemStatusBar() {
     if (qualityScoreText) {
       qualityScoreText.textContent = doc
         ? `Estudiando: ${doc.title}`
-        : 'Explorando la biblioteca';
+        : 'Explorando Mundos de Estudio';
     }
   });
 }

@@ -108,46 +108,103 @@ body.interactive-mode-active .cosmic-library-catalog {
   overflow: visible;
 }
 
-/* Núcleo / Sol Central ("NuevaMente Core") */
+/* Núcleo / Sol Central */
 .solar-center-sun {
   position: absolute;
   top: 50%;
   left: 50%;
   transform: translate(-50%, -50%);
-  width: 94px;
-  height: 94px;
+  width: 96px;
+  height: 96px;
   border-radius: 50%;
-  background: radial-gradient(circle at 35% 35%, #fffbeb 0%, #fde047 30%, #f59e0b 65%, #d97706 100%);
-  box-shadow: 0 0 45px rgba(245, 158, 11, 0.85), 0 0 95px rgba(245, 158, 11, 0.45), inset -6px -6px 15px rgba(180, 83, 9, 0.8);
-  z-index: 15;
+  background: radial-gradient(circle at 38% 35%, #fffdf0 0%, #fef08a 22%, #f59e0b 60%, #b45309 100%);
+  box-shadow: 
+    0 0 50px rgba(245, 158, 11, 0.85),
+    0 0 100px rgba(245, 158, 11, 0.45),
+    0 0 160px rgba(217, 119, 6, 0.25),
+    inset -6px -6px 18px rgba(180, 83, 9, 0.8),
+    inset 6px 6px 16px rgba(255, 255, 255, 0.6);
+  z-index: 60 !important;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  cursor: pointer;
+  cursor: pointer !important;
+  pointer-events: auto !important;
   transition: transform 0.35s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.35s ease;
   user-select: none;
+  outline: none;
 }
 
-.solar-center-sun:hover {
-  transform: translate(-50%, -50%) scale(1.08);
-  box-shadow: 0 0 65px rgba(245, 158, 11, 0.95), 0 0 130px rgba(245, 158, 11, 0.65);
+.solar-center-sun:hover,
+.solar-center-sun:focus-visible {
+  transform: translate(-50%, -50%) scale(1.1);
+  box-shadow: 
+    0 0 70px rgba(245, 158, 11, 0.95),
+    0 0 140px rgba(245, 158, 11, 0.7),
+    0 0 200px rgba(251, 191, 36, 0.4);
 }
 
-.sun-core-logo {
-  width: 44px;
-  height: 44px;
-  object-fit: contain;
-  filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.8));
+/* Núcleo de Plasma e Irradiación Estelar */
+.solar-core-energy {
+  position: absolute;
+  inset: 12px;
+  border-radius: 50%;
+  background: radial-gradient(circle, #ffffff 0%, rgba(254, 240, 138, 0.9) 35%, rgba(245, 158, 11, 0.2) 70%, transparent 100%);
+  animation: pulseSunEnergy 3s infinite ease-in-out;
+  pointer-events: none;
 }
 
-.sun-core-label {
-  font-size: 0.58rem;
-  font-weight: 800;
-  text-transform: uppercase;
-  color: #78350f;
-  letter-spacing: 0.08em;
-  margin-top: 1px;
+@keyframes pulseSunEnergy {
+  0%, 100% {
+    transform: scale(0.9);
+    opacity: 0.8;
+    filter: drop-shadow(0 0 10px rgba(255, 255, 255, 0.9));
+  }
+  50% {
+    transform: scale(1.18);
+    opacity: 1;
+    filter: drop-shadow(0 0 22px rgba(254, 240, 138, 1));
+  }
+}
+
+/* Badge Inferior Indicador de Guía */
+.solar-sun-badge {
+  position: absolute;
+  bottom: -32px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: rgba(18, 14, 30, 0.92);
+  border: 1px solid rgba(245, 158, 11, 0.55);
+  border-radius: 9999px;
+  padding: 0.25rem 0.75rem;
+  font-size: 0.68rem;
+  font-weight: 700;
+  color: #fef08a;
+  letter-spacing: 0.05em;
+  white-space: nowrap;
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.65), 0 0 14px rgba(245, 158, 11, 0.35);
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  transition: all 0.25s ease;
+  pointer-events: none;
+}
+
+.solar-center-sun:hover .solar-sun-badge,
+.solar-center-sun:focus-visible .solar-sun-badge {
+  background: linear-gradient(135deg, rgba(217, 119, 6, 0.95) 0%, rgba(180, 83, 9, 0.95) 100%);
+  border-color: #fef08a;
+  color: #ffffff;
+  transform: translateX(-50%) translateY(3px) scale(1.06);
+  box-shadow: 0 6px 20px rgba(245, 158, 11, 0.6);
+}
+
+.sun-badge-spark {
+  color: #fbbf24;
+  font-size: 0.75rem;
 }
 
 /* Corona Solar Pulsante */
@@ -190,6 +247,7 @@ body.interactive-mode-active .cosmic-library-catalog {
   position: absolute;
   inset: 0;
   z-index: 20;
+  pointer-events: none !important;
 }
 
 /* Nodo de Planeta / Mundo */
@@ -203,6 +261,7 @@ body.interactive-mode-active .cosmic-library-catalog {
   user-select: none;
   transition: transform 0.35s cubic-bezier(0.16, 1, 0.3, 1), z-index 0.2s ease, opacity 0.3s ease;
   z-index: 25;
+  pointer-events: auto !important;
 }
 
 .solar-world-node:hover {
@@ -276,6 +335,13 @@ body.interactive-mode-active .cosmic-library-catalog {
 .world-sapphire .world-sphere {
   background: radial-gradient(circle at 35% 30%, #bfdbfe 0%, #3b82f6 40%, #1d4ed8 75%, #172554 100%);
   box-shadow: inset -6px -6px 12px rgba(0, 0, 0, 0.8), inset 3px 3px 6px rgba(255, 255, 255, 0.5), 0 0 24px rgba(59, 130, 246, 0.55);
+}
+
+/* 7. Documentos Personalizados / Ingestas de Usuario: Planeta Oro Cósmico */
+.world-gold-custom .world-sphere,
+.world-gold .world-sphere {
+  background: radial-gradient(circle at 35% 30%, #fffbeb 0%, #fde047 35%, #f59e0b 65%, #b45309 100%) !important;
+  box-shadow: inset -6px -6px 14px rgba(0, 0, 0, 0.85), inset 3px 3px 6px rgba(255, 255, 255, 0.6), 0 0 28px rgba(245, 158, 11, 0.75) !important;
 }
 
 /* Anillos Planetarios */
@@ -416,21 +482,24 @@ body.interactive-mode-active .cosmic-library-catalog {
   font-weight: 700;
 }
 
-/* Estado Vacío del Sistema Solar */
+/* Estado Vacío del Sistema Solar (Ubicado al pie para mantener el Sol central visible y clickeable) */
 .solar-empty-system {
   position: absolute;
-  top: 50%;
+  bottom: 1.5rem;
   left: 50%;
-  transform: translate(-50%, -50%);
+  transform: translateX(-50%);
   text-align: center;
-  z-index: 30;
-  max-width: 440px;
-  background: rgba(15, 12, 28, 0.88);
+  z-index: 40;
+  max-width: 480px;
+  width: calc(100% - 3rem);
+  background: rgba(15, 12, 28, 0.92);
   border: 1px solid rgba(168, 85, 247, 0.35);
   backdrop-filter: blur(16px);
-  padding: 2rem 2.5rem;
+  -webkit-backdrop-filter: blur(16px);
+  padding: 1.25rem 2rem;
   border-radius: 20px;
-  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.8), 0 0 30px rgba(168, 85, 247, 0.2);
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.8), 0 0 25px rgba(168, 85, 247, 0.2);
+  pointer-events: auto !important;
 }
 
 .solar-empty-icon {
@@ -458,25 +527,99 @@ body.interactive-mode-active .cosmic-library-catalog {
    Reemplaza el antiguo cuaderno de cuero por un portal holográfico espacial
    ========================================================================== */
 
-/* Contenedor del Modal Cósmico */
+/* Contenedor del Modal Cósmico (Portal Holográfico 50% / 50%) */
 .cosmic-world-modal {
   width: 100%;
-  max-width: 960px;
-  min-height: 520px;
-  background: linear-gradient(135deg, rgba(15, 23, 42, 0.94) 0%, rgba(10, 15, 30, 0.98) 100%);
+  max-width: 1080px;
+  min-height: 580px;
+  background: linear-gradient(135deg, rgba(13, 18, 36, 0.97) 0%, rgba(8, 12, 24, 0.99) 100%);
   border: 1px solid rgba(168, 85, 247, 0.35);
-  border-radius: 20px;
+  border-radius: 24px;
   box-shadow: 
-    0 0 50px rgba(147, 51, 234, 0.25),
-    0 30px 80px rgba(0, 0, 0, 0.92),
+    0 0 60px rgba(147, 51, 234, 0.28),
+    0 35px 90px rgba(0, 0, 0, 0.95),
     inset 0 1px 1px rgba(255, 255, 255, 0.15);
   display: grid;
-  grid-template-columns: 1.15fr 1fr;
+  grid-template-columns: 1fr 1fr;
   position: relative;
   overflow: hidden;
-  backdrop-filter: blur(24px);
-  -webkit-backdrop-filter: blur(24px);
+  backdrop-filter: blur(28px);
+  -webkit-backdrop-filter: blur(28px);
   z-index: 310;
+}
+
+/* Esquinas Sci-Fi de Enfoque Holográfico */
+.modal-corner-bracket {
+  position: absolute;
+  width: 24px;
+  height: 24px;
+  pointer-events: none;
+  z-index: 20;
+  transition: all 0.3s ease;
+}
+
+.modal-corner-bracket.corner-tl {
+  top: 14px;
+  left: 14px;
+  border-top: 2px solid rgba(192, 132, 252, 0.7);
+  border-left: 2px solid rgba(192, 132, 252, 0.7);
+  border-top-left-radius: 8px;
+}
+
+.modal-corner-bracket.corner-tr {
+  top: 14px;
+  right: 14px;
+  border-top: 2px solid rgba(192, 132, 252, 0.7);
+  border-right: 2px solid rgba(192, 132, 252, 0.7);
+  border-top-right-radius: 8px;
+}
+
+.modal-corner-bracket.corner-bl {
+  bottom: 14px;
+  left: 14px;
+  border-bottom: 2px solid rgba(192, 132, 252, 0.7);
+  border-left: 2px solid rgba(192, 132, 252, 0.7);
+  border-bottom-left-radius: 8px;
+}
+
+.modal-corner-bracket.corner-br {
+  bottom: 14px;
+  right: 14px;
+  border-bottom: 2px solid rgba(192, 132, 252, 0.7);
+  border-right: 2px solid rgba(192, 132, 252, 0.7);
+  border-bottom-right-radius: 8px;
+}
+
+/* Separador Central de Haz de Energía Cósmica */
+.world-modal-central-divider {
+  position: absolute;
+  top: 8%;
+  bottom: 8%;
+  left: 50%;
+  width: 1px;
+  background: linear-gradient(180deg, transparent 0%, rgba(168, 85, 247, 0.45) 20%, rgba(56, 189, 248, 0.6) 50%, rgba(168, 85, 247, 0.45) 80%, transparent 100%);
+  transform: translateX(-50%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none;
+  z-index: 15;
+  box-shadow: 0 0 12px rgba(168, 85, 247, 0.35);
+}
+
+.world-modal-central-divider .divider-beacon {
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: rgba(15, 23, 42, 0.95);
+  border: 1px solid rgba(192, 132, 252, 0.7);
+  color: #c084fc;
+  font-size: 0.65rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 0 10px rgba(168, 85, 247, 0.6);
+  animation: pulseBeacon 2.5s infinite ease-in-out;
 }
 
 /* Animación de Apertura del Portal Cósmico */
@@ -531,12 +674,11 @@ body.interactive-mode-active .cosmic-library-catalog {
 
 /* Panel Izquierdo: Vista del Mundo & Ficha */
 .world-modal-left {
-  padding: 2.25rem 2.25rem 2rem 2.25rem;
+  padding: 2.75rem 2.5rem;
   display: flex;
   flex-direction: column;
-  gap: 1.2rem;
-  border-right: 1px solid rgba(168, 85, 247, 0.2);
-  background: radial-gradient(ellipse at 30% 15%, rgba(139, 92, 246, 0.15) 0%, transparent 70%);
+  gap: 1.5rem;
+  background: radial-gradient(circle at 45% 25%, rgba(139, 92, 246, 0.16) 0%, transparent 65%);
   position: relative;
 }
 
@@ -544,12 +686,31 @@ body.interactive-mode-active .cosmic-library-catalog {
 .world-hologram-stage {
   position: relative;
   width: 100%;
-  height: 140px;
+  height: 155px;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  margin-bottom: 0.25rem;
+}
+
+/* Haz de Radar de Escaneo Planetario */
+.planet-radar-sweep {
+  position: absolute;
+  top: 10px;
+  left: 50%;
+  width: 150px;
+  height: 2px;
+  transform: translateX(-50%);
+  background: linear-gradient(90deg, transparent 0%, rgba(56, 189, 248, 0.75) 50%, transparent 100%);
+  box-shadow: 0 0 14px rgba(56, 189, 248, 0.85);
+  animation: radarScan 3.2s ease-in-out infinite;
+  pointer-events: none;
+  z-index: 5;
+}
+
+@keyframes radarScan {
+  0%, 100% { top: 12px; opacity: 0.15; }
+  50% { top: 130px; opacity: 0.85; }
 }
 
 .world-sphere-stage {
@@ -559,10 +720,10 @@ body.interactive-mode-active .cosmic-library-catalog {
   justify-content: center;
 }
 
-/* Esfera 3D de Gran Escala dentro del Modal */
+/* Esfera 3D del Mundo dentro del Modal */
 .modal-world-sphere {
-  width: 80px;
-  height: 80px;
+  width: 95px;
+  height: 95px;
   border-radius: 50%;
   position: relative;
   animation: planetSphereBloom 0.75s cubic-bezier(0.16, 1, 0.3, 1) forwards, modalPlanetFloat 6s ease-in-out infinite 0.75s;
@@ -576,14 +737,14 @@ body.interactive-mode-active .cosmic-library-catalog {
     filter: drop-shadow(0 0 0px transparent);
   }
   55% {
-    transform: scale(1.18) rotate(12deg);
+    transform: scale(1.15) rotate(12deg);
     opacity: 1;
-    filter: drop-shadow(0 0 40px rgba(254, 240, 138, 0.95));
+    filter: drop-shadow(0 0 35px rgba(254, 240, 138, 0.9));
   }
   100% {
     transform: scale(1) rotate(0deg);
     opacity: 1;
-    filter: drop-shadow(0 0 24px rgba(168, 85, 247, 0.55));
+    filter: drop-shadow(0 0 26px rgba(168, 85, 247, 0.6));
   }
 }
 
@@ -593,29 +754,29 @@ body.interactive-mode-active .cosmic-library-catalog {
     transform: translateY(0) rotate(0deg);
   }
   50% {
-    transform: translateY(-8px) rotate(4deg);
+    transform: translateY(-6px) rotate(4deg);
   }
 }
 
-/* Anillo Orbital de Gran Escala en el Modal */
+/* Anillo Orbital en el Modal */
 .modal-planet-ring {
-  width: 136px;
-  height: 34px;
-  border: 2px solid rgba(224, 231, 255, 0.75);
+  width: 160px;
+  height: 40px;
+  border: 2px solid rgba(224, 231, 255, 0.8);
   border-radius: 50%;
   position: absolute;
   top: 50%;
   left: 50%;
   transform: translate(-50%, -50%) rotate(-20deg);
-  box-shadow: 0 0 16px rgba(192, 132, 252, 0.65);
+  box-shadow: 0 0 16px rgba(192, 132, 252, 0.7);
   pointer-events: none;
 }
 
 /* Corona / Halo de rotación en el modal */
 .modal-planetary-halo {
   position: absolute;
-  width: 115px;
-  height: 115px;
+  width: 135px;
+  height: 135px;
   border-radius: 50%;
   border: 1px dashed rgba(192, 132, 252, 0.35);
   animation: rotateCorona 35s linear infinite;
@@ -625,8 +786,8 @@ body.interactive-mode-active .cosmic-library-catalog {
 /* Onda expansiva cósmica emanada por el planeta */
 .modal-shockwave-ring {
   position: absolute;
-  width: 80px;
-  height: 80px;
+  width: 95px;
+  height: 95px;
   border-radius: 50%;
   border: 1.5px solid rgba(168, 85, 247, 0.65);
   animation: modalShockwave 2.8s cubic-bezier(0.1, 0.8, 0.3, 1) infinite;
@@ -646,23 +807,23 @@ body.interactive-mode-active .cosmic-library-catalog {
 
 /* Sombra y glow de atmósfera específicos por color en el modal */
 .world-cyan .modal-world-sphere {
-  box-shadow: inset -10px -10px 20px rgba(0, 0, 0, 0.8), inset 4px 4px 8px rgba(255, 255, 255, 0.5), 0 0 35px rgba(6, 182, 212, 0.7);
+  box-shadow: inset -12px -12px 22px rgba(0, 0, 0, 0.85), inset 4px 4px 8px rgba(255, 255, 255, 0.55), 0 0 38px rgba(6, 182, 212, 0.75);
 }
 .world-purple .modal-world-sphere {
-  box-shadow: inset -10px -10px 20px rgba(0, 0, 0, 0.8), inset 4px 4px 8px rgba(255, 255, 255, 0.5), 0 0 35px rgba(168, 85, 247, 0.7);
+  box-shadow: inset -12px -12px 22px rgba(0, 0, 0, 0.85), inset 4px 4px 8px rgba(255, 255, 255, 0.55), 0 0 38px rgba(168, 85, 247, 0.75);
 }
 .world-ruby .modal-world-sphere {
-  box-shadow: inset -10px -10px 20px rgba(0, 0, 0, 0.8), inset 4px 4px 8px rgba(255, 255, 255, 0.5), 0 0 35px rgba(244, 63, 94, 0.7);
+  box-shadow: inset -12px -12px 22px rgba(0, 0, 0, 0.85), inset 4px 4px 8px rgba(255, 255, 255, 0.55), 0 0 38px rgba(244, 63, 94, 0.75);
 }
 .world-amber .modal-world-sphere,
 .world-gold-custom .modal-world-sphere {
-  box-shadow: inset -10px -10px 20px rgba(0, 0, 0, 0.8), inset 4px 4px 8px rgba(255, 255, 255, 0.5), 0 0 35px rgba(245, 158, 11, 0.7);
+  box-shadow: inset -12px -12px 22px rgba(0, 0, 0, 0.85), inset 4px 4px 8px rgba(255, 255, 255, 0.55), 0 0 38px rgba(245, 158, 11, 0.75);
 }
 .world-emerald .modal-world-sphere {
-  box-shadow: inset -10px -10px 20px rgba(0, 0, 0, 0.8), inset 4px 4px 8px rgba(255, 255, 255, 0.5), 0 0 35px rgba(16, 185, 129, 0.7);
+  box-shadow: inset -12px -12px 22px rgba(0, 0, 0, 0.85), inset 4px 4px 8px rgba(255, 255, 255, 0.55), 0 0 38px rgba(16, 185, 129, 0.75);
 }
 .world-sapphire .modal-world-sphere {
-  box-shadow: inset -10px -10px 20px rgba(0, 0, 0, 0.8), inset 4px 4px 8px rgba(255, 255, 255, 0.5), 0 0 35px rgba(59, 130, 246, 0.7);
+  box-shadow: inset -12px -12px 22px rgba(0, 0, 0, 0.85), inset 4px 4px 8px rgba(255, 255, 255, 0.55), 0 0 38px rgba(59, 130, 246, 0.75);
 }
 
 /* Etiqueta de Coordenadas de Órbita */
@@ -670,9 +831,9 @@ body.interactive-mode-active .cosmic-library-catalog {
   font-size: 0.68rem;
   font-weight: 700;
   color: #c084fc;
-  letter-spacing: 0.1em;
+  letter-spacing: 0.12em;
   text-transform: uppercase;
-  margin-top: 0.75rem;
+  margin-top: 0.9rem;
   display: flex;
   align-items: center;
   gap: 0.45rem;
@@ -692,20 +853,17 @@ body.interactive-mode-active .cosmic-library-catalog {
   50% { opacity: 0.4; transform: scale(0.8); }
 }
 
-/* Tipografía e Información en el Modal */
-.cosmic-world-modal .opened-doc-title {
-  font-size: 1.35rem;
-  font-weight: 800;
-  color: #f8fafc;
-  line-height: 1.3;
-  margin: 0;
+/* Ficha e Información del Mundo de Estudio */
+.world-info-content {
+  display: flex;
+  flex-direction: column;
+  gap: 1.1rem;
 }
 
-.cosmic-world-modal .opened-doc-summary {
-  font-size: 0.85rem;
-  color: #cbd5e1;
-  line-height: 1.55;
-  margin: 0;
+.doc-badge-row {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
 }
 
 .badge-cosmic-glow {
@@ -732,145 +890,145 @@ body.interactive-mode-active .cosmic-library-catalog {
   gap: 4px;
 }
 
-/* Meta Box Cósmica */
-.cosmic-meta-box {
-  background: rgba(30, 41, 59, 0.45);
-  border: 1px solid rgba(168, 85, 247, 0.25);
-  border-radius: 12px;
-  padding: 0.75rem 1rem;
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 0.5rem;
-}
-
-.cosmic-meta-box .meta-item {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-}
-
-.cosmic-meta-box .meta-icon {
-  font-size: 1.15rem;
-}
-
-.cosmic-meta-box .meta-label {
-  display: block;
-  font-size: 0.65rem;
-  text-transform: uppercase;
-  color: #94a3b8;
-  letter-spacing: 0.05em;
-}
-
-.cosmic-meta-box strong {
-  font-size: 0.84rem;
-  color: #f8fafc;
-}
-
-/* Nodos Conceptuales */
-.world-concepts-wrapper .concepts-label {
-  font-size: 0.7rem;
+.cosmic-world-modal .opened-doc-title {
+  font-size: 1.45rem;
   font-weight: 700;
-  color: #a1a1aa;
+  color: #f8fafc;
+  line-height: 1.35;
+  margin: 0;
+  letter-spacing: -0.01em;
+}
+
+.cosmic-world-modal .opened-doc-summary {
+  font-size: 0.88rem;
+  color: #cbd5e1;
+  line-height: 1.65;
+  margin: 0;
+}
+
+/* Sectores de Conocimiento Explorables */
+.world-concepts-wrapper {
+  margin-top: 0.25rem;
+  padding-top: 0.95rem;
+  border-top: 1px solid rgba(168, 85, 247, 0.18);
+}
+
+.world-concepts-wrapper .concepts-label {
+  font-size: 0.68rem;
+  font-weight: 700;
+  color: #c084fc;
   text-transform: uppercase;
-  letter-spacing: 0.06em;
+  letter-spacing: 0.08em;
   display: block;
-  margin-bottom: 0.45rem;
+  margin-bottom: 0.65rem;
+}
+
+.concept-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
 }
 
 .cosmic-concept-chip {
-  background: rgba(168, 85, 247, 0.15);
+  background: rgba(168, 85, 247, 0.12);
   border: 1px solid rgba(168, 85, 247, 0.35);
   color: #e9d5ff;
-  font-size: 0.75rem;
-  padding: 3px 9px;
+  font-size: 0.76rem;
+  padding: 0.35rem 0.85rem;
   border-radius: 9999px;
   transition: all 0.2s ease;
 }
 
 .cosmic-concept-chip:hover {
   background: rgba(168, 85, 247, 0.3);
-  border-color: rgba(168, 85, 247, 0.6);
+  border-color: rgba(168, 85, 247, 0.65);
   color: #ffffff;
 }
 
 /* Panel Derecho: Módulos de Misión y Aterrizaje */
 .world-modal-right {
-  padding: 2.25rem;
+  padding: 2.75rem 2.5rem;
   display: flex;
   flex-direction: column;
   justify-content: space-between;
-  gap: 1.25rem;
-  background: rgba(15, 23, 42, 0.5);
+  gap: 1.5rem;
+  background: rgba(10, 15, 30, 0.45);
 }
 
-.world-modal-right .study-choice-header h4 {
-  font-size: 1.2rem;
-  font-weight: 700;
-  color: #f8fafc;
+.world-modal-right .study-choice-header {
   margin-bottom: 0.25rem;
 }
 
+.world-modal-right .study-choice-header h4 {
+  font-size: 1.28rem;
+  font-weight: 700;
+  color: #f8fafc;
+  margin-bottom: 0.35rem;
+}
+
 .world-modal-right .study-choice-header p {
-  font-size: 0.82rem;
+  font-size: 0.84rem;
   color: #94a3b8;
-  line-height: 1.45;
+  line-height: 1.5;
 }
 
 .cosmic-options-grid {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 0.75rem;
+  gap: 0.85rem;
 }
 
 .cosmic-choice-card {
   background: rgba(30, 41, 59, 0.45);
   border: 1px solid rgba(147, 51, 234, 0.25);
   border-radius: 12px;
-  padding: 0.85rem 0.85rem;
+  padding: 1rem 0.95rem;
   cursor: pointer;
   display: flex;
   align-items: center;
-  gap: 0.65rem;
+  gap: 0.75rem;
   text-align: left;
   transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
   position: relative;
 }
 
 .cosmic-choice-card:hover {
-  background: rgba(147, 51, 234, 0.18);
+  background: rgba(147, 51, 234, 0.22);
   border-color: rgba(192, 132, 252, 0.65);
   transform: translateY(-2px);
-  box-shadow: 0 8px 20px rgba(147, 51, 234, 0.3);
+  box-shadow: 0 8px 24px rgba(147, 51, 234, 0.35);
 }
 
 .cosmic-choice-card.selected {
-  background: rgba(147, 51, 234, 0.25);
+  background: rgba(147, 51, 234, 0.28);
   border-color: #c084fc;
   box-shadow: 0 0 0 2px rgba(192, 132, 252, 0.4);
 }
 
 .cosmic-choice-card .choice-icon {
-  font-size: 1.45rem;
+  font-size: 1.55rem;
+  flex-shrink: 0;
 }
 
 .cosmic-choice-card .choice-info strong {
   display: block;
-  font-size: 0.84rem;
+  font-size: 0.86rem;
   color: #f8fafc;
   font-weight: 700;
 }
 
 .cosmic-choice-card .choice-info span {
   display: block;
-  font-size: 0.72rem;
+  font-size: 0.74rem;
   color: #94a3b8;
-  margin-top: 2px;
+  margin-top: 3px;
+  line-height: 1.35;
 }
 
 .cosmic-choice-card .choice-arrow {
   margin-left: auto;
   color: #c084fc;
-  font-size: 0.9rem;
+  font-size: 0.95rem;
   opacity: 0.5;
   transition: transform 0.2s ease, opacity 0.2s ease;
 }
@@ -884,8 +1042,8 @@ body.interactive-mode-active .cosmic-library-catalog {
   display: flex;
   justify-content: flex-end;
   align-items: center;
-  gap: 0.75rem;
-  margin-top: 0.5rem;
+  gap: 0.85rem;
+  margin-top: 0.75rem;
 }
 
 .btn-cosmic-ghost {
@@ -893,8 +1051,8 @@ body.interactive-mode-active .cosmic-library-catalog {
   border: 1px solid rgba(255, 255, 255, 0.18);
   color: #cbd5e1;
   border-radius: 10px;
-  padding: 0.65rem 1.25rem;
-  font-size: 0.82rem;
+  padding: 0.75rem 1.35rem;
+  font-size: 0.84rem;
   font-weight: 600;
   cursor: pointer;
   transition: all 0.25s ease;
@@ -906,13 +1064,60 @@ body.interactive-mode-active .cosmic-library-catalog {
   border-color: rgba(255, 255, 255, 0.35);
 }
 
+.btn-danger-ghost {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  background: rgba(239, 68, 68, 0.12);
+  border: 1px solid rgba(239, 68, 68, 0.4);
+  color: #fca5a5;
+  border-radius: 10px;
+  padding: 0.75rem 1.25rem;
+  font-size: 0.84rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.25s ease;
+  user-select: none;
+}
+
+.btn-danger-ghost:hover {
+  background: rgba(239, 68, 68, 0.28);
+  border-color: rgba(248, 113, 113, 0.7);
+  color: #ffffff;
+  box-shadow: 0 0 16px rgba(239, 68, 68, 0.35);
+  transform: translateY(-1px);
+}
+
+.btn-delete-doc-item {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(239, 68, 68, 0.12);
+  border: 1px solid rgba(239, 68, 68, 0.35);
+  color: #fca5a5;
+  border-radius: 8px;
+  padding: 0.45rem 0.65rem;
+  font-size: 0.85rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  user-select: none;
+}
+
+.btn-delete-doc-item:hover {
+  background: rgba(239, 68, 68, 0.28);
+  border-color: rgba(248, 113, 113, 0.7);
+  color: #ffffff;
+  box-shadow: 0 0 12px rgba(239, 68, 68, 0.35);
+  transform: translateY(-1px);
+}
+
 .btn-cosmic-glow-cta {
   background: linear-gradient(135deg, #7c3aed 0%, #a855f7 100%);
   border: 1px solid rgba(216, 180, 254, 0.4);
   color: #ffffff;
   border-radius: 10px;
-  padding: 0.65rem 1.5rem;
-  font-size: 0.85rem;
+  padding: 0.75rem 1.6rem;
+  font-size: 0.86rem;
   font-weight: 700;
   cursor: pointer;
   box-shadow: 0 4px 16px rgba(124, 58, 237, 0.4);
@@ -931,8 +1136,326 @@ body.interactive-mode-active .cosmic-library-catalog {
     max-height: 90vh;
     overflow-y: auto;
   }
+  .world-modal-central-divider {
+    display: none;
+  }
   .world-modal-left {
     border-right: none;
     border-bottom: 1px solid rgba(168, 85, 247, 0.2);
   }
 }
+
+/* ========================================================================
+   MODAL GUÍA DEL SISTEMA (AL HACER CLIC EN EL SOL)
+   ======================================================================== */
+.system-guide-modal-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(6, 4, 15, 0.85);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  z-index: 2000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1.5rem;
+  animation: fadeInGuide 0.25s ease forwards;
+}
+
+@keyframes fadeInGuide {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+.system-guide-modal {
+  position: relative;
+  width: 100%;
+  max-width: 780px;
+  background: linear-gradient(145deg, rgba(20, 16, 36, 0.96) 0%, rgba(12, 10, 24, 0.98) 100%);
+  border: 1px solid rgba(245, 158, 11, 0.35);
+  border-radius: 24px;
+  padding: 2.2rem 2.4rem;
+  box-shadow: 
+    0 25px 70px rgba(0, 0, 0, 0.85),
+    0 0 50px rgba(245, 158, 11, 0.15),
+    inset 0 1px 1px rgba(255, 255, 255, 0.15);
+  display: flex;
+  flex-direction: column;
+  gap: 1.4rem;
+  animation: slideUpGuide 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+@keyframes slideUpGuide {
+  from {
+    transform: scale(0.94) translateY(20px);
+    opacity: 0;
+  }
+  to {
+    transform: scale(1) translateY(0);
+    opacity: 1;
+  }
+}
+
+.btn-guide-modal-close {
+  position: absolute;
+  top: 1.25rem;
+  right: 1.25rem;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  color: #d4d4d8;
+  font-size: 1.5rem;
+  line-height: 1;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
+  z-index: 10;
+}
+
+.btn-guide-modal-close:hover {
+  background: rgba(239, 68, 68, 0.25);
+  border-color: rgba(239, 68, 68, 0.5);
+  color: #ffffff;
+  transform: rotate(90deg);
+}
+
+.guide-modal-header {
+  display: flex;
+  align-items: center;
+  gap: 1.25rem;
+  border-bottom: 1px solid rgba(245, 158, 11, 0.2);
+  padding-bottom: 1.25rem;
+}
+
+.guide-sun-orb {
+  position: relative;
+  width: 60px;
+  height: 60px;
+  border-radius: 50%;
+  background: radial-gradient(circle at 35% 35%, #fffbeb 0%, #fde047 35%, #f59e0b 70%, #d97706 100%);
+  box-shadow: 0 0 25px rgba(245, 158, 11, 0.8), 0 0 50px rgba(245, 158, 11, 0.4);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  color: #78350f;
+  font-weight: 900;
+  font-size: 1.35rem;
+}
+
+.guide-sun-pulse {
+  position: absolute;
+  inset: -6px;
+  border-radius: 50%;
+  border: 1px dashed rgba(254, 240, 138, 0.6);
+  animation: rotateCorona 20s linear infinite;
+}
+
+.guide-header-text {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.guide-badge-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  width: fit-content;
+  font-size: 0.68rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #fef08a;
+  background: rgba(245, 158, 11, 0.15);
+  border: 1px solid rgba(245, 158, 11, 0.35);
+  padding: 0.2rem 0.65rem;
+  border-radius: 9999px;
+}
+
+.guide-badge-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #fbbf24;
+  box-shadow: 0 0 8px #fbbf24;
+}
+
+.guide-header-text h2 {
+  font-size: 1.45rem;
+  font-weight: 800;
+  color: #ffffff;
+  margin: 0;
+  letter-spacing: -0.01em;
+}
+
+.guide-header-subtitle {
+  font-size: 0.88rem;
+  color: #cbd5e1;
+  margin: 0;
+  line-height: 1.45;
+}
+
+.guide-steps-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 1rem;
+}
+
+.guide-step-card {
+  background: rgba(30, 24, 52, 0.55);
+  border: 1px solid rgba(168, 85, 247, 0.22);
+  border-radius: 16px;
+  padding: 1.15rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.55rem;
+  transition: all 0.25s ease;
+}
+
+.guide-step-card:hover {
+  background: rgba(45, 33, 78, 0.7);
+  border-color: rgba(245, 158, 11, 0.45);
+  transform: translateY(-3px);
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.4);
+}
+
+.guide-step-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.guide-step-number {
+  font-size: 0.72rem;
+  font-weight: 800;
+  color: #c084fc;
+  background: rgba(147, 51, 234, 0.2);
+  padding: 0.15rem 0.45rem;
+  border-radius: 6px;
+}
+
+.guide-step-icon {
+  font-size: 1.35rem;
+}
+
+.guide-step-card h3 {
+  font-size: 0.98rem;
+  font-weight: 700;
+  color: #ffffff;
+  margin: 0;
+}
+
+.guide-step-card p {
+  font-size: 0.8rem;
+  color: #94a3b8;
+  margin: 0;
+  line-height: 1.5;
+}
+
+.guide-step-card p strong {
+  color: #f1f5f9;
+}
+
+.guide-formats-banner {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1rem;
+  background: rgba(15, 12, 28, 0.7);
+  border: 1px dashed rgba(245, 158, 11, 0.3);
+  border-radius: 14px;
+  padding: 1rem 1.25rem;
+}
+
+.guide-format-box {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.guide-format-badge {
+  font-size: 0.65rem;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  color: #fbbf24;
+}
+
+.guide-format-box strong {
+  font-size: 0.85rem;
+  color: #ffffff;
+}
+
+.guide-format-box p {
+  font-size: 0.76rem;
+  color: #94a3b8;
+  margin: 0;
+  line-height: 1.35;
+}
+
+.guide-modal-footer {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 0.85rem;
+  border-top: 1px solid rgba(245, 158, 11, 0.2);
+  padding-top: 1.15rem;
+}
+
+.btn-guide-secondary {
+  padding: 0.65rem 1.25rem;
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: #e2e8f0;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  border-radius: 12px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.btn-guide-secondary:hover {
+  background: rgba(147, 51, 234, 0.25);
+  border-color: rgba(192, 132, 252, 0.5);
+  color: #ffffff;
+}
+
+.btn-guide-primary {
+  padding: 0.65rem 1.45rem;
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: #ffffff;
+  background: linear-gradient(135deg, #d97706 0%, #b45309 50%, #7c2d12 100%);
+  border: 1px solid rgba(254, 240, 138, 0.5);
+  border-radius: 12px;
+  cursor: pointer;
+  box-shadow: 0 4px 18px rgba(245, 158, 11, 0.4);
+  transition: all 0.25s ease;
+}
+
+.btn-guide-primary:hover {
+  background: linear-gradient(135deg, #f59e0b 0%, #d97706 50%, #9a3412 100%);
+  box-shadow: 0 6px 24px rgba(245, 158, 11, 0.6);
+  transform: translateY(-1px);
+}
+
+@media (max-width: 640px) {
+  .guide-steps-grid {
+    grid-template-columns: 1fr;
+  }
+  .guide-formats-banner {
+    grid-template-columns: 1fr;
+  }
+  .guide-modal-footer {
+    flex-direction: column;
+    width: 100%;
+  }
+  .guide-modal-footer button {
+    width: 100%;
+  }
+}
+
+

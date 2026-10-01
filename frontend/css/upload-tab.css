@@ -46,6 +46,7 @@
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 2rem;
+  align-items: start;
 }
 
 @media (max-width: 900px) {
@@ -59,11 +60,13 @@
   border: 1px solid var(--border-ui);
   backdrop-filter: blur(12px);
   border-radius: 16px;
-  padding: 1.75rem;
+  padding: 1.5rem;
   display: flex;
   flex-direction: column;
   gap: 1.25rem;
   box-shadow: var(--shadow-sm);
+  align-self: start;
+  height: fit-content;
 }
 
 .panel-title-row {
@@ -185,23 +188,55 @@
   color: var(--text-secondary);
 }
 
-.btn-remove-file {
-  background: rgba(239, 68, 68, 0.12);
-  border: 1px solid rgba(239, 68, 68, 0.3);
-  color: var(--accent-red);
-  width: 32px;
-  height: 32px;
-  border-radius: 50%;
-  cursor: pointer;
+.file-card-actions {
   display: flex;
   align-items: center;
-  justify-content: center;
-  font-size: 1.1rem;
-  transition: all var(--transition-fast);
+  gap: 0.6rem;
+  flex-shrink: 0;
 }
 
-.btn-remove-file:hover {
-  background: var(--accent-red);
+.btn-create-world-direct {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  background: linear-gradient(135deg, rgba(147, 51, 234, 0.9) 0%, rgba(126, 34, 206, 0.95) 100%);
+  border: 1px solid rgba(192, 132, 252, 0.5);
+  color: #ffffff;
+  padding: 0.48rem 0.95rem;
+  font-size: 0.8rem;
+  font-weight: 700;
+  border-radius: 8px;
+  cursor: pointer;
+  box-shadow: 0 4px 14px rgba(147, 51, 234, 0.4);
+  transition: all 0.2s ease;
+  white-space: nowrap;
+}
+
+.btn-create-world-direct:hover {
+  background: linear-gradient(135deg, rgba(168, 85, 247, 0.95) 0%, rgba(147, 51, 234, 1) 100%);
+  box-shadow: 0 6px 20px rgba(168, 85, 247, 0.6);
+  transform: translateY(-1px);
+}
+
+.btn-remove-file-full {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  background: rgba(239, 68, 68, 0.14);
+  border: 1px solid rgba(239, 68, 68, 0.4);
+  color: #fca5a5;
+  padding: 0.48rem 0.85rem;
+  font-size: 0.78rem;
+  font-weight: 600;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  white-space: nowrap;
+}
+
+.btn-remove-file-full:hover {
+  background: rgba(239, 68, 68, 0.3);
+  border-color: #f87171;
   color: #ffffff;
 }
 
