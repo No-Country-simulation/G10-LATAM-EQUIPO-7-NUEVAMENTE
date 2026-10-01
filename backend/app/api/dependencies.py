@@ -4,6 +4,9 @@ from pathlib import Path
 
 from fastapi import Request
 
+from app.application.adaptation_orchestration_service import (
+    AdaptationOrchestrationService,
+)
 from app.application.document_service import (
     DocumentService,
 )
@@ -113,6 +116,24 @@ def get_rag_integration_service(
     if service is None:
         raise RuntimeError(
             "RAGIntegrationService no fue inicializado."
+        )
+
+    return service
+
+
+def get_adaptation_orchestration_service(
+    request: Request,
+) -> AdaptationOrchestrationService:
+    """Obtiene el orquestador de adaptación configurado."""
+    service = getattr(
+        request.app.state,
+        "adaptation_orchestration_service",
+        None,
+    )
+
+    if service is None:
+        raise RuntimeError(
+            "AdaptationOrchestrationService no fue inicializado."
         )
 
     return service
