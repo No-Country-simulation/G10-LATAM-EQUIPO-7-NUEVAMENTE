@@ -14,6 +14,9 @@ from app.api.v1.router import api_router
 from app.application.document_service import (
     DocumentService,
 )
+from app.application.format_generation_service import (
+    FormatGenerationService,
+)
 from app.application.generated_format_query_service import (
     GeneratedFormatQueryService,
 )
@@ -25,6 +28,9 @@ from app.core.exceptions import (
     register_exception_handlers,
 )
 from app.core.logging import setup_logging
+from app.infrastructure.integrations.http_agents_adapter import (
+    HTTPAgentsAdapter,
+)
 from app.infrastructure.integrations.http_rag_adapter import (
     HTTPRAGAdapter,
 )
@@ -82,13 +88,26 @@ async def lifespan(
         )
     )
 
-    async with httpx.AsyncClient(
-        base_url=settings.RAG_BASE_URL,
-        timeout=settings.RAG_TIMEOUT_SECONDS,
-    ) as rag_http_client:
+    async with (
+        httpx.AsyncClient(
+            base_url=settings.RAG_BASE_URL,
+            timeout=settings.RAG_TIMEOUT_SECONDS,
+        ) as rag_http_client,
+        httpx.AsyncClient(
+            base_url=settings.AGENTS_BASE_URL,
+            timeout=settings.AGENTS_TIMEOUT_SECONDS,
+        ) as agents_http_client,
+    ):
         rag_adapter = HTTPRAGAdapter(
             client=rag_http_client,
             index_path=settings.RAG_INDEX_PATH,
+        )
+
+        agents_adapter = HTTPAgentsAdapter(
+            client=agents_http_client,
+            generate_path=(
+                settings.AGENTS_GENERATE_PATH
+            ),
         )
 
         rag_integration_service = (
@@ -103,15 +122,34 @@ async def lifespan(
             )
         )
 
+        format_generation_service = (
+            FormatGenerationService(
+                document_repository=(
+                    document_repository
+                ),
+                generated_format_repository=(
+                    generated_format_repository
+                ),
+                agents=agents_adapter,
+            )
+        )
+
         app.state.document_service = (
             document_service
         )
+
         app.state.generated_format_query_service = (
             generated_format_query_service
         )
+
+        app.state.format_generation_service = (
+            format_generation_service
+        )
+
         app.state.object_storage = (
             object_storage
         )
+
         app.state.rag_integration_service = (
             rag_integration_service
         )
