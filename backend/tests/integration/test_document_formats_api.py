@@ -178,24 +178,26 @@ def test_formats_returns_404_for_unknown_document(
     assert response.json()["detail"] == ("No existe el documento doc_inexistente.")
 
 
-def test_formats_returns_processing_without_results(
+def test_formats_returns_pending_after_upload(
     client: TestClient,
     api_prefix: str,
 ) -> None:
-    """Sin formatos persistidos devuelve processing."""
+    """Un documento almacenado y aún no adaptado devuelve pending."""
     document_id = upload_document(
         client=client,
         api_prefix=api_prefix,
     )
 
-    response = client.get(f"{api_prefix}/documents/{document_id}/formats")
+    response = client.get(
+        f"{api_prefix}/documents/{document_id}/formats"
+    )
 
     assert response.status_code == 200
 
     body = response.json()
 
     assert body["document_id"] == document_id
-    assert body["status"] == "processing"
+    assert body["status"] == "pending"
     assert body["formats"] is None
 
 
