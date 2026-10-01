@@ -22,7 +22,7 @@ Actualmente están implementados:
 - Endpoint de salud.
 - `POST /api/v1/documents` para cargar documentos mediante `multipart/form-data`.
 - `GET /api/v1/documents/{document_id}` para consultar metadata y estado.
-- `GET /api/v1/documents` para  listar documentos de la biblioteca
+- `GET /api/v1/documents` para listar documentos disponibles en la biblioteca.
 - Admisión de archivos PDF, Markdown (`.md`) y TXT.
 - Validación de extensión y MIME type declarado.
 - Rechazo de archivos vacíos.
@@ -217,6 +217,23 @@ generated_formats
 format_evaluations
 ```
 
+La persistencia de formatos generados se encuentra implementada mediante:
+
+```text
+GeneratedFormatRepositoryPort
+    ↑
+SQLiteGeneratedFormatRepositoryAdapter
+```
+
+El repositorio permite:
+
+- persistir una generación mediante `create()`;
+- recuperar una generación concreta mediante `find_by_id(format_id)`;
+- recuperar las generaciones asociadas a un documento mediante `find_by_document_id(document_id)`;
+- conservar múltiples generaciones del mismo tipo para un mismo documento;
+- persistir resultados exitosos, fallidos o sin resultados;
+- reconstruir desde SQLite el contenido canónico, el contexto pedagógico y las evidencias utilizadas.
+
 `generated_formats` conserva:
 
 ```text
@@ -233,6 +250,55 @@ learning_objective
 error_message
 created_at
 updated_at
+```
+
+Una generación exitosa conserva en la BD:
+
+```text
+GeneratedFormat
+├── QuizContent | FlashcardsContent
+├── GenerationContext
+└── chunks_used
+```
+
+No existe una restricción única por:
+
+```text
+document_id + format_type
+```
+
+por lo que BackendAPI mantiene historial de generaciones:
+
+```text
+document
+    ├── quiz generación 1
+    ├── quiz generación 2
+    └── flashcards generación 1
+```
+
+La integridad referencial se mantiene mediante:
+
+```text
+generated_formats.document_id
+→ documents.document_id
+```
+
+El adapter distingue explícitamente entre:
+
+- `GeneratedFormatAlreadyExistsError`, cuando `format_id` ya existe;
+- `GeneratedFormatDocumentNotFoundError`, cuando el `document_id` asociado no existe;
+- `GeneratedFormatRepositoryError`, para otros errores de persistencia.
+
+La persistencia fue validada tanto mediante pruebas automatizadas como mediante una prueba manual sobre SQLite real, comprobando:
+
+```text
+Document
+→ GeneratedFormat Quiz
+→ GeneratedFormat Flashcards
+→ SQLite
+→ find_by_id()
+→ find_by_document_id()
+→ reconstrucción correcta del dominio
 ```
 
 `format_evaluations` conserva:
@@ -252,13 +318,19 @@ rubric_version
 created_at
 ```
 
-No existe una restricción única por `document_id + format_type`, por lo que se permite mantener historial de generaciones y evaluaciones.
+La relación:
+
+```text
+GeneratedFormat 1 → N FormatEvaluation
+```
+
+permite conservar historial de evaluaciones sin sobrescribir resultados anteriores.
 
 ---
 
 ## Cambios recientes
 
-Los últimos cambios relevantes de BackendAPI consolidan tres frentes.
+Los últimos cambios relevantes de BackendAPI consolidan cuatro frentes.
 
 ### 1. Estandarización de Ports y Adapters
 
@@ -332,6 +404,63 @@ EvaluationScores
 junto con sus Ports, repositories y servicios de aplicación.
 
 `AdaptationService` fue retirado para evitar solapamiento. La generación queda centralizada en `FormatGenerationService` y la evaluación en `FormatEvaluationService`.
+
+### 4. Persistencia validada de formatos generados
+
+La persistencia de Quiz y Flashcards quedó validada sobre SQLite real.
+
+Se verificó:
+
+```text
+create()
+find_by_id()
+find_by_document_id()
+```
+
+incluyendo:
+
+- round-trip de `QuizContent`;
+- round-trip de `FlashcardsContent`;
+- persistencia de `GenerationContext`;
+- persistencia de `chunks_used`;
+- historial de múltiples generaciones para el mismo documento;
+- persistencia de resultados fallidos;
+- errores explícitos ante `format_id` duplicado;
+- errores explícitos ante `document_id` inexistente.
+
+### 5. Persistencia validada de documentos y ruta OCI
+
+La relación entre el identificador canónico del documento y su ubicación lógica en Object Storage quedó validada usando `DocumentService`, `SQLiteDocumentRepositoryAdapter` y un `ObjectStoragePort` de prueba.
+
+Flujo comprobado:
+
+```text
+archivo local
+   ↓
+DocumentService.register_document()
+   ↓
+documents.document_id
+   ↓
+DocumentService.store_document()
+   ↓
+documents/{document_id}/original.ext
+   ↓
+documents.oci_object_name
+   ↓
+SQLite
+```
+
+La validación manual confirmó que, después del almacenamiento:
+
+```text
+status = stored
+document_id = doc_...
+oci_object_name = documents/doc_.../original.ext
+```
+
+y que el objeto asociado existe en Object Storage.
+
+Esto garantiza que BackendAPI conserva en la BD de negocio la referencia necesaria para recuperar posteriormente el archivo original sin persistir rutas locales temporales.
 
 ---
 
@@ -579,6 +708,29 @@ learning_objective?
 
 ---
 
+## Validación E2E BackendAPI → RAG
+
+La integración real de indexación fue validada end-to-end utilizando un documento PDF persistido previamente en OCI.
+
+Flujo comprobado:
+
+```text
+document_id
+→ metadata SQLite
+→ recuperación del archivo desde OCI
+→ RAGIntegrationService
+→ HTTPRAGAdapter
+→ POST /api/v1/index
+→ multipart/form-data
+→ RAG / Chroma
+→ HTTP 200
+→ INDEXING → INDEXED
+```
+
+La prueba confirmó que BackendAPI conserva la responsabilidad sobre OCI y entrega a RAG únicamente el archivo original y el `document_id` canónico.
+
+---
+
 ## Estructura actual
 
 ```text
@@ -647,7 +799,8 @@ backend/
 │   │   ├── test_document_indexing_state.py
 │   │   ├── test_rag_integration_service.py
 │   │   ├── test_http_rag_adapter.py
-│   │   └── test_format_generation_service.py
+│   │   ├── test_format_generation_service.py
+│   │   └── test_generated_format_repository.py
 │   └── integration/
 │       └── test_documents_api.py
 ├── storage/                         # local, ignorado por Git
@@ -685,13 +838,19 @@ Formatos soportados:
 .txt
 ```
 
+### Listar documentos disponibles
+
+```text
+GET /api/v1/documents
+```
+
 ### Consultar documento
 
 ```text
 GET /api/v1/documents/{document_id}
 ```
 
-> La indexación RAG, la generación de formatos y la evaluación son por ahora casos de uso internos de BackendAPI. Los endpoints públicos de orquestación hacia Frontend se incorporarán en las tarjetas correspondientes.
+> La generación de formatos y la evaluación continúan siendo casos de uso internos de BackendAPI. Los endpoints públicos adicionales hacia Frontend se incorporarán en las tarjetas correspondientes.
 
 ---
 
@@ -782,7 +941,7 @@ python -m pytest
 
 ```text
 Ruff: All checks passed!
-Pytest: 67 passed
+Pytest: 80 passed
 ```
 
 La suite cubre, entre otros:
@@ -794,6 +953,8 @@ La suite cubre, entre otros:
 - staging temporal;
 - SHA-256 y deduplicación;
 - persistencia de metadata;
+- persistencia de `document_id` y `oci_object_name` en SQLite;
+- reconstrucción desde BD de la relación `document_id → ruta lógica OCI`;
 - almacenamiento y recuperación mediante OCI/Object Storage;
 - compensación ante inconsistencia OCI/BD;
 - transiciones de indexación;
@@ -807,7 +968,17 @@ La suite cubre, entre otros:
 - contrato canónico `FlashcardsContent`;
 - evidencias `chunks_used`;
 - rechazo de respuestas incompletas o asociadas a otro documento;
-- persistencia preparada para formatos y evaluaciones.
+- persistencia SQLite de Quiz y Flashcards;
+- recuperación de generaciones mediante `format_id`;
+- recuperación de generaciones mediante `document_id`;
+- round-trip de `QuizContent` y `FlashcardsContent`;
+- persistencia y reconstrucción de `GenerationContext`;
+- persistencia y reconstrucción de `chunks_used`;
+- historial de múltiples generaciones del mismo tipo;
+- persistencia de generaciones fallidas;
+- rechazo explícito de `format_id` duplicado;
+- rechazo explícito de formatos asociados a documentos inexistentes;
+- modelo y persistencia preparados para evaluaciones.
 
 La BD fue validada manualmente para comprobar las tablas:
 
@@ -825,6 +996,35 @@ generated_formats.document_id
 
 format_evaluations.format_id
 → generated_formats.format_id
+```
+
+También se realizó una validación manual de persistencia sobre una base SQLite aislada. Se persistieron un Quiz y un conjunto de Flashcards asociados al mismo `document_id` y posteriormente se recuperaron mediante:
+
+```text
+find_by_id()
+find_by_document_id()
+```
+
+La prueba confirmó la reconstrucción correcta de:
+
+```text
+format_id
+format_type
+status
+content
+chunks_used
+generation_context
+```
+
+Adicionalmente, se validó manualmente la persistencia del documento y su ruta lógica en Object Storage. El flujo creó un `document_id`, almacenó el archivo y volvió a consultar el registro desde SQLite.
+
+Resultado comprobado:
+
+```text
+Document ID: doc_...
+Estado: stored
+Ruta OCI: documents/doc_.../original.ext
+Existe en Object Storage: True
 ```
 
 ---
@@ -873,13 +1073,12 @@ El modelo y el caso de uso ya están preparados.
 Pendiente exponer el flujo que utilizará Frontend para:
 
 - solicitar generación;
-- consultar formatos persistidos;
+- consultar formatos persistidos mediante `GET /documents/{id}/formats`;
 - recuperar metadata enriquecida;
 - incorporar `detail_level` en el contrato Frontend → Backend.
 
 ### Otros pendientes
 
-- Integración end-to-end con RAG real una vez esté desplegado el contrato multipart definitivo.
 - Integración end-to-end con `/generate`.
 - Integración opcional con Data/IA.
 - Motor de persistencia alternativo si despliegue lo requiere.
