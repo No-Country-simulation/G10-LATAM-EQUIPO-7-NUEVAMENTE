@@ -1,43 +1,81 @@
-"""Schemas provisionales para solicitudes de adaptación educativa."""
+"""Schemas HTTP para solicitudes de adaptación educativa."""
 
-from pydantic import Field
+from typing import Annotated, Literal
+
+from pydantic import (
+    ConfigDict,
+    Field,
+    StringConstraints,
+)
 
 from app.domain.enums import ProcessStatus
 from app.schemas.common import BaseSchema
 
+NonEmptyString = Annotated[
+    str,
+    StringConstraints(
+        strip_whitespace=True,
+        min_length=1,
+    ),
+]
+
+AdaptationProfile = Literal[
+    "beginner",
+    "intermediate",
+    "advanced",
+]
+
+AdaptationNiche = Literal[
+    "general",
+    "backend",
+    "health",
+    "legal",
+    "business",
+    "humanities",
+]
+
 
 class AdaptationRequest(BaseSchema):
-    """Solicitud mínima para adaptar un documento.
+    """Contexto pedagógico requerido para adaptar un documento.
 
-    Los valores específicos permitidos para perfil, formato, nicho y
-    nivel de detalle se definirán cuando se cierre el contrato con
-    Frontend y RAG/Agentes.
+    Frontend proporciona el documento y los parámetros pedagógicos.
+    Backend decide internamente los formatos que deben generarse
+    durante Sprint 2: Quiz y Flashcards.
+
+    ``detail_level`` permanece como texto no vacío hasta que Frontend
+    y Agentes acuerden un conjunto cerrado de valores.
     """
 
-    document_id: str = Field(
-        min_length=1,
+    model_config = ConfigDict(
+        extra="forbid",
+    )
+
+    document_id: NonEmptyString = Field(
         description="Documento que será utilizado como fuente.",
     )
-    profile: str = Field(
-        min_length=1,
-        description="Perfil del destinatario.",
+
+    profile: AdaptationProfile = Field(
+        description="Perfil educativo del destinatario.",
     )
-    output_format: str = Field(
-        min_length=1,
-        description="Formato pedagógico solicitado.",
+
+    niche: AdaptationNiche = Field(
+        description="Área temática o contexto de aplicación.",
     )
-    niche: str = Field(
-        min_length=1,
-        description="Sector o contexto de aplicación.",
+
+    detail_level: NonEmptyString = Field(
+        description="Nivel de detalle esperado durante la generación.",
     )
-    detail_level: str = Field(
-        min_length=1,
-        description="Nivel de detalle esperado.",
+
+    learning_objective: NonEmptyString | None = Field(
+        default=None,
+        description=(
+            "Objetivo de aprendizaje específico, cuando sea informado."
+        ),
     )
 
 
 class AdaptationAcceptedResponse(BaseSchema):
-    """Respuesta inicial después de aceptar una adaptación."""
+    """Respuesta provisional aún no utilizada por un endpoint operativo."""
 
     process_id: str
     document_id: str
