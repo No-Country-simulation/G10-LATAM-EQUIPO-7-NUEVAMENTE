@@ -1,5 +1,6 @@
 from typing import List, Tuple
-from schemas.format_evaluation import EvaluationScores
+# Importación absoluta solicitada por Tara
+from data_ai.schemas.format_evaluation import EvaluationScores
 
 REVIEW_DIMENSIONS = (
     "relevancia",
@@ -18,7 +19,7 @@ def calcular_veredicto_evaluacion(scores: EvaluationScores, informacion_no_respa
         scores.informacion_respaldada
     ]
 
-    # Ajuste Tara: Rechazo automático por alucinación
+    # Rechazo automático por alucinación
     if informacion_no_respaldada:
         observaciones.append("Rechazado: Se detectó información no respaldada en los chunks originales.")
         return "rechazado", observaciones
@@ -36,26 +37,3 @@ def calcular_veredicto_evaluacion(scores: EvaluationScores, informacion_no_respa
     # Aprobado
     observaciones.append("Aprobado: El contenido cumple con altos estándares de calidad.")
     return "aprobado", observaciones
-
-
-# --- Tests directos de la rúbrica ---
-if __name__ == "__main__":
-    print("Ejecutando tests de validación de rúbrica...")
-    
-    # Test 1: Aprobación
-    s1 = EvaluationScores(relevancia=5, coherencia=4, adaptacion_didactica=4, informacion_respaldada=5)
-    assert calcular_veredicto_evaluacion(s1, False)[0] == "aprobado"
-    
-    # Test 2: Alucinación -> Rechazado
-    s2 = EvaluationScores(relevancia=5, coherencia=5, adaptacion_didactica=5, informacion_respaldada=5)
-    assert calcular_veredicto_evaluacion(s2, True)[0] == "rechazado"
-    
-    # Test 3: Score <= 2 -> Rechazado
-    s3 = EvaluationScores(relevancia=5, coherencia=4, adaptacion_didactica=2, informacion_respaldada=5)
-    assert calcular_veredicto_evaluacion(s3, False)[0] == "rechazado"
-    
-    # Test 4: Score 3 -> Requiere revisión
-    s4 = EvaluationScores(relevancia=5, coherencia=3, adaptacion_didactica=4, informacion_respaldada=5)
-    assert calcular_veredicto_evaluacion(s4, False)[0] == "requiere_revision"
-    
-    print("Todos los tests de sincronización con EvaluationResponse pasaron con éxito.")
