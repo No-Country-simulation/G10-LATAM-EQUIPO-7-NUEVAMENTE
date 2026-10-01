@@ -163,7 +163,7 @@ class QuizContent:
         cls,
         data: dict[str, object],
     ) -> "QuizContent":
-        """Construye un Quiz desde JSON."""
+        """Construye un Quiz íntegro desde JSON."""
         questions = data.get(
             "questions"
         )
@@ -176,6 +176,27 @@ class QuizContent:
                 "questions debe ser una lista."
             )
 
+        parsed_questions: list[
+            QuizQuestion
+        ] = []
+
+        for index, question in enumerate(
+            questions
+        ):
+            if not isinstance(
+                question,
+                dict,
+            ):
+                raise ValueError(
+                    f"questions[{index}] debe ser un objeto."
+                )
+
+            parsed_questions.append(
+                QuizQuestion.from_dict(
+                    question
+                )
+            )
+
         return cls(
             title=str(
                 data["title"]
@@ -184,14 +205,7 @@ class QuizContent:
                 data["instructions"]
             ),
             questions=tuple(
-                QuizQuestion.from_dict(
-                    question
-                )
-                for question in questions
-                if isinstance(
-                    question,
-                    dict,
-                )
+                parsed_questions
             ),
         )
 
@@ -308,7 +322,7 @@ class FlashcardsContent:
         cls,
         data: dict[str, object],
     ) -> "FlashcardsContent":
-        """Construye Flashcards desde JSON."""
+        """Construye Flashcards íntegramente desde JSON."""
         cards = data.get(
             "cards"
         )
@@ -321,6 +335,27 @@ class FlashcardsContent:
                 "cards debe ser una lista."
             )
 
+        parsed_cards: list[
+            FlashcardItem
+        ] = []
+
+        for index, card in enumerate(
+            cards
+        ):
+            if not isinstance(
+                card,
+                dict,
+            ):
+                raise ValueError(
+                    f"cards[{index}] debe ser un objeto."
+                )
+
+            parsed_cards.append(
+                FlashcardItem.from_dict(
+                    card
+                )
+            )
+
         return cls(
             title=str(
                 data["title"]
@@ -329,14 +364,7 @@ class FlashcardsContent:
                 data["instructions"]
             ),
             cards=tuple(
-                FlashcardItem.from_dict(
-                    card
-                )
-                for card in cards
-                if isinstance(
-                    card,
-                    dict,
-                )
+                parsed_cards
             ),
         )
 
