@@ -41,8 +41,7 @@ const internalState = {
     learning_objective: null,
     // Compatibilidad retroactiva con vistas existentes
     target_profile: 'intermediate',
-    niche_context: 'general',
-    output_format: 'all'
+    niche_context: 'general'
   },
 
   // Estado del Cuaderno Interactivo Dinámico

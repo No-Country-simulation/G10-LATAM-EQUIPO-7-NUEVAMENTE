@@ -279,8 +279,9 @@ export const statusDialog = {
     const codeLabel = code || this.getCodeForStatus(status);
     const titleForStatus = this.getTitleForStatus(status);
 
+    const isConnError = status === 0;
     badgeRow.innerHTML = `
-      <span class="status-badge badge-http-error">HTTP ${status}</span>
+      <span class="status-badge badge-http-error">${isConnError ? 'CONEXIÓN / RED' : `HTTP ${status}`}</span>
       <span class="status-badge badge-code-error">${codeLabel}</span>
     `;
 
@@ -502,6 +503,27 @@ export const statusDialog = {
           filename: demoFileName
         });
         break;
+      case 0:
+        this.showError({
+          status: 0,
+          code: 'CONNECTION_REFUSED',
+          message: 'No se pudo conectar con el Backend (FastAPI). Verifica que esté activo en http://localhost:8000',
+          details: [
+            'Servicio backend no disponible en el puerto especificado.',
+            'Comando local recomendado: uvicorn app.main:app --reload --port 8000'
+          ],
+          filename: demoFileName
+        });
+        break;
+      case 408:
+        this.showError({
+          status: 408,
+          code: 'REQUEST_TIMEOUT',
+          message: 'Tiempo de espera agotado al comunicarse con el backend (Timeout de 30s).',
+          details: ['La operación tardó más tiempo del límite configurado.'],
+          filename: demoFileName
+        });
+        break;
       case 500:
       default:
         this.showError({
@@ -517,8 +539,10 @@ export const statusDialog = {
 
   getCodeForStatus(status) {
     const map = {
+      0: 'CONNECTION_REFUSED',
       400: 'BAD_REQUEST',
       404: 'DOCUMENT_NOT_FOUND',
+      408: 'REQUEST_TIMEOUT',
       413: 'FILE_TOO_LARGE',
       415: 'UNSUPPORTED_MEDIA_TYPE',
       422: 'REQUEST_VALIDATION_ERROR',
@@ -530,8 +554,10 @@ export const statusDialog = {
 
   getTitleForStatus(status) {
     const map = {
+      0: 'Error de Conexión con el Backend',
       400: 'Documento Inválido o Vacío',
       404: 'Documento o Recurso No Encontrado',
+      408: 'Tiempo de Espera Agotado (Timeout)',
       413: 'Archivo Demasiado Grande (Máx 10 MB)',
       415: 'Formato de Archivo No Soportado',
       422: 'Error de Validación en la Solicitud',
@@ -543,8 +569,10 @@ export const statusDialog = {
 
   getDefaultMessageForStatus(status) {
     const map = {
+      0: 'No se pudo establecer conexión con el backend (FastAPI). Verifica que el servicio esté iniciado y accesible.',
       400: 'El documento enviado es inválido o no contiene datos legibles.',
       404: 'No fue posible localizar el documento con el identificador provisto.',
+      408: 'Tiempo de espera agotado al comunicarse con el backend.',
       413: 'El documento supera el límite máximo de tamaño de archivo admitido por el sistema.',
       415: 'El tipo MIME o extensión del documento no coincide con los formatos admitidos (PDF, Markdown, TXT).',
       422: 'Uno o más campos enviados en la solicitud no cumplen con el esquema requerido.',

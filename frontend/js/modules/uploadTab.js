@@ -41,7 +41,6 @@ export const uploadTab = {
 
       // Parámetros
       paramPerfil: document.getElementById('paramPerfil'),
-      paramFormato: document.getElementById('paramFormato'),
       paramNicho: document.getElementById('paramNicho'),
       paramDetailLevel: document.getElementById('paramDetailLevel'),
 
@@ -206,7 +205,6 @@ export const uploadTab = {
       const profile = this.elements.paramPerfil?.value || 'intermediate';
       const niche = this.elements.paramNicho?.value || 'general';
       const detail_level = this.elements.paramDetailLevel?.value || 'detailed';
-      const output_format = this.elements.paramFormato?.value || 'all';
 
       state.set({
         adaptationParams: {
@@ -215,8 +213,7 @@ export const uploadTab = {
           detail_level,
           learning_objective: null,
           target_profile: profile,
-          niche_context: niche,
-          output_format
+          niche_context: niche
         }
       });
     };
@@ -224,8 +221,7 @@ export const uploadTab = {
     [
       this.elements.paramPerfil,
       this.elements.paramNicho,
-      this.elements.paramDetailLevel,
-      this.elements.paramFormato
+      this.elements.paramDetailLevel
     ].forEach(el => {
       if (el) el.addEventListener('change', updateParams);
     });
@@ -507,6 +503,10 @@ export const uploadTab = {
         this.elements.pipelineStatusBadge.textContent = 'En Procesamiento';
         this.elements.pipelineStatusBadge.style.background = 'rgba(6, 182, 212, 0.2)';
         this.elements.pipelineStatusBadge.style.color = 'var(--accent-cyan)';
+      } else if (globalStatus === 'failed' || globalStatus === 'error') {
+        this.elements.pipelineStatusBadge.textContent = 'Error en Formatos';
+        this.elements.pipelineStatusBadge.style.background = 'rgba(239, 68, 68, 0.2)';
+        this.elements.pipelineStatusBadge.style.color = '#ef4444';
       } else {
         this.elements.pipelineStatusBadge.textContent = 'Completado';
         this.elements.pipelineStatusBadge.style.background = 'rgba(16, 185, 129, 0.2)';
@@ -519,6 +519,8 @@ export const uploadTab = {
         this.elements.pipelineLiveLog.textContent = '¡Proceso completado! Quiz y Flashcards generados exitosamente por el Backend.';
       } else if (globalStatus === 'partial') {
         this.elements.pipelineLiveLog.textContent = 'Formatos generados parcialmente. Puedes comenzar a estudiar el formato disponible.';
+      } else if (globalStatus === 'failed' || globalStatus === 'error') {
+        this.elements.pipelineLiveLog.textContent = 'Ocurrió un error al generar los formatos de estudio en el backend.';
       } else {
         this.elements.pipelineLiveLog.textContent = 'Documento almacenado en OCI y adaptación pedagógica registrada.';
       }
@@ -533,6 +535,18 @@ export const uploadTab = {
       notifyWarning(
         'Generación Parcial',
         `Al menos un formato se generó exitosamente para "${procDoc.filename}".`
+      );
+    } else if (globalStatus === 'failed' || globalStatus === 'error') {
+      statusDialog.showError({
+        status: 500,
+        code: 'FORMATS_GENERATION_FAILED',
+        message: formatsResponse?.message || 'El backend persistió el archivo en OCI pero no completó la generación de Quiz y Flashcards.',
+        details: formatsResponse?.details || ['No se pudieron sintetizar los formatos pedagógicos automáticos.'],
+        filename: procDoc.filename
+      });
+      notifyError(
+        'Formatos No Disponibles',
+        `No fue posible generar los formatos de estudio para "${procDoc.filename}".`
       );
     } else {
       notifySuccess(

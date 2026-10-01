@@ -91,7 +91,7 @@ frontend/
    Estantería de libros interactivos en 3D. Al hacer clic en cualquiera, se despliega un cuaderno abierto con el detalle del documento (tiempo de lectura, cantidad de secciones, nivel) y las opciones de estudio disponibles.
 
 3. **Carga de Documento**
-   Zona de arrastrar y soltar para PDF, Markdown o TXT (hasta 10 MB). Selector de parámetros de adaptación: perfil del estudiante, área temática y formato de salida. Al procesar, un panel muestra el avance en tiempo real contra el Backend y notifica el resultado (documento guardado, duplicado detectado, o cualquier error) mediante un diálogo de estado y notificaciones toast.
+   Zona de arrastrar y soltar para PDF, Markdown o TXT (hasta 10 MB). Selector de parámetros de adaptación pedagógica: perfil del estudiante, área temática y nivel de detalle (los 4 formatos se generan automáticamente en conjunto). Al procesar, un panel muestra el avance en tiempo real contra el Backend y notifica el resultado (documento guardado, duplicado detectado, o cualquier error) mediante un diálogo de estado y notificaciones toast.
 
 4. **Centro de Estudio**
    - **Flashcards**: tarjetas con animación de volteo y pistas pedagógicas.

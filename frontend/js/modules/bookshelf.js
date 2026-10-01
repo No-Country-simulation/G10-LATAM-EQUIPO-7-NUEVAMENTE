@@ -6,6 +6,8 @@
 import { state } from '../state.js';
 import { apiClient } from '../api/apiClient.js';
 import { router } from './router.js';
+import { statusDialog } from './statusDialog.js';
+import { notifyError, notifyWarning } from './notifications.js';
 
 export const bookshelf = {
   elements: {},
@@ -80,8 +82,22 @@ export const bookshelf = {
         this.booksFromBackend = [];
       }
     } catch (err) {
-      console.log('[Bookshelf] Backend GET /documents no disponible aún o sin conexión:', err.message);
+      console.warn('[Bookshelf] Backend GET /documents no disponible aún o sin conexión:', err.message);
       this.booksFromBackend = [];
+      if (err.status >= 500 || err.status === 502) {
+        statusDialog.showError({
+          status: err.status,
+          code: err.code || 'DOCUMENTS_FETCH_ERROR',
+          message: err.message || 'Error al obtener la lista de documentos desde el backend.',
+          details: err.details || ['GET /api/v1/documents', err.message]
+        });
+      }
+      notifyWarning(
+        `Biblioteca (${err.status || 0})`,
+        err.status === 0
+          ? 'Backend fuera de línea. Mostrando estantería local.'
+          : (err.message || 'No fue posible sincronizar los libros.')
+      );
     } finally {
       this.isLoadingBackend = false;
       this.showShelfLoading(false);
@@ -334,6 +350,28 @@ export const bookshelf = {
 
     // Mostrar modal
     openBookOverlay.style.display = 'flex';
+
+    // Diagrama C: Consulta GET /documents/{id} para validar y enriquecer metadata
+    if (book.id && !book.id.startsWith('mock_')) {
+      apiClient.getDocumentById(book.id).then(docDetail => {
+        if (docDetail && openedTitle) {
+          if (docDetail.filename && !book.title) {
+            openedTitle.textContent = docDetail.filename;
+          }
+        }
+      }).catch(err => {
+        console.warn(`[Bookshelf] Error en GET /documents/${book.id}:`, err.message);
+        if (err.status === 404 || err.status >= 500) {
+          statusDialog.showError({
+            status: err.status || 500,
+            code: err.code || 'DOCUMENT_NOT_FOUND',
+            message: err.message || `No se pudo obtener el detalle del documento "${book.title}".`,
+            details: [`Documento ID: ${book.id}`, err.message],
+            filename: book.filename || book.title
+          });
+        }
+      });
+    }
   },
 
   closeBookModal() {
@@ -411,13 +449,31 @@ export const bookshelf = {
           }
         });
       } catch (err) {
-        console.log('[StudyHub] Formatos aún no disponibles en backend para este documento:', err.message);
+        console.error('[StudyHub] Formatos no disponibles en backend para este documento:', err);
         state.set({
           studyHub: {
             ...state.get().studyHub,
             formatsStatus: 'error'
           }
         });
+
+        // Desplegar ventana de error para retroalimentación UX inmediata (Tarea 5 y 7)
+        statusDialog.showError({
+          status: err.status || 500,
+          code: err.code || 'FORMATS_NOT_AVAILABLE',
+          message: err.message || `No fue posible cargar los formatos de estudio para "${book.title}".`,
+          details: [
+            `Documento ID: ${book.id}`,
+            `Formato solicitado: ${targetFormat}`,
+            err.message
+          ],
+          filename: book.filename || book.title
+        });
+
+        notifyError(
+          `Formatos No Disponibles (${err.status || 500})`,
+          err.message || 'Error al obtener formatos desde el servidor.'
+        );
       }
     }
   }
