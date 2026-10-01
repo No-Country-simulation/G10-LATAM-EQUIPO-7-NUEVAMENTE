@@ -1,19 +1,8 @@
-"""
-API del servicio de evaluación Data/IA.
+"""API del servicio de evaluación Data/IA."""
 
-Sprint 2:
-- Expone POST /evaluate.
-- Valida automáticamente EvaluationRequest con Pydantic/FastAPI.
-- Deja preparada la integración de la lógica de evaluación de calidad.
-- Mientras el evaluator real no esté conectado, responde HTTP 501 para
-  payloads válidos.
+from fastapi import FastAPI
 
-Ejecución:
-    python -m uvicorn data_ai.api.app:app --reload
-"""
-
-from fastapi import FastAPI, HTTPException
-
+from data_ai.evaluation.reviewer import evaluar_contenido
 from data_ai.schemas.format_evaluation import (
     EvaluationRequest,
     EvaluationResponse,
@@ -21,10 +10,10 @@ from data_ai.schemas.format_evaluation import (
 
 app = FastAPI(
     title="NuevaMente Data/IA Evaluation API",
-    version="0.1.0",
+    version="0.2.0",
     description=(
-        "Servicio de Data/IA para validar y evaluar formatos educativos "
-        "generados durante Sprint 2."
+        "Servicio de Data/IA para validar y evaluar "
+        "formatos educativos generados."
     ),
 )
 
@@ -40,43 +29,28 @@ def health() -> dict[str, str]:
     response_model=EvaluationResponse,
     summary="Solicitar evaluación de un formato generado",
 )
-def evaluate_format(request: EvaluationRequest) -> EvaluationResponse:
+def evaluate_format(
+    request: EvaluationRequest,
+) -> EvaluationResponse:
     """
-    Recibe un Quiz o conjunto de Flashcards junto con:
-    - el contexto utilizado durante la generación;
-    - los chunks usados como evidencia.
+    Evalúa un Quiz o conjunto de Flashcards.
 
-    FastAPI + Pydantic validan el contrato antes de entrar a esta función.
-    La lógica de calidad se integrará aquí cuando el reviewer/evaluator
-    esté disponible.
+    El request ya llega validado por Pydantic/FastAPI.
     """
 
-    # Punto de integración futuro:
-    #
-    # result = quality_evaluator.evaluate(
-    #     generated_content=request.generated_content,
-    #     chunks_used=request.chunks_used,
-    #     generation_context=request.generation_context,
-    # )
-    #
-    # return EvaluationResponse(
-    #     document_id=request.document_id,
-    #     format=request.format,
-    #     status=result.status,
-    #     scores=result.scores,
-    #     informacion_no_respaldada=result.informacion_no_respaldada,
-    #     observaciones=result.observaciones,
-    # )
+    result = evaluar_contenido(
+        generated_content=request.generated_content,
+        chunks_used=request.chunks_used,
+        generation_context=request.generation_context,
+    )
 
-    raise HTTPException(
-        status_code=501,
-        detail={
-            "code": "QUALITY_EVALUATOR_NOT_IMPLEMENTED",
-            "message": (
-                "El contrato de entrada es válido, pero la lógica de "
-                "evaluación de calidad todavía no ha sido integrada."
-            ),
-            "document_id": request.document_id,
-            "format": request.format,
-        },
+    return EvaluationResponse(
+        document_id=request.document_id,
+        format=request.format,
+        status=result.status,
+        scores=result.scores,
+        informacion_no_respaldada=(
+            result.informacion_no_respaldada
+        ),
+        observaciones=result.observaciones,
     )
