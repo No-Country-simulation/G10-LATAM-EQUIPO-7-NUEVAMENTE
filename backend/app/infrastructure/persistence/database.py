@@ -1,6 +1,8 @@
 """Configuración de la base de datos SQLite utilizada en desarrollo."""
 
 import sqlite3
+from collections.abc import Iterator
+from contextlib import contextmanager
 from pathlib import Path
 
 _DOCUMENTS_TABLE_SQL = """
@@ -159,10 +161,19 @@ class SQLiteDatabase:
         """Ruta física del archivo SQLite."""
         return self._database_path
 
+    @contextmanager
     def connect(
         self,
-    ) -> sqlite3.Connection:
-        """Abre una conexión configurada a SQLite."""
+    ) -> Iterator[sqlite3.Connection]:
+        """Abre una conexión SQLite y garantiza su cierre.
+
+        La transacción se confirma al salir normalmente del contexto.
+        Si ocurre una excepción, SQLite realiza rollback antes de que
+        la conexión sea cerrada.
+
+        Yields:
+            Conexión SQLite configurada para uso dentro del contexto.
+        """
         self._database_path.parent.mkdir(
             parents=True,
             exist_ok=True,
@@ -178,7 +189,11 @@ class SQLiteDatabase:
             "PRAGMA foreign_keys = ON"
         )
 
-        return connection
+        try:
+            with connection:
+                yield connection
+        finally:
+            connection.close()
 
     def initialize(
         self,
