@@ -1,8 +1,8 @@
 import os
 import tempfile
 from fastapi import FastAPI, HTTPException, UploadFile, File, Form
-from pydantic import BaseModel
-from typing import List
+from pydantic import BaseModel, Field
+from typing import List, Dict, Any, Optional
 
 from .rag.models import Document
 from .rag.cleaner import clean_text
@@ -20,6 +20,31 @@ agent = AgentV1(vector_store=vector_store)
 app = FastAPI(title="NuevaMente - API de Agentes")
 
 # ==========================================
+# ESQUEMAS ESTRUCTURADOS (Contratos Data/IA)
+# ==========================================
+class CardItem(BaseModel):
+    card_id: str = Field(..., description="Identificador único de la tarjeta.")
+    front: str = Field(..., description="Concepto o pregunta (anverso de la tarjeta).")
+    back: str = Field(..., description="Definición o respuesta (reverso de la tarjeta).")
+
+class FlashcardsContent(BaseModel):
+    title: str = Field(..., description="Título del conjunto de flashcards.")
+    instructions: str = Field(..., description="Instrucciones de uso pedagógico.")
+    cards: List[CardItem] = Field(..., description="Lista de flashcards generadas.")
+
+class QuizItem(BaseModel):
+    question_id: str = Field(..., description="Identificador único de la pregunta.")
+    question: str = Field(..., description="La pregunta de opción múltiple.")
+    options: List[str] = Field(..., description="Lista de opciones posibles (ej. A, B, C, D).")
+    correct_answer: str = Field(..., description="El texto exacto de la respuesta correcta.")
+    explanation: str = Field(..., description="Explicación pedagógica de por qué es correcta.")
+
+class QuizContent(BaseModel):
+    title: str = Field(..., description="Título del cuestionario.")
+    instructions: str = Field(..., description="Instrucciones para resolver el cuestionario.")
+    questions: List[QuizItem] = Field(..., description="Lista de preguntas del quiz.")
+
+# ==========================================
 # CONTRATOS DE ENTRADA (Validación Pydantic)
 # ==========================================
 class GenerateRequest(BaseModel):
@@ -28,6 +53,7 @@ class GenerateRequest(BaseModel):
     profile: str
     niche: str
     detail_level: str
+    learning_objective: Optional[str] = None  # <-- Campo opcional añadido
 
 # ==========================================
 # ENDPOINTS
@@ -74,28 +100,34 @@ async def index_document(document_id: str = Form(...), file: UploadFile = File(.
 @app.post("/api/v1/generate")
 def generate_formats(payload: GenerateRequest):
     """
-    Itera sobre los formatos solicitados, aplica capacidad atómica y devuelve los resultados.
+    Itera sobre los formatos solicitados, aplica capacidad atómica y devuelve los resultados
+    bajo los contratos estrictos de Data/IA.
     """
     respuestas_generadas = []
     
     # Query dinámico para optimizar el retriever según las necesidades del usuario
     query_dinamico = f"Conceptos principales sobre {payload.niche} para un perfil {payload.profile} con nivel {payload.detail_level}."
+    if payload.learning_objective:
+        query_dinamico += f" Objetivo: {payload.learning_objective}"
 
     for formato in payload.formats:
+        # El agente ahora se encargará de devolver la estructura Pydantic exacta y los chunks completos
         resultado_atomico = agent.answer(
             query=query_dinamico,
             document_id=payload.document_id,
             formato=formato,
             perfil=payload.profile,
             nicho=payload.niche,
-            nivel=payload.detail_level
+            nivel=payload.detail_level,
+            learning_objective=payload.learning_objective # <-- Pasamos el objetivo al agente
         )
         
         respuestas_generadas.append({
             "format": formato,
             "status": resultado_atomico["status"],
             "content": resultado_atomico["content"],
-            "sources_used": resultado_atomico.get("sources_used", [])
+            "sources_used": resultado_atomico.get("sources_used", []),
+            "error_message": resultado_atomico.get("error_message") # <-- Manejo explícito de errores
         })
 
     return {
