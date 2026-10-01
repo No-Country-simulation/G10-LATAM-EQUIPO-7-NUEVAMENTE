@@ -57,6 +57,23 @@
   gap: 0.75rem;
 }
 
+.btn-refresh-formats {
+  background: rgba(245, 158, 11, 0.12);
+  border: 1px solid var(--accent-gold);
+  color: var(--accent-gold);
+  font-size: 0.82rem;
+  font-weight: 700;
+  padding: 0.45rem 0.9rem;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.btn-refresh-formats:hover {
+  background: var(--accent-gold);
+  color: #000000;
+}
+
 /* Barra de Formatos Pedagógicos (4 Pestañas) */
 .format-tabs-bar {
   display: flex;

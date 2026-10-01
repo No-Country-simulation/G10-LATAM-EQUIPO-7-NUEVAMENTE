@@ -261,9 +261,10 @@ export const uploadTab = {
     }
     this.resetStepperUI();
 
-    const profile = params.profile || params.target_profile || 'intermediate';
-    const niche = params.niche || params.niche_context || 'general';
-    const detail_level = params.detail_level || 'detailed';
+    const rawProfile = params.profile || params.target_profile || CONFIG.PEDAGOGICAL?.DEFAULT_PROFILE || 'intermediate';
+    const profile = CONFIG.PEDAGOGICAL?.PROFILE_MAP?.[rawProfile.toLowerCase()] || rawProfile;
+    const niche = params.niche || params.niche_context || CONFIG.PEDAGOGICAL?.DEFAULT_NICHE || 'general';
+    const detail_level = params.detail_level || CONFIG.PEDAGOGICAL?.DEFAULT_DETAIL_LEVEL || 'detailed';
     const learning_objective = params.learning_objective || null;
 
     try {
@@ -317,7 +318,8 @@ export const uploadTab = {
         profile,
         niche,
         detail_level,
-        learning_objective
+        learning_objective,
+        output_format: 'all'
       };
 
       const adaptationResponse = await apiClient.adaptContent(adaptationPayload);

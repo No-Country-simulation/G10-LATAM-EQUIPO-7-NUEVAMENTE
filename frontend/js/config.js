@@ -92,6 +92,22 @@ export const CONFIG = {
     ALLOWED_EXTENSIONS: ['pdf', 'md', 'txt']
   },
 
+  // Parámetros de adaptación pedagógica desacoplados (Sprint 2)
+  PEDAGOGICAL: {
+    DEFAULT_PROFILE: 'intermediate',
+    DEFAULT_NICHE: 'general',
+    DEFAULT_DETAIL_LEVEL: 'detailed',
+    // Mapeo extensible para desacoplar futuros cambios en nombres de perfiles
+    PROFILE_MAP: {
+      beginner: 'beginner',
+      intermediate: 'intermediate',
+      advanced: 'advanced',
+      principiante: 'beginner',
+      intermedio: 'intermediate',
+      avanzado: 'advanced'
+    }
+  },
+
   // Almacenamiento local
   STORAGE_KEYS: {
     API_MODE: 'nuevamente_api_mode',

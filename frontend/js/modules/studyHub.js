@@ -4,17 +4,22 @@
  */
 
 import { state } from '../state.js';
+import { apiClient } from '../api/apiClient.js';
 import { flashcards } from './flashcards.js';
 import { quiz } from './quiz.js';
 import { videoGuide } from './videoGuide.js';
 import { summary } from './summary.js';
+import { statusDialog } from './statusDialog.js';
+import { notifyError, notifySuccess } from './notifications.js';
 
 export const studyHub = {
   elements: {},
+  isFetchingFormats: false,
 
   init() {
     this.bindElements();
     this.setupFormatTabs();
+    this.setupActions();
 
     // Inicializar submódulos
     flashcards.init();
@@ -34,6 +39,7 @@ export const studyHub = {
     this.elements = {
       topicBadge: document.getElementById('studyTopicBadge'),
       topicTitle: document.getElementById('studyTopicTitle'),
+      btnRefreshFormats: document.getElementById('btnRefreshFormats'),
       formatTabs: document.querySelectorAll('.format-tab-btn'),
       formatViews: {
         flashcards: document.getElementById('viewFormatFlashcards'),
@@ -42,6 +48,17 @@ export const studyHub = {
         sintesis: document.getElementById('viewFormatSintesis')
       }
     };
+  },
+
+  setupActions() {
+    if (this.elements.btnRefreshFormats) {
+      this.elements.btnRefreshFormats.addEventListener('click', () => {
+        const doc = state.get().currentDocument;
+        if (doc) {
+          this.fetchFormatsForCurrentDocument(doc);
+        }
+      });
+    }
   },
 
   setupFormatTabs() {
@@ -110,7 +127,15 @@ export const studyHub = {
 
     // Tarea 7 y 8: Resolver formatos generados por Backend (GET /documents/{id}/formats)
     const backendFormats = hubState.formats || {};
-    const globalStatus = hubState.formatsStatus;
+    // Actualizar botón de reintento/sincronización de formatos
+    if (this.elements.btnRefreshFormats) {
+      this.elements.btnRefreshFormats.style.display = (globalStatus === 'error' || globalStatus === 'partial') ? 'inline-flex' : 'none';
+    }
+
+    // Auto-recuperar formatos si no están en memoria aún para el documento activo
+    if (currentDocument.id && !hubState.formats && hubState.formatsStatus !== 'loading' && hubState.formatsStatus !== 'error' && !this.isFetchingFormats) {
+      this.fetchFormatsForCurrentDocument(currentDocument);
+    }
 
     // 1. Flashcards (Tarea 8)
     const flashcardsData = backendFormats.flashcards 
@@ -139,6 +164,59 @@ export const studyHub = {
       || backendFormats.sintesis 
       || activeSection?.sintesis;
     summary.render(summaryData);
+  },
+
+  /**
+   * Consulta GET /documents/{id}/formats al Backend y sincroniza el estado
+   */
+  async fetchFormatsForCurrentDocument(doc) {
+    if (!doc?.id || this.isFetchingFormats) return;
+    this.isFetchingFormats = true;
+
+    try {
+      state.set({
+        studyHub: {
+          ...state.get().studyHub,
+          formatsStatus: 'loading'
+        }
+      });
+
+      const formats = await apiClient.getDocumentFormats(doc.id);
+      const resolvedFormats = formats?.formats || formats;
+      const globalStatus = formats?.status || (resolvedFormats ? 'ready' : 'empty');
+
+      state.set({
+        studyHub: {
+          ...state.get().studyHub,
+          formats: resolvedFormats,
+          formatsStatus: globalStatus
+        }
+      });
+
+      if (globalStatus === 'ready') {
+        notifySuccess('Formatos Sincronizados', 'Se cargaron los materiales pedagógicos desde el Backend.');
+      }
+    } catch (err) {
+      console.warn('[StudyHub] Error al consultar formatos desde el backend:', err.message);
+      state.set({
+        studyHub: {
+          ...state.get().studyHub,
+          formatsStatus: 'error'
+        }
+      });
+
+      statusDialog.showError({
+        status: err.status || 500,
+        code: err.code || 'FORMATS_FETCH_ERROR',
+        message: err.message || `No fue posible cargar los formatos de estudio para "${doc.title || doc.filename}".`,
+        details: [`Documento ID: ${doc.id}`, err.message],
+        filename: doc.filename || doc.title
+      });
+
+      notifyError(`Error en Formatos (${err.status || 500})`, err.message);
+    } finally {
+      this.isFetchingFormats = false;
+    }
   },
 
   getActiveSection(doc, sectionId) {
