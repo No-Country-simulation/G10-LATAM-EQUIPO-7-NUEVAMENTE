@@ -290,19 +290,29 @@ export const uploadTab = {
         isMock: false
       });
 
-      // Paso 2: Indexación y procesamiento en Backend
+      // -----------------------------------------------------------------------
+      // DEUDA TÉCNICA REGISTRADA (Pasos 2, 3 y 4):
+      // Actualmente la interfaz marca como completados los pasos de indexación,
+      // embeddings y vinculación de formatos mediante estados visuales temporales (wait),
+      // sin confirmación real del Backend/Agentes (pipeline RAG asíncrono aún en desarrollo).
+      // TODO: Cuando quede integrado el endpoint de procesos (e.g. GET /processes/{id}
+      // o eventos SSE/WebSocket), sustituir estos delays simulados por polling del
+      // estado real del servicio (PENDING -> PROCESSING -> COMPLETED/FAILED).
+      // -----------------------------------------------------------------------
+
+      // Paso 2: Indexación y procesamiento en Backend (Transición visual temporal)
       this.currentActiveStep = this.elements.stepChroma;
       this.setStepActive(this.elements.stepChroma, 'Indexando contenido y calculando embeddings...');
       await this.wait(350);
       this.setStepCompleted(this.elements.stepChroma, this.elements.line2);
 
-      // Paso 3: Vinculación con formatos de estudio (Sprint 2: Quiz y Flashcards)
+      // Paso 3: Vinculación con formatos de estudio (Transición visual temporal)
       this.currentActiveStep = this.elements.stepGen;
       this.setStepActive(this.elements.stepGen, `Vinculando formatos de estudio para nivel [${this.getLevelLabel(targetProfile)}]...`);
       await this.wait(350);
       this.setStepCompleted(this.elements.stepGen, this.elements.line3);
 
-      // Paso 4: Verificación de persistencia y registro en la biblioteca
+      // Paso 4: Verificación de persistencia y registro en la biblioteca (Transición visual temporal)
       this.currentActiveStep = this.elements.stepCritic;
       this.setStepActive(this.elements.stepCritic, 'Validando persistencia y registrando en La Biblioteca...');
       await this.wait(300);
