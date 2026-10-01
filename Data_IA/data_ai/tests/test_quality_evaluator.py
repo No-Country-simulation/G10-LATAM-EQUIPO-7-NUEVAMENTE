@@ -180,8 +180,7 @@ def test_evaluacion_relevancia_nicho_generico():
     context = GenerationContext(
         profile="student",
         niche="General", 
-        detail_level="beginner",
-        learning_objective="", 
+        detail_level="beginner", 
     )
 
     scores, _ = evaluate(
