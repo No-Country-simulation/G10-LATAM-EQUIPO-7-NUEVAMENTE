@@ -154,12 +154,13 @@ def _to_document_response(
     "",
     response_model=DocumentCreatedResponse,
     status_code=status.HTTP_201_CREATED,
-    summary="Cargar y adaptar documento",
+    summary="Cargar y procesar documento",
     description=(
         "Recibe un documento PDF, Markdown o TXT junto con "
         "el contexto pedagógico. Backend valida y almacena "
-        "el archivo, ejecuta la indexación y solicita "
-        "automáticamente Quiz y Flashcards."
+        "el archivo, ejecuta la indexación, genera "
+        "automáticamente Quiz y Flashcards y persiste "
+        "los resultados para su posterior consulta."
     ),
     responses={
         200: {
@@ -174,7 +175,7 @@ def _to_document_response(
         409: {
             "description": (
                 "El documento no se encuentra en un estado "
-                "válido para ejecutar la adaptación."
+                "válido para ejecutar el procesamiento."
             ),
         },
         413: {
@@ -254,7 +255,7 @@ async def upload_document(
         ),
     ] = None,
 ) -> DocumentCreatedResponse:
-    """Ejecuta el flujo completo desde carga hasta adaptación."""
+    """Carga el documento y completa su procesamiento interno."""
     _validate_document_type(
         file.filename,
         file.content_type,
@@ -333,7 +334,7 @@ async def upload_document(
             missing_ok=True
         )
 
-    generated_formats = await execute_adaptation(
+    await execute_adaptation(
         orchestration_service=orchestration_service,
         document_id=document.document_id,
         profile=profile,
@@ -358,15 +359,6 @@ async def upload_document(
         filename=current_document.original_filename,
         status=current_document.status,
         duplicate=not registration.created,
-        formats={
-            generated_format.format_type: (
-                GeneratedFormatResponse.from_domain(
-                    generated_format
-                )
-            )
-            for generated_format
-            in generated_formats
-        },
     )
 
 

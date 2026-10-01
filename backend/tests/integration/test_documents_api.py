@@ -41,7 +41,7 @@ def test_upload_valid_document(
     filename: str,
     content_type: str,
 ) -> None:
-    """Carga, almacena, indexa y adapta un documento válido."""
+    """Procesa el documento sin exponer formatos en la respuesta de carga."""
     file_content = b"contenido de prueba"
 
     response = client.post(
@@ -66,32 +66,7 @@ def test_upload_valid_document(
     assert body["filename"] == filename
     assert body["status"] == "indexed"
     assert body["duplicate"] is False
-
-    assert set(body["formats"]) == {
-        "quiz",
-        "flashcards",
-    }
-
-    assert (
-        body["formats"]["quiz"]["status"]
-        == "success"
-    )
-    assert (
-        body["formats"]["flashcards"]["status"]
-        == "success"
-    )
-
-    assert (
-        body["formats"]["quiz"]["content"]
-        ["title"]
-        == "Quiz de prueba"
-    )
-
-    assert (
-        body["formats"]["flashcards"]["content"]
-        ["title"]
-        == "Flashcards de prueba"
-    )
+    assert "formats" not in body
 
     assert (
         fake_adaptation_orchestration_service
@@ -108,6 +83,44 @@ def test_upload_valid_document(
                 ),
             }
         ]
+    )
+
+    formats_response = client.get(
+        f"{api_prefix}/documents/"
+        f"{body['document_id']}/formats"
+    )
+
+    assert (
+        formats_response.status_code
+        == 200
+    )
+
+    formats_body = (
+        formats_response.json()
+    )
+
+    assert (
+        formats_body["status"]
+        == "ready"
+    )
+
+    assert set(
+        formats_body["formats"]
+    ) == {
+        "quiz",
+        "flashcards",
+    }
+
+    assert (
+        formats_body["formats"]
+        ["quiz"]["status"]
+        == "success"
+    )
+
+    assert (
+        formats_body["formats"]
+        ["flashcards"]["status"]
+        == "success"
     )
 
     stored_files = list(
@@ -326,15 +339,8 @@ def test_duplicate_document_reuses_document_id(
     assert first_body["duplicate"] is False
     assert second_body["duplicate"] is True
 
-    assert set(first_body["formats"]) == {
-        "quiz",
-        "flashcards",
-    }
-
-    assert set(second_body["formats"]) == {
-        "quiz",
-        "flashcards",
-    }
+    assert "formats" not in first_body
+    assert "formats" not in second_body
 
     assert len(
         fake_adaptation_orchestration_service.requests
@@ -345,6 +351,21 @@ def test_duplicate_document_reuses_document_id(
         == first_body["document_id"]
         for request
         in fake_adaptation_orchestration_service.requests
+    )
+
+    formats_response = client.get(
+        f"{api_prefix}/documents/"
+        f"{first_body['document_id']}/formats"
+    )
+
+    assert (
+        formats_response.status_code
+        == 200
+    )
+
+    assert (
+        formats_response.json()["status"]
+        == "ready"
     )
 
     stored_files = list(
@@ -551,6 +572,7 @@ def test_get_unknown_document_returns_404(
         response.json()["detail"]
         == "No existe el documento doc_inexistente."
     )
+
 
 def test_adaptations_endpoint_is_not_public(
     client: TestClient,

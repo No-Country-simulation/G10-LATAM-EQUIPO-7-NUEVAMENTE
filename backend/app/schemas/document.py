@@ -4,14 +4,8 @@ from datetime import datetime
 
 from pydantic import Field
 
-from app.domain.enums import (
-    DocumentStatus,
-    GeneratedFormatType,
-)
+from app.domain.enums import DocumentStatus
 from app.schemas.common import BaseSchema
-from app.schemas.generated_format import (
-    GeneratedFormatResponse,
-)
 
 
 class DocumentBaseResponse(BaseSchema):
@@ -31,23 +25,12 @@ class DocumentBaseResponse(BaseSchema):
 
 
 class DocumentCreatedResponse(DocumentBaseResponse):
-    """Respuesta del flujo completo de carga y adaptación."""
+    """Respuesta al finalizar la carga y procesamiento del documento."""
 
     duplicate: bool = Field(
         default=False,
         description=(
             "Indica si el contenido ya estaba registrado."
-        ),
-    )
-
-    formats: dict[
-        GeneratedFormatType,
-        GeneratedFormatResponse,
-    ] = Field(
-        min_length=1,
-        description=(
-            "Quiz y Flashcards producidos durante "
-            "la adaptación del documento."
         ),
     )
 
