@@ -1,6 +1,5 @@
 """Motor heurístico de evaluación de calidad para Quiz y Flashcards."""
 
-import json
 import re
 from typing import List, Union
 
@@ -19,11 +18,90 @@ GeneratedContent = Union[
 ]
 
 
+STOPWORDS = {
+    "para",
+    "desde",
+    "sobre",
+    "entre",
+    "como",
+    "esta",
+    "este",
+    "estos",
+    "estas",
+    "crear",
+    "utiliza",
+    "utilizado",
+    "selecciona",
+    "respuesta",
+    "correcta",
+    "intenta",
+    "responder",
+    "antes",
+    "revisar",
+    "conceptos",
+    "basicos",
+    "básicos",
+    "comprender",
+}
+
+
 def _normalizar_palabras(texto: str) -> list[str]:
+    """Convierte texto a tokens normalizados."""
+    return re.findall(
+        r"\b\w+\b",
+        texto.lower(),
+        flags=re.UNICODE,
+    )
+
+
+def _palabras_significativas(texto: str) -> list[str]:
+    """Obtiene términos útiles para comparación semántica básica."""
+    return [
+        palabra
+        for palabra in _normalizar_palabras(texto)
+        if len(palabra) > 3
+        and palabra not in STOPWORDS
+    ]
+
+
+def _extraer_texto_evaluable(
+    generated_content: GeneratedContent,
+) -> str:
     """
-    Normaliza texto a palabras minúsculas sin puntuación.
+    Extrae únicamente contenido que representa conocimiento evaluable.
+
+    En Quiz se excluyen distractores, título e instrucciones.
+    En Flashcards se evalúan frente y reverso.
     """
-    return re.findall(r"\b\w+\b", texto.lower(), flags=re.UNICODE)
+
+    if isinstance(generated_content, QuizContent):
+        partes = []
+
+        for question in generated_content.questions:
+            partes.extend(
+                [
+                    question.question,
+                    question.correct_answer,
+                    question.explanation,
+                ]
+            )
+
+        return " ".join(partes)
+
+    if isinstance(generated_content, FlashcardsContent):
+        partes = []
+
+        for card in generated_content.cards:
+            partes.extend(
+                [
+                    card.front,
+                    card.back,
+                ]
+            )
+
+        return " ".join(partes)
+
+    return ""
 
 
 def evaluate(
@@ -32,38 +110,17 @@ def evaluate(
     generation_context: GenerationContext,
 ) -> tuple[EvaluationScores, bool]:
     """
-    Calcula los scores de calidad y detecta información no respaldada.
-
-    Parameters
-    ----------
-    generated_content:
-        Quiz o Flashcards previamente validados.
-
-    chunks_used:
-        Chunks utilizados como evidencia durante la generación.
-
-    generation_context:
-        Contexto empleado para adaptar el contenido.
-
-    Returns
-    -------
-    tuple[EvaluationScores, bool]
-        Scores calculados e indicador de información no respaldada.
+    Calcula scores heurísticos de calidad y detecta
+    información potencialmente no respaldada.
     """
 
-    # Convertir modelos Pydantic a estructuras internas
-    content_dict = generated_content.model_dump()
-    chunks_dict = [chunk.model_dump() for chunk in chunks_used]
-    context_dict = generation_context.model_dump()
-
-    content_text = json.dumps(
-        content_dict,
-        ensure_ascii=False,
-    ).lower()
+    texto_evaluable = _extraer_texto_evaluable(
+        generated_content
+    )
 
     chunks_text = " ".join(
-        json.dumps(chunk, ensure_ascii=False).lower()
-        for chunk in chunks_dict
+        chunk.text
+        for chunk in chunks_used
     )
 
     # ========================================================
@@ -71,28 +128,42 @@ def evaluate(
     # ========================================================
 
     objetivo = (
-        context_dict.get("learning_objective") or ""
-    ).lower()
-
-    nicho = (
-        context_dict.get("niche") or ""
-    ).lower()
-
-    coincide_objetivo = (
-        bool(objetivo)
-        and objetivo in content_text
+        generation_context.learning_objective or ""
     )
 
-    coincide_nicho = (
-        bool(nicho)
-        and nicho in content_text
+    nicho = generation_context.niche or ""
+
+    terminos_contexto = set(
+        _palabras_significativas(
+            f"{objetivo} {nicho}"
+        )
     )
 
-    relevancia = (
-        5
-        if coincide_objetivo or coincide_nicho
-        else 3
+    terminos_contenido = set(
+        _palabras_significativas(
+            texto_evaluable
+        )
     )
+
+    if terminos_contexto:
+        coincidencias = (
+            terminos_contexto
+            & terminos_contenido
+        )
+
+        ratio_relevancia = (
+            len(coincidencias)
+            / len(terminos_contexto)
+        )
+    else:
+        ratio_relevancia = 1.0
+
+    if ratio_relevancia >= 0.50:
+        relevancia = 5
+    elif ratio_relevancia >= 0.25:
+        relevancia = 4
+    else:
+        relevancia = 3
 
     # ========================================================
     # 2. COHERENCIA
@@ -100,7 +171,7 @@ def evaluate(
 
     coherencia = (
         5
-        if len(content_dict) >= 1 and len(content_text) > 50
+        if len(texto_evaluable.strip()) > 50
         else 2
     )
 
@@ -109,24 +180,24 @@ def evaluate(
     # ========================================================
 
     perfil = (
-        context_dict.get("profile") or ""
+        generation_context.profile or ""
     ).lower()
 
     nivel_detalle = (
-        context_dict.get("detail_level") or ""
+        generation_context.detail_level or ""
     ).lower()
 
     adaptacion = 5
 
     if (
-        perfil == "principiante"
-        and len(content_text) > 3000
+        perfil in {"principiante", "beginner"}
+        and len(texto_evaluable) > 3000
     ):
         adaptacion = 3
 
     elif (
-        nivel_detalle == "alto"
-        and len(content_text) < 200
+        nivel_detalle in {"alto", "high"}
+        and len(texto_evaluable) < 200
     ):
         adaptacion = 2
 
@@ -134,36 +205,43 @@ def evaluate(
     # 4. INFORMACIÓN RESPALDADA
     # ========================================================
 
-    palabras_contenido = [
-        palabra
-        for palabra in _normalizar_palabras(content_text)
-        if len(palabra) > 5
-    ]
-
-    palabras_chunks = set(
-        _normalizar_palabras(chunks_text)
+    palabras_generadas = set(
+        _palabras_significativas(
+            texto_evaluable
+        )
     )
 
-    palabras_no_respaldadas = [
-        palabra
-        for palabra in palabras_contenido
-        if palabra not in palabras_chunks
-    ]
-
-    ratio_no_respaldado = (
-        len(palabras_no_respaldadas)
-        / max(len(palabras_contenido), 1)
+    palabras_fuente = set(
+        _palabras_significativas(
+            chunks_text
+        )
     )
+
+    if palabras_generadas:
+        palabras_no_respaldadas = (
+            palabras_generadas
+            - palabras_fuente
+        )
+
+        ratio_no_respaldado = (
+            len(palabras_no_respaldadas)
+            / len(palabras_generadas)
+        )
+    else:
+        ratio_no_respaldado = 0.0
 
     informacion_no_respaldada = (
-        ratio_no_respaldado > 0.25
+        ratio_no_respaldado > 0.40
     )
 
-    informacion_respaldada = (
-        1
-        if informacion_no_respaldada
-        else 5
-    )
+    if ratio_no_respaldado <= 0.15:
+        informacion_respaldada = 5
+    elif ratio_no_respaldado <= 0.30:
+        informacion_respaldada = 4
+    elif ratio_no_respaldado <= 0.40:
+        informacion_respaldada = 3
+    else:
+        informacion_respaldada = 1
 
     # ========================================================
     # 5. RESULTADO
