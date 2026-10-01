@@ -33,11 +33,16 @@ const internalState = {
   // Libros y documentos personalizados subidos por el usuario
   customBooks: loadCustomBooksFromStorage(),
 
-  // Parámetros de adaptación seleccionados (contrato v1)
+  // Parámetros de adaptación seleccionados (contrato Sprint 2)
   adaptationParams: {
+    profile: 'intermediate',
+    niche: 'general',
+    detail_level: 'detailed',
+    learning_objective: null,
+    // Compatibilidad retroactiva con vistas existentes
     target_profile: 'intermediate',
-    output_format: 'all',
-    niche_context: 'general'
+    niche_context: 'general',
+    output_format: 'all'
   },
 
   // Estado del Cuaderno Interactivo Dinámico
@@ -50,6 +55,7 @@ const internalState = {
   studyHub: {
     activeSectionId: null,
     formats: null, // Formatos cargados desde GET /documents/{id}/formats
+    formatsStatus: 'idle', // 'idle' | 'pending' | 'processing' | 'ready' | 'partial' | 'error'
     activeFormat: 'flashcards', // 'flashcards', 'quiz', 'video', 'sintesis'
     currentCardIndex: 0,
     isFlipped: false

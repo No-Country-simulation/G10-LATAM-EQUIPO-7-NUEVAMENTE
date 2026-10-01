@@ -206,17 +206,29 @@
                 </select>
               </div>
 
+              <!-- Nivel de Detalle (detail_level) -->
+              <div class="param-field">
+                <label for="paramDetailLevel" class="param-label">
+                  <strong>Nivel de Detalle:</strong>
+                </label>
+                <select id="paramDetailLevel" class="custom-select">
+                  <option value="detailed" selected>Detallado / Paso a paso exhaustivo y explicativo</option>
+                  <option value="standard">Estándar / Cobertura equilibrada de contenidos</option>
+                  <option value="concise">Conciso / Enfoque sintético en conceptos clave</option>
+                </select>
+              </div>
+
               <!-- Formato Inicial de Salida (output_format) -->
               <div class="param-field">
                 <label for="paramFormato" class="param-label">
-                  <strong>Formato de Salida Solicitado:</strong>
+                  <strong>Formatos Pedagógicos Generados:</strong>
                 </label>
                 <select id="paramFormato" class="custom-select">
-                  <option value="all" selected>Resolver los 4 Formatos (Flashcards, Quiz, Video, Resumen)</option>
-                  <option value="flashcards">Flashcards (Mnemotecnia y Repetición)</option>
-                  <option value="quiz">Quiz (Autoevaluación con Retroalimentación)</option>
-                  <option value="tutorial">Tutorial (Video y Guion Didáctico)</option>
-                  <option value="summary">Resumen (Síntesis Ejecutiva)</option>
+                  <option value="all" selected>Sprint 2: Quiz + Flashcards automáticos (Ambos)</option>
+                  <option value="flashcards">Flashcards 3D (Mnemotecnia y Repetición)</option>
+                  <option value="quiz">Quiz Interactivo (Autoevaluación)</option>
+                  <option value="tutorial" disabled>Tutorial / Video (Sprint 3 · Próximamente)</option>
+                  <option value="summary" disabled>Resumen Ejecutivo (Sprint 3 · Próximamente)</option>
                 </select>
               </div>
 
@@ -242,7 +254,7 @@
               <div class="step-circle">1</div>
               <div class="step-info">
                 <strong>Guardando</strong>
-                <span>Archivo y datos</span>
+                <span>Almacenamiento OCI</span>
               </div>
             </div>
             <div class="step-line" id="line1"></div>
@@ -250,8 +262,8 @@
             <div class="step-item" id="stepChroma">
               <div class="step-circle">2</div>
               <div class="step-info">
-                <strong>Analizando</strong>
-                <span>Lectura del contenido</span>
+                <strong>Indexando</strong>
+                <span>Contenido y Embeddings</span>
               </div>
             </div>
             <div class="step-line" id="line2"></div>
@@ -260,7 +272,7 @@
               <div class="step-circle">3</div>
               <div class="step-info">
                 <strong>Generando</strong>
-                <span>Material de estudio</span>
+                <span>Quiz y Flashcards con IA</span>
               </div>
             </div>
             <div class="step-line" id="line3"></div>
@@ -268,8 +280,8 @@
             <div class="step-item" id="stepCritic">
               <div class="step-circle">4</div>
               <div class="step-info">
-                <strong>Validando</strong>
-                <span>Calidad del contenido</span>
+                <strong>Formatos</strong>
+                <span>Disponibles para estudio</span>
               </div>
             </div>
           </div>

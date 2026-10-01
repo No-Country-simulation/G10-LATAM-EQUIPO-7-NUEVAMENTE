@@ -98,13 +98,19 @@ export const apiClient = {
    */
   async checkHealth() {
     const url = `${CONFIG.API.DEFAULT_BASE_URL}${CONFIG.API.V1_PREFIX}${CONFIG.API.ENDPOINTS.HEALTH}`;
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 2500);
+
     try {
       const response = await fetch(url, {
         method: 'GET',
-        headers: { 'Accept': 'application/json' }
+        headers: { 'Accept': 'application/json' },
+        signal: controller.signal
       });
+      clearTimeout(timeoutId);
       return response.ok;
     } catch {
+      clearTimeout(timeoutId);
       return false;
     }
   },
@@ -272,14 +278,16 @@ export const apiClient = {
   },
 
   /**
-   * Llama al endpoint de procesamiento RAG adaptativo
-   * @param {Object} adaptationRequest 
+   * Llama al endpoint de adaptación pedagógica del Backend (POST /api/v1/adaptations)
+   * En Sprint 2 genera automáticamente Quiz + Flashcards a partir del documento indexado.
+   * @param {Object} adaptationRequest - { document_id, profile, niche, detail_level, learning_objective }
    */
   async adaptContent(adaptationRequest) {
-    const url = `${CONFIG.API.DEFAULT_BASE_URL}${CONFIG.API.V1_PREFIX}${CONFIG.API.ENDPOINTS.ADAPT_RAG}`;
+    const url = `${CONFIG.API.DEFAULT_BASE_URL}${CONFIG.API.V1_PREFIX}${CONFIG.API.ENDPOINTS.ADAPTATIONS}`;
+    const timeoutMs = CONFIG.API.ADAPTATIONS_TIMEOUT_MS || 120000;
 
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), CONFIG.API.TIMEOUT_MS);
+    const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
 
     try {
       const response = await fetch(url, {
@@ -305,8 +313,12 @@ export const apiClient = {
         httpStatus: response.status
       };
     } catch (err) {
+      clearTimeout(timeoutId);
       if (err.name === 'AbortError') {
-        throw new ApiError(408, { message: 'El servidor tardó demasiado tiempo en responder (Timeout de 30s).' });
+        throw new ApiError(408, {
+          code: 'TIMEOUT_ERROR',
+          message: `El servidor tardó más de ${Math.round(timeoutMs / 1000)}s en generar el material de estudio con IA. Intenta nuevamente.`
+        });
       }
       if (err instanceof TypeError && err.message.toLowerCase().includes('fetch')) {
         throw new ApiError(0, {

@@ -43,7 +43,15 @@ function resolveApiBaseUrl() {
     }
   }
 
-  // 5. Fallback por defecto
+  // 5. Si estamos en un despliegue en la nube (no localhost), usar el mismo origen
+  if (typeof window !== 'undefined' && window.location && window.location.hostname) {
+    const host = window.location.hostname;
+    if (host !== 'localhost' && host !== '127.0.0.1') {
+      return window.location.origin;
+    }
+  }
+
+  // 6. Fallback por defecto
   return 'http://localhost:8000';
 }
 
@@ -70,10 +78,12 @@ export const CONFIG = {
       HEALTH: '/health',
       DOCUMENTS: '/documents',
       UPLOAD_FILE: '/documents',
+      ADAPTATIONS: '/adaptations',
       DOCUMENT_DETAILS: (id) => `/documents/${id}`,
       DOCUMENT_FORMATS: (id) => `/documents/${id}/formats`
     },
-    TIMEOUT_MS: resolveTimeoutMs()
+    TIMEOUT_MS: resolveTimeoutMs(),
+    ADAPTATIONS_TIMEOUT_MS: 120000 // 120s para procesamiento síncrono RAG + LLM en Sprint 2
   },
 
   // Restricciones de carga de documentos (Sprint 2: Límite estricto 10 MB)
