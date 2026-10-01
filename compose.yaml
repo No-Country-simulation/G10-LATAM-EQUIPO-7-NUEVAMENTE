@@ -42,3 +42,19 @@ services:
 
     ports:
       - "80:80"
+      
+  agents:
+    build:
+      context: .
+      dockerfile: agentes/Dockerfile
+
+    container_name: nuevamente-agentes
+
+    restart: unless-stopped
+
+    ports:
+      - "127.0.0.1:8001:8001"
+
+    volumes:
+      - /opt/nuevamente/data/agents:/app/chroma_db
+      - /opt/nuevamente/data/huggingface:/root/.cache/huggingface
