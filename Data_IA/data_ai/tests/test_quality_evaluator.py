@@ -1,133 +1,192 @@
-"""
-Tests automáticos de la capa quality_evaluator.
-
-Valida:
-- la estructura interna QualityEvaluationResult;
-- la compatibilidad con EvaluationScores;
-- la firma esperada de evaluate();
-- el comportamiento temporal mientras la lógica real no está integrada.
-"""
-
-import pytest
-
-from data_ai.evaluation.quality_evaluator import (
-    QualityEvaluationResult,
-    evaluate,
-)
+from data_ai.evaluation.quality_evaluator import evaluate
 from data_ai.schemas.format_evaluation import (
     ChunkUsed,
-    EvaluationScores,
+    FlashcardsContent,
     GenerationContext,
     QuizContent,
     QuizQuestion,
+    FlashcardItem,
 )
 
 
-def build_quiz_content() -> QuizContent:
-    """Construye un Quiz válido para pruebas."""
-    return QuizContent(
-        title="Quiz sobre FastAPI",
-        instructions="Selecciona la respuesta correcta.",
-        questions=[
-            QuizQuestion(
-                question_id="Q1",
-                question="¿Qué clase se utiliza para crear una aplicación FastAPI?",
-                options=["FastAPI", "Flask", "Django"],
-                correct_answer="FastAPI",
-                explanation="La clase FastAPI se utiliza para crear la aplicación.",
-            )
-        ],
-    )
-
-
 def build_chunks() -> list[ChunkUsed]:
-    """Construye evidencia válida para pruebas."""
     return [
         ChunkUsed(
             chunk_id="DOC-001_CH_001",
             document_id="DOC-001",
             rank=1,
-            score=0.91,
+            score=0.95,
             text=(
-                "Para crear una aplicación se importa FastAPI desde "
-                "el paquete fastapi y se instancia la clase FastAPI."
+                "Python es un lenguaje de programación utilizado "
+                "para desarrollo backend y ciencia de datos."
             ),
         )
     ]
 
 
-def build_generation_context() -> GenerationContext:
-    """Construye un contexto de generación válido."""
-    return GenerationContext(
+def test_quiz_aprobado():
+    content = QuizContent(
+        title="Quiz de Python",
+        instructions="Selecciona la respuesta correcta.",
+        questions=[
+            QuizQuestion(
+                question_id="Q1",
+                question="¿Qué es Python?",
+                options=[
+                    "Un lenguaje de programación",
+                    "Un sistema operativo",
+                    "Una base de datos",
+                ],
+                correct_answer="Un lenguaje de programación",
+                explanation=(
+                    "Python es un lenguaje de programación "
+                    "utilizado en múltiples áreas."
+                ),
+            )
+        ],
+    )
+
+    context = GenerationContext(
+        profile="avanzado",
+        niche="python",
+        detail_level="medio",
+        learning_objective="python",
+    )
+
+    scores, informacion_no_respaldada = evaluate(
+        generated_content=content,
+        chunks_used=build_chunks(),
+        generation_context=context,
+    )
+
+    assert scores.relevancia == 5
+    assert scores.coherencia == 5
+    assert scores.adaptacion_didactica == 5
+    assert isinstance(informacion_no_respaldada, bool)
+
+
+def test_quiz_principiante_requiere_revision():
+    texto_largo = "Python es un lenguaje de programación. " * 150
+
+    content = QuizContent(
+        title="Quiz largo de Python",
+        instructions=texto_largo,
+        questions=[
+            QuizQuestion(
+                question_id="Q1",
+                question="¿Qué es Python?",
+                options=[
+                    "Lenguaje de programación",
+                    "Base de datos",
+                ],
+                correct_answer="Lenguaje de programación",
+                explanation=texto_largo,
+            )
+        ],
+    )
+
+    context = GenerationContext(
+        profile="principiante",
+        niche="python",
+        detail_level="medio",
+        learning_objective="python",
+    )
+
+    scores, _ = evaluate(
+        generated_content=content,
+        chunks_used=build_chunks(),
+        generation_context=context,
+    )
+
+    assert scores.adaptacion_didactica == 3
+
+
+def test_flashcards_detecta_informacion_no_respaldada():
+    content = FlashcardsContent(
+        title="Flashcards de Python",
+        instructions="Estudia las tarjetas.",
+        cards=[
+            FlashcardItem(
+                card_id="F1",
+                front="¿Qué permite Python?",
+                back=(
+                    "Python permite construir naves espaciales "
+                    "intergalácticas mediante reactores cuánticos."
+                ),
+            )
+        ],
+    )
+
+    context = GenerationContext(
         profile="student",
-        niche="technology",
+        niche="python",
         detail_level="beginner",
-        learning_objective="Comprender conceptos básicos de FastAPI",
+        learning_objective="python",
     )
 
-
-def test_quality_evaluation_result_is_valid():
-    """QualityEvaluationResult debe almacenar una salida válida."""
-    result = QualityEvaluationResult(
-        status="aprobado",
-        scores=EvaluationScores(
-            relevancia=5,
-            coherencia=5,
-            adaptacion_didactica=4,
-            informacion_respaldada=5,
-        ),
-        informacion_no_respaldada=False,
-        observaciones=[],
+    scores, informacion_no_respaldada = evaluate(
+        generated_content=content,
+        chunks_used=build_chunks(),
+        generation_context=context,
     )
 
-    assert result.status == "aprobado"
-    assert result.scores.relevancia == 5
-    assert result.scores.coherencia == 5
-    assert result.scores.adaptacion_didactica == 4
-    assert result.scores.informacion_respaldada == 5
-    assert result.informacion_no_respaldada is False
-    assert result.observaciones == []
+    assert informacion_no_respaldada is True
+    assert scores.informacion_respaldada == 1
 
 
-def test_evaluate_placeholder_raises_not_implemented():
-    """
-    Mientras la lógica real no esté integrada,
-    evaluate() debe lanzar NotImplementedError.
-    """
-    generated_content = build_quiz_content()
-    chunks_used = build_chunks()
-    generation_context = build_generation_context()
+def test_learning_objective_opcional():
+    content = FlashcardsContent(
+        title="Flashcards",
+        instructions="Repasa conceptos.",
+        cards=[
+            FlashcardItem(
+                card_id="F1",
+                front="¿Qué es Python?",
+                back="Python es un lenguaje de programación.",
+            )
+        ],
+    )
 
-    with pytest.raises(
-        NotImplementedError,
-        match="La lógica del quality evaluator todavía no ha sido integrada.",
-    ):
-        evaluate(
-            generated_content=generated_content,
-            chunks_used=chunks_used,
-            generation_context=generation_context,
-        )
-
-
-def test_generation_context_without_learning_objective_is_accepted():
-    """
-    La interfaz debe aceptar generation_context sin learning_objective,
-    ya que ese campo es opcional.
-    """
-    generated_content = build_quiz_content()
-    chunks_used = build_chunks()
-
-    generation_context = GenerationContext(
+    context = GenerationContext(
         profile="student",
-        niche="technology",
+        niche="python",
         detail_level="beginner",
     )
 
-    assert generation_context.learning_objective is None
+    scores, informacion_no_respaldada = evaluate(
+        generated_content=content,
+        chunks_used=build_chunks(),
+        generation_context=context,
+    )
 
-    with pytest.raises(NotImplementedError):
-        evaluate(
-            generated_content=generated_content,
-            chunks_used=chunks_used,
-            generation_context=generation_context,
-        )
+    assert scores.relevancia in (3, 5)
+    assert isinstance(informacion_no_respaldada, bool)
+
+
+def test_evaluacion_relevancia_nicho_generico():
+    """Valida que un nicho genérico sin objetivo no castigue la relevancia."""
+    content = FlashcardsContent(
+        title="Flashcards",
+        instructions="Repasa conceptos.",
+        cards=[
+            FlashcardItem(
+                card_id="F2",
+                front="¿Qué es Python?",
+                back="Python es un lenguaje de programación.",
+            )
+        ],
+    )
+
+    context = GenerationContext(
+        profile="student",
+        niche="General", 
+        detail_level="beginner", 
+    )
+
+    scores, _ = evaluate(
+        generated_content=content,
+        chunks_used=build_chunks(),
+        generation_context=context,
+    )
+
+    assert scores.relevancia == 5
