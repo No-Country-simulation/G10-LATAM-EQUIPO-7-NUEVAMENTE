@@ -1,0 +1,75 @@
+services:
+  backend:
+    build:
+      context: ./backend
+
+    container_name: nuevamente-backend
+
+    restart: unless-stopped
+
+    ports:
+      - "127.0.0.1:8000:8000"
+
+    environment:
+      ENVIRONMENT: staging
+      DEBUG: "false"
+
+      DATABASE_URL: sqlite:///storage/nuevamente.db
+
+      OCI_CONFIG_FILE: /run/oci/config
+      OCI_CONFIG_PROFILE: DEFAULT
+      OCI_NAMESPACE: axrhuqxl8oyi
+      OCI_BUCKET_NAME: bucket-nuevamente-2026
+      OCI_REGION: sa-bogota-1
+      
+      RAG_BASE_URL: http://agents:8001
+      RAG_INDEX_PATH: /api/v1/index
+      RAG_TIMEOUT_SECONDS: "120"
+
+    volumes:
+      - /opt/nuevamente/data/backend:/app/storage
+      - /opt/nuevamente/secrets/oci/config:/run/oci/config:ro
+      - /opt/nuevamente/secrets/oci/backend.pem:/run/oci/backend.pem:ro
+      
+  frontend:
+    build:
+      context: ./frontend
+      args:
+        VITE_API_BASE_URL: /
+
+    container_name: nuevamente-frontend
+
+    restart: unless-stopped
+
+    depends_on:
+      - backend
+
+    ports:
+      - "80:80"
+      
+  agents:
+    build:
+      context: .
+      dockerfile: agentes/Dockerfile
+
+    container_name: nuevamente-agentes
+
+    restart: unless-stopped
+
+    ports:
+      - "127.0.0.1:8001:8001"
+
+    volumes:
+      - /opt/nuevamente/data/agents:/app/chroma_db
+      - /opt/nuevamente/data/huggingface:/root/.cache/huggingface
+      
+  data-ia:
+    build:
+      context: ./Data_IA
+
+    container_name: nuevamente-data-ia
+
+    restart: unless-stopped
+
+    ports:
+      - "127.0.0.1:8002:8002"

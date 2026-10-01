@@ -1,16 +1,37 @@
 # NuevaMente — Infraestructura OCI
 
 **Proyecto:** NuevaMente  
-**Fecha de actualización:** 28 de septiembre de 2026
+**Fecha de actualización:** 30 de septiembre de 2026  
+**Objetivo:** documentar únicamente los recursos OCI, accesos, red y seguridad de la infraestructura base.
 
-> Documento consolidado exclusivamente de infraestructura.  
-> **No contiene claves privadas.** Las claves privadas, contraseñas y tokens no deben almacenarse en el repositorio ni en este documento.
+> Este documento no describe Docker, la topología interna de servicios ni el proceso de despliegue.  
+> Para esos temas consultar:
+> - `NuevaMente_Arquitectura_OCI_Actual.md`
+> - `NuevaMente_Despliegue_Docker_CICD.md`
 
 ---
 
-# 1. OCI Object Storage
+# 1. Distribución de infraestructura
 
-## 1.1 Bucket
+NuevaMente utiliza actualmente recursos en dos entornos OCI distintos:
+
+```text
+OCI de Matias — Chile Central (Santiago)
+└── VM Oracle Linux
+    └── IP pública reservada: 155.181.154.104
+
+OCI de Tara — Colombia Central (Bogotá)
+└── Object Storage
+    └── bucket-nuevamente-2026
+```
+
+La VM y el bucket no necesitan pertenecer a la misma tenancy. El Backend accede al bucket mediante OCI SDK y API Signing Keys de la tenancy donde vive Object Storage.
+
+---
+
+# 2. Object Storage
+
+## 2.1 Bucket
 
 ```text
 Bucket:      bucket-nuevamente-2026
@@ -22,26 +43,24 @@ Región UI:   Colombia Central (Bogotá)
 Configuración confirmada:
 
 ```text
-Storage tier:                     Standard
-Visibilidad:                      Privado
-Cifrado:                          Clave gestionada por Oracle
-Auto-Tiering:                     Desactivado
-Eventos de objetos:               Desactivado
-Versionado de objetos:            Desactivado
+Storage tier:          Standard
+Visibilidad:           Privado
+Cifrado:               Clave gestionada por Oracle
+Auto-Tiering:          Desactivado
+Eventos de objetos:    Desactivado
+Versionado de objetos: Desactivado
 ```
 
-El bucket no necesita ser público.
+El bucket no debe exponerse públicamente.
 
 ---
 
-# 2. Identidad técnica de OCI
-
-Se creó una identidad técnica específica para el acceso del Backend a Object Storage.
+# 3. Identidad técnica para Object Storage
 
 ```text
-Identity Domain:  Default
-Usuario:          nuevamente-backend
-Grupo IAM:        NuevaMente-Backend
+Identity Domain: Default
+Usuario:         nuevamente-backend
+Grupo IAM:       NuevaMente-Backend
 ```
 
 OCID del usuario:
@@ -56,19 +75,19 @@ Tenancy donde vive el bucket:
 ocid1.tenancy.oc1..aaaaaaaa64x5krjwhatofelx3gan3cezqomlmm2lkott6ia2wihejclkfw3a
 ```
 
-El usuario técnico se utiliza para autenticación API mediante API Signing Keys.
+El usuario técnico se autentica mediante API Signing Keys.
 
 ---
 
-# 3. Política IAM del bucket
+# 4. Política IAM del bucket
 
-Nombre de política:
+Política:
 
 ```text
 NuevaMente-Backend-ObjectStorage
 ```
 
-Políticas configuradas:
+Reglas configuradas:
 
 ```text
 Allow group 'Default'/'NuevaMente-Backend' to read buckets in tenancy where target.bucket.name = 'bucket-nuevamente-2026'
@@ -76,66 +95,42 @@ Allow group 'Default'/'NuevaMente-Backend' to read buckets in tenancy where targ
 Allow group 'Default'/'NuevaMente-Backend' to manage objects in tenancy where target.bucket.name = 'bucket-nuevamente-2026'
 ```
 
-Esto permite al grupo:
-
-- consultar el bucket;
-- listar objetos;
-- subir archivos;
-- leer archivos;
-- reemplazar objetos;
-- eliminar objetos.
-
-Los permisos quedan restringidos al bucket:
-
-```text
-bucket-nuevamente-2026
-```
+Esto permite consultar el bucket y gestionar objetos únicamente dentro de `bucket-nuevamente-2026`.
 
 ---
 
-# 4. Autenticación OCI mediante API Signing Keys
+# 5. Autenticación OCI mediante API Signing Keys
 
-Cada desarrollador que necesite acceder a Object Storage desde local debe usar su propio par de claves.
+Cada desarrollador que necesite acceso directo al bucket desde local debe usar su propio par de claves.
 
 Flujo:
 
 ```text
-Desarrollador genera par de claves
-↓
-Conserva la clave privada localmente
-↓
-Envía únicamente la clave pública
-↓
-La clave pública se registra en:
-nuevamente-backend → Claves de API
-↓
-OCI genera un fingerprint
-↓
-El desarrollador configura su archivo OCI local
+Generar par de claves
+→ conservar la privada localmente
+→ registrar únicamente la pública en OCI
+→ obtener fingerprint
+→ configurar ~/.oci/config local
 ```
 
 La clave privada:
 
 ```text
-NO se envía por Discord
-NO se comparte con otros miembros
+NO se comparte
+NO se envía por canales de mensajería
 NO se sube a Git
-NO se almacena en este documento
+NO se almacena en documentación
 ```
 
----
-
-# 5. Configuración OCI para acceso desde local
-
-Plantilla:
+Plantilla de configuración:
 
 ```ini
 [DEFAULT]
 user=ocid1.user.oc1..aaaaaaaam3af4ix75zen4gcfgawsmjsbbj6vofvw66cdmajbkps46grztama
-fingerprint=<FINGERPRINT_DE_LA_CLAVE_DEL_DESARROLLADOR>
+fingerprint=<FINGERPRINT>
 tenancy=ocid1.tenancy.oc1..aaaaaaaa64x5krjwhatofelx3gan3cezqomlmm2lkott6ia2wihejclkfw3a
 region=sa-bogota-1
-key_file=<RUTA_LOCAL_A_LA_CLAVE_PRIVADA_PEM>
+key_file=<RUTA_LOCAL_A_LA_CLAVE_PRIVADA>
 ```
 
 Variables asociadas al bucket:
@@ -146,164 +141,51 @@ OCI_BUCKET_NAME=bucket-nuevamente-2026
 OCI_REGION=sa-bogota-1
 ```
 
-`key_file` siempre apunta a la clave privada local del desarrollador.
-
 ---
 
 # 6. API Keys registradas
 
-## 6.1 Clave inicial de administración
-
-Fingerprint:
+Clave inicial de administración:
 
 ```text
-1c:de:d5:25:c1:64:11:05:17:93:30:3f:44:5c:ec:1a
+Fingerprint: 1c:de:d5:25:c1:64:11:05:17:93:30:3f:44:5c:ec:1a
 ```
 
-La clave privada correspondiente quedó bajo control de administración y no se comparte.
-
-## 6.2 JSarabino
-
-Archivo público registrado:
+Clave de JSarabino:
 
 ```text
-nuevamente_api_key_public.pem
+Fingerprint: 48:58:2a:58:4d:b6:af:90:8e:65:e6:b0:3a:ff:79:f6
 ```
 
-Fingerprint:
-
-```text
-48:58:2a:58:4d:b6:af:90:8e:65:e6:b0:3a:ff:79:f6
-```
-
-Configuración asociada:
-
-```ini
-[DEFAULT]
-user=ocid1.user.oc1..aaaaaaaam3af4ix75zen4gcfgawsmjsbbj6vofvw66cdmajbkps46grztama
-fingerprint=48:58:2a:58:4d:b6:af:90:8e:65:e6:b0:3a:ff:79:f6
-tenancy=ocid1.tenancy.oc1..aaaaaaaa64x5krjwhatofelx3gan3cezqomlmm2lkott6ia2wihejclkfw3a
-region=sa-bogota-1
-key_file=<ruta local de SU clave privada>
-```
+Las claves privadas correspondientes permanecen bajo control de cada propietario y fuera del repositorio.
 
 ---
 
-# 7. Procedimiento para agregar una nueva API Key
+# 7. Máquina virtual OCI
 
-Ruta en OCI:
-
-```text
-Identidad y seguridad
-→ Dominios
-→ Default
-→ Usuarios
-→ nuevamente-backend
-→ Claves de API
-→ Agregar clave de API
-→ Seleccionar archivo de clave pública
-```
-
-Se carga únicamente la clave pública.
-
-Después OCI entrega el fingerprint correspondiente.
-
-Datos a entregar al desarrollador:
+La VM fue creada en la cuenta OCI de Matias.
 
 ```text
-user
-tenancy
-region
-fingerprint
-namespace
-bucket
+Región observada: Chile Central (Santiago)
+Sistema operativo: Oracle Linux 9.8
+IP privada:       10.0.0.213
+IP pública:       155.181.154.104
+Tipo IP pública:  Reserved
 ```
 
-El desarrollador completa localmente:
+Elementos de red confirmados:
 
 ```text
-key_file=<ruta a su propia clave privada>
+VCN:    vcn-20260923-1652
+Subnet: subnet-20260923-1652
+VNIC:   VNIC-NuevaMente
 ```
+
+La subred dispone de conectividad a Internet mediante Internet Gateway y tabla de rutas.
 
 ---
 
-# 8. Máquina virtual OCI
-
-La VM fue creada en una cuenta OCI de Matias. 
-
-Región observada:
-
-```text
-Chile Central (Santiago)
-```
-
-Sistema operativo:
-
-```text
-Oracle Linux
-```
-
----
-
-# 9. Red de la VM
-
-Elementos confirmados:
-
-```text
-VCN:       vcn-20260923-1652
-Subnet:    subnet-20260923-1652
-VNIC:      VNIC-NuevaMente
-```
-
-La subred fue conectada a Internet mediante:
-
-- Internet Gateway;
-- tabla de rutas;
-- Network Security Group asociado a la VNIC.
-
-Direcciones:
-
-```text
-IP privada:           10.0.0.213
-IP pública reservada: 155.181.154.104
-```
-
-La IP pública es **Reserved**, no efímera.
-
----
-
-# 10. Distribución actual de infraestructura
-
-Actualmente la infraestructura está distribuida entre dos entornos OCI:
-
-```text
-OCI de Matias  — Chile Central (Santiago)
-└── VM Oracle Linux
-    └── servicios a desplegar
-             │
-             │ OCI SDK + API Signing Key
-             ▼
-OCI de Tara — Colombia Central (Bogotá)
-└── Object Storage
-    └── bucket-nuevamente-2026
-```
-
-La VM y el bucket no necesitan pertenecer a la misma tenancy.
-
-El acceso desde la VM al bucket se autentica con:
-
-```text
-user
-tenancy
-fingerprint
-private key
-```
-
-de la tenancy donde vive Object Storage.
-
----
-
-# 11. Acceso SSH a la VM
+# 8. Acceso SSH a la VM
 
 Usuario de Oracle Linux:
 
@@ -311,74 +193,13 @@ Usuario de Oracle Linux:
 opc
 ```
 
-IP pública:
-
-```text
-155.181.154.104
-```
-
-Clave SSH privada local de Tara:
-
-```powershell
-$env:USERPROFILE\.ssh\nuevamente_oci
-```
-
-Clave pública:
-
-```powershell
-$env:USERPROFILE\.ssh\nuevamente_oci.pub
-```
-
-Rutas típicas:
-
-```text
-C:\Users\<USUARIO>\.ssh\nuevamente_oci
-C:\Users\<USUARIO>\.ssh\nuevamente_oci.pub
-```
-
-La clave sin `.pub` es privada y no debe compartirse.
-
----
-
-# 12. Creación de la clave SSH
-
-Comando utilizado en PowerShell:
-
-```powershell
-New-Item -ItemType Directory -Force "$env:USERPROFILE\.ssh" | Out-Null; ssh-keygen -t rsa -b 4096 -f "$env:USERPROFILE\.ssh\nuevamente_oci" -C "tara-nuevamente-oci"
-```
-
-Fingerprint de la clave pública:
-
-```text
-4096 SHA256:Ag0ODfy5YQ9egVzGkSybEZJTy1Hzmad8aNKA7UUrZ44 tara-nuevamente-oci (RSA)
-```
-
----
-
-# 13. Clave SSH pública usada para la VM
-
-```text
-ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAACAQDtEGeH5vZJVKE9CQ/TYPDZBD5J6A2kWBd/XCN6505/aMU7Of070c+3k41CRyYBE/PWwtr0VqPNcawZXPNB0eHqKD40mcN9pmI1Yn1pzNIpNEECU7TZD429mXJqwWgSEHdJfMXdNnemMxwYqtHLhFreF+zVa2hUv2xVakcsQoPyPvMd5Kyn4LNvL6/jeWRMPTkAx4lv7TWYSrkCqA+u6+wkMMNxMMgGLv0hubNKQsj115g0yurGtJlkxRIBbkXZYaKQxQhDIxCUN/831+CZe0qyEey+w8DUcdGLxytI8ZKgk2OIsDoYhdfrF2tC5EImsvqDRBQp5ij0+Qb/LoemKAqgclTHxBsaUP+za+miXxlNpCTYCFi7IYy15iQ/4MltEinwrx7msR1X2xP68VOHoYjkH1VIuAlytT+nfYurWXSlz7S7VltO2CGHrKxLZbTYkj4b0RHeoLwvend99z17s4+9xe84IspFubaY/b3WdDzSp71BvGF3YKLQFdyVDAAtYuG50u6pcdQjNzhwbtjqWO7wG23V4Z7LOvQ5yo2NSmqkXdPq7SOTd755u07a+LUq7cFXZ+NBpwVh17wI0ig+0/oWKULTHvywmYAUgVRK1xke2vVsXb2iF/PqBcEsyaeknrDw2ZMxvkafbHfcrHiexVu9WbcM5/aru1XMfhFBD/09+Q== tara-nuevamente-oci
-```
-
----
-
-# 14. Conexión SSH desde Windows
-
-Comando probado:
+Conexión desde Windows PowerShell:
 
 ```powershell
 ssh -i "$env:USERPROFILE\.ssh\nuevamente_oci" opc@155.181.154.104
 ```
 
-En la primera conexión SSH solicita confirmar la autenticidad del host.
-
-Se acepta con:
-
-```text
-yes
-```
+La clave privada local se mantiene fuera del repositorio.
 
 Fingerprint ED25519 observado para la VM:
 
@@ -386,165 +207,51 @@ Fingerprint ED25519 observado para la VM:
 SHA256:As6EQXC6oqbtiW5xyppES4mkuam4C2bqj+TUdxYvUK4
 ```
 
-Si la huella del host cambia inesperadamente en el futuro, debe verificarse la instancia antes de aceptar una nueva.
+Si esta huella cambia inesperadamente, debe verificarse la instancia antes de aceptar una nueva.
 
 ---
 
-# 15. Comandos básicos de verificación en la VM
+# 9. Red y exposición pública
 
-```bash
-whoami
-```
-
-Esperado:
+Hay dos capas independientes de control de red:
 
 ```text
-opc
+1. Firewall del sistema operativo
+2. Security List / NSG de OCI
 ```
 
-También:
-
-```bash
-hostname
-```
-
-```bash
-uname -a
-```
-
-Para tareas administrativas:
-
-```bash
-sudo <comando>
-```
-
----
-
-# 16. Acceso OCI vs acceso a la VM
-
-Son accesos distintos.
-
-## Consola OCI
-
-El dueño de la tenancy conserva control sobre:
-
-- creación/eliminación de la VM;
-- VCN;
-- subnet;
-- VNIC;
-- IP pública;
-- reglas de red;
-- almacenamiento de bloque;
-- configuración de Compute.
-
-## Sistema operativo
-
-El acceso se realiza por SSH:
+En Oracle Linux están habilitados:
 
 ```text
-Tara
-→ SSH con clave privada local
-→ opc@155.181.154.104
-→ sudo
-→ administración del entorno
+ssh
+http
 ```
 
-No es necesario tener acceso completo a la consola OCI del propietario de la VM para administrar el sistema operativo.
-
----
-
-# 17. Servicios previstos en la VM
-
-Infraestructura debe preparar:
+La URL pública actual de NuevaMente es:
 
 ```text
-Python
-MySQL
-Nginx
-Frontend
-Backend
-Agentes
-Data / IA
-URLs públicas
-CI/CD desde GitHub
+http://155.181.154.104
 ```
 
-Esquema previsto:
+La apertura o modificación de reglas de red OCI corresponde a la tenancy propietaria de la VM.
 
-```text
-Internet
-   │
-   ▼
-Reserved Public IP
-155.181.154.104
-   │
-   ▼
-Nginx
-   ├── Frontend
-   ├── Backend API
-   ├── Agentes
-   └── Data / IA
-```
+Las credenciales OCI del bucket no otorgan permisos sobre la red de la VM, porque pertenecen a otra tenancy.
 
 ---
 
-# 18. Estado confirmado de infraestructura
-
-Confirmado:
-
-- OCI Object Storage creado.
-- Bucket privado operativo.
-- Namespace identificado.
-- Región identificada.
-- Usuario técnico `nuevamente-backend` creado.
-- Grupo IAM `NuevaMente-Backend` creado.
-- Política IAM restringida al bucket creada.
-- API Signing Key de JSarabino registrada.
-- VM creada.
-- Oracle Linux confirmado.
-- Subred con conectividad a Internet.
-- IP pública reservada asignada.
-- Acceso SSH desde el equipo de Tara probado correctamente.
-- Infraestructura base disponible para despliegue.
-
----
-
-# 19. Pendientes de infraestructura
-
-Pendiente o no confirmado todavía:
-
-- instalación definitiva de Python;
-- instalación/configuración de MySQL;
-- instalación/configuración de Nginx;
-- despliegue estable de Frontend;
-- despliegue estable de Backend;
-- despliegue de Agentes;
-- despliegue de Data/IA;
-- URLs públicas por servicio;
-- reglas HTTP/HTTPS definitivas;
-- certificados TLS;
-- CI/CD desde GitHub;
-- validación de servicios después del despliegue.
-
-No debe marcarse ninguno como terminado hasta probarlo.
-
----
-
-# 20. Secretos y configuración
+# 10. Seguridad y secretos
 
 Puede documentarse:
 
 ```text
-Bucket name
-Namespace
-Region
-User OCID
-Tenancy OCID
-Fingerprint
+bucket
+namespace
+region
+OCIDs
+fingerprints
+IP pública y privada
+nombres de VCN/Subnet/VNIC
 SSH public key
-Public IP
-Private IP
-Nombres de VCN/Subnet/VNIC
 ```
 
 Debe permanecer privado:
@@ -552,11 +259,12 @@ Debe permanecer privado:
 ```text
 OCI API private keys
 SSH private key
-Passwords
-Tokens
-Secrets de LLM
-Credenciales de BD
-Secrets de CI/CD
+passwords
+tokens
+secrets de LLM
+credenciales de BD
+secrets de CI/CD
+.env productivos
 ```
 
 Regla:
@@ -570,52 +278,7 @@ ninguna contraseña
 
 ---
 
-# 21. Archivos que deben quedar fuera del repositorio
-
-Ejemplo de `.gitignore`:
-
-```gitignore
-*.pem
-.env
-.env.*
-!.env.example
-```
-
-La clave SSH privada:
-
-```text
-nuevamente_oci
-```
-
-no debe copiarse dentro del repositorio.
-
-Las claves privadas de OCI deben quedar en rutas locales seguras fuera del proyecto.
-
----
-
-# 22. Variables de entorno de infraestructura
-
-```env
-OCI_NAMESPACE=axrhuqxl8oyi
-OCI_BUCKET_NAME=bucket-nuevamente-2026
-OCI_REGION=sa-bogota-1
-```
-
-También deben mantenerse configurables por entorno:
-
-```text
-URLs de servicios
-credenciales
-rutas
-puertos
-timeouts
-variables de BD
-variables de despliegue
-```
-
----
-
-# 23. Runbook — agregar acceso OCI a un desarrollador
+# 11. Runbook — agregar acceso OCI a un desarrollador
 
 ```text
 1. El desarrollador genera un par de claves.
@@ -631,14 +294,13 @@ variables de despliegue
    fingerprint
    namespace
    bucket
-7. El desarrollador configura:
-   key_file=<ruta a su propia clave privada>
+7. El desarrollador configura su key_file local.
 8. Se prueba acceso al bucket.
 ```
 
 ---
 
-# 24. Runbook — entrar a la VM
+# 12. Runbook — entrar a la VM
 
 Desde PowerShell:
 
@@ -646,7 +308,7 @@ Desde PowerShell:
 ssh -i "$env:USERPROFILE\.ssh\nuevamente_oci" opc@155.181.154.104
 ```
 
-Verificación:
+Verificación básica:
 
 ```bash
 whoami
@@ -656,30 +318,16 @@ uname -a
 
 ---
 
-# 25. Fotografía actual de infraestructura
+# 13. Estado actual de infraestructura OCI
 
 ```text
-Object Storage
-→ operativo
-
-IAM
-→ usuario técnico operativo
-→ grupo operativo
-→ política restringida al bucket operativa
-
-API Keys
-→ mecanismo funcionando
-
-VM
-→ creada
-→ Oracle Linux
-→ red pública
-→ IP reservada
-→ SSH operativo
-
-Servidor
-→ pendiente configuración de servicios
-
-Despliegue
-→ pendiente
+Object Storage      operativo
+IAM                 operativo
+API Signing Keys    operativo
+VM                  operativa
+IP reservada        operativa
+SSH                 operativo
+HTTP público        operativo
 ```
+
+La ejecución de aplicaciones dentro de la VM se documenta por separado en la arquitectura y el documento de despliegue.
