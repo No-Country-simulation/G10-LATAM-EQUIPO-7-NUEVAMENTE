@@ -3,9 +3,9 @@ Tests automáticos de la API de evaluación de formatos.
 
 Valida:
 - GET /health -> 200
-- POST /evaluate con Quiz válido -> 501 temporal
-- POST /evaluate con Flashcards válidas -> 501 temporal
-- POST /evaluate sin learning_objective -> 501 temporal
+- POST /evaluate con Quiz válido -> 200
+- POST /evaluate con Flashcards válidas -> 200
+- POST /evaluate sin learning_objective -> 200
 - POST /evaluate sin generation_context -> 422
 - POST /evaluate con payload inválido -> 422
 """
@@ -43,56 +43,96 @@ def test_health_returns_ok():
     assert response.json() == {"status": "ok"}
 
 
-def test_valid_quiz_reaches_evaluator_placeholder():
-    """
-    Un Quiz válido debe superar la validación del contrato y llegar
-    al placeholder del evaluator, que temporalmente responde 501.
-    """
+def test_valid_quiz_returns_evaluation():
+    """Un Quiz válido debe ser evaluado y responder 200."""
     payload = load_mock("evaluation_quiz_valid_v1.json")
 
     response = client.post("/evaluate", json=payload)
 
-    assert response.status_code == 501
+    assert response.status_code == 200
 
     body = response.json()
-    assert body["detail"]["code"] == "QUALITY_EVALUATOR_NOT_IMPLEMENTED"
-    assert body["detail"]["document_id"] == "DOC-001"
-    assert body["detail"]["format"] == "quiz"
+
+    assert body["document_id"] == "DOC-001"
+    assert body["format"] == "quiz"
+
+    assert body["status"] in {
+        "aprobado",
+        "requiere_revision",
+        "rechazado",
+    }
+
+    assert "scores" in body
+    assert "relevancia" in body["scores"]
+    assert "coherencia" in body["scores"]
+    assert "adaptacion_didactica" in body["scores"]
+    assert "informacion_respaldada" in body["scores"]
+
+    assert isinstance(
+        body["informacion_no_respaldada"],
+        bool,
+    )
+
+    assert isinstance(body["observaciones"], list)
 
 
-def test_valid_flashcards_reaches_evaluator_placeholder():
-    """
-    Flashcards válidas deben superar la validación del contrato y llegar
-    al placeholder del evaluator, que temporalmente responde 501.
-    """
-    payload = load_mock("evaluation_flashcards_valid_v1.json")
+def test_valid_flashcards_returns_evaluation():
+    """Flashcards válidas deben ser evaluadas y responder 200."""
+    payload = load_mock(
+        "evaluation_flashcards_valid_v1.json"
+    )
 
     response = client.post("/evaluate", json=payload)
 
-    assert response.status_code == 501
+    assert response.status_code == 200
 
     body = response.json()
-    assert body["detail"]["code"] == "QUALITY_EVALUATOR_NOT_IMPLEMENTED"
-    assert body["detail"]["document_id"] == "DOC-001"
-    assert body["detail"]["format"] == "flashcards"
+
+    assert body["document_id"] == "DOC-001"
+    assert body["format"] == "flashcards"
+
+    assert body["status"] in {
+        "aprobado",
+        "requiere_revision",
+        "rechazado",
+    }
+
+    assert "scores" in body
+
+    assert isinstance(
+        body["informacion_no_respaldada"],
+        bool,
+    )
+
+    assert isinstance(body["observaciones"], list)
 
 
-def test_request_without_learning_objective_reaches_evaluator_placeholder():
+def test_request_without_learning_objective_returns_evaluation():
     """
-    learning_objective es opcional, por lo que su ausencia no debe impedir
-    que un request válido llegue al evaluator.
+    learning_objective es opcional y no debe impedir la evaluación.
     """
-    payload = load_mock("evaluation_quiz_valid_v1.json")
-    payload["generation_context"].pop("learning_objective")
+    payload = load_mock(
+        "evaluation_quiz_valid_v1.json"
+    )
+
+    payload["generation_context"].pop(
+        "learning_objective"
+    )
 
     response = client.post("/evaluate", json=payload)
 
-    assert response.status_code == 501
+    assert response.status_code == 200
 
     body = response.json()
-    assert body["detail"]["code"] == "QUALITY_EVALUATOR_NOT_IMPLEMENTED"
-    assert body["detail"]["document_id"] == "DOC-001"
-    assert body["detail"]["format"] == "quiz"
+
+    assert body["document_id"] == "DOC-001"
+    assert body["format"] == "quiz"
+
+    assert body["status"] in {
+        "aprobado",
+        "requiere_revision",
+        "rechazado",
+    }
 
 
 def test_missing_generation_context_returns_422():
