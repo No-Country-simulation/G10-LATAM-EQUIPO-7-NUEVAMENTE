@@ -110,3 +110,83 @@ python -m venv venv
 source venv/bin/activate   # Windows: venv\Scripts\activate
 pip install -r requirements.txt
 pytest agentes/tests/
+
+
+
+# Módulo de Agentes y Pipeline RAG - spring2
+
+Este módulo implementa el núcleo de inteligencia artificial y recuperación de información (RAG) para el proyecto NuevaMente. Integra FastAPI, bases de datos vectoriales (ChromaDB) y el LLM Gemini 3.5 Flash, garantizando capacidad atómica y validación estricta de contratos de datos.
+
+## Arquitectura y Endpoints
+
+### 1. Ingesta e Indexación (`POST /api/v1/index`)
+* **Descripción:** Recibe un documento binario mediante `multipart/form-data`, extrae su contenido (soporta PDF, TXT, MD), realiza el *chunking*, procesa embeddings multilingües y guarda los fragmentos en **ChromaDB** vinculados a un `document_id`.
+
+### 2. Generación Atómica Adaptativa (`POST /api/v1/generate`)
+* **Descripción:** Recupera los fragmentos más relevantes del RAG, ensambla un prompt dinámico adaptado al usuario (`profile`, `niche`, `detail_level`, `learning_objective`) y se conecta a **Gemini** para generar contenido.
+* **Contratos Soportados:** `quiz` y `flashcards`.
+* **Capacidad Atómica:** El sistema está protegido mediante bloques `try/except`. Si el modelo falla, no se encuentra la API Key, o la petición es inválida, se devuelve un estado `"status": "error"` controlado con su tipificación, asegurando que la ejecución del pipeline y el servidor nunca se rompan.
+
+## Validación Pydantic Estricta (Contratos Data/IA)
+Para asegurar la interoperabilidad con los equipos de Data y Frontend, la salida cruda de Gemini es interceptada y forzada a validarse contra modelos **Pydantic** (`QuizContent` y `FlashcardsContent`). Si la IA omite un campo o genera una estructura incorrecta, Pydantic bloquea la entrega y reporta el error, garantizando el estándar de **Cero Errores de Estructura**.
+
+## Configuración y Despliegue Local
+
+1. Crea un archivo `.env` en la **raíz principal del proyecto** (puedes guiarte con el `.env.example`):
+   ```env
+   GEMINI_API_KEY="api_key_aqui"
+   GEMINI_MODEL="gemini-3.5-flash"
+Instala las dependencias limpias del módulo:
+
+Bash
+pip install -r requirements.txt
+Levanta el servidor usando Uvicorn:
+
+Bash
+uvicorn agentes.api:app --reload --port 8001
+Accede a la interfaz interactiva (Swagger) en:
+http://127.0.0.1:8001/docs
+
+
+Contrato de Datos (API v1)
+El endpoint /api/v1/generate cumple estrictamente con el contrato esperado por Backend #41 y Frontend #44.
+
+Ejemplo de respuesta exitosa (status: "success"):
+
+JSON
+{
+  "document_id": "doc_123",
+  "results": [
+    {
+      "format": "quiz",
+      "status": "success",
+      "content": { ... JSON validado por Pydantic ... },
+      "sources_used": [ { "rank": 1, "chunk_id": "...", "text": "..." } ],
+      "error_message": null
+    }
+  ]
+}
+
+
+Ejemplo de respuesta fallida con capacidad atómica (status: "failed" o "no_results"):
+
+JSON
+{
+  "document_id": "doc_123",
+  "results": [
+    {
+      "format": "quiz",
+      "status": "failed",
+      "content": null,
+      "sources_used": [],
+      "error_message": "Error crítico en el pipeline o generación..."
+    }
+  ]
+}
+
+
+Ejecución de Pruebas Automatizadas
+El módulo cuenta con 13 pruebas unitarias e integración que validan el Vector Store, el Chunking, la similitud coseno y la integridad del contrato Pydantic.
+
+Bash
+python -m pytest agentes/tests/
