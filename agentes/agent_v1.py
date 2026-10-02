@@ -1,8 +1,39 @@
+import os
+import json
 import uuid
+from pathlib import Path
+import google.generativeai as genai
+from dotenv import load_dotenv
 from .rag.retriever import RetrieverService
 
+# Carga del archivo .env desde la raíz del proyecto
+env_path = Path(__file__).resolve().parent.parent / '.env'
+load_dotenv(dotenv_path=env_path)
+
+# DIAGNÓSTICO: Imprimirá en la terminal el valor exacto que detecta Python
+print(">>> RUTA DEL .ENV BUSCADA:", env_path)
+print(">>> VALOR DE LA API KEY:", repr(os.getenv("GEMINI_API_KEY")))
+
+api_key = os.getenv("GEMINI_API_KEY")
+if api_key:
+    genai.configure(api_key=api_key)
+else:
+    print("¡ALERTA: La API Key de Gemini es None o no se encontró!")
+
+
+# Configuración explícita de la API Key de Gemini
+api_key = os.getenv("GEMINI_API_KEY")
+if api_key:
+    genai.configure(api_key=api_key)
+else:
+    # Intento secundario de respaldo si se ejecuta desde la raíz
+    load_dotenv()
+    if os.getenv("GEMINI_API_KEY"):
+        genai.configure(api_key=os.getenv("GEMINI_API_KEY"))
+        
+
 PROMPTS_BASE = {
-    "quiz": "Genera un cuestionario interactivo de opción múltiple (mínimo 3 preguntas) asegurando incluir la respuesta correcta y una breve justificación.",
+    "quiz": "Genera un cuestionario interactivo de opción múltiple (mínimo 3 preguntas) asegurando incluir la respuesta correcta, opciones de distracción coherentes y una breve justificación pedagógica.",
     "flashcards": "Genera 5 tarjetas de memorización (flashcards). Cada una debe tener un concepto clave en la cara frontal y su definición concisa en la cara trasera."
 }
 
@@ -52,52 +83,62 @@ class AgentV1:
             
         prompt_final += f"""
         Adapta el lenguaje y la complejidad estrictamente a este perfil.
+        Genera identificadores únicos (IDs) cortos y alfanuméricos para cada pregunta o tarjeta.
 
-        CONTEXTO RECUPERADO:
+        CONTEXTO RECUPERADO (Usa ÚNICA Y ESTRICTAMENTE esta información, no inventes datos):
         {contexto_unificado}
         """
 
-        # 4. LLM Gen
-        texto_generado = self._llamar_llm(prompt_final, formato)
+        # 4. LLM Gen (Llamada Real a Google AI Studio)
+        try:
+            texto_generado = self._llamar_llm(prompt_final, formato)
+            error_msg = None
+            status = "success"
+        except Exception as e:
+            texto_generado = None
+            error_msg = f"Error en la generación con Gemini: {str(e)}"
+            status = "error"
 
         # 5. Salida atómica
         return {
-            "status": "success",
+            "status": status,
             "content": texto_generado,
             "sources_used": chunks_usados,
-            "error_message": None
+            "error_message": error_msg
         }
 
     def _llamar_llm(self, prompt: str, formato: str) -> dict:
-        """Simulación temporal con IDs, Títulos e Instrucciones."""
-        if formato.lower() == "quiz":
-            return {
-                "title": "[Simulación] Cuestionario de Validación",
-                "instructions": "Lee cuidadosamente cada pregunta y selecciona la opción correcta basándote en el documento.",
-                "questions": [
-                    {
-                        "question_id": f"q_{uuid.uuid4().hex[:8]}",
-                        "question": "[Simulación] ¿Cuál es un concepto central del documento?",
-                        "options": ["A) Respuesta correcta", "B) Distractor 1", "C) Distractor 2", "D) Distractor 3"],
-                        "correct_answer": "A) Respuesta correcta",
-                        "explanation": "Justificación simulada basada en el contexto recuperado."
-                    }
-                ]
-            }
-        elif formato.lower() == "flashcards":
-            return {
-                "title": "[Simulación] Tarjetas de Memoria",
-                "instructions": "Utiliza estas tarjetas para repasar los conceptos clave.",
-                "cards": [
-                    {
-                        "card_id": f"c_{uuid.uuid4().hex[:8]}",
-                        "front": "[Simulación] Concepto Clave Extraído",
-                        "back": "Definición concisa generada por la IA basada en el contexto."
-                    }
-                ]
-            }
+        """Llamada real a Gemini usando Structured Outputs y validación estricta Pydantic."""
+        from .api import QuizContent, FlashcardsContent 
+
+        # Usamos el modelo estándar con la librería google-generativeai
+        model = genai.GenerativeModel('gemini-3.5-flash')
         
-        return {"error": "Formato no soportado."}
+        # Mapeamos el formato al contrato Pydantic correcto
+        if formato.lower() == "quiz":
+            esquema_salida = QuizContent
+        elif formato.lower() == "flashcards":
+            esquema_salida = FlashcardsContent
+        else:
+            raise ValueError(f"Formato '{formato}' no soportado para generación.")
+
+        # Generación exigiendo la estructura JSON estricta en Gemini
+        response = model.generate_content(
+            prompt,
+            generation_config=genai.GenerationConfig(
+                response_mime_type="application/json",
+                response_schema=esquema_salida,
+                temperature=0.2
+            )
+        )
+        
+        # Validación Pydantic Estricta sobre el resultado del LLM
+        try:
+            raw_json = json.loads(response.text)
+            validated_model = esquema_salida.model_validate(raw_json)
+            return validated_model.model_dump()
+        except Exception as e:
+            raise ValueError(f"Fallo en la validación Pydantic del JSON de la IA: {str(e)}")
 
     def answer_for_evaluation(self, case_id: str, query: str, top_k: int = 5) -> dict:
         return self.retriever.retrieve_for_evaluation(case_id=case_id, query=query, top_k=top_k)

@@ -111,6 +111,20 @@ def generate_formats(payload: GenerateRequest):
         query_dinamico += f" Objetivo: {payload.learning_objective}"
 
     for formato in payload.formats:
+        
+        # ==========================================
+        # SOLUCIÓN DEUDA TÉCNICA (Feedback PM)
+        # ==========================================
+        if formato not in ["quiz", "flashcards"]:
+            respuestas_generadas.append({
+                "format": formato,
+                "status": "error",
+                "content": None,
+                "sources_used": [],
+                "error_message": f"El formato '{formato}' no está soportado en esta versión."
+            })
+            continue # Saltamos la ejecución del agente y pasamos al siguiente formato
+
         # El agente ahora se encargará de devolver la estructura Pydantic exacta y los chunks completos
         resultado_atomico = agent.answer(
             query=query_dinamico,
@@ -119,7 +133,7 @@ def generate_formats(payload: GenerateRequest):
             perfil=payload.profile,
             nicho=payload.niche,
             nivel=payload.detail_level,
-            learning_objective=payload.learning_objective # <-- Pasamos el objetivo al agente
+            learning_objective=payload.learning_objective
         )
         
         respuestas_generadas.append({
@@ -127,7 +141,7 @@ def generate_formats(payload: GenerateRequest):
             "status": resultado_atomico["status"],
             "content": resultado_atomico["content"],
             "sources_used": resultado_atomico.get("sources_used", []),
-            "error_message": resultado_atomico.get("error_message") # <-- Manejo explícito de errores
+            "error_message": resultado_atomico.get("error_message")
         })
 
     return {
