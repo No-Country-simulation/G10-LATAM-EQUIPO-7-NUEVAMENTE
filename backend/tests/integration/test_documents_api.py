@@ -8,8 +8,18 @@ from fastapi.testclient import TestClient
 from app.core.config import settings
 from tests.fakes import (
     FailingObjectStorage,
+    FakeAdaptationOrchestrationService,
     FakeObjectStorage,
 )
+
+_ADAPTATION_DATA = {
+    "profile": "intermediate",
+    "niche": "backend",
+    "detail_level": "detailed",
+    "learning_objective": (
+        "Comprender los conceptos principales del documento."
+    ),
+}
 
 
 @pytest.mark.parametrize(
@@ -25,14 +35,18 @@ def test_upload_valid_document(
     api_prefix: str,
     temporary_upload_directory: Path,
     object_storage: FakeObjectStorage,
+    fake_adaptation_orchestration_service: (
+        FakeAdaptationOrchestrationService
+    ),
     filename: str,
     content_type: str,
 ) -> None:
-    """Carga un documento válido y lo almacena de forma persistente."""
+    """Procesa el documento sin exponer formatos en la respuesta de carga."""
     file_content = b"contenido de prueba"
 
     response = client.post(
         f"{api_prefix}/documents",
+        data=_ADAPTATION_DATA,
         files={
             "file": (
                 filename,
@@ -50,8 +64,64 @@ def test_upload_valid_document(
         "doc_"
     )
     assert body["filename"] == filename
-    assert body["status"] == "stored"
+    assert body["status"] == "indexed"
     assert body["duplicate"] is False
+    assert "formats" not in body
+
+    assert (
+        fake_adaptation_orchestration_service
+        .requests
+        == [
+            {
+                "document_id": body["document_id"],
+                "profile": "intermediate",
+                "niche": "backend",
+                "detail_level": "detailed",
+                "learning_objective": (
+                    "Comprender los conceptos "
+                    "principales del documento."
+                ),
+            }
+        ]
+    )
+
+    formats_response = client.get(
+        f"{api_prefix}/documents/"
+        f"{body['document_id']}/formats"
+    )
+
+    assert (
+        formats_response.status_code
+        == 200
+    )
+
+    formats_body = (
+        formats_response.json()
+    )
+
+    assert (
+        formats_body["status"]
+        == "ready"
+    )
+
+    assert set(
+        formats_body["formats"]
+    ) == {
+        "quiz",
+        "flashcards",
+    }
+
+    assert (
+        formats_body["formats"]
+        ["quiz"]["status"]
+        == "success"
+    )
+
+    assert (
+        formats_body["formats"]
+        ["flashcards"]["status"]
+        == "success"
+    )
 
     stored_files = list(
         temporary_upload_directory.iterdir()
@@ -88,6 +158,7 @@ def test_upload_rejects_unsupported_extension(
     """Rechaza extensiones no permitidas antes de almacenar el archivo."""
     response = client.post(
         f"{api_prefix}/documents",
+        data=_ADAPTATION_DATA,
         files={
             "file": (
                 "imagen.jpg",
@@ -108,6 +179,7 @@ def test_upload_rejects_invalid_mime_type(
     """Rechaza un MIME type incompatible con la extensión."""
     response = client.post(
         f"{api_prefix}/documents",
+        data=_ADAPTATION_DATA,
         files={
             "file": (
                 "manual.pdf",
@@ -128,6 +200,7 @@ def test_upload_rejects_empty_document(
     """Rechaza archivos vacíos y elimina cualquier temporal creado."""
     response = client.post(
         f"{api_prefix}/documents",
+        data=_ADAPTATION_DATA,
         files={
             "file": (
                 "vacio.txt",
@@ -159,6 +232,7 @@ def test_upload_rejects_document_over_size_limit(
 
     response = client.post(
         f"{api_prefix}/documents",
+        data=_ADAPTATION_DATA,
         files={
             "file": (
                 "contenido.txt",
@@ -174,6 +248,9 @@ def test_upload_rejects_document_over_size_limit(
 def test_upload_returns_502_when_object_storage_fails(
     client: TestClient,
     api_prefix: str,
+    fake_adaptation_orchestration_service: (
+        FakeAdaptationOrchestrationService
+    ),
 ) -> None:
     """Devuelve 502 cuando falla el almacenamiento permanente."""
     client.app.state.object_storage = (
@@ -182,6 +259,7 @@ def test_upload_returns_502_when_object_storage_fails(
 
     response = client.post(
         f"{api_prefix}/documents",
+        data=_ADAPTATION_DATA,
         files={
             "file": (
                 "manual.txt",
@@ -201,18 +279,28 @@ def test_upload_returns_502_when_object_storage_fails(
         )
     )
 
+    assert (
+        fake_adaptation_orchestration_service
+        .requests
+        == []
+    )
+
 
 def test_duplicate_document_reuses_document_id(
     client: TestClient,
     api_prefix: str,
     temporary_upload_directory: Path,
     object_storage: FakeObjectStorage,
+    fake_adaptation_orchestration_service: (
+        FakeAdaptationOrchestrationService
+    ),
 ) -> None:
-    """Un duplicado reutiliza document_id y no se almacena dos veces."""
+    """Un duplicado reutiliza document_id sin volver a almacenar el archivo."""
     file_content = b"mismo contenido"
 
     first_response = client.post(
         f"{api_prefix}/documents",
+        data=_ADAPTATION_DATA,
         files={
             "file": (
                 "original.txt",
@@ -224,6 +312,7 @@ def test_duplicate_document_reuses_document_id(
 
     second_response = client.post(
         f"{api_prefix}/documents",
+        data=_ADAPTATION_DATA,
         files={
             "file": (
                 "copia.txt",
@@ -244,11 +333,40 @@ def test_duplicate_document_reuses_document_id(
         == second_body["document_id"]
     )
 
-    assert first_body["status"] == "stored"
-    assert second_body["status"] == "stored"
+    assert first_body["status"] == "indexed"
+    assert second_body["status"] == "indexed"
 
     assert first_body["duplicate"] is False
     assert second_body["duplicate"] is True
+
+    assert "formats" not in first_body
+    assert "formats" not in second_body
+
+    assert len(
+        fake_adaptation_orchestration_service.requests
+    ) == 2
+
+    assert all(
+        request["document_id"]
+        == first_body["document_id"]
+        for request
+        in fake_adaptation_orchestration_service.requests
+    )
+
+    formats_response = client.get(
+        f"{api_prefix}/documents/"
+        f"{first_body['document_id']}/formats"
+    )
+
+    assert (
+        formats_response.status_code
+        == 200
+    )
+
+    assert (
+        formats_response.json()["status"]
+        == "ready"
+    )
 
     stored_files = list(
         temporary_upload_directory.iterdir()
@@ -273,20 +391,97 @@ def test_duplicate_document_reuses_document_id(
     )
 
 
-def test_upload_requires_document(
+def test_upload_requires_document_and_pedagogical_context(
     client: TestClient,
     api_prefix: str,
 ) -> None:
-    """Requiere que la petición incluya el campo file."""
+    """Requiere archivo y parámetros pedagógicos obligatorios."""
     response = client.post(
         f"{api_prefix}/documents"
     )
 
     assert response.status_code == 422
-    assert (
-        response.json()["errors"][0]["field"]
-        == "file"
+
+    error_fields = {
+        error["field"]
+        for error in response.json()["errors"]
+    }
+
+    assert {
+        "file",
+        "profile",
+        "niche",
+        "detail_level",
+    }.issubset(
+        error_fields
     )
+
+
+def test_upload_requires_pedagogical_context(
+    client: TestClient,
+    api_prefix: str,
+) -> None:
+    """No procesa un archivo sin el contexto pedagógico requerido."""
+    response = client.post(
+        f"{api_prefix}/documents",
+        files={
+            "file": (
+                "manual.txt",
+                b"contenido",
+                "text/plain",
+            )
+        },
+    )
+
+    assert response.status_code == 422
+
+    error_fields = {
+        error["field"]
+        for error in response.json()["errors"]
+    }
+
+    assert {
+        "profile",
+        "niche",
+        "detail_level",
+    }.issubset(
+        error_fields
+    )
+
+
+@pytest.mark.parametrize(
+    ("field", "invalid_value"),
+    [
+        ("profile", "expert"),
+        ("niche", "unknown"),
+        ("detail_level", "   "),
+    ],
+)
+def test_upload_rejects_invalid_pedagogical_context(
+    client: TestClient,
+    api_prefix: str,
+    field: str,
+    invalid_value: str,
+) -> None:
+    """Valida el contexto pedagógico antes de ejecutar el flujo."""
+    data = {
+        **_ADAPTATION_DATA,
+        field: invalid_value,
+    }
+
+    response = client.post(
+        f"{api_prefix}/documents",
+        data=data,
+        files={
+            "file": (
+                "manual.txt",
+                b"contenido",
+                "text/plain",
+            )
+        },
+    )
+
+    assert response.status_code == 422
 
 
 def test_get_registered_document(
@@ -294,12 +489,16 @@ def test_get_registered_document(
     api_prefix: str,
     temporary_upload_directory: Path,
     object_storage: FakeObjectStorage,
+    fake_adaptation_orchestration_service: (
+        FakeAdaptationOrchestrationService
+    ),
 ) -> None:
-    """Consulta la metadata pública de un documento almacenado."""
+    """Consulta la metadata pública de un documento ya procesado."""
     file_content = b"contenido persistido"
 
     create_response = client.post(
         f"{api_prefix}/documents",
+        data=_ADAPTATION_DATA,
         files={
             "file": (
                 "manual.txt",
@@ -325,7 +524,7 @@ def test_get_registered_document(
 
     assert body["document_id"] == document_id
     assert body["filename"] == "manual.txt"
-    assert body["status"] == "stored"
+    assert body["status"] == "indexed"
     assert body["content_type"] == "text/plain"
     assert (
         body["size_bytes"]
@@ -335,16 +534,12 @@ def test_get_registered_document(
     assert "created_at" in body
     assert "updated_at" in body
 
-    # Metadata enriquecida acordada con Frontend.
-    # Mientras no exista una fuente real para calcularla,
-    # debe formar parte del contrato con valor null.
     assert body["title"] is None
     assert body["summary"] is None
     assert body["estimated_time"] is None
 
-    # El estado de los formatos pertenece al endpoint
-    # GET /documents/{document_id}/formats.
     assert "formats_status" not in body
+    assert "formats" not in body
 
     expected_object_name = (
         f"documents/{document_id}/original.txt"
@@ -377,3 +572,21 @@ def test_get_unknown_document_returns_404(
         response.json()["detail"]
         == "No existe el documento doc_inexistente."
     )
+
+
+def test_adaptations_endpoint_is_not_public(
+    client: TestClient,
+    api_prefix: str,
+) -> None:
+    """La adaptación se ejecuta internamente y no expone endpoint público."""
+    response = client.post(
+        f"{api_prefix}/adaptations",
+        json={
+            "document_id": "doc_123",
+            "profile": "intermediate",
+            "niche": "backend",
+            "detail_level": "detailed",
+        },
+    )
+
+    assert response.status_code == 404

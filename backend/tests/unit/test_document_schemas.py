@@ -2,7 +2,9 @@
 
 from datetime import UTC, datetime
 
-from app.domain.enums import DocumentStatus
+from app.domain.enums import (
+    DocumentStatus,
+)
 from app.schemas.document import (
     DocumentCreatedResponse,
     DocumentResponse,
@@ -10,16 +12,31 @@ from app.schemas.document import (
 
 
 def test_document_created_response() -> None:
+    """Expone únicamente el resultado de procesamiento del documento."""
     response = DocumentCreatedResponse(
         document_id="doc_123",
         filename="manual.pdf",
-        status=DocumentStatus.STORED,
+        status=DocumentStatus.INDEXED,
+        duplicate=False,
     )
 
-    assert response.document_id == "doc_123"
+    assert (
+        response.document_id
+        == "doc_123"
+    )
+    assert (
+        response.filename
+        == "manual.pdf"
+    )
     assert (
         response.status
-        == DocumentStatus.STORED
+        == DocumentStatus.INDEXED
+    )
+    assert response.duplicate is False
+
+    assert (
+        "formats"
+        not in response.model_dump()
     )
 
 

@@ -2,8 +2,31 @@
 
 from copy import deepcopy
 from pathlib import Path
+from uuid import uuid4
 
+from app.application.document_service import (
+    DocumentService,
+)
 from app.domain.document import Document
+from app.domain.enums import (
+    DocumentStatus,
+    GeneratedFormatStatus,
+    GeneratedFormatType,
+)
+from app.domain.generated_content import (
+    FlashcardItem,
+    FlashcardsContent,
+    QuizContent,
+    QuizQuestion,
+)
+from app.domain.generated_format import (
+    ChunkEvidence,
+    GeneratedFormat,
+    GenerationContext,
+)
+from app.ports.generated_format_repository_port import (
+    GeneratedFormatRepositoryPort,
+)
 from app.ports.object_storage_port import (
     ObjectStorageError,
 )
@@ -212,3 +235,183 @@ class FailingRAGPort:
         raise RAGError(
             "Fallo simulado del módulo RAG."
         )
+
+
+class FakeAdaptationOrchestrationService:
+    """Simula la adaptación completa utilizada por las pruebas HTTP.
+
+    El fake reproduce los efectos observables relevantes para BackendAPI:
+
+    - registra el contexto pedagógico recibido;
+    - lleva el documento de STORED a INDEXED;
+    - genera Quiz y Flashcards válidos;
+    - persiste ambos formatos.
+
+    No ejecuta llamadas HTTP hacia RAG ni Agentes.
+    """
+
+    def __init__(
+        self,
+        *,
+        document_service: DocumentService,
+        generated_format_repository: GeneratedFormatRepositoryPort,
+    ) -> None:
+        self._document_service = document_service
+        self._generated_format_repository = (
+            generated_format_repository
+        )
+
+        self.requests: list[
+            dict[str, object]
+        ] = []
+
+    async def adapt_document(
+        self,
+        *,
+        document_id: str,
+        profile: str,
+        niche: str,
+        detail_level: str,
+        learning_objective: str | None = None,
+    ) -> list[GeneratedFormat]:
+        """Simula indexación y generación exitosa de ambos formatos."""
+        self.requests.append(
+            {
+                "document_id": document_id,
+                "profile": profile,
+                "niche": niche,
+                "detail_level": detail_level,
+                "learning_objective": learning_objective,
+            }
+        )
+
+        document = (
+            self._document_service.get_document(
+                document_id
+            )
+        )
+
+        if document.status in {
+            DocumentStatus.STORED,
+            DocumentStatus.INDEXING_FAILED,
+        }:
+            self._document_service.start_indexing(
+                document_id
+            )
+            self._document_service.complete_indexing(
+                document_id
+            )
+
+        elif (
+            document.status
+            != DocumentStatus.INDEXED
+        ):
+            raise RuntimeError(
+                "El fake de adaptación recibió un documento "
+                f"en estado inesperado: {document.status.value}."
+            )
+
+        context = GenerationContext(
+            profile=profile,
+            niche=niche,
+            detail_level=detail_level,
+            learning_objective=learning_objective,
+        )
+
+        evidence = (
+            ChunkEvidence(
+                chunk_id=f"{document_id}_chunk_1",
+                document_id=document_id,
+                rank=1,
+                score=0.95,
+                text=(
+                    "Contenido recuperado para "
+                    "la adaptación educativa."
+                ),
+            ),
+        )
+
+        generated_formats = [
+            GeneratedFormat(
+                format_id=(
+                    f"fmt_{uuid4().hex}"
+                ),
+                document_id=document_id,
+                format_type=(
+                    GeneratedFormatType.QUIZ
+                ),
+                status=(
+                    GeneratedFormatStatus.SUCCESS
+                ),
+                generation_context=context,
+                content=QuizContent(
+                    title="Quiz de prueba",
+                    instructions=(
+                        "Seleccione la respuesta correcta."
+                    ),
+                    questions=(
+                        QuizQuestion(
+                            question_id=(
+                                f"q_{uuid4().hex[:8]}"
+                            ),
+                            question=(
+                                "¿Cuál es el concepto "
+                                "principal?"
+                            ),
+                            options=(
+                                "Respuesta correcta",
+                                "Respuesta incorrecta",
+                            ),
+                            correct_answer=(
+                                "Respuesta correcta"
+                            ),
+                            explanation=(
+                                "Explicación basada en "
+                                "el documento."
+                            ),
+                        ),
+                    ),
+                ),
+                chunks_used=evidence,
+            ),
+            GeneratedFormat(
+                format_id=(
+                    f"fmt_{uuid4().hex}"
+                ),
+                document_id=document_id,
+                format_type=(
+                    GeneratedFormatType.FLASHCARDS
+                ),
+                status=(
+                    GeneratedFormatStatus.SUCCESS
+                ),
+                generation_context=context,
+                content=FlashcardsContent(
+                    title="Flashcards de prueba",
+                    instructions=(
+                        "Revise cada tarjeta."
+                    ),
+                    cards=(
+                        FlashcardItem(
+                            card_id=(
+                                f"card_{uuid4().hex[:8]}"
+                            ),
+                            front="Concepto principal",
+                            back=(
+                                "Definición basada "
+                                "en el documento."
+                            ),
+                        ),
+                    ),
+                ),
+                chunks_used=evidence,
+            ),
+        ]
+
+        return [
+            self._generated_format_repository.create(
+                generated_format
+            )
+            for generated_format
+            in generated_formats
+        ]

@@ -438,7 +438,11 @@ def test_generate_formats_requires_indexed_document() -> None:
 
 
 def test_generate_formats_translates_agents_error() -> None:
-    """Traduce fallos externos de Agentes."""
+    """Persiste el intento fallido y traduce el error de Agentes."""
+    repository = (
+        FakeGeneratedFormatRepository()
+    )
+
     service = FormatGenerationService(
         document_repository=(
             FakeDocumentRepository(
@@ -447,9 +451,7 @@ def test_generate_formats_translates_agents_error() -> None:
                 )
             )
         ),
-        generated_format_repository=(
-            FakeGeneratedFormatRepository()
-        ),
+        generated_format_repository=repository,
         agents=FailingAgents(),
     )
 
@@ -462,12 +464,55 @@ def test_generate_formats_translates_agents_error() -> None:
                 document_id="doc_123",
                 formats=(
                     GeneratedFormatType.QUIZ,
+                    GeneratedFormatType.FLASHCARDS,
                 ),
                 profile="beginner",
                 niche="general",
                 detail_level="standard",
             )
         )
+
+    assert len(
+        repository.formats
+    ) == 2
+
+    assert {
+        generated_format.format_type
+        for generated_format
+        in repository.formats
+    } == {
+        GeneratedFormatType.QUIZ,
+        GeneratedFormatType.FLASHCARDS,
+    }
+
+    assert all(
+        generated_format.status
+        == GeneratedFormatStatus.FAILED
+        for generated_format
+        in repository.formats
+    )
+
+    assert all(
+        generated_format.content is None
+        for generated_format
+        in repository.formats
+    )
+
+    assert all(
+        generated_format.chunks_used == ()
+        for generated_format
+        in repository.formats
+    )
+
+    assert all(
+        generated_format.error_message
+        == (
+            "Agentes no pudo generar los formatos "
+            "del documento doc_123."
+        )
+        for generated_format
+        in repository.formats
+    )
 
 
 def test_generate_formats_rejects_wrong_document_id() -> None:
@@ -504,7 +549,31 @@ def test_generate_formats_rejects_wrong_document_id() -> None:
             )
         )
 
-    assert repository.formats == []
+    assert len(
+        repository.formats
+    ) == 1
+
+    failed_generation = (
+        repository.formats[0]
+    )
+
+    assert (
+        failed_generation.format_type
+        == GeneratedFormatType.QUIZ
+    )
+
+    assert (
+        failed_generation.status
+        == GeneratedFormatStatus.FAILED
+    )
+
+    assert (
+        failed_generation.error_message
+        == (
+            "Agentes devolvió un document_id "
+            "diferente al solicitado."
+        )
+    )
 
 
 def test_generate_formats_requires_all_requested_results() -> None:
@@ -544,7 +613,25 @@ def test_generate_formats_requires_all_requested_results() -> None:
             )
         )
 
-    assert repository.formats == []
+    assert len(
+        repository.formats
+    ) == 2
+
+    assert {
+        generated_format.format_type
+        for generated_format
+        in repository.formats
+    } == {
+        GeneratedFormatType.QUIZ,
+        GeneratedFormatType.FLASHCARDS,
+    }
+
+    assert all(
+        generated_format.status
+        == GeneratedFormatStatus.FAILED
+        for generated_format
+        in repository.formats
+    )
 
 
 def test_generate_formats_rejects_duplicate_request() -> None:

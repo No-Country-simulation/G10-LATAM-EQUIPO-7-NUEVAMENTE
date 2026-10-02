@@ -11,6 +11,9 @@ from fastapi.middleware.cors import (
 )
 
 from app.api.v1.router import api_router
+from app.application.adaptation_orchestration_service import (
+    AdaptationOrchestrationService,
+)
 from app.application.document_service import (
     DocumentService,
 )
@@ -134,6 +137,20 @@ async def lifespan(
             )
         )
 
+        adaptation_orchestration_service = (
+            AdaptationOrchestrationService(
+                document_service=(
+                    document_service
+                ),
+                rag_integration_service=(
+                    rag_integration_service
+                ),
+                format_generation_service=(
+                    format_generation_service
+                ),
+            )
+        )
+
         app.state.document_service = (
             document_service
         )
@@ -152,6 +169,10 @@ async def lifespan(
 
         app.state.rag_integration_service = (
             rag_integration_service
+        )
+
+        app.state.adaptation_orchestration_service = (
+            adaptation_orchestration_service
         )
 
         yield

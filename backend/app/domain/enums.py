@@ -18,15 +18,6 @@ class DocumentStatus(StrEnum):
     INDEXING_FAILED = "indexing_failed"
 
 
-class ProcessStatus(StrEnum):
-    """Estados generales de un proceso de adaptación."""
-
-    PENDING = "pending"
-    PROCESSING = "processing"
-    COMPLETED = "completed"
-    FAILED = "failed"
-
-
 class GeneratedFormatType(StrEnum):
     """Formatos pedagógicos soportados durante Sprint 2."""
 
@@ -45,6 +36,7 @@ class GeneratedFormatStatus(StrEnum):
 class DocumentFormatsStatus(StrEnum):
     """Estado agregado de los formatos expuesto a Frontend."""
 
+    PENDING = "pending"
     PROCESSING = "processing"
     READY = "ready"
     PARTIAL = "partial"

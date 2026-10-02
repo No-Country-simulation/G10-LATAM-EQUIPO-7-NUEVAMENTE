@@ -25,11 +25,13 @@ class DocumentBaseResponse(BaseSchema):
 
 
 class DocumentCreatedResponse(DocumentBaseResponse):
-    """Respuesta después de identificar correctamente un documento."""
+    """Respuesta al finalizar la carga y procesamiento del documento."""
 
     duplicate: bool = Field(
         default=False,
-        description="Indica si el contenido ya estaba registrado.",
+        description=(
+            "Indica si el contenido ya estaba registrado."
+        ),
     )
 
 

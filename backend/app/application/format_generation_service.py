@@ -4,6 +4,7 @@ from uuid import uuid4
 
 from app.domain.enums import (
     DocumentStatus,
+    GeneratedFormatStatus,
     GeneratedFormatType,
 )
 from app.domain.generated_format import (
@@ -51,7 +52,8 @@ class FormatGenerationService:
     3. solicita a Agentes uno o más formatos;
     4. valida que la respuesta corresponda a la solicitud;
     5. convierte cada resultado en una entidad GeneratedFormat;
-    6. persiste cada generación conservando su evidencia.
+    6. persiste cada generación conservando su evidencia;
+    7. registra intentos fallidos cuando Agentes o su contrato fallan.
 
     El servicio no implementa prompts, retrieval, acceso al Vector Store,
     generación mediante LLM ni evaluación de calidad.
@@ -74,7 +76,10 @@ class FormatGenerationService:
         self,
         *,
         document_id: str,
-        formats: tuple[GeneratedFormatType, ...],
+        formats: tuple[
+            GeneratedFormatType,
+            ...
+        ],
         profile: str,
         niche: str,
         detail_level: str,
@@ -107,13 +112,17 @@ class FormatGenerationService:
             formats
         )
 
-        document = self._document_repository.find_by_id(
-            document_id
+        document = (
+            self._document_repository.find_by_id(
+                document_id
+            )
         )
 
         if document is None:
-            raise FormatGenerationDocumentNotFoundError(
-                f"No existe el documento {document_id}."
+            raise (
+                FormatGenerationDocumentNotFoundError(
+                    f"No existe el documento {document_id}."
+                )
             )
 
         if (
@@ -121,7 +130,8 @@ class FormatGenerationService:
             != DocumentStatus.INDEXED
         ):
             raise DocumentNotReadyForGenerationError(
-                f"El documento {document_id} todavía no está indexado."
+                f"El documento {document_id} "
+                "todavía no está indexado."
             )
 
         generation_context = GenerationContext(
@@ -134,39 +144,115 @@ class FormatGenerationService:
         request = AgentGenerationInput(
             document_id=document_id,
             formats=formats,
-            generation_context=generation_context,
+            generation_context=(
+                generation_context
+            ),
         )
 
         try:
-            result = await self._agents.generate_formats(
-                request
+            result = (
+                await self._agents.generate_formats(
+                    request
+                )
             )
+
         except AgentsError as exc:
-            raise FormatGenerationIntegrationError(
+            error_message = (
                 "Agentes no pudo generar los formatos "
                 f"del documento {document_id}."
+            )
+
+            self._persist_failed_generation_attempts(
+                document_id=document_id,
+                formats=formats,
+                generation_context=(
+                    generation_context
+                ),
+                error_message=error_message,
+            )
+
+            raise (
+                FormatGenerationIntegrationError(
+                    error_message
+                )
             ) from exc
 
-        self._validate_agent_result(
-            request=request,
-            result=result,
-        )
+        try:
+            self._validate_agent_result(
+                request=request,
+                result=result,
+            )
+
+        except FormatGenerationContractError as exc:
+            self._persist_failed_generation_attempts(
+                document_id=document_id,
+                formats=formats,
+                generation_context=(
+                    generation_context
+                ),
+                error_message=str(exc),
+            )
+
+            raise
 
         generated_formats = [
             self._build_generated_format(
                 document_id=document_id,
-                generation_context=generation_context,
+                generation_context=(
+                    generation_context
+                ),
                 agent_result=agent_result,
             )
-            for agent_result in result.results
+            for agent_result
+            in result.results
         ]
 
         return [
             self._generated_format_repository.create(
                 generated_format
             )
-            for generated_format in generated_formats
+            for generated_format
+            in generated_formats
         ]
+
+    def _persist_failed_generation_attempts(
+        self,
+        *,
+        document_id: str,
+        formats: tuple[
+            GeneratedFormatType,
+            ...
+        ],
+        generation_context: GenerationContext,
+        error_message: str,
+    ) -> None:
+        """Registra un fallo por cada formato solicitado.
+
+        La indexación del documento puede haber finalizado correctamente
+        aunque la generación falle. Por eso el fallo pertenece al historial
+        de formatos y no al estado del documento.
+        """
+        for format_type in formats:
+            failed_generation = GeneratedFormat(
+                format_id=(
+                    f"fmt_{uuid4().hex}"
+                ),
+                document_id=document_id,
+                format_type=format_type,
+                status=(
+                    GeneratedFormatStatus.FAILED
+                ),
+                generation_context=(
+                    generation_context
+                ),
+                content=None,
+                chunks_used=(),
+                error_message=error_message,
+            )
+
+            self._generated_format_repository.create(
+                failed_generation
+            )
 
     @staticmethod
     def _validate_requested_formats(
@@ -237,8 +323,12 @@ class FormatGenerationService:
             document_id=document_id,
             format_type=agent_result.format_type,
             status=agent_result.status,
-            generation_context=generation_context,
+            generation_context=(
+                generation_context
+            ),
             content=agent_result.content,
             chunks_used=agent_result.chunks_used,
-            error_message=agent_result.error_message,
+            error_message=(
+                agent_result.error_message
+            ),
         )

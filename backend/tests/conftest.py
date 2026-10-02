@@ -7,8 +7,14 @@ import pytest
 from fastapi.testclient import TestClient
 
 from app.core.config import settings
+from app.infrastructure.persistence.repository_factory import (
+    create_generated_format_repository,
+)
 from app.main import create_app
-from tests.fakes import FakeObjectStorage
+from tests.fakes import (
+    FakeAdaptationOrchestrationService,
+    FakeObjectStorage,
+)
 
 
 @pytest.fixture
@@ -24,17 +30,60 @@ def client(
     object_storage: FakeObjectStorage,
 ) -> Iterator[TestClient]:
     """Crea un cliente con una base SQLite aislada por prueba."""
-    database_path = tmp_path / "nuevamente_test.db"
+    database_path = (
+        tmp_path / "nuevamente_test.db"
+    )
 
     monkeypatch.setattr(
         settings,
         "DATABASE_URL",
-        f"sqlite:///{database_path.as_posix()}",
+        (
+            "sqlite:///"
+            f"{database_path.as_posix()}"
+        ),
     )
 
-    with TestClient(create_app()) as test_client:
-        test_client.app.state.object_storage = object_storage
+    with TestClient(
+        create_app()
+    ) as test_client:
+        test_client.app.state.object_storage = (
+            object_storage
+        )
+
         yield test_client
+
+
+@pytest.fixture
+def fake_adaptation_orchestration_service(
+    client: TestClient,
+) -> FakeAdaptationOrchestrationService:
+    """Reemplaza el orquestador real para pruebas HTTP de documentos.
+
+    El servicio real permanece disponible en las pruebas que no solicitan
+    explícitamente esta fixture.
+    """
+    generated_format_repository = (
+        create_generated_format_repository(
+            settings.DATABASE_URL
+        )
+    )
+
+    service = (
+        FakeAdaptationOrchestrationService(
+            document_service=(
+                client.app.state.document_service
+            ),
+            generated_format_repository=(
+                generated_format_repository
+            ),
+        )
+    )
+
+    client.app.state.adaptation_orchestration_service = (
+        service
+    )
+
+    return service
 
 
 @pytest.fixture(scope="session")
@@ -48,7 +97,9 @@ def temporary_upload_directory(
     monkeypatch: pytest.MonkeyPatch,
 ) -> Path:
     """Redirige las cargas a un directorio temporal."""
-    upload_directory = tmp_path / "uploads"
+    upload_directory = (
+        tmp_path / "uploads"
+    )
 
     monkeypatch.setattr(
         settings,
