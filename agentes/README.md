@@ -134,7 +134,7 @@ Para asegurar la interoperabilidad con los equipos de Data y Frontend, la salida
 
 1. Crea un archivo `.env` en la **raíz principal del proyecto** (puedes guiarte con el `.env.example`):
    ```env
-   GEMINI_API_KEY="AIzaSy_tu_api_key_aqui"
+   GEMINI_API_KEY="api_key_aqui"
    GEMINI_MODEL="gemini-3.5-flash"
 Instala las dependencias limpias del módulo:
 
@@ -146,3 +146,47 @@ Bash
 uvicorn agentes.api:app --reload --port 8001
 Accede a la interfaz interactiva (Swagger) en:
 http://127.0.0.1:8001/docs
+
+
+Contrato de Datos (API v1)
+El endpoint /api/v1/generate cumple estrictamente con el contrato esperado por Backend #41 y Frontend #44.
+
+Ejemplo de respuesta exitosa (status: "success"):
+
+JSON
+{
+  "document_id": "doc_123",
+  "results": [
+    {
+      "format": "quiz",
+      "status": "success",
+      "content": { ... JSON validado por Pydantic ... },
+      "sources_used": [ { "rank": 1, "chunk_id": "...", "text": "..." } ],
+      "error_message": null
+    }
+  ]
+}
+
+
+Ejemplo de respuesta fallida con capacidad atómica (status: "failed" o "no_results"):
+
+JSON
+{
+  "document_id": "doc_123",
+  "results": [
+    {
+      "format": "quiz",
+      "status": "failed",
+      "content": null,
+      "sources_used": [],
+      "error_message": "Error crítico en el pipeline o generación..."
+    }
+  ]
+}
+
+
+Ejecución de Pruebas Automatizadas
+El módulo cuenta con 13 pruebas unitarias e integración que validan el Vector Store, el Chunking, la similitud coseno y la integridad del contrato Pydantic.
+
+Bash
+python -m pytest agentes/tests/
