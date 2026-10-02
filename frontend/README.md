@@ -123,23 +123,10 @@ El Frontend está alineado con el contrato v1 cerrado y funcional del Backend.
     "document_id": "doc_d5a19fdaae6944e6949f0a2a028db22c",
     "filename": "documento.txt",
     "status": "indexed",
-    "duplicate": false,
-    "formats": {
-      "quiz": {
-        "format_id": "fmt_781e4a32f54a438f9b7a55c747c8185d",
-        "status": "success",
-        "content": { ... },
-        "error_message": null
-      },
-      "flashcards": {
-        "format_id": "fmt_96da18b75f91401f9c57ae871f56f38b",
-        "status": "success",
-        "content": { ... },
-        "error_message": null
-      }
-    }
+    "duplicate": false
   }
   ```
+  *(Nota de contrato: `POST /documents` actualmente no devuelve `formats`; su respuesta contiene `document_id`, `filename`, `status` y `duplicate`. Los formatos generados se obtienen mediante `GET /api/v1/documents/{document_id}/formats` al acceder al Centro de Estudio o abrir un libro desde La Biblioteca).*
 - **Errores:** `400` (vacío/inválido), `413` (>10 MB), `415` (no soportado), `422` (validación), `502` (fallo de persistencia OCI).
 
 ### 3. Listar documentos para La Biblioteca (GET /api/v1/documents)
@@ -243,14 +230,14 @@ El Frontend está alineado con el contrato v1 cerrado y funcional del Backend.
 
 ### Manejo de errores
 
-El cliente HTTP (`js/api/apiClient.js`) traduce las respuestas del Backend a mensajes legibles, desplegados mediante el diálogo de estado (`statusDialog.js`) y notificaciones toast (`notifications.js`). Códigos contemplados y probados: `200`, `201`, `400`, `404`, `408` (timeout de 30s/120s), `413` (límite 10 MB), `415`, `422`, `500`, `502` (error OCI), y `0` (Backend no disponible / fallo de red).
+El cliente HTTP (`js/api/apiClient.js`) traduce las respuestas del Backend a mensajes legibles, desplegados mediante el diálogo de estado (`statusDialog.js`) y notificaciones toast (`notifications.js`). Códigos contemplados y probados: `200`, `201`, `400`, `404`, `408` (timeout de 120s para procesamiento RAG), `413` (límite 10 MB), `415`, `422`, `500`, `502` (error OCI), y `0` (Backend no disponible / fallo de red).
 
 ---
 
 ## Estado Actual de la Integración (Sprint 2)
 
 - **Carga y persistencia real en Backend y OCI (`POST /documents`):** ✅ **Funcional** (Tarea 1).
-- **Flujo real de adaptación pedagógica (`POST /adaptations`):** ✅ **Funcional** (Flujo RAG + IA cerrado sin esperas simuladas).
+- **Flujo de adaptación pedagógica integrado en `POST /documents`:** ✅ **Funcional** (Orquestación RAG + IA completada por el Backend en la carga).
 - **Límite máximo de 10 MB validado en cliente:** ✅ **Funcional** (Tarea 4).
 - **Manejo UX integral de códigos HTTP y errores:** ✅ **Funcional** (Tarea 5).
 - **Consulta y renderizado de la biblioteca (`GET /documents`):** ✅ **Funcional** (Tarea 6).

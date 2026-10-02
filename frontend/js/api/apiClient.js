@@ -147,8 +147,8 @@ export const apiClient = {
     // IMPORTANTE: NO establecer manualmente el header Content-Type (el navegador añade multipart/form-data con boundary).
 
     const controller = new AbortController();
-    // Timeout extendido para absorver el procesamiento síncrono RAG + LLM si el backend lo ejecuta en el POST
-    const timeoutMs = CONFIG.API.ADAPTATIONS_TIMEOUT_MS || 120000;
+    // Timeout extendido para absorver el procesamiento síncrono RAG + LLM en el POST de documentos
+    const timeoutMs = CONFIG.API.PROCESSING_TIMEOUT_MS || CONFIG.API.ADAPTATIONS_TIMEOUT_MS || 120000;
     const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
 
     try {
@@ -303,59 +303,6 @@ export const apiClient = {
     } catch (err) {
       if (err.name === 'AbortError') {
         throw new ApiError(408, { message: 'Tiempo de espera agotado al consultar los formatos.' });
-      }
-      throw err;
-    }
-  },
-
-  /**
-   * Llama al endpoint de adaptación pedagógica del Backend (POST /api/v1/adaptations)
-   * En Sprint 2 genera automáticamente Quiz + Flashcards a partir del documento indexado.
-   * @param {Object} adaptationRequest - { document_id, profile, niche, detail_level, learning_objective }
-   */
-  async adaptContent(adaptationRequest) {
-    const url = `${CONFIG.API.DEFAULT_BASE_URL}${CONFIG.API.V1_PREFIX}${CONFIG.API.ENDPOINTS.ADAPTATIONS}`;
-    const timeoutMs = CONFIG.API.ADAPTATIONS_TIMEOUT_MS || 120000;
-
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
-
-    try {
-      const response = await fetch(url, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Accept': 'application/json'
-        },
-        body: JSON.stringify(adaptationRequest),
-        signal: controller.signal
-      });
-
-      clearTimeout(timeoutId);
-
-      const json = await response.json().catch(() => ({}));
-
-      if (!response.ok) {
-        throw new ApiError(response.status, json);
-      }
-
-      return {
-        ...json,
-        httpStatus: response.status
-      };
-    } catch (err) {
-      clearTimeout(timeoutId);
-      if (err.name === 'AbortError') {
-        throw new ApiError(408, {
-          code: 'TIMEOUT_ERROR',
-          message: `El servidor tardó más de ${Math.round(timeoutMs / 1000)}s en generar el material de estudio con IA. Intenta nuevamente.`
-        });
-      }
-      if (err instanceof TypeError && err.message.toLowerCase().includes('fetch')) {
-        throw new ApiError(0, {
-          code: 'CONNECTION_REFUSED',
-          message: `No se pudo conectar con el Backend (FastAPI). Verifica que esté activo en ${CONFIG.API.DEFAULT_BASE_URL}`
-        });
       }
       throw err;
     }

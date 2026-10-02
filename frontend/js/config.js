@@ -78,12 +78,12 @@ export const CONFIG = {
       HEALTH: '/health',
       DOCUMENTS: '/documents',
       UPLOAD_FILE: '/documents',
-      ADAPTATIONS: '/adaptations',
       DOCUMENT_DETAILS: (id) => `/documents/${id}`,
       DOCUMENT_FORMATS: (id) => `/documents/${id}/formats`
     },
     TIMEOUT_MS: resolveTimeoutMs(),
-    ADAPTATIONS_TIMEOUT_MS: 120000 // 120s para procesamiento síncrono RAG + LLM en Sprint 2
+    PROCESSING_TIMEOUT_MS: 120000, // 120s para procesamiento síncrono RAG + LLM en Sprint 2 (POST /documents)
+    ADAPTATIONS_TIMEOUT_MS: 120000 // Compatibilidad retroactiva
   },
 
   // Restricciones de carga de documentos (Sprint 2: Límite estricto 10 MB)

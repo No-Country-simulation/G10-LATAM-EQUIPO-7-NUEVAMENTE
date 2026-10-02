@@ -142,7 +142,7 @@ export const studyHub = {
     const flashcardsData = backendFormats.flashcards 
       || activeSection?.flashcards 
       || (backendFormats.cards ? backendFormats.cards : null)
-      || (globalStatus === 'processing' ? { status: 'processing' } : null)
+      || (globalStatus === 'processing' || globalStatus === 'loading' ? { status: 'processing' } : null)
       || (globalStatus === 'error' ? { status: 'failed', errorMessage: 'No se pudieron recuperar las Flashcards desde el backend.' } : null);
     flashcards.render(flashcardsData);
 
@@ -150,7 +150,7 @@ export const studyHub = {
     const quizData = backendFormats.quiz 
       || activeSection?.quiz 
       || (backendFormats.questions ? backendFormats.questions : null)
-      || (globalStatus === 'processing' ? { status: 'processing' } : null)
+      || (globalStatus === 'processing' || globalStatus === 'loading' ? { status: 'processing' } : null)
       || (globalStatus === 'error' ? { status: 'failed', errorMessage: 'No se pudieron recuperar las preguntas del Quiz desde el backend.' } : null);
     quiz.render(quizData);
 

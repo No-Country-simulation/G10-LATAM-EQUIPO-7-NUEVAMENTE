@@ -521,8 +521,8 @@ export const statusDialog = {
         this.showError({
           status: 408,
           code: 'REQUEST_TIMEOUT',
-          message: 'Tiempo de espera agotado al comunicarse con el backend (Timeout de 30s).',
-          details: ['La operación tardó más tiempo del límite configurado.'],
+          message: 'Tiempo de espera agotado al comunicarse con el backend (Timeout de 120s).',
+          details: ['La operación tardó más tiempo del límite configurado (120 s para procesamiento RAG).'],
           filename: demoFileName
         });
         break;
@@ -574,7 +574,7 @@ export const statusDialog = {
       0: 'No se pudo establecer conexión con el backend (FastAPI). Verifica que el servicio esté iniciado y accesible.',
       400: 'El documento enviado es inválido o no contiene datos legibles.',
       404: 'No fue posible localizar el documento con el identificador provisto.',
-      408: 'Tiempo de espera agotado al comunicarse con el backend.',
+      408: 'Tiempo de espera agotado al comunicarse con el backend (límite de 120 s).',
       413: 'El documento supera el límite máximo de tamaño de archivo admitido por el sistema.',
       415: 'El tipo MIME o extensión del documento no coincide con los formatos admitidos (PDF, Markdown, TXT).',
       422: 'Uno o más campos enviados en la solicitud no cumplen con el esquema requerido.',

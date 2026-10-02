@@ -323,28 +323,16 @@ export const uploadTab = {
       this.setStepActive(this.elements.stepGen, `Generando Quiz y Flashcards (${this.getLevelLabel(profile)})...`);
       this.setStepCompleted(this.elements.stepGen, this.elements.line3);
 
-      // Paso 4: Consulta y sincronización de formatos (quiz + flashcards)
+      // Paso 4: Formatos de estudio listos en el Backend
+      // Nota Sprint 2: No se consulta GET /formats inmediatamente tras el POST para evitar puntos de fallo;
+      // los formatos se consultan al acceder al Study Hub.
       this.currentActiveStep = this.elements.stepCritic;
-      this.setStepActive(this.elements.stepCritic, 'Recuperando formatos de estudio persistidos...');
-
-      let formatsResponse = null;
-      // Si el backend ya devolvió los formatos procesados en la respuesta de POST /documents
-      if (uploadResult.formats && typeof uploadResult.formats === 'object' && Object.keys(uploadResult.formats).length > 0) {
-        formatsResponse = { status: 'ready', formats: uploadResult.formats };
-      } else {
-        // En caso contrario o si se generaron en diferido, consultar GET /documents/{id}/formats
-        try {
-          formatsResponse = await apiClient.getDocumentFormats(docId);
-        } catch (fmtErr) {
-          console.warn('[Pipeline] Formatos en proceso o no disponibles aún en /formats:', fmtErr);
-          formatsResponse = { status: 'processing', formats: null };
-        }
-      }
+      this.setStepActive(this.elements.stepCritic, 'Formatos de estudio listos para acceder...');
       this.setStepCompleted(this.elements.stepCritic, null);
 
       // Crear el documento persistido para el estado global y el librero
       const procDoc = this.createDocumentFromUpload(selectedFile, uploadResult, pedagogicalParams);
-      this.onPipelineSuccess(procDoc, uploadResult, pedagogicalParams, formatsResponse);
+      this.onPipelineSuccess(procDoc, uploadResult, pedagogicalParams);
 
     } catch (err) {
       console.error('[Pipeline Error]:', err);
@@ -457,13 +445,13 @@ export const uploadTab = {
     return 'EDUCACIÓN';
   },
 
-  onPipelineSuccess(procDoc, uploadResult, params = {}, formatsResponse = null) {
+  onPipelineSuccess(procDoc, uploadResult, params = {}) {
     const currentCustomBooks = state.get().customBooks || [];
     const exists = currentCustomBooks.some(b => b.id === procDoc.id);
     const updatedCustom = exists ? currentCustomBooks : [procDoc, ...currentCustomBooks];
 
-    const rawFormats = formatsResponse?.formats || formatsResponse || {};
-    const globalStatus = formatsResponse?.status || (formatsResponse?.formats ? 'ready' : 'ready');
+    const rawFormats = uploadResult.formats || null;
+    const globalStatus = rawFormats ? 'ready' : 'idle';
 
     state.set({
       currentDocument: procDoc,
@@ -485,69 +473,19 @@ export const uploadTab = {
     });
 
     if (this.elements.pipelineStatusBadge) {
-      if (globalStatus === 'ready') {
-        this.elements.pipelineStatusBadge.textContent = 'Quiz + Flashcards Listos';
-        this.elements.pipelineStatusBadge.style.background = 'rgba(16, 185, 129, 0.2)';
-        this.elements.pipelineStatusBadge.style.color = '#10b981';
-      } else if (globalStatus === 'partial') {
-        this.elements.pipelineStatusBadge.textContent = 'Generación Parcial';
-        this.elements.pipelineStatusBadge.style.background = 'rgba(245, 158, 11, 0.2)';
-        this.elements.pipelineStatusBadge.style.color = '#f59e0b';
-      } else if (globalStatus === 'processing' || globalStatus === 'pending') {
-        this.elements.pipelineStatusBadge.textContent = 'En Procesamiento';
-        this.elements.pipelineStatusBadge.style.background = 'rgba(6, 182, 212, 0.2)';
-        this.elements.pipelineStatusBadge.style.color = 'var(--accent-cyan)';
-      } else if (globalStatus === 'failed' || globalStatus === 'error') {
-        this.elements.pipelineStatusBadge.textContent = 'Error en Formatos';
-        this.elements.pipelineStatusBadge.style.background = 'rgba(239, 68, 68, 0.2)';
-        this.elements.pipelineStatusBadge.style.color = '#ef4444';
-      } else {
-        this.elements.pipelineStatusBadge.textContent = 'Completado';
-        this.elements.pipelineStatusBadge.style.background = 'rgba(16, 185, 129, 0.2)';
-        this.elements.pipelineStatusBadge.style.color = '#10b981';
-      }
+      this.elements.pipelineStatusBadge.textContent = 'Quiz + Flashcards Listos';
+      this.elements.pipelineStatusBadge.style.background = 'rgba(16, 185, 129, 0.2)';
+      this.elements.pipelineStatusBadge.style.color = '#10b981';
     }
 
     if (this.elements.pipelineLiveLog) {
-      if (globalStatus === 'ready') {
-        this.elements.pipelineLiveLog.textContent = '¡Proceso completado! Quiz y Flashcards generados exitosamente por el Backend.';
-      } else if (globalStatus === 'partial') {
-        this.elements.pipelineLiveLog.textContent = 'Formatos generados parcialmente. Puedes comenzar a estudiar el formato disponible.';
-      } else if (globalStatus === 'failed' || globalStatus === 'error') {
-        this.elements.pipelineLiveLog.textContent = 'Ocurrió un error al generar los formatos de estudio en el backend.';
-      } else {
-        this.elements.pipelineLiveLog.textContent = 'Documento almacenado en OCI y adaptación pedagógica registrada.';
-      }
+      this.elements.pipelineLiveLog.textContent = '¡Proceso completado! Documento procesado y adaptado exitosamente por el Backend.';
     }
 
-    if (globalStatus === 'ready') {
-      notifySuccess(
-        'Material Educativo Listo (200)',
-        `Quiz y Flashcards listos para "${procDoc.filename}".`
-      );
-    } else if (globalStatus === 'partial') {
-      notifyWarning(
-        'Generación Parcial',
-        `Al menos un formato se generó exitosamente para "${procDoc.filename}".`
-      );
-    } else if (globalStatus === 'failed' || globalStatus === 'error') {
-      statusDialog.showError({
-        status: 500,
-        code: 'FORMATS_GENERATION_FAILED',
-        message: formatsResponse?.message || 'El backend persistió el archivo en OCI pero no completó la generación de Quiz y Flashcards.',
-        details: formatsResponse?.details || ['No se pudieron sintetizar los formatos pedagógicos automáticos.'],
-        filename: procDoc.filename
-      });
-      notifyError(
-        'Formatos No Disponibles',
-        `No fue posible generar los formatos de estudio para "${procDoc.filename}".`
-      );
-    } else {
-      notifySuccess(
-        uploadResult.isDuplicate ? 'Documento Reutilizado (200)' : 'Documento Almacenado (201)',
-        `"${procDoc.filename}" ya está disponible en tu Biblioteca.`
-      );
-    }
+    notifySuccess(
+      uploadResult.isDuplicate ? 'Documento Reutilizado (200)' : 'Documento Almacenado y Adaptado (201)',
+      `"${procDoc.filename}" ya está disponible en tu Biblioteca y Centro de Estudio.`
+    );
 
     // Actualizar datos de lectura
     if (this.elements.badgeTiempo) {
@@ -569,23 +507,11 @@ export const uploadTab = {
         if (!descSpan) return;
 
         if (fmt === 'flashcards') {
-          const fcStatus = rawFormats?.flashcards?.status || (globalStatus === 'ready' ? 'success' : null);
-          if (fcStatus === 'failed') {
-            descSpan.textContent = 'Generación fallida · Reintentar';
-            descSpan.style.color = '#ef4444';
-          } else {
-            descSpan.textContent = 'Mnemotecnia y conceptos clave · Listo';
-            descSpan.style.color = 'var(--text-secondary)';
-          }
+          descSpan.textContent = 'Mnemotecnia y conceptos clave · Listo';
+          descSpan.style.color = 'var(--text-secondary)';
         } else if (fmt === 'quiz') {
-          const qStatus = rawFormats?.quiz?.status || (globalStatus === 'ready' ? 'success' : null);
-          if (qStatus === 'failed') {
-            descSpan.textContent = 'Generación fallida · Reintentar';
-            descSpan.style.color = '#ef4444';
-          } else {
-            descSpan.textContent = 'Autoevaluación con justificación · Listo';
-            descSpan.style.color = 'var(--text-secondary)';
-          }
+          descSpan.textContent = 'Autoevaluación con justificación · Listo';
+          descSpan.style.color = 'var(--text-secondary)';
         }
       });
     }
