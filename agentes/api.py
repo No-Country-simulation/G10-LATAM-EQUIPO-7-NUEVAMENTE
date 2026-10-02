@@ -3,6 +3,7 @@ import tempfile
 from fastapi import FastAPI, HTTPException, UploadFile, File, Form
 from pydantic import BaseModel, Field
 from typing import List, Dict, Any, Optional
+from pathlib import Path
 
 from .rag.models import Document
 from .rag.cleaner import clean_text
@@ -113,12 +114,12 @@ def generate_formats(payload: GenerateRequest):
     for formato in payload.formats:
         
         # ==========================================
-        # SOLUCIÓN DEUDA TÉCNICA (Feedback PM)
+        # VALIDACIÓN DE FORMATO ATÓMICA
         # ==========================================
         if formato not in ["quiz", "flashcards"]:
             respuestas_generadas.append({
                 "format": formato,
-                "status": "error",
+                "status": "failed",  # SOLUCIÓN DEUDA TÉCNICA: Cambiado de "error" a "failed"
                 "content": None,
                 "sources_used": [],
                 "error_message": f"El formato '{formato}' no está soportado en esta versión."
