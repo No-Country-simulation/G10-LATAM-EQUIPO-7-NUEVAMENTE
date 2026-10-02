@@ -43,7 +43,15 @@ function resolveApiBaseUrl() {
     }
   }
 
-  // 5. Fallback por defecto
+  // 5. Si estamos en un despliegue en la nube (no localhost), usar el mismo origen
+  if (typeof window !== 'undefined' && window.location && window.location.hostname) {
+    const host = window.location.hostname;
+    if (host !== 'localhost' && host !== '127.0.0.1') {
+      return window.location.origin;
+    }
+  }
+
+  // 6. Fallback por defecto
   return 'http://localhost:8000';
 }
 
@@ -73,13 +81,31 @@ export const CONFIG = {
       DOCUMENT_DETAILS: (id) => `/documents/${id}`,
       DOCUMENT_FORMATS: (id) => `/documents/${id}/formats`
     },
-    TIMEOUT_MS: resolveTimeoutMs()
+    TIMEOUT_MS: resolveTimeoutMs(),
+    PROCESSING_TIMEOUT_MS: 120000, // 120s para procesamiento síncrono RAG + LLM en Sprint 2 (POST /documents)
+    ADAPTATIONS_TIMEOUT_MS: 120000 // Compatibilidad retroactiva
   },
 
   // Restricciones de carga de documentos (Sprint 2: Límite estricto 10 MB)
   UPLOAD: {
     MAX_SIZE_MB: 10,
     ALLOWED_EXTENSIONS: ['pdf', 'md', 'txt']
+  },
+
+  // Parámetros de adaptación pedagógica desacoplados (Sprint 2)
+  PEDAGOGICAL: {
+    DEFAULT_PROFILE: 'intermediate',
+    DEFAULT_NICHE: 'general',
+    DEFAULT_DETAIL_LEVEL: 'detailed',
+    // Mapeo extensible para desacoplar futuros cambios en nombres de perfiles
+    PROFILE_MAP: {
+      beginner: 'beginner',
+      intermediate: 'intermediate',
+      advanced: 'advanced',
+      principiante: 'beginner',
+      intermedio: 'intermediate',
+      avanzado: 'advanced'
+    }
   },
 
   // Almacenamiento local

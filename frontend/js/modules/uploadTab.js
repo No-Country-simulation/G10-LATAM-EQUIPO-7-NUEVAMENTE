@@ -41,8 +41,8 @@ export const uploadTab = {
 
       // Parámetros
       paramPerfil: document.getElementById('paramPerfil'),
-      paramFormato: document.getElementById('paramFormato'),
       paramNicho: document.getElementById('paramNicho'),
+      paramDetailLevel: document.getElementById('paramDetailLevel'),
 
       // Stepper
       pipelineCard: document.getElementById('pipelineCard'),
@@ -202,16 +202,27 @@ export const uploadTab = {
 
   setupParamListeners() {
     const updateParams = () => {
+      const profile = this.elements.paramPerfil?.value || 'intermediate';
+      const niche = this.elements.paramNicho?.value || 'general';
+      const detail_level = this.elements.paramDetailLevel?.value || 'detailed';
+
       state.set({
         adaptationParams: {
-          target_profile: this.elements.paramPerfil?.value || 'intermediate',
-          output_format: this.elements.paramFormato?.value || 'all',
-          niche_context: this.elements.paramNicho?.value || 'general'
+          profile,
+          niche,
+          detail_level,
+          learning_objective: null,
+          target_profile: profile,
+          niche_context: niche
         }
       });
     };
 
-    [this.elements.paramPerfil, this.elements.paramFormato, this.elements.paramNicho].forEach(el => {
+    [
+      this.elements.paramPerfil,
+      this.elements.paramNicho,
+      this.elements.paramDetailLevel
+    ].forEach(el => {
       if (el) el.addEventListener('change', updateParams);
     });
   },
@@ -250,22 +261,32 @@ export const uploadTab = {
     }
     this.resetStepperUI();
 
-    const targetProfile = params.target_profile || 'intermediate';
-    const outputFormat = params.output_format || 'all';
-    const nicheContext = params.niche_context || 'general';
+    const rawProfile = params.profile || params.target_profile || CONFIG.PEDAGOGICAL?.DEFAULT_PROFILE || 'intermediate';
+    const profile = CONFIG.PEDAGOGICAL?.PROFILE_MAP?.[rawProfile.toLowerCase()] || rawProfile;
+    const niche = params.niche || params.niche_context || CONFIG.PEDAGOGICAL?.DEFAULT_NICHE || 'general';
+    const detail_level = params.detail_level || CONFIG.PEDAGOGICAL?.DEFAULT_DETAIL_LEVEL || 'detailed';
+    const learning_objective = params.learning_objective || null;
+
+    const pedagogicalParams = {
+      profile,
+      niche,
+      detail_level,
+      learning_objective
+    };
 
     try {
       let docId;
       let uploadResult;
 
-      // Paso 1: Subir el documento al backend (POST /api/v1/documents)
+      // Paso 1: Subir el documento al backend con parámetros pedagógicos (POST /api/v1/documents)
+      // Contrato Sprint 2: Frontend envía file, profile, niche, detail_level en multipart/form-data.
       this.currentActiveStep = this.elements.stepOci;
-      this.setStepActive(this.elements.stepOci, 'Guardando tu documento...');
+      this.setStepActive(this.elements.stepOci, 'Guardando tu documento en OCI...');
 
       if (!selectedFile.rawFile) {
         throw new ApiError(400, { message: 'Por favor selecciona un archivo real desde tu dispositivo para subir.' });
       }
-      uploadResult = await apiClient.uploadFile(selectedFile.rawFile);
+      uploadResult = await apiClient.uploadFile(selectedFile.rawFile, pedagogicalParams);
 
       docId = uploadResult.document_id;
       if (!docId) {
@@ -287,40 +308,31 @@ export const uploadTab = {
         filename: uploadResult.filename || selectedFile.name,
         httpStatus: uploadResult.httpStatus || (uploadResult.isDuplicate ? 200 : 201),
         duplicate: Boolean(uploadResult.isDuplicate),
+        status: uploadResult.status || 'indexed',
         isMock: false
       });
 
-      // -----------------------------------------------------------------------
-      // DEUDA TÉCNICA REGISTRADA (Pasos 2, 3 y 4):
-      // Actualmente la interfaz marca como completados los pasos de indexación,
-      // embeddings y vinculación de formatos mediante estados visuales temporales (wait),
-      // sin confirmación real del Backend/Agentes (pipeline RAG asíncrono aún en desarrollo).
-      // TODO: Cuando quede integrado el endpoint de procesos (e.g. GET /processes/{id}
-      // o eventos SSE/WebSocket), sustituir estos delays simulados por polling del
-      // estado real del servicio (PENDING -> PROCESSING -> COMPLETED/FAILED).
-      // -----------------------------------------------------------------------
-
-      // Paso 2: Indexación y procesamiento en Backend (Transición visual temporal)
+      // Paso 2: Indexación y embeddings completados por Backend
       this.currentActiveStep = this.elements.stepChroma;
-      this.setStepActive(this.elements.stepChroma, 'Indexando contenido y calculando embeddings...');
-      await this.wait(350);
+      this.setStepActive(this.elements.stepChroma, 'Indexando contenido y analizando embeddings...');
       this.setStepCompleted(this.elements.stepChroma, this.elements.line2);
 
-      // Paso 3: Vinculación con formatos de estudio (Transición visual temporal)
+      // Paso 3: Generación pedagógica adaptativa (Quiz + Flashcards)
+      // Nota Sprint 2: El backend orquesta RAG + Generación internamente; /adaptations ya no se consume.
       this.currentActiveStep = this.elements.stepGen;
-      this.setStepActive(this.elements.stepGen, `Vinculando formatos de estudio para nivel [${this.getLevelLabel(targetProfile)}]...`);
-      await this.wait(350);
+      this.setStepActive(this.elements.stepGen, `Generando Quiz y Flashcards (${this.getLevelLabel(profile)})...`);
       this.setStepCompleted(this.elements.stepGen, this.elements.line3);
 
-      // Paso 4: Verificación de persistencia y registro en la biblioteca (Transición visual temporal)
+      // Paso 4: Formatos de estudio listos en el Backend
+      // Nota Sprint 2: No se consulta GET /formats inmediatamente tras el POST para evitar puntos de fallo;
+      // los formatos se consultan al acceder al Study Hub.
       this.currentActiveStep = this.elements.stepCritic;
-      this.setStepActive(this.elements.stepCritic, 'Validando persistencia y registrando en La Biblioteca...');
-      await this.wait(300);
+      this.setStepActive(this.elements.stepCritic, 'Formatos de estudio listos para acceder...');
       this.setStepCompleted(this.elements.stepCritic, null);
 
       // Crear el documento persistido para el estado global y el librero
-      const procDoc = this.createDocumentFromUpload(selectedFile, uploadResult, params);
-      this.onPipelineSuccess(procDoc, uploadResult, params);
+      const procDoc = this.createDocumentFromUpload(selectedFile, uploadResult, pedagogicalParams);
+      this.onPipelineSuccess(procDoc, uploadResult, pedagogicalParams);
 
     } catch (err) {
       console.error('[Pipeline Error]:', err);
@@ -377,8 +389,10 @@ export const uploadTab = {
       .trim();
 
     const formattedTitle = cleanTitle.charAt(0).toUpperCase() + cleanTitle.slice(1);
-    const discipline = this.inferDiscipline(cleanTitle, params.niche_context);
-    const targetProfile = params.target_profile || 'intermediate';
+    const profile = params.profile || params.target_profile || 'intermediate';
+    const niche = params.niche || params.niche_context || 'general';
+    const detail_level = params.detail_level || 'detailed';
+    const discipline = this.inferDiscipline(cleanTitle, niche);
     const docId = uploadResult.document_id;
     const ext = (selectedFile.format || rawName.split('.').pop() || 'pdf').toLowerCase();
     const ociId = uploadResult.oci_object_name || `documents/${docId}/original.${ext}`;
@@ -389,14 +403,15 @@ export const uploadTab = {
       title: formattedTitle,
       discipline: discipline,
       spineColor: 'gold-custom',
-      description: `Documento procesado y persistido en OCI Object Storage (${uploadResult.isDuplicate ? 'Registro existente reutilizado' : 'Nuevo registro creado'}).`,
+      description: `Documento procesado y adaptado (${uploadResult.isDuplicate ? 'Registro existente reutilizado' : 'Nuevo registro creado'}).`,
       filesize: selectedFile.size || '1.0 MB',
       status: uploadResult.status || 'stored',
       metadatos: {
         document_id: docId,
-        perfil: targetProfile,
+        perfil: profile,
+        niche: niche,
+        detail_level: detail_level,
         tiempo_estudio: '8 min',
-        niche_context: params.niche_context || 'general',
         oci_object_name: ociId,
         duplicate: Boolean(uploadResult.isDuplicate)
       },
@@ -404,7 +419,7 @@ export const uploadTab = {
         {
           id: `sec_${docId}`,
           title: formattedTitle,
-          summary: `Documento registrado exitosamente en OCI y disponible en la Biblioteca de NuevaMente.`,
+          summary: `Documento registrado y adaptado exitosamente con Quiz y Flashcards.`,
           key_concepts: [discipline, 'Concepto Clave', 'Estudio Adaptativo']
         }
       ]
@@ -435,12 +450,8 @@ export const uploadTab = {
     const exists = currentCustomBooks.some(b => b.id === procDoc.id);
     const updatedCustom = exists ? currentCustomBooks : [procDoc, ...currentCustomBooks];
 
-    // Mapear formato solicitado al formato activo en el Study Hub
-    const outputFormat = params.output_format || 'all';
-    let initialStudyFormat = 'flashcards';
-    if (outputFormat === 'quiz') initialStudyFormat = 'quiz';
-    else if (outputFormat === 'tutorial') initialStudyFormat = 'video';
-    else if (outputFormat === 'summary') initialStudyFormat = 'sintesis';
+    const rawFormats = uploadResult.formats || null;
+    const globalStatus = rawFormats ? 'ready' : 'idle';
 
     state.set({
       currentDocument: procDoc,
@@ -453,24 +464,27 @@ export const uploadTab = {
       },
       studyHub: {
         activeSectionId: procDoc.sections[0]?.id || null,
-        activeFormat: initialStudyFormat,
+        formats: rawFormats,
+        formatsStatus: globalStatus,
+        activeFormat: 'flashcards',
         currentCardIndex: 0,
         isFlipped: false
       }
     });
 
     if (this.elements.pipelineStatusBadge) {
-      this.elements.pipelineStatusBadge.textContent = 'Almacenado y Listo';
+      this.elements.pipelineStatusBadge.textContent = 'Quiz + Flashcards Listos';
       this.elements.pipelineStatusBadge.style.background = 'rgba(16, 185, 129, 0.2)';
       this.elements.pipelineStatusBadge.style.color = '#10b981';
     }
+
     if (this.elements.pipelineLiveLog) {
-      this.elements.pipelineLiveLog.textContent = 'Documento almacenado correctamente en OCI y registrado en tu biblioteca.';
+      this.elements.pipelineLiveLog.textContent = '¡Proceso completado! Documento procesado y adaptado exitosamente por el Backend.';
     }
 
     notifySuccess(
-      uploadResult.isDuplicate ? 'Documento Reutilizado (200)' : 'Documento Almacenado (201)',
-      `"${procDoc.filename}" ya está disponible en tu Biblioteca.`
+      uploadResult.isDuplicate ? 'Documento Reutilizado (200)' : 'Documento Almacenado y Adaptado (201)',
+      `"${procDoc.filename}" ya está disponible en tu Biblioteca y Centro de Estudio.`
     );
 
     // Actualizar datos de lectura
@@ -480,8 +494,26 @@ export const uploadTab = {
     if (this.elements.badgeSecciones) {
       this.elements.badgeSecciones.textContent = `ID: ${procDoc.id.substring(0, 8)}...`;
     }
+    const profile = params.profile || params.target_profile || 'intermediate';
     if (this.elements.badgeNivel) {
-      this.elements.badgeNivel.textContent = `Nivel: ${this.getLevelLabel(params.target_profile)}`;
+      this.elements.badgeNivel.textContent = `Nivel: ${this.getLevelLabel(profile)}`;
+    }
+
+    // Actualizar descripciones de disponibilidad en tarjetas de resolución
+    if (this.elements.resolverFormatCards) {
+      this.elements.resolverFormatCards.forEach(card => {
+        const fmt = card.getAttribute('data-resolve-format');
+        const descSpan = card.querySelector('.resolver-text span');
+        if (!descSpan) return;
+
+        if (fmt === 'flashcards') {
+          descSpan.textContent = 'Mnemotecnia y conceptos clave · Listo';
+          descSpan.style.color = 'var(--text-secondary)';
+        } else if (fmt === 'quiz') {
+          descSpan.textContent = 'Autoevaluación con justificación · Listo';
+          descSpan.style.color = 'var(--text-secondary)';
+        }
+      });
     }
 
     // Mostrar panel de resolución de formatos

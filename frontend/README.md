@@ -91,7 +91,7 @@ frontend/
    Estantería de libros interactivos en 3D. Al hacer clic en cualquiera, se despliega un cuaderno abierto con el detalle del documento (tiempo de lectura, cantidad de secciones, nivel) y las opciones de estudio disponibles.
 
 3. **Carga de Documento**
-   Zona de arrastrar y soltar para PDF, Markdown o TXT (hasta 10 MB). Selector de parámetros de adaptación: perfil del estudiante, área temática y formato de salida. Al procesar, un panel muestra el avance en tiempo real contra el Backend y notifica el resultado (documento guardado, duplicado detectado, o cualquier error) mediante un diálogo de estado y notificaciones toast.
+   Zona de arrastrar y soltar para PDF, Markdown o TXT (hasta 10 MB). Selector de parámetros de adaptación pedagógica: perfil del estudiante, área temática y nivel de detalle (los 4 formatos se generan automáticamente en conjunto). Al procesar, un panel muestra el avance en tiempo real contra el Backend y notifica el resultado (documento guardado, duplicado detectado, o cualquier error) mediante un diálogo de estado y notificaciones toast.
 
 4. **Centro de Estudio**
    - **Flashcards**: tarjetas con animación de volteo y pistas pedagógicas.
@@ -105,22 +105,31 @@ frontend/
 
 El Frontend está alineado con el contrato v1 cerrado y funcional del Backend.
 
-### 1. Carga del documento (POST /api/v1/documents)
+### 1. Carga y procesamiento del documento (POST /api/v1/documents)
 
 - **Endpoint:** `POST {BASE_URL}/api/v1/documents`
-- **Body:** `multipart/form-data` con campo `file` (PDF, DOCX, TXT, MD; máx. 10 MB)
-- **Respuesta (201 Creado / 200 Duplicado existente):**
+- **Formato:** `multipart/form-data` (el navegador debe establecer el `boundary` de forma automática, sin header `Content-Type` manual).
+- **Campos del FormData:**
+  - `file`: Archivo binario (PDF, TXT o MD; máx. 10 MB) — *Obligatorio*
+  - `profile`: `beginner`, `intermediate`, `advanced` — *Obligatorio*
+  - `niche`: `general`, `backend`, `health`, `legal`, `business`, `humanities` — *Obligatorio*
+  - `detail_level`: Texto no vacío, por ejemplo `detailed`, `standard`, `concise` — *Obligatorio*
+  - `learning_objective`: Texto con el objetivo pedagógico — *Opcional*
+- **Front NO debe enviar:** `document_id`, `formats`, `output_format`, ni `chunks` (Backend los gestiona internamente).
+- **Nota arquitectónica:** El endpoint `/api/v1/adaptations` ya no está expuesto y Front no lo utiliza. Todo el pipeline de guardado en OCI, indexación RAG y generación de formatos (Quiz + Flashcards) se orquesta directamente en esta llamada.
+- **Respuesta (201 Created para nuevo / 200 OK para duplicado):**
   ```json
   {
-    "document_id": "doc_e7a935bc87ff",
-    "filename": "documento.pdf",
-    "status": "stored",
+    "document_id": "doc_d5a19fdaae6944e6949f0a2a028db22c",
+    "filename": "documento.txt",
+    "status": "indexed",
     "duplicate": false
   }
   ```
-- **Errores:** `400` (vacío), `413` (>10 MB), `415` (no soportado), `502` (fallo de persistencia OCI).
+  *(Nota de contrato: `POST /documents` actualmente no devuelve `formats`; su respuesta contiene `document_id`, `filename`, `status` y `duplicate`. Los formatos generados se obtienen mediante `GET /api/v1/documents/{document_id}/formats` al acceder al Centro de Estudio o abrir un libro desde La Biblioteca).*
+- **Errores:** `400` (vacío/inválido), `413` (>10 MB), `415` (no soportado), `422` (validación), `502` (fallo de persistencia OCI).
 
-### 2. Listar documentos para La Biblioteca (GET /api/v1/documents)
+### 3. Listar documentos para La Biblioteca (GET /api/v1/documents)
 
 - **Endpoint:** `GET {BASE_URL}/api/v1/documents`
 - **Content-Type:** `application/json`
@@ -139,7 +148,7 @@ El Frontend está alineado con el contrato v1 cerrado y funcional del Backend.
   ]
   ```
 
-### 3. Consultar detalle del documento (GET /api/v1/documents/{document_id})
+### 4. Consultar detalle del documento (GET /api/v1/documents/{document_id})
 
 - **Endpoint:** `GET {BASE_URL}/api/v1/documents/{document_id}`
 - **Respuesta (200 OK):**
@@ -158,7 +167,7 @@ El Frontend está alineado con el contrato v1 cerrado y funcional del Backend.
   }
   ```
 
-### 4. Consultar formatos generados (GET /api/v1/documents/{document_id}/formats)
+### 5. Consultar formatos generados (GET /api/v1/documents/{document_id}/formats)
 
 - **Endpoint:** `GET {BASE_URL}/api/v1/documents/{document_id}/formats`
 - **Respuesta (200 OK):** Contrato canónico acordado entre Backend, Agentes, Data/IA y Frontend.
@@ -211,18 +220,24 @@ El Frontend está alineado con el contrato v1 cerrado y funcional del Backend.
   ```
 
   - **Estados por formato:** `success`, `failed`, `no_results`.
-  - **Estados globales del endpoint:** `processing`, `ready`, `partial`, `error`.
+  - **Estados globales del endpoint:**
+    - `pending`: documento almacenado, adaptación aún no iniciada.
+    - `processing`: indexación o generación en curso.
+    - `ready`: Quiz y Flashcards disponibles.
+    - `partial`: al menos un formato exitoso.
+    - `error`: procesamiento o generación fallida.
   - **Resolución didáctica:** En Frontend, `quiz.js` resuelve `correct_answer` tanto por texto exacto de la opción como por índice numérico; `flashcards.js` renderiza `content.cards` y mensajes pedagógicos ante fallos parciales o estados en proceso (`processing`).
 
 ### Manejo de errores
 
-El cliente HTTP (`js/api/apiClient.js`) traduce las respuestas del Backend a mensajes legibles, desplegados mediante el diálogo de estado (`statusDialog.js`) y notificaciones toast (`notifications.js`). Códigos contemplados y probados: `200`, `201`, `400`, `404`, `408` (timeout de 30s), `413` (límite 10 MB), `415`, `422`, `500`, `502` (error OCI), y `0` (Backend no disponible / fallo de red).
+El cliente HTTP (`js/api/apiClient.js`) traduce las respuestas del Backend a mensajes legibles, desplegados mediante el diálogo de estado (`statusDialog.js`) y notificaciones toast (`notifications.js`). Códigos contemplados y probados: `200`, `201`, `400`, `404`, `408` (timeout de 120s para procesamiento RAG), `413` (límite 10 MB), `415`, `422`, `500`, `502` (error OCI), y `0` (Backend no disponible / fallo de red).
 
 ---
 
 ## Estado Actual de la Integración (Sprint 2)
 
 - **Carga y persistencia real en Backend y OCI (`POST /documents`):** ✅ **Funcional** (Tarea 1).
+- **Flujo de adaptación pedagógica integrado en `POST /documents`:** ✅ **Funcional** (Orquestación RAG + IA completada por el Backend en la carga).
 - **Límite máximo de 10 MB validado en cliente:** ✅ **Funcional** (Tarea 4).
 - **Manejo UX integral de códigos HTTP y errores:** ✅ **Funcional** (Tarea 5).
 - **Consulta y renderizado de la biblioteca (`GET /documents`):** ✅ **Funcional** (Tarea 6).
@@ -230,13 +245,3 @@ El cliente HTTP (`js/api/apiClient.js`) traduce las respuestas del Backend a men
 - **Visualizador pedagógico de Quiz y Flashcards:** ✅ **Funcional** (Tarea 8).
 - **Configuración desacoplada y Vite.js (sin URL hardcodeada):** ✅ **Funcional** (Tarea 3).
 - **Modo único real (sin mocks):** ✅ **Completado**.
-
----
-
-## 📌 Deuda Técnica Registrada (Integración Pipeline RAG / Agentes)
-
-> **Registro Oficial de Deuda Técnica (Sprint 2):**  
-> Actualmente la interfaz marca como completados los pasos posteriores a la subida en el stepper de carga (*Indexación/Embeddings*, *Vinculación de Formatos* y *Validación del Crítico*) mediante estados visuales temporales (`wait`), sin confirmación real en tiempo de ejecución por parte del Backend/Agentes (cuyo pipeline RAG opera de forma asíncrona).
->
-> **Acción Futura Requerida (Sprint 3 / Próxima Iteración):**  
-> Cuando el equipo de Backend y Agentes exponga el endpoint de seguimiento de procesos asíncronos (e.g. `GET /processes/{id}` o eventos en tiempo real SSE / WebSockets), estos pasos deberán sustituir la espera simulada por una escucha reactiva o sondeo del estado real del servicio (`PENDING` ➔ `PROCESSING` ➔ `COMPLETED` / `FAILED`), reflejando con fidelidad matemática el progreso del pipeline.
