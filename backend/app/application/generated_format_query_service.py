@@ -8,7 +8,9 @@ from app.domain.enums import (
     GeneratedFormatStatus,
     GeneratedFormatType,
 )
-from app.domain.generated_format import GeneratedFormat
+from app.domain.generated_format import (
+    GeneratedFormat,
+)
 from app.ports.document_repository_port import (
     DocumentRepositoryPort,
 )
@@ -27,7 +29,6 @@ _FAILED_DOCUMENT_STATUSES = frozenset(
 _PROCESSING_DOCUMENT_STATUSES = frozenset(
     {
         DocumentStatus.INDEXING,
-        DocumentStatus.INDEXED,
     }
 )
 
@@ -44,7 +45,10 @@ class DocumentFormatsResult:
 
     document_id: str
     status: DocumentFormatsStatus
-    formats: tuple[GeneratedFormat, ...]
+    formats: tuple[
+        GeneratedFormat,
+        ...
+    ]
 
 
 class GeneratedFormatQueryService:
@@ -66,9 +70,13 @@ class GeneratedFormatQueryService:
         self,
         *,
         document_repository: DocumentRepositoryPort,
-        generated_format_repository: GeneratedFormatRepositoryPort,
+        generated_format_repository: (
+            GeneratedFormatRepositoryPort
+        ),
     ) -> None:
-        self._document_repository = document_repository
+        self._document_repository = (
+            document_repository
+        )
         self._generated_format_repository = (
             generated_format_repository
         )
@@ -96,8 +104,11 @@ class GeneratedFormatQueryService:
         )
 
         if document is None:
-            raise GeneratedFormatQueryDocumentNotFoundError(
-                f"No existe el documento {document_id}."
+            raise (
+                GeneratedFormatQueryDocumentNotFoundError(
+                    "No existe el documento "
+                    f"{document_id}."
+                )
             )
 
         history = (
@@ -110,8 +121,10 @@ class GeneratedFormatQueryService:
         if not history:
             return DocumentFormatsResult(
                 document_id=document_id,
-                status=self._resolve_empty_history_status(
-                    document.status
+                status=(
+                    self._resolve_empty_history_status(
+                        document.status
+                    )
                 ),
                 formats=(),
             )
@@ -124,8 +137,10 @@ class GeneratedFormatQueryService:
 
         return DocumentFormatsResult(
             document_id=document_id,
-            status=self._resolve_aggregate_status(
-                selected_formats
+            status=(
+                self._resolve_aggregate_status(
+                    selected_formats
+                )
             ),
             formats=selected_formats,
         )
@@ -134,31 +149,46 @@ class GeneratedFormatQueryService:
     def _resolve_empty_history_status(
         document_status: DocumentStatus,
     ) -> DocumentFormatsStatus:
-        """Resuelve el estado cuando aún no existen generaciones.
+        """Resuelve el estado cuando todavía no hay generaciones.
 
-        Un documento almacenado pero cuya adaptación no comenzó está
-        pendiente. Durante indexación o después de indexar, mientras
-        todavía no existen resultados persistidos, se considera en
-        procesamiento. Los estados fallidos se exponen como error.
+        ``INDEXING`` representa procesamiento activo del documento.
+
+        ``INDEXED`` solo confirma que la indexación terminó correctamente.
+        No implica que la generación se encuentre ejecutándose. Si un
+        documento está indexado y aún no existe historial de formatos,
+        la generación permanece pendiente.
+
+        Los fallos de generación se representan mediante registros
+        ``GeneratedFormat`` con estado ``FAILED`` y se resuelven a
+        ``DocumentFormatsStatus.ERROR`` mediante el historial.
         """
         if (
             document_status
             in _FAILED_DOCUMENT_STATUSES
         ):
-            return DocumentFormatsStatus.ERROR
+            return (
+                DocumentFormatsStatus.ERROR
+            )
 
         if (
             document_status
             in _PROCESSING_DOCUMENT_STATUSES
         ):
-            return DocumentFormatsStatus.PROCESSING
+            return (
+                DocumentFormatsStatus.PROCESSING
+            )
 
         return DocumentFormatsStatus.PENDING
 
     @staticmethod
     def _select_current_formats(
-        history: list[GeneratedFormat],
-    ) -> tuple[GeneratedFormat, ...]:
+        history: list[
+            GeneratedFormat
+        ],
+    ) -> tuple[
+        GeneratedFormat,
+        ...
+    ]:
         """Selecciona un resultado vigente por tipo de formato."""
         selected_formats: list[
             GeneratedFormat
@@ -167,7 +197,8 @@ class GeneratedFormatQueryService:
         for format_type in GeneratedFormatType:
             candidates = [
                 generated_format
-                for generated_format in history
+                for generated_format
+                in history
                 if (
                     generated_format.format_type
                     == format_type
@@ -179,7 +210,8 @@ class GeneratedFormatQueryService:
 
             successful_candidates = [
                 generated_format
-                for generated_format in candidates
+                for generated_format
+                in candidates
                 if (
                     generated_format.status
                     == GeneratedFormatStatus.SUCCESS
@@ -219,7 +251,8 @@ class GeneratedFormatQueryService:
         """Calcula el estado agregado consumido por Frontend."""
         successful_types = {
             generated_format.format_type
-            for generated_format in formats
+            for generated_format
+            in formats
             if (
                 generated_format.status
                 == GeneratedFormatStatus.SUCCESS
@@ -230,10 +263,17 @@ class GeneratedFormatQueryService:
             GeneratedFormatType
         )
 
-        if successful_types == supported_types:
-            return DocumentFormatsStatus.READY
+        if (
+            successful_types
+            == supported_types
+        ):
+            return (
+                DocumentFormatsStatus.READY
+            )
 
         if successful_types:
-            return DocumentFormatsStatus.PARTIAL
+            return (
+                DocumentFormatsStatus.PARTIAL
+            )
 
         return DocumentFormatsStatus.ERROR

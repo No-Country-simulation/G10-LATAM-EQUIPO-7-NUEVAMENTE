@@ -324,20 +324,11 @@ def test_query_returns_pending_for_stored_document_without_formats() -> None:
     assert result.formats == ()
 
 
-@pytest.mark.parametrize(
-    "status",
-    [
-        DocumentStatus.INDEXING,
-        DocumentStatus.INDEXED,
-    ],
-)
-def test_query_returns_processing_when_adaptation_is_running(
-    status: DocumentStatus,
-) -> None:
-    """Indexación o generación sin resultados expone processing."""
+def test_query_returns_processing_while_document_is_indexing() -> None:
+    """La indexación activa expone processing."""
     service = build_service(
         document=build_document(
-            status=status
+            status=DocumentStatus.INDEXING
         )
     )
 
@@ -348,6 +339,25 @@ def test_query_returns_processing_when_adaptation_is_running(
     assert (
         result.status
         == DocumentFormatsStatus.PROCESSING
+    )
+    assert result.formats == ()
+
+
+def test_query_returns_pending_for_indexed_document_without_attempts() -> None:
+    """INDEXED no implica que exista una generación en ejecución."""
+    service = build_service(
+        document=build_document(
+            status=DocumentStatus.INDEXED
+        )
+    )
+
+    result = service.get_document_formats(
+        DOCUMENT_ID
+    )
+
+    assert (
+        result.status
+        == DocumentFormatsStatus.PENDING
     )
     assert result.formats == ()
 
