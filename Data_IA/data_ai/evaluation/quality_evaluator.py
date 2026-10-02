@@ -20,6 +20,8 @@ from data_ai.evaluation.config import (
     RATIO_ALUCINACION_BUENO,
 )
 
+from data_ai.evaluation.config import MIN_CHARS_BEGINNER, MIN_CHARS_HIGH_DETAIL
+
 GeneratedContent = Union[
     QuizContent,
     FlashcardsContent,
@@ -204,13 +206,13 @@ def evaluate(
 
     if (
         perfil in {"principiante", "beginner"}
-        and len(texto_evaluable) > 3000
+        and len(texto_evaluable) > MIN_CHARS_BEGINNER
     ):
         adaptacion = 3
 
     elif (
         nivel_detalle in {"alto", "high"}
-        and len(texto_evaluable) < 200
+        and len(texto_evaluable) < MIN_CHARS_HIGH_DETAIL
     ):
         adaptacion = 2
 
