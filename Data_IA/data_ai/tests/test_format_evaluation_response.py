@@ -25,7 +25,10 @@ from data_ai.schemas.format_evaluation import (
     EvaluationResponse,
     EvaluationScores,
 )
-
+from data_ai.evaluation.config import (
+    EVALUATOR_VERSION,
+    RUBRIC_VERSION,
+)
 
 def build_scores(
     relevancia: int = 5,
@@ -181,3 +184,24 @@ def test_score_outside_allowed_range_is_rejected():
             adaptacion_didactica=5,
             informacion_respaldada=5,
         )
+        
+
+def test_evaluation_response_versions_from_config():
+    """Valida que EvaluationResponse exponga las versiones definidas en config."""
+
+    response = EvaluationResponse(
+        document_id="DOC-001",
+        format="quiz",
+        status="aprobado",
+        scores=build_scores(
+            relevancia=5,
+            coherencia=5,
+            adaptacion_didactica=5,
+            informacion_respaldada=5,
+        ),
+        informacion_no_respaldada=False,
+        observaciones=[],
+    )
+
+    assert response.evaluator_version == EVALUATOR_VERSION
+    assert response.rubric_version == RUBRIC_VERSION

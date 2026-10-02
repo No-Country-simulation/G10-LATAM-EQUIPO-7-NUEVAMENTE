@@ -17,9 +17,6 @@ from pydantic import TypeAdapter, ValidationError
 
 from data_ai.schemas.format_evaluation import EvaluationRequest
 
-from data_ai.schemas.format_evaluation import EvaluationResponse
-from data_ai.evaluation.config import EVALUATOR_VERSION, RUBRIC_VERSION
-
 DATA_IA_ROOT = Path(__file__).resolve().parents[2]
 MOCK_DIR = DATA_IA_ROOT / "data" / "evaluation" / "mock"
 
@@ -126,13 +123,3 @@ def test_generation_context_rejects_unknown_fields():
         evaluation_request_adapter.validate_python(payload)
 
     assert "unknown_field" in str(exc_info.value)
-
-    def test_evaluation_response_versions_from_config():
-        """Valida que el schema consuma las versiones directamente desde config.py"""
-        response = EvaluationResponse(
-            document_id="doc_123",
-            format="quiz",
-            evaluation={"result": "passed", "summary": "ok", "observations": [], "details": {}}
-        )
-        assert response.evaluator_version == EVALUATOR_VERSION
-        assert response.rubric_version == RUBRIC_VERSION
