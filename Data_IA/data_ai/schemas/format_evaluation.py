@@ -371,6 +371,14 @@ class EvaluationScores(StrictModel):
 class EvaluationResponse(StrictModel):
     """Respuesta estructurada del servicio de evaluación Data/IA."""
 
+    evaluator_version: str = Field(
+        default="1.0.0",
+        description="Versión del motor de evaluación",
+    )
+    rubric_version: str = Field(
+        default="1.0.0",
+        description="Versión de las políticas de rúbrica",
+    )
     document_id: str = Field(
         ...,
         min_length=1,
