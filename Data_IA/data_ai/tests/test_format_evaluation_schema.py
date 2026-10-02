@@ -17,7 +17,6 @@ from pydantic import TypeAdapter, ValidationError
 
 from data_ai.schemas.format_evaluation import EvaluationRequest
 
-
 DATA_IA_ROOT = Path(__file__).resolve().parents[2]
 MOCK_DIR = DATA_IA_ROOT / "data" / "evaluation" / "mock"
 

@@ -27,6 +27,7 @@ from typing import Annotated, List, Literal, Union
 
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 
+from data_ai.evaluation.config import EVALUATOR_VERSION, RUBRIC_VERSION
 
 # ============================================================
 # CONFIGURACIÓN BASE
@@ -371,6 +372,14 @@ class EvaluationScores(StrictModel):
 class EvaluationResponse(StrictModel):
     """Respuesta estructurada del servicio de evaluación Data/IA."""
 
+    evaluator_version: str = Field(
+        default=EVALUATOR_VERSION,
+        description="Versión del motor de evaluación",
+    )
+    rubric_version: str = Field(
+        default=RUBRIC_VERSION,
+        description="Versión de las políticas de rúbrica",
+    )
     document_id: str = Field(
         ...,
         min_length=1,

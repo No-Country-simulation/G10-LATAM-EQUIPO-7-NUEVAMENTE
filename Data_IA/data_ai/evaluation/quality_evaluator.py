@@ -11,6 +11,16 @@ from data_ai.schemas.format_evaluation import (
     QuizContent,
 )
 
+from data_ai.evaluation.config import (
+    UMBRAL_RELEVANCIA_ALTA,
+    UMBRAL_RELEVANCIA_MEDIA,
+    MIN_CARACTERES_COHERENCIA,
+    RATIO_ALUCINACION_RECHAZO,
+    RATIO_ALUCINACION_EXCELENTE,
+    RATIO_ALUCINACION_BUENO,
+)
+
+from data_ai.evaluation.config import MIN_CHARS_BEGINNER, MIN_CHARS_HIGH_DETAIL
 
 GeneratedContent = Union[
     QuizContent,
@@ -163,9 +173,9 @@ def evaluate(
             / len(terminos_contexto)
         )
 
-    if ratio_relevancia >= 0.50:
+    if ratio_relevancia >= UMBRAL_RELEVANCIA_ALTA:
         relevancia = 5
-    elif ratio_relevancia >= 0.25:
+    elif ratio_relevancia >= UMBRAL_RELEVANCIA_MEDIA:
         relevancia = 4
     else:
         relevancia = 3
@@ -176,7 +186,7 @@ def evaluate(
 
     coherencia = (
         5
-        if len(texto_evaluable.strip()) > 50
+        if len(texto_evaluable.strip()) > MIN_CARACTERES_COHERENCIA
         else 2
     )
 
@@ -196,13 +206,13 @@ def evaluate(
 
     if (
         perfil in {"principiante", "beginner"}
-        and len(texto_evaluable) > 3000
+        and len(texto_evaluable) > MIN_CHARS_BEGINNER
     ):
         adaptacion = 3
 
     elif (
         nivel_detalle in {"alto", "high"}
-        and len(texto_evaluable) < 200
+        and len(texto_evaluable) < MIN_CHARS_HIGH_DETAIL
     ):
         adaptacion = 2
 
@@ -236,14 +246,14 @@ def evaluate(
         ratio_no_respaldado = 0.0
 
     informacion_no_respaldada = (
-        ratio_no_respaldado > 0.40
+        ratio_no_respaldado > RATIO_ALUCINACION_RECHAZO
     )
 
-    if ratio_no_respaldado <= 0.15:
+    if ratio_no_respaldado <= RATIO_ALUCINACION_EXCELENTE:
         informacion_respaldada = 5
-    elif ratio_no_respaldado <= 0.30:
+    elif ratio_no_respaldado <= RATIO_ALUCINACION_BUENO:
         informacion_respaldada = 4
-    elif ratio_no_respaldado <= 0.40:
+    elif ratio_no_respaldado <= RATIO_ALUCINACION_RECHAZO:
         informacion_respaldada = 3
     else:
         informacion_respaldada = 1
