@@ -74,6 +74,11 @@
 
     <!-- Acciones Rápidas del Header -->
     <div class="header-actions">
+      <!-- Botón de Conmutación: Modo Interactivo / Modo Lista -->
+      <button type="button" class="btn-toggle-interactive-mode" id="btnToggleInteractive" title="Alternar entre catálogo en lista y estantería interactiva 3D">
+        <span>✦ Modo Interactivo</span>
+      </button>
+
       <!-- Indicador de Conexión Backend Real (Sprint 2 - Inicialmente Desconectado) -->
       <div class="header-connection-badge is-disconnected" title="Sin conexión con Backend FastAPI">
         <span class="status-dot-pulse"></span>
@@ -92,39 +97,105 @@
          PESTAÑA 1: LA BIBLIOTECA DE NUEVAMENTE
          ---------------------------------------------------------------------- -->
     <section id="viewLibrary" class="tab-view active">
-      <div class="library-view-container">
-        
-        <div class="library-hero-header">
-          <div class="library-hero-top">
-            <span class="library-hero-badge">Formación Corporativa con IA</span>
-            <h2 class="library-hero-title">
-              <span class="library-title-prefix">La Biblioteca de</span>
-              <img src="LogoPropuesta - Editado.png" alt="NuevaMente" class="library-hero-logo" height="92">
-            </h2>
+      
+      <!-- 1. Catálogo Ejecutivo en Modo Lista (Visible por Defecto) -->
+      <div class="library-catalog-view" id="libraryCatalogView">
+        <!-- Ribbon de KPIs y Estado -->
+        <div class="cosmic-metrics-grid">
+          <div class="cosmic-metric-card">
+            <span class="cosmic-metric-label">Módulos de Capacitación</span>
+            <div class="cosmic-metric-val">
+              <span id="metricDocCount">0</span>
+              <span class="cosmic-metric-sub">módulos activos</span>
+            </div>
           </div>
-          <p class="library-hero-subtitle">
-            Cada manual o módulo en la estantería representa una unidad de capacitación para colaboradores. Selecciona cualquiera para iniciar el entrenamiento o incorpora nuevos procedimientos operativos.
-          </p>
-          <div class="library-hero-bottom">
-            <button type="button" class="btn-hero-add-pdf" id="btnHeroUploadQuick">
-              <span>+ Cargar Nuevo Documento</span>
-            </button>
-          </div>
-        </div>
-
-        <!-- Estantería de Madera con Libros en 3D -->
-        <div class="bookshelf-rack">
-          <!-- Estante Superior (Row 1) -->
-          <div class="shelf-row" id="shelfRow1">
-            <div class="shelf-plank"></div>
-          </div>
-
-          <!-- Estante Inferior (Row 2) -->
-          <div class="shelf-row" id="shelfRow2">
-            <div class="shelf-plank"></div>
+          <div class="cosmic-metric-card" id="metricBackendCard" title="Clic para reverificar conexión con FastAPI" style="cursor: pointer;">
+            <span class="cosmic-metric-label">Estado Servidor Backend</span>
+            <div class="cosmic-metric-val" id="metricBackendVal">
+              <span id="metricBackendText">Desconectado</span>
+              <span class="status-dot-pulse" id="metricBackendDot"></span>
+            </div>
           </div>
         </div>
 
+        <!-- Barra de Búsqueda del Catálogo -->
+        <div class="cosmic-search-wrapper">
+          <div class="cosmic-search-input-box">
+            <span class="cosmic-search-icon">🔍</span>
+            <input type="text" id="searchDocList" class="cosmic-search-input" placeholder="Buscar módulo por título, área operativa o palabra clave..." autocomplete="off">
+            <button type="button" class="cosmic-search-clear" id="btnClearSearchList" title="Limpiar búsqueda" style="display: none;">&times;</button>
+          </div>
+          <div class="cosmic-search-count" id="searchCountList">0 documentos</div>
+          <button type="button" class="btn-hero-add-pdf" id="btnCatalogUploadAction" style="width: auto; padding: 0.55rem 1.15rem; font-size: 0.85rem;">
+            <span>+ Cargar Documento</span>
+          </button>
+        </div>
+
+        <!-- Filtros Rápidos por Área / Disciplina -->
+        <div class="cosmic-filters-row">
+          <button type="button" class="cosmic-chip active">Todos</button>
+          <button type="button" class="cosmic-chip">Tecnología & Cloud</button>
+          <button type="button" class="cosmic-chip">Legal & Compliance</button>
+          <button type="button" class="cosmic-chip">Operaciones & Negocios</button>
+          <button type="button" class="cosmic-chip">Gestión & RRHH</button>
+        </div>
+
+        <!-- Lista de Documentos -->
+        <div class="cosmic-doc-list" id="cosmicDocList">
+          <!-- Renderizado dinámicamente por bookshelf.js -->
+        </div>
+      </div>
+
+      <!-- 2. Modo Interactivo: Estantería 3D y Cuaderno (Se activa con 'Modo Interactivo') -->
+      <div class="interactive-bookshelf-wrapper" id="interactiveBookshelfWrapper">
+        <div class="library-view-container">
+          
+          <div class="library-hero-header">
+            <div class="library-hero-top">
+              <span class="library-hero-badge">Formación Corporativa con IA</span>
+              <h2 class="library-hero-title">
+                <span class="library-title-prefix">La Biblioteca de</span>
+                <img src="LogoPropuesta - Editado.png" alt="NuevaMente" class="library-hero-logo" height="92">
+              </h2>
+            </div>
+            <p class="library-hero-subtitle">
+              Cada manual o módulo en la estantería representa una unidad de capacitación para colaboradores. Selecciona cualquiera para iniciar el entrenamiento o incorpora nuevos procedimientos operativos.
+            </p>
+
+            <!-- Barra de Búsqueda 3D en la Estantería (Lupa) -->
+            <div class="interactive-search-container">
+              <div class="cosmic-search-input-box search-box-3d">
+                <span class="cosmic-search-icon">🔍</span>
+                <input type="text" id="searchDoc3D" class="cosmic-search-input" placeholder="Buscar en la estantería..." autocomplete="off">
+                <button type="button" class="cosmic-search-clear" id="btnClearSearch3D" title="Limpiar búsqueda" style="display: none;">&times;</button>
+              </div>
+              <div class="interactive-search-count" id="searchCount3D" style="display: none;"></div>
+            </div>
+
+            <div class="library-hero-bottom">
+              <button type="button" class="btn-hero-add-pdf" id="btnHeroUploadQuick">
+                <span>+ Cargar Nuevo Documento</span>
+              </button>
+              <button type="button" class="btn-toggle-to-list" id="btnReturnToListMode">
+                <span>📋 Ver en Modo Lista</span>
+              </button>
+            </div>
+          </div>
+
+          <!-- Estantería de Madera con Libros en 3D -->
+          <div class="bookshelf-rack">
+            <!-- Estante Superior (Row 1) -->
+            <div class="shelf-row" id="shelfRow1">
+              <div class="shelf-plank"></div>
+            </div>
+
+            <!-- Estante Inferior (Row 2) -->
+            <div class="shelf-row" id="shelfRow2">
+              <div class="shelf-plank"></div>
+            </div>
+          </div>
+
+        </div>
       </div>
     </section>
 

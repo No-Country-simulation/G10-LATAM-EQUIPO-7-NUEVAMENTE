@@ -911,3 +911,515 @@
   padding: 0.65rem 1.4rem;
 }
 
+/* ========================================================================
+   MODO LISTA (CATÁLOGO EJECUTIVO DE DOCUMENTOS) — NUEVAMENTE
+   ======================================================================== */
+
+/* Contenedor del Modo Lista (Visible por Defecto) */
+.library-catalog-view {
+  display: flex;
+  flex-direction: column;
+  gap: clamp(0.75rem, 1.2vh, 1rem);
+  width: 100%;
+  max-width: 1080px;
+  margin: 0.25rem auto 1rem auto;
+  padding: clamp(1rem, 2vh, 1.4rem) clamp(1.2rem, 2vw, 1.8rem);
+  background: linear-gradient(165deg, rgba(11, 17, 30, 0.92) 0%, rgba(6, 10, 18, 0.97) 100%);
+  border: 1px solid rgba(254, 240, 138, 0.3);
+  backdrop-filter: blur(24px) saturate(180%);
+  -webkit-backdrop-filter: blur(24px) saturate(180%);
+  border-radius: 1.5rem;
+  box-shadow: 0 25px 65px -10px rgba(0, 0, 0, 0.9), inset 0 1px 1px rgba(255, 255, 255, 0.15);
+  box-sizing: border-box;
+}
+
+/* Modo Interactivo oculto por defecto */
+.interactive-bookshelf-wrapper {
+  display: none;
+  width: 100%;
+  justify-content: center;
+}
+
+/* Cuando se activa el Modo Interactivo */
+body.interactive-mode-active .library-catalog-view {
+  display: none;
+}
+
+body.interactive-mode-active .interactive-bookshelf-wrapper {
+  display: flex;
+}
+
+/* Botón Conmutador de Modo Interactivo en Header */
+.btn-toggle-interactive-mode {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.42rem 1rem;
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: #fef08a;
+  border-radius: 999px;
+  border: 1.5px solid rgba(254, 240, 138, 0.45);
+  background: rgba(245, 158, 11, 0.15);
+  text-decoration: none;
+  cursor: pointer;
+  transition: all 0.25s ease;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.3);
+}
+
+.btn-toggle-interactive-mode:hover {
+  background: linear-gradient(135deg, rgba(245, 158, 11, 0.35), rgba(217, 119, 6, 0.3));
+  color: #ffffff;
+  border-color: #fde047;
+  box-shadow: 0 0 20px rgba(245, 158, 11, 0.4);
+  transform: translateY(-1px);
+}
+
+body.interactive-mode-active .btn-toggle-interactive-mode {
+  background: rgba(6, 182, 212, 0.18);
+  border-color: rgba(34, 211, 238, 0.5);
+  color: #67e8f9;
+}
+
+body.interactive-mode-active .btn-toggle-interactive-mode:hover {
+  background: rgba(6, 182, 212, 0.35);
+  border-color: #22d3ee;
+  color: #ffffff;
+  box-shadow: 0 0 20px rgba(6, 182, 212, 0.4);
+}
+
+/* Botón de retorno a Modo Lista dentro de la tarjeta lateral de la estantería */
+.btn-toggle-to-list {
+  background: transparent;
+  border: 1px solid rgba(254, 240, 138, 0.3);
+  color: #fef08a;
+  border-radius: 12px;
+  padding: 0.45rem 1rem;
+  font-size: 0.82rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  width: 100%;
+  max-width: 320px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.45rem;
+}
+
+.btn-toggle-to-list:hover {
+  background: rgba(245, 158, 11, 0.18);
+  border-color: #fde047;
+  color: #ffffff;
+  box-shadow: 0 4px 12px rgba(245, 158, 11, 0.25);
+  transform: translateY(-1px);
+}
+
+/* Ribbon de KPIs */
+.cosmic-metrics-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 1rem;
+  margin-bottom: 0.25rem;
+}
+
+@media (max-width: 640px) {
+  .cosmic-metrics-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.cosmic-metric-card {
+  background: rgba(18, 24, 38, 0.85);
+  backdrop-filter: blur(16px);
+  border: 1px solid rgba(254, 240, 138, 0.22);
+  border-radius: 1rem;
+  padding: 0.85rem 1.25rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.4);
+  transition: border-color 0.25s ease;
+}
+
+.cosmic-metric-card:hover {
+  border-color: rgba(254, 240, 138, 0.45);
+}
+
+.cosmic-metric-label {
+  font-size: 0.74rem;
+  color: #fde047;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.cosmic-metric-val {
+  font-size: 1.35rem;
+  font-weight: 800;
+  color: #ffffff;
+  display: flex;
+  align-items: baseline;
+  gap: 0.5rem;
+}
+
+.cosmic-metric-sub {
+  font-size: 0.74rem;
+  color: var(--text-secondary);
+  font-weight: 500;
+}
+
+/* Barra de Búsqueda del Catálogo */
+.cosmic-search-wrapper {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.85rem;
+  margin: 0.25rem 0;
+  width: 100%;
+  flex-wrap: wrap;
+}
+
+.cosmic-search-input-box {
+  position: relative;
+  display: flex;
+  align-items: center;
+  flex: 1;
+  min-width: 260px;
+  background: rgba(10, 16, 28, 0.75);
+  backdrop-filter: blur(14px);
+  border: 1px solid rgba(254, 240, 138, 0.25);
+  border-radius: 0.875rem;
+  padding: 0.6rem 0.95rem;
+  transition: all 0.25s ease;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.25);
+}
+
+.cosmic-search-input-box:focus-within {
+  border-color: #fde047;
+  box-shadow: 0 0 20px rgba(245, 158, 11, 0.3);
+  background: rgba(15, 23, 42, 0.9);
+}
+
+.cosmic-search-icon {
+  font-size: 0.95rem;
+  margin-right: 0.75rem;
+  opacity: 0.8;
+  user-select: none;
+}
+
+.cosmic-search-input {
+  background: transparent;
+  border: none;
+  outline: none;
+  color: #ffffff;
+  font-size: 0.9rem;
+  width: 100%;
+  font-family: inherit;
+}
+
+.cosmic-search-input::placeholder {
+  color: var(--text-muted);
+  font-size: 0.86rem;
+}
+
+.cosmic-search-clear {
+  background: rgba(245, 158, 11, 0.2);
+  border: 1px solid rgba(254, 240, 138, 0.3);
+  color: #fef08a;
+  width: 1.5rem;
+  height: 1.5rem;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  font-size: 1rem;
+  line-height: 1;
+  margin-left: 0.5rem;
+  transition: all 0.2s ease;
+}
+
+.cosmic-search-clear:hover {
+  background: rgba(245, 158, 11, 0.5);
+  color: #ffffff;
+}
+
+.cosmic-search-count {
+  font-size: 0.78rem;
+  color: #fef08a;
+  font-weight: 700;
+  white-space: nowrap;
+  padding: 0.42rem 0.85rem;
+  background: rgba(245, 158, 11, 0.15);
+  border: 1px solid rgba(254, 240, 138, 0.3);
+  border-radius: 9999px;
+}
+
+/* Filtros Rápidos */
+.cosmic-filters-row {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  overflow-x: auto;
+  padding-bottom: 0.25rem;
+  margin-bottom: 0.15rem;
+}
+
+.cosmic-chip {
+  padding: 0.38rem 0.9rem;
+  border-radius: 0.625rem;
+  font-size: 0.78rem;
+  font-weight: 600;
+  background: rgba(18, 24, 38, 0.75);
+  backdrop-filter: blur(12px);
+  color: #cbd5e1;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  cursor: pointer;
+  transition: all 0.2s ease;
+  white-space: nowrap;
+}
+
+.cosmic-chip:hover {
+  background: rgba(245, 158, 11, 0.2);
+  color: #fef08a;
+  border-color: rgba(254, 240, 138, 0.35);
+}
+
+.cosmic-chip.active {
+  background: linear-gradient(135deg, rgba(245, 158, 11, 0.35), rgba(217, 119, 6, 0.35));
+  color: #fef08a;
+  border-color: #fde047;
+  box-shadow: 0 2px 10px rgba(245, 158, 11, 0.25);
+}
+
+/* Lista de Documentos */
+.cosmic-doc-list {
+  max-height: clamp(280px, 44vh, 480px);
+  overflow-y: auto;
+  padding-right: 0.35rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.65rem;
+}
+
+.cosmic-doc-list::-webkit-scrollbar {
+  width: 6px;
+}
+
+.cosmic-doc-list::-webkit-scrollbar-track {
+  background: rgba(0, 0, 0, 0.2);
+  border-radius: 4px;
+}
+
+.cosmic-doc-list::-webkit-scrollbar-thumb {
+  background: rgba(245, 158, 11, 0.35);
+  border-radius: 4px;
+}
+
+.cosmic-doc-list::-webkit-scrollbar-thumb:hover {
+  background: rgba(245, 158, 11, 0.6);
+}
+
+.cosmic-doc-card {
+  padding: 0.95rem 1.35rem;
+  background: rgba(18, 24, 38, 0.85);
+  backdrop-filter: blur(16px);
+  border: 1px solid rgba(254, 240, 138, 0.2);
+  border-radius: 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.85rem;
+  transition: all 0.25s ease;
+  cursor: pointer;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.35);
+}
+
+@media (min-width: 640px) {
+  .cosmic-doc-card {
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+  }
+}
+
+.cosmic-doc-card:hover {
+  background: rgba(24, 32, 50, 0.95);
+  border-color: rgba(254, 240, 138, 0.5);
+  transform: translateY(-2px);
+  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.5), 0 0 15px rgba(245, 158, 11, 0.15);
+}
+
+.cosmic-format-tag {
+  width: 3rem;
+  height: 3rem;
+  border-radius: 0.75rem;
+  background: rgba(245, 158, 11, 0.18);
+  border: 1.5px solid rgba(254, 240, 138, 0.4);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: monospace;
+  font-size: 0.8rem;
+  font-weight: 800;
+  color: #fef08a;
+  flex-shrink: 0;
+}
+
+.catalog-doc-tag {
+  background: rgba(245, 158, 11, 0.18);
+  color: #fde047;
+  padding: 2px 7px;
+  border-radius: 5px;
+  border: 1px solid rgba(254, 240, 138, 0.3);
+  font-weight: 600;
+  font-size: 0.74rem;
+}
+
+.catalog-format-pill {
+  font-size: 0.74rem;
+  font-weight: 700;
+  padding: 4px 9px;
+  border-radius: 6px;
+}
+
+.catalog-format-pill.quiz-pill {
+  color: #fde047;
+  background: rgba(245, 158, 11, 0.15);
+  border: 1px solid rgba(254, 240, 138, 0.3);
+}
+
+.catalog-format-pill.flashcards-pill {
+  color: #67e8f9;
+  background: rgba(6, 182, 212, 0.15);
+  border: 1px solid rgba(6, 182, 212, 0.3);
+}
+
+.btn-study-doc {
+  background: linear-gradient(135deg, rgba(245, 158, 11, 0.25), rgba(217, 119, 6, 0.2));
+  border: 1.5px solid rgba(254, 240, 138, 0.5);
+  color: #fef08a;
+  padding: 0.45rem 1rem;
+  border-radius: 0.65rem;
+  font-size: 0.82rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  white-space: nowrap;
+}
+
+.btn-study-doc:hover {
+  background: linear-gradient(135deg, #fef08a, #fbbf24 60%, #f59e0b);
+  color: #0f172a;
+  border-color: #fef08a;
+  box-shadow: 0 4px 15px rgba(245, 158, 11, 0.4);
+  transform: translateY(-1px);
+}
+
+.btn-delete-doc-item {
+  background: rgba(239, 68, 68, 0.15);
+  border: 1px solid rgba(239, 68, 68, 0.35);
+  color: #fca5a5;
+  width: 2rem;
+  height: 2rem;
+  border-radius: 0.5rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  font-size: 0.9rem;
+  transition: all 0.2s ease;
+}
+
+.btn-delete-doc-item:hover {
+  background: rgba(239, 68, 68, 0.4);
+  color: #ffffff;
+  border-color: #ef4444;
+}
+
+.catalog-empty-state {
+  text-align: center;
+  padding: 2.5rem 1rem;
+  color: var(--text-secondary);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.catalog-empty-state h4 {
+  font-size: 1.15rem;
+  color: #ffffff;
+  margin: 0;
+}
+
+.catalog-empty-state p {
+  font-size: 0.88rem;
+  margin: 0;
+}
+
+.btn-catalog-empty-upload {
+  margin-top: 0.5rem;
+  font-size: 0.85rem;
+  padding: 0.55rem 1.25rem;
+}
+
+/* ========================================================================
+   BARRA DE BÚSQUEDA 3D Y EFECTOS DE RESALTE EN LA ESTANTERÍA INTERACTIVA
+   ======================================================================== */
+.interactive-search-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.45rem;
+  width: 100%;
+  max-width: 320px;
+  margin: 0.25rem auto;
+}
+
+.cosmic-search-input-box.search-box-3d {
+  width: 100%;
+  background: rgba(10, 16, 28, 0.85);
+  border: 1.5px solid rgba(254, 240, 138, 0.4);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.6), 0 0 16px rgba(245, 158, 11, 0.15);
+  border-radius: 12px;
+}
+
+.cosmic-search-input-box.search-box-3d:focus-within {
+  border-color: #fde047;
+  box-shadow: 0 0 24px rgba(245, 158, 11, 0.45);
+}
+
+.interactive-search-count {
+  font-size: 0.74rem;
+  color: #fef08a;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  background: rgba(245, 158, 11, 0.2);
+  padding: 0.2rem 0.75rem;
+  border-radius: 9999px;
+  border: 1px solid rgba(254, 240, 138, 0.35);
+}
+
+/* Efectos visuales de filtrado en los lomos de la estantería 3D */
+.book-spine.book-dimmed {
+  opacity: 0.2;
+  filter: grayscale(85%) blur(0.5px);
+  transform: scale(0.95);
+  transition: all 0.3s ease;
+}
+
+.book-spine.book-highlighted {
+  opacity: 1;
+  filter: none;
+  transform: translateY(-24px) scale(1.08);
+  box-shadow: 
+    0 25px 50px rgba(0, 0, 0, 0.95), 
+    0 0 35px rgba(245, 158, 11, 0.75), 
+    0 0 15px rgba(6, 182, 212, 0.5);
+  z-index: 30;
+  border: 1.5px solid rgba(254, 240, 138, 0.95);
+  transition: all 0.3s ease;
+}
+
+

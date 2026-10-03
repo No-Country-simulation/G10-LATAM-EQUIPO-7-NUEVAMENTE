@@ -13,10 +13,15 @@ export const bookshelf = {
   elements: {},
   currentSelectedBook: null,
   booksFromBackend: [],
+  allBooks: [],
+  currentSearchQuery: '',
+  activeCategory: null,
   isLoadingBackend: false,
 
   async init() {
     this.bindElements();
+    this.setupToggleInteractiveMode();
+    this.setupSearchEvents();
     this.renderShelf();
     this.setupModalEvents();
 
@@ -28,6 +33,7 @@ export const bookshelf = {
       if (s.activeTab === 'library' || s.currentDocument) {
         this.renderShelf();
       }
+      this.updateBackendMetric(s.isBackendConnected);
     });
   },
 
@@ -148,7 +154,27 @@ export const bookshelf = {
       studyChoiceCards: document.querySelectorAll('.btn-study-choice-card'),
 
       // Botón de Carga Rápida en el Hero de la Biblioteca
-      btnHeroUploadQuick: document.getElementById('btnHeroUploadQuick')
+      btnHeroUploadQuick: document.getElementById('btnHeroUploadQuick'),
+
+      // Conmutadores de Modo Interactivo
+      btnToggleInteractive: document.getElementById('btnToggleInteractive'),
+      btnReturnToListMode: document.getElementById('btnReturnToListMode'),
+      btnCatalogUploadAction: document.getElementById('btnCatalogUploadAction'),
+
+      // Elementos del Catálogo en Modo Lista
+      docListEl: document.getElementById('cosmicDocList'),
+      metricDocCount: document.getElementById('metricDocCount'),
+      metricBackendCard: document.getElementById('metricBackendCard'),
+      metricBackendVal: document.getElementById('metricBackendVal'),
+      metricBackendText: document.getElementById('metricBackendText'),
+      metricBackendDot: document.getElementById('metricBackendDot'),
+      searchList: document.getElementById('searchDocList'),
+      clearList: document.getElementById('btnClearSearchList'),
+      searchCountList: document.getElementById('searchCountList'),
+      search3D: document.getElementById('searchDoc3D'),
+      clear3D: document.getElementById('btnClearSearch3D'),
+      searchCount3D: document.getElementById('searchCount3D'),
+      chips: document.querySelectorAll('.cosmic-chip')
     };
   },
 
@@ -193,8 +219,22 @@ export const bookshelf = {
     }
 
     const books = Array.from(booksMap.values());
+    this.allBooks = books;
 
-    // Si no hay libros aún: mostrar estado vacío elegante en la estantería
+    // Actualizar KPIs de la cabecera del catálogo
+    const { metricDocCount, searchCountList } = this.elements;
+    if (metricDocCount) {
+      metricDocCount.textContent = books.length;
+    }
+    if (searchCountList) {
+      searchCountList.textContent = `${books.length} documentos`;
+    }
+    this.updateBackendMetric(state.get().isBackendConnected);
+
+    // 1. Renderizar Catálogo en Lista (Modo por Defecto)
+    this.renderCatalogList(books);
+
+    // 2. Renderizar Estantería 3D (Modo Interactivo)
     if (books.length === 0) {
       const emptyContainer = document.createElement('div');
       emptyContainer.className = 'shelf-empty-state';
@@ -244,6 +284,326 @@ export const bookshelf = {
     }
   },
 
+  /**
+   * Conmuta entre el Modo Lista (por defecto) y el Modo Interactivo (Estantería 3D)
+   */
+  setupToggleInteractiveMode() {
+    const { btnToggleInteractive, btnReturnToListMode, btnCatalogUploadAction, metricBackendCard } = this.elements;
+
+    if (btnToggleInteractive) {
+      btnToggleInteractive.addEventListener('click', (e) => {
+        e.preventDefault();
+        const isInteractive = document.body.classList.toggle('interactive-mode-active');
+        btnToggleInteractive.innerHTML = isInteractive ? '<span>📋 Modo Lista</span>' : '<span>✦ Modo Interactivo</span>';
+        btnToggleInteractive.title = isInteractive ? 'Cambiar a vista de lista' : 'Cambiar a estantería interactiva 3D';
+
+        // Asegurarse de navegar a la pestaña de biblioteca
+        if (state.get().activeTab !== 'library') {
+          router.navigate('library');
+        }
+      });
+    }
+
+    if (btnReturnToListMode) {
+      btnReturnToListMode.addEventListener('click', (e) => {
+        e.preventDefault();
+        document.body.classList.remove('interactive-mode-active');
+        if (btnToggleInteractive) {
+          btnToggleInteractive.innerHTML = '<span>✦ Modo Interactivo</span>';
+          btnToggleInteractive.title = 'Cambiar a estantería interactiva 3D';
+        }
+      });
+    }
+
+    if (btnCatalogUploadAction) {
+      btnCatalogUploadAction.addEventListener('click', (e) => {
+        e.preventDefault();
+        router.navigate('upload');
+      });
+    }
+
+    if (metricBackendCard) {
+      metricBackendCard.addEventListener('click', () => {
+        apiClient.checkHealth();
+      });
+    }
+  },
+
+  /**
+   * Configura eventos de búsqueda y filtros en el Catálogo en Modo Lista y Estantería 3D
+   */
+  setupSearchEvents() {
+    const { searchList, clearList, search3D, clear3D, chips } = this.elements;
+
+    const handleSearchInput = (value) => {
+      this.currentSearchQuery = value.trim();
+
+      if (searchList && searchList.value !== value) searchList.value = value;
+      if (search3D && search3D.value !== value) search3D.value = value;
+
+      if (clearList) clearList.style.display = value ? 'flex' : 'none';
+      if (clear3D) clear3D.style.display = value ? 'flex' : 'none';
+
+      this.filterBooks();
+    };
+
+    if (searchList) {
+      searchList.addEventListener('input', (e) => handleSearchInput(e.target.value));
+    }
+    if (search3D) {
+      search3D.addEventListener('input', (e) => handleSearchInput(e.target.value));
+    }
+
+    if (clearList) {
+      clearList.addEventListener('click', () => {
+        handleSearchInput('');
+        if (searchList) searchList.focus();
+      });
+    }
+    if (clear3D) {
+      clear3D.addEventListener('click', () => {
+        handleSearchInput('');
+        if (search3D) search3D.focus();
+      });
+    }
+
+    if (chips && chips.length > 0) {
+      chips.forEach(chip => {
+        chip.addEventListener('click', () => {
+          chips.forEach(c => c.classList.remove('active'));
+          chip.classList.add('active');
+          const text = chip.textContent.trim().toLowerCase();
+          if (text.startsWith('todos')) {
+            this.activeCategory = null;
+          } else if (text.includes('tecnología') || text.includes('cloud') || text.includes('software')) {
+            this.activeCategory = 'tecnología';
+          } else if (text.includes('legal') || text.includes('compliance') || text.includes('derecho')) {
+            this.activeCategory = 'legal';
+          } else if (text.includes('operaciones') || text.includes('negocios') || text.includes('finanzas')) {
+            this.activeCategory = 'operaciones';
+          } else if (text.includes('rrhh') || text.includes('gestión') || text.includes('humano')) {
+            this.activeCategory = 'rrhh';
+          } else {
+            this.activeCategory = null;
+          }
+          this.filterBooks();
+        });
+      });
+    }
+  },
+
+  /**
+   * Filtra los documentos por búsqueda y categoría tanto en lista como en la estantería 3D
+   */
+  filterBooks() {
+    const q = (this.currentSearchQuery || '').toLowerCase();
+    const cat = this.activeCategory;
+    const all = this.allBooks || [];
+
+    const matchesCategory = (book) => {
+      if (!cat) return true;
+      const disc = (book.discipline || '').toLowerCase();
+      if (cat === 'tecnología') {
+        return disc.includes('software') || disc.includes('cloud') || disc.includes('ingeniería') || disc.includes('inteligencia') || disc.includes('datos') || disc.includes('dev');
+      }
+      if (cat === 'legal') {
+        return disc.includes('derecho') || disc.includes('leyes') || disc.includes('jurídicas') || disc.includes('compliance') || disc.includes('ciberseguridad');
+      }
+      if (cat === 'operaciones') {
+        return disc.includes('economía') || disc.includes('negocios') || disc.includes('finanzas') || disc.includes('operaciones');
+      }
+      if (cat === 'rrhh') {
+        return disc.includes('humanidades') || disc.includes('filosofía') || disc.includes('psicología') || disc.includes('rrhh') || disc.includes('recursos');
+      }
+      return true;
+    };
+
+    const matchesQuery = (book) => {
+      if (!q) return true;
+      return (
+        (book.title || '').toLowerCase().includes(q) ||
+        (book.discipline || '').toLowerCase().includes(q) ||
+        (book.description || '').toLowerCase().includes(q) ||
+        (book.filename || '').toLowerCase().includes(q) ||
+        (book.id || '').toLowerCase().includes(q)
+      );
+    };
+
+    const matchingBooks = all.filter(b => matchesCategory(b) && matchesQuery(b));
+    const matchingIds = new Set(matchingBooks.map(b => b.id));
+
+    // 1. Renderizar catálogo en lista filtrado
+    this.renderCatalogList(matchingBooks);
+
+    // Actualizar contador en lista
+    const countList = document.getElementById('searchCountList');
+    if (countList) {
+      countList.textContent = `${matchingBooks.length} de ${all.length} documentos`;
+    }
+
+    // 2. Actualizar Estantería 3D (Lomos de libros)
+    const spines = document.querySelectorAll('.bookshelf-rack .book-spine:not(.book-spine-upload)');
+    spines.forEach(spine => {
+      const bookId = spine.getAttribute('data-book-id');
+      if (!q && !cat) {
+        spine.classList.remove('book-dimmed', 'book-highlighted');
+      } else if (matchingIds.has(bookId)) {
+        spine.classList.remove('book-dimmed');
+        spine.classList.add('book-highlighted');
+      } else {
+        spine.classList.remove('book-highlighted');
+        spine.classList.add('book-dimmed');
+      }
+    });
+
+    // Actualizar contador en 3D
+    const count3D = this.elements.searchCount3D || document.getElementById('searchCount3D');
+    if (count3D) {
+      if (q || cat) {
+        count3D.style.display = 'inline-block';
+        count3D.textContent = `${matchingBooks.length} coincidente(s) de ${all.length}`;
+      } else {
+        count3D.style.display = 'none';
+      }
+    }
+  },
+
+  /**
+   * Renderiza las tarjetas del Catálogo en formato lista (Modo Ejecutivo por Defecto)
+   */
+  renderCatalogList(booksToRender) {
+    const docListEl = this.elements.docListEl || document.getElementById('cosmicDocList');
+    if (!docListEl) return;
+
+    if (!booksToRender || booksToRender.length === 0) {
+      if (this.currentSearchQuery || this.activeCategory) {
+        docListEl.innerHTML = `
+          <div class="catalog-empty-state">
+            <span style="font-size: 2.2rem;">🔍</span>
+            <h4>Sin resultados</h4>
+            <p>No se encontraron módulos de capacitación que coincidan con "${this.currentSearchQuery || this.activeCategory}".</p>
+          </div>
+        `;
+      } else {
+        docListEl.innerHTML = `
+          <div class="catalog-empty-state">
+            <span style="font-size: 2.4rem;">📚</span>
+            <h4>Tu Biblioteca está Lista</h4>
+            <p>Aún no hay módulos de capacitación registrados en el servidor.</p>
+            <button type="button" class="btn-primary-action btn-catalog-empty-upload" id="btnCatalogEmptyUpload">
+              <span>+ Cargar Primer Documento</span>
+            </button>
+          </div>
+        `;
+        docListEl.querySelector('#btnCatalogEmptyUpload')?.addEventListener('click', () => {
+          router.navigate('upload');
+        });
+      }
+      return;
+    }
+
+    docListEl.innerHTML = booksToRender.map(book => {
+      const ext = (book.filename || '').split('.').pop().toUpperCase() || 'PDF';
+      const pages = book.sections?.length ? `${book.sections.length} secciones` : '1 sección';
+      const size = book.filesize || '1.5 MB';
+      const tag = book.discipline || 'General';
+      const time = book.metadatos?.tiempo_estudio || '8 min';
+      const isCustom = book.id?.startsWith('custom_') || !this.booksFromBackend.some(b => b.id === book.id);
+
+      return `
+        <div class="cosmic-doc-card" data-book-id="${book.id}">
+          <div style="display: flex; align-items: center; gap: 1rem; flex: 1; min-width: 0;">
+            <div class="cosmic-format-tag">${ext}</div>
+            <div style="min-width: 0; flex: 1;">
+              <h3 style="font-size: 1.05rem; font-weight: 700; color: #ffffff; margin: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
+                ${book.title}
+              </h3>
+              <div style="display: flex; align-items: center; gap: 0.6rem; font-size: 0.78rem; color: var(--text-secondary); margin-top: 0.3rem; flex-wrap: wrap;">
+                <span style="font-family: monospace; opacity: 0.85;">${book.id || 'doc'}</span>
+                <span>•</span>
+                <span>${pages}</span>
+                <span>•</span>
+                <span>${time}</span>
+                <span>•</span>
+                <span>${size}</span>
+                <span class="catalog-doc-tag">${tag}</span>
+              </div>
+            </div>
+          </div>
+          <div class="catalog-card-actions" style="display: flex; align-items: center; gap: 0.65rem; flex-shrink: 0;">
+            <span class="catalog-format-pill quiz-pill">Quiz</span>
+            <span class="catalog-format-pill flashcards-pill">Flashcards</span>
+            <button type="button" class="btn-study-doc" data-book-id="${book.id}">
+              Capacitar &rarr;
+            </button>
+            ${isCustom ? `
+              <button type="button" class="btn-delete-doc-item" data-book-id="${book.id}" title="Eliminar documento">
+                🗑️
+              </button>
+            ` : ''}
+          </div>
+        </div>
+      `;
+    }).join('');
+
+    docListEl.querySelectorAll('.cosmic-doc-card').forEach(card => {
+      const bookId = card.getAttribute('data-book-id');
+      const book = (this.allBooks || []).find(b => b.id === bookId);
+      if (!book) return;
+
+      card.addEventListener('click', () => {
+        this.openBookModal(book);
+      });
+
+      const btnStudy = card.querySelector('.btn-study-doc');
+      if (btnStudy) {
+        btnStudy.addEventListener('click', (e) => {
+          e.stopPropagation();
+          this.selectBookAndStudy(book, 'flashcards');
+        });
+      }
+
+      const btnDelete = card.querySelector('.btn-delete-doc-item');
+      if (btnDelete) {
+        btnDelete.addEventListener('click', (e) => {
+          e.stopPropagation();
+          this.deleteCustomBook(book.id);
+        });
+      }
+    });
+  },
+
+  deleteCustomBook(bookId) {
+    const customBooks = state.get().customBooks || [];
+    const updated = customBooks.filter(b => b.id !== bookId);
+    state.set({ customBooks: updated });
+    try {
+      localStorage.setItem('nuevamente_custom_books', JSON.stringify(updated));
+    } catch {}
+    this.renderShelf();
+  },
+
+  updateBackendMetric(isConnected) {
+    const textEl = document.getElementById('metricBackendText');
+    const dotEl = document.getElementById('metricBackendDot');
+    if (!textEl) return;
+    if (isConnected) {
+      textEl.textContent = 'Conectado (FastAPI)';
+      textEl.style.color = '#34d399';
+      if (dotEl) {
+        dotEl.style.background = '#10b981';
+        dotEl.classList.remove('is-disconnected');
+      }
+    } else {
+      textEl.textContent = 'Desconectado';
+      textEl.style.color = '#f87171';
+      if (dotEl) {
+        dotEl.style.background = '#ef4444';
+        dotEl.classList.add('is-disconnected');
+      }
+    }
+  },
+
   getShortDisciplineTag(discipline) {
     if (!discipline) return 'MÓDULO';
     const map = {
@@ -286,6 +646,7 @@ export const bookshelf = {
     const spine = document.createElement('div');
     const colorClass = `spine-${book.spineColor || 'navy'}`;
     spine.className = `book-spine ${colorClass}`;
+    spine.setAttribute('data-book-id', book.id);
     spine.title = `${book.title} (${book.discipline})`;
 
     const shortTag = this.getShortDisciplineTag(book.discipline);
