@@ -245,7 +245,7 @@ export const bookshelf = {
   },
 
   getShortDisciplineTag(discipline) {
-    if (!discipline) return 'LIBRO';
+    if (!discipline) return 'MÓDULO';
     const map = {
       'Ingeniería de Software': 'SOFTWARE',
       'Arquitectura de Software': 'SOFTWARE',
@@ -275,11 +275,11 @@ export const bookshelf = {
 
   getLevelLabel(perfil) {
     const map = {
-      principiante: 'Principiante',
-      intermedio: 'Intermedio',
-      avanzado: 'Avanzado'
+      principiante: 'Inicial / Inducción',
+      intermedio: 'Operativo / Especialista',
+      avanzado: 'Avanzado / Liderazgo'
     };
-    return map[(perfil || '').toLowerCase()] || 'General';
+    return map[(perfil || '').toLowerCase()] || 'Corporativo';
   },
 
   createBookSpine(book) {
@@ -347,7 +347,7 @@ export const bookshelf = {
 
     // Chips de conceptos clave de la primera sección
     if (openedChips) {
-      const concepts = book.sections?.[0]?.key_concepts || ['Concepto Base', 'Metodología', 'Estudio'];
+      const concepts = book.sections?.[0]?.key_concepts || ['Competencia Base', 'Procedimiento Clave', 'Buenas Prácticas'];
       openedChips.innerHTML = concepts.map(c => `<span class="concept-chip">${c}</span>`).join('');
     }
 
@@ -470,7 +470,7 @@ export const bookshelf = {
         statusDialog.showError({
           status: err.status || 500,
           code: err.code || 'FORMATS_NOT_AVAILABLE',
-          message: err.message || `No fue posible cargar los formatos de estudio para "${book.title}".`,
+          message: err.message || `No fue posible cargar los formatos de capacitación para "${book.title}".`,
           details: [
             `Documento ID: ${book.id}`,
             `Formato solicitado: ${targetFormat}`,

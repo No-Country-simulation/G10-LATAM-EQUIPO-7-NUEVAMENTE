@@ -52,32 +52,32 @@ export const quiz = {
 
     if (this.questions.length === 0) {
       if (this.quizMeta?.status === 'failed') {
-        questionText.textContent = 'Cuestionario (Quiz) No Disponible';
+        questionText.textContent = 'Evaluación de Competencias (Quiz) No Disponible';
         optionsList.innerHTML = `
           <div style="text-align: center; padding: 2rem 1rem; color: #ef4444;">
             <p style="font-size: 0.95rem; margin-bottom: 0.5rem;">
-              ${this.quizMeta.errorMessage || 'Ocurrió un error al generar las preguntas de autoevaluación.'}
+              ${this.quizMeta.errorMessage || 'Ocurrió un error al generar las preguntas de evaluación de competencias.'}
             </p>
             <span style="font-size: 0.8rem; color: var(--text-secondary);">
-              Puedes continuar estudiando con las Flashcards mientras el sistema reintenta este formato.
+              Puedes continuar reforzando conocimientos con las Tarjetas de Refuerzo mientras el sistema reintenta este formato.
             </span>
           </div>
         `;
       } else if (this.quizMeta?.status === 'no_results') {
-        questionText.textContent = 'Sin preguntas generadas';
+        questionText.textContent = 'Sin preguntas de evaluación generadas';
         optionsList.innerHTML = `
           <div style="text-align: center; padding: 2rem 1rem; color: var(--text-secondary);">
             <p style="font-size: 0.95rem; margin-bottom: 0.5rem;">
-              El documento no contiene suficiente información para formular un cuestionario.
+              El documento corporativo no contiene suficiente información para formular una evaluación.
             </p>
           </div>
         `;
       } else if (this.quizMeta?.status === 'processing') {
-        questionText.textContent = 'Generando Cuestionario de Autoevaluación...';
+        questionText.textContent = 'Generando Evaluación de Competencias...';
         optionsList.innerHTML = `
           <div style="text-align: center; padding: 2rem 1rem; color: var(--text-secondary);">
             <p style="font-size: 0.95rem; margin-bottom: 0.5rem;">
-              El pipeline de IA está formulando las preguntas a partir del contenido indexado.
+              El pipeline de IA está formulando las preguntas a partir del material corporativo indexado.
             </p>
             <span style="font-size: 0.8rem; color: var(--accent-gold);">
               Por favor espera unos instantes.
@@ -85,14 +85,14 @@ export const quiz = {
           </div>
         `;
       } else {
-        questionText.textContent = 'El cuestionario de autoevaluación (Quiz) está en proceso de generación.';
+        questionText.textContent = 'La evaluación de competencias (Quiz) está en proceso de generación.';
         optionsList.innerHTML = `
           <div style="text-align: center; padding: 2rem 1rem; color: var(--text-secondary);">
             <p style="font-size: 0.95rem; margin-bottom: 0.5rem;">
-              Las preguntas de autoevaluación se generarán automáticamente a partir del contenido indexado por el Backend.
+              Las preguntas de evaluación de competencias se generarán automáticamente a partir del contenido indexado por el Backend.
             </p>
             <span style="font-size: 0.8rem; color: var(--accent-gold);">
-              Consejo: Asegúrate de que el pipeline RAG haya finalizado de analizar tu documento.
+              Consejo: Asegúrate de que el pipeline RAG haya finalizado de analizar el documento corporativo.
             </span>
           </div>
         `;
@@ -172,7 +172,7 @@ export const quiz = {
       feedbackText.textContent = currentQ.explanation 
         || currentQ.explicacion 
         || currentQ.justification 
-        || 'El anclaje conceptual del documento fundamenta esta respuesta.';
+        || 'El anclaje conceptual del manual o directriz corporativa fundamenta esta respuesta.';
     }
 
     // Si hay más preguntas, ofrecer botón para avanzar

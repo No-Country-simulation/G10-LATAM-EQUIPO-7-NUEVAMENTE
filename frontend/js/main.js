@@ -64,8 +64,8 @@ function setupSystemStatusBar() {
     const doc = s.currentDocument;
     if (qualityScoreText) {
       qualityScoreText.textContent = doc
-        ? `Estudiando: ${doc.title}`
-        : 'Explorando la biblioteca';
+        ? `Capacitación: ${doc.title}`
+        : 'Explorando La Biblioteca';
     }
   });
 }
