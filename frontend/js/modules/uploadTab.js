@@ -323,11 +323,9 @@ export const uploadTab = {
       this.setStepActive(this.elements.stepGen, `Generando Quiz y Flashcards (${this.getLevelLabel(profile)})...`);
       this.setStepCompleted(this.elements.stepGen, this.elements.line3);
 
-      // Paso 4: Formatos de estudio listos en el Backend
-      // Nota Sprint 2: No se consulta GET /formats inmediatamente tras el POST para evitar puntos de fallo;
-      // los formatos se consultan al acceder al Study Hub.
+      // Paso 4: Formatos de capacitación listos en el Backend
       this.currentActiveStep = this.elements.stepCritic;
-      this.setStepActive(this.elements.stepCritic, 'Formatos de estudio listos para acceder...');
+      this.setStepActive(this.elements.stepCritic, 'Módulos de capacitación listos para colaboradores...');
       this.setStepCompleted(this.elements.stepCritic, null);
 
       // Crear el documento persistido para el estado global y el librero
@@ -419,8 +417,8 @@ export const uploadTab = {
         {
           id: `sec_${docId}`,
           title: formattedTitle,
-          summary: `Documento registrado y adaptado exitosamente con Quiz y Flashcards.`,
-          key_concepts: [discipline, 'Concepto Clave', 'Estudio Adaptativo']
+          summary: `Documento registrado y adaptado exitosamente con Evaluación y Tarjetas de Refuerzo.`,
+          key_concepts: [discipline, 'Competencia Clave', 'Capacitación Adaptativa']
         }
       ]
     };
@@ -479,12 +477,12 @@ export const uploadTab = {
     }
 
     if (this.elements.pipelineLiveLog) {
-      this.elements.pipelineLiveLog.textContent = '¡Proceso completado! Documento procesado y adaptado exitosamente por el Backend.';
+      this.elements.pipelineLiveLog.textContent = '¡Programa de capacitación generado y adaptado exitosamente por el Backend!';
     }
 
     notifySuccess(
       uploadResult.isDuplicate ? 'Documento Reutilizado (200)' : 'Documento Almacenado y Adaptado (201)',
-      `"${procDoc.filename}" ya está disponible en tu Biblioteca y Centro de Estudio.`
+      `"${procDoc.filename}" ya está disponible en La Biblioteca y Centro de Capacitación.`
     );
 
     // Actualizar datos de lectura
@@ -507,10 +505,10 @@ export const uploadTab = {
         if (!descSpan) return;
 
         if (fmt === 'flashcards') {
-          descSpan.textContent = 'Mnemotecnia y conceptos clave · Listo';
+          descSpan.textContent = 'Tarjetas de refuerzo y conceptos clave · Listo';
           descSpan.style.color = 'var(--text-secondary)';
         } else if (fmt === 'quiz') {
-          descSpan.textContent = 'Autoevaluación con justificación · Listo';
+          descSpan.textContent = 'Evaluación de competencias con justificación · Listo';
           descSpan.style.color = 'var(--text-secondary)';
         }
       });
@@ -519,20 +517,20 @@ export const uploadTab = {
     // Mostrar panel de resolución de formatos
     if (this.elements.resultBoxContainer) {
       this.elements.resultBoxContainer.style.display = 'flex';
-      this.elements.resultBoxContainer.scrollIntoView({ behavior: 'smooth' });
+      this.elements.resultBoxContainer.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
     }
   },
 
   getLevelLabel(perfil) {
     const map = {
-      beginner: 'Principiante',
-      intermediate: 'Intermedio',
-      advanced: 'Avanzado',
-      principiante: 'Principiante',
-      intermedio: 'Intermedio',
-      avanzado: 'Avanzado'
+      beginner: 'Inicial / Inducción',
+      intermediate: 'Operativo / Especialista',
+      advanced: 'Avanzado / Liderazgo',
+      principiante: 'Inicial / Inducción',
+      intermedio: 'Operativo / Especialista',
+      avanzado: 'Avanzado / Liderazgo'
     };
-    return map[(perfil || '').toLowerCase()] || 'Intermedio';
+    return map[(perfil || '').toLowerCase()] || 'Operativo / Especialista';
   },
 
   setupResolverActions() {

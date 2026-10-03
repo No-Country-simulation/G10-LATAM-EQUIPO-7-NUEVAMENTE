@@ -110,7 +110,7 @@ export const notebook = {
     this.spreads.push({
       id: 'spread_cover',
       title: 'Portada',
-      instruction: `Explora el material pedagógico adaptado para: ${doc.title}`,
+      instruction: `Explora el módulo de capacitación estructurado para: ${doc.title}`,
       element: coverSpread
     });
     this.elements.spreadsContainer.appendChild(coverSpread);
@@ -128,7 +128,7 @@ export const notebook = {
       this.spreads.push({
         id: `spread_sec_${i}`,
         title: titleLabel,
-        instruction: 'Haz clic en "Estudiar Sección" en cualquier módulo para acceder a las Flashcards, Quiz y Video.',
+        instruction: 'Haz clic en "Capacitar en esta Sección" en cualquier módulo para acceder a las Flashcards, Quiz y Video.',
         element: sectionSpread
       });
       this.elements.spreadsContainer.appendChild(sectionSpread);
@@ -139,7 +139,7 @@ export const notebook = {
     this.spreads.push({
       id: 'spread_index',
       title: 'Índice General',
-      instruction: 'Haz clic en cualquier sección del índice para ir directamente a sus páginas de estudio.',
+      instruction: 'Haz clic en cualquier sección del índice para ir directamente a sus páginas de capacitación.',
       element: indexSpread
     });
     this.elements.spreadsContainer.appendChild(indexSpread);
@@ -159,18 +159,18 @@ export const notebook = {
 
     const meta = doc.metadatos || {};
     spread.innerHTML = `
-      <span class="cover-emboss-badge">${doc.discipline || 'Documento Técnico'}</span>
+      <span class="cover-emboss-badge">${doc.discipline || 'Documentación Corporativa'}</span>
       <h2 class="cover-doc-title">${doc.title}</h2>
       <p class="cover-doc-description">${doc.description}</p>
       
       <div class="cover-meta-grid">
-        <div class="cover-meta-item">Perfil: <strong>${meta.perfil || 'General'}</strong></div>
+        <div class="cover-meta-item">Nivel: <strong>${meta.perfil || 'Operativo'}</strong></div>
         <div class="cover-meta-item">Tiempo estimado: <strong>${meta.tiempo_estudio || '8 min'}</strong></div>
         <div class="cover-meta-item">Archivo: <strong>${doc.filename}</strong></div>
       </div>
 
       <button type="button" class="btn-open-notebook" id="btnOpenDynamicNotebook">
-        <span>Abrir Cuaderno de Estudio</span>
+        <span>Abrir Módulo de Capacitación</span>
       </button>
     `;
 
@@ -190,11 +190,11 @@ export const notebook = {
         return `
           <div class="page-half">
             <div class="page-header-row">
-              <span class="page-chapter-badge">Notas de Estudio</span>
+              <span class="page-chapter-badge">Notas de Capacitación</span>
               <span class="page-number-label">Pág. ${pageNum}</span>
             </div>
             <div class="page-body-content" style="justify-content: center; align-items: center; opacity: 0.6;">
-              <p>Espacio reservado para anotaciones del estudiante y síntesis complementaria.</p>
+              <p>Espacio reservado para anotaciones del colaborador y síntesis operativa.</p>
             </div>
             <div class="page-footer-actions">
               <span class="page-number-label">—</span>
@@ -208,7 +208,7 @@ export const notebook = {
         <div class="page-half" data-sec-id="${sec.id}">
           <div class="page-header-row">
             <div>
-              <span class="page-chapter-badge">Sección ${pageNum}</span>
+              <span class="page-chapter-badge">Módulo ${pageNum}</span>
               <h4 class="page-topic-title">${sec.title}</h4>
             </div>
             <span class="page-number-label">Pág. ${pageNum}</span>
@@ -217,14 +217,14 @@ export const notebook = {
           <div class="page-body-content">
             <p>${sec.summary}</p>
             <div class="page-key-concepts-box">
-              <h5>Conceptos Clave Analizados:</h5>
+              <h5>Competencias y Puntos Clave:</h5>
               <div class="concept-chips">${chipsHtml}</div>
             </div>
           </div>
 
           <div class="page-footer-actions">
             <button type="button" class="btn-study-badge" data-study-section="${sec.id}">
-              <span>Estudiar esta Sección</span>
+              <span>Capacitar en esta Sección</span>
             </button>
             <span class="page-number-label">${doc.discipline}</span>
           </div>
