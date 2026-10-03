@@ -145,7 +145,10 @@ export const bookshelf = {
       openedChips: document.getElementById('openedDocChips'),
 
       // Opciones de Estudio de la Hoja Derecha
-      studyChoiceCards: document.querySelectorAll('.btn-study-choice-card')
+      studyChoiceCards: document.querySelectorAll('.btn-study-choice-card'),
+
+      // Botón de Carga Rápida en el Hero de la Biblioteca
+      btnHeroUploadQuick: document.getElementById('btnHeroUploadQuick')
     };
   },
 
@@ -409,6 +412,12 @@ export const bookshelf = {
         this.selectBookAndStudy(this.currentSelectedBook, targetFormat);
       });
     });
+
+    if (this.elements.btnHeroUploadQuick) {
+      this.elements.btnHeroUploadQuick.addEventListener('click', () => {
+        router.navigate('upload');
+      });
+    }
 
     document.addEventListener('keydown', (e) => {
       if (e.code === 'Escape' && openBookOverlay && openBookOverlay.style.display === 'flex') {

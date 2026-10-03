@@ -4,28 +4,29 @@
    ========================================================================== */
 
 .upload-tab-container {
-  max-width: 960px;
+  max-width: 980px;
   width: 100%;
-  margin: 0 auto;
-  padding: 2rem 2rem 4rem;
+  margin: auto;
+  min-height: min-content;
   display: flex;
   flex-direction: column;
-  gap: 2.2rem;
+  padding: clamp(0.75rem, 1.5vh, 1.5rem) clamp(1rem, 2vw, 2rem) clamp(1.5rem, 3vh, 2.5rem);
+  gap: clamp(0.6rem, 1.2vh, 1.1rem);
 }
 
 /* Encabezado Principal de la Pestaña (Enmarcado Glassmorphic) */
 .upload-hero-header {
   display: flex;
   justify-content: space-between;
-  align-items: flex-start;
-  gap: 1.5rem;
+  align-items: center;
+  gap: 1rem;
   background: linear-gradient(165deg, rgba(11, 17, 30, 0.82) 0%, rgba(6, 10, 18, 0.90) 100%);
   border: 1px solid rgba(254, 240, 138, 0.3);
-  border-radius: 24px;
-  padding: 1.75rem 2.25rem 1.6rem;
+  border-radius: 20px;
+  padding: clamp(0.45rem, 1vh, 0.8rem) clamp(1.2rem, 2vw, 1.8rem);
   box-shadow: 
-    0 25px 65px -10px rgba(0, 0, 0, 0.9),
-    0 0 40px rgba(245, 158, 11, 0.1),
+    0 20px 50px -10px rgba(0, 0, 0, 0.9),
+    0 0 35px rgba(245, 158, 11, 0.1),
     inset 0 1px 1px rgba(255, 255, 255, 0.18),
     inset 0 -1px 1px rgba(0, 0, 0, 0.5);
   backdrop-filter: blur(20px) saturate(180%);
@@ -36,16 +37,16 @@
 .upload-hero-header:hover {
   border-color: rgba(254, 240, 138, 0.45);
   box-shadow: 
-    0 30px 75px -10px rgba(0, 0, 0, 0.95),
-    0 0 50px rgba(245, 158, 11, 0.15),
+    0 25px 60px -10px rgba(0, 0, 0, 0.95),
+    0 0 45px rgba(245, 158, 11, 0.15),
     inset 0 1px 1px rgba(255, 255, 255, 0.25);
 }
 
 .upload-hero-title-box h2 {
-  font-size: 1.8rem;
+  font-size: clamp(1.4rem, 2.2vh, 1.85rem);
   font-weight: 800;
   letter-spacing: -0.02em;
-  margin-bottom: 0.4rem;
+  margin-bottom: 0.2rem;
   background: linear-gradient(135deg, #ffffff 0%, #fffbeb 25%, #fde047 65%, #f59e0b 100%);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
@@ -53,10 +54,10 @@
 }
 
 .upload-hero-subtitle {
-  font-size: 0.95rem;
+  font-size: clamp(0.85rem, 1.2vh, 0.98rem);
   color: #f1f5f9;
-  line-height: 1.55;
-  max-width: 750px;
+  line-height: 1.4;
+  max-width: 720px;
   text-shadow: 0 1px 4px rgba(0, 0, 0, 0.6);
 }
 
@@ -64,7 +65,7 @@
 .upload-grid-layout {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 1.75rem;
+  gap: clamp(0.6rem, 1.3vh, 1.25rem);
 }
 
 @media (max-width: 900px) {
@@ -78,14 +79,14 @@
   border: 1px solid rgba(254, 240, 138, 0.28);
   backdrop-filter: blur(20px) saturate(180%);
   -webkit-backdrop-filter: blur(20px) saturate(180%);
-  border-radius: 24px;
-  padding: 1.85rem;
+  border-radius: 20px;
+  padding: clamp(0.7rem, 1.3vh, 1.2rem);
   display: flex;
   flex-direction: column;
-  gap: 1.25rem;
+  gap: clamp(0.45rem, 0.9vh, 0.85rem);
   box-shadow: 
-    0 25px 65px -10px rgba(0, 0, 0, 0.88),
-    0 0 40px rgba(245, 158, 11, 0.08),
+    0 20px 50px -10px rgba(0, 0, 0, 0.88),
+    0 0 35px rgba(245, 158, 11, 0.08),
     inset 0 1px 1px rgba(255, 255, 255, 0.16),
     inset 0 -1px 1px rgba(0, 0, 0, 0.5);
   transition: border-color 0.3s ease, box-shadow 0.3s ease;
@@ -94,8 +95,8 @@
 .upload-panel-card:hover {
   border-color: rgba(254, 240, 138, 0.42);
   box-shadow: 
-    0 30px 75px -10px rgba(0, 0, 0, 0.92),
-    0 0 50px rgba(245, 158, 11, 0.12),
+    0 25px 65px -10px rgba(0, 0, 0, 0.92),
+    0 0 45px rgba(245, 158, 11, 0.12),
     inset 0 1px 1px rgba(255, 255, 255, 0.22);
 }
 
@@ -104,11 +105,11 @@
   align-items: center;
   justify-content: space-between;
   border-bottom: 1px solid var(--border-ui);
-  padding-bottom: 0.75rem;
+  padding-bottom: clamp(0.35rem, 0.7vh, 0.6rem);
 }
 
 .panel-title-row h3 {
-  font-size: 1.1rem;
+  font-size: clamp(1.05rem, 1.4vh, 1.2rem);
   font-weight: 700;
   display: flex;
   align-items: center;
@@ -117,7 +118,7 @@
 }
 
 .panel-title-hint {
-  font-size: 0.78rem;
+  font-size: clamp(0.78rem, 1vh, 0.85rem);
   color: var(--text-muted);
 }
 
@@ -125,8 +126,8 @@
 .file-dropzone-large {
   border: 2px dashed rgba(245, 158, 11, 0.4);
   background: rgba(245, 158, 11, 0.03);
-  border-radius: 16px;
-  padding: 2.8rem 1.5rem;
+  border-radius: 14px;
+  padding: clamp(0.9rem, 1.8vh, 1.6rem) 1rem;
   text-align: center;
   cursor: pointer;
   transition: all var(--transition-normal);
@@ -134,7 +135,7 @@
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 0.75rem;
+  gap: clamp(0.25rem, 0.5vh, 0.5rem);
 }
 
 .file-dropzone-large:hover,
@@ -145,18 +146,18 @@
 }
 
 .dropzone-icon-large {
-  font-size: 2.8rem;
+  font-size: clamp(1.8rem, 3vh, 2.4rem);
   color: var(--accent-gold);
 }
 
 .file-dropzone-large h4 {
-  font-size: 1.15rem;
+  font-size: clamp(1.05rem, 1.4vh, 1.2rem);
   font-weight: 700;
   color: var(--text-main);
 }
 
 .file-dropzone-large p {
-  font-size: 0.86rem;
+  font-size: clamp(0.82rem, 1.1vh, 0.9rem);
   color: var(--text-secondary);
 }
 
@@ -164,7 +165,7 @@
   background: var(--surface-elevated);
   border: 1px solid var(--border-ui);
   color: var(--accent-gold);
-  font-size: 0.84rem;
+  font-size: 0.88rem;
   font-weight: 700;
   padding: 0.5rem 1.25rem;
   border-radius: 10px;
@@ -299,22 +300,30 @@
 .parameters-stack {
   display: flex;
   flex-direction: column;
-  gap: 1.1rem;
+  gap: clamp(0.35rem, 0.8vh, 0.7rem);
 }
 
 .param-field {
   display: flex;
   flex-direction: column;
-  gap: 0.4rem;
+  gap: clamp(0.15rem, 0.3vh, 0.3rem);
 }
 
 .param-label {
-  font-size: 0.85rem;
+  font-size: clamp(0.82rem, 1.1vh, 0.88rem);
   font-weight: 700;
   display: flex;
   align-items: center;
-  gap: 0.45rem;
+  gap: 0.4rem;
   color: var(--text-secondary);
+}
+
+.parameters-stack select,
+.parameters-stack input,
+.parameters-stack textarea {
+  padding: clamp(0.38rem, 0.75vh, 0.55rem) clamp(0.6rem, 1vw, 0.85rem);
+  font-size: clamp(0.82rem, 1.1vh, 0.88rem);
+  border-radius: 8px;
 }
 
 /* Sección del Pipeline Stepper */

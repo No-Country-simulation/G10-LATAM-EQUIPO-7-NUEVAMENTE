@@ -43,15 +43,13 @@ function resolveApiBaseUrl() {
     }
   }
 
-  // 5. Si estamos en un despliegue en la nube (no localhost), usar el mismo origen
+  // 5. Fallback por defecto: siempre al Backend FastAPI en el puerto 8000
   if (typeof window !== 'undefined' && window.location && window.location.hostname) {
     const host = window.location.hostname;
-    if (host !== 'localhost' && host !== '127.0.0.1') {
-      return window.location.origin;
-    }
+    return `http://${host}:8000`;
   }
 
-  // 6. Fallback por defecto
+  // 6. Fallback absoluto
   return 'http://localhost:8000';
 }
 

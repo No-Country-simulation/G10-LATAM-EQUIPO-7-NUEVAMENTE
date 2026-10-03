@@ -24,6 +24,10 @@ const internalState = {
   // Modo de API: Exclusivo Backend Real ('real') para Sprint 2
   apiMode: 'real',
 
+  // Estado de conexión real con Backend FastAPI (reactivo para badges de estado)
+  isBackendConnected: false,
+  lastConnectionCheck: null,
+
   // Archivo seleccionado por el usuario en la pestaña de carga
   selectedFile: null,
 
@@ -104,6 +108,11 @@ export const state = {
    */
   subscribe(listener) {
     listeners.add(listener);
+    try {
+      listener(internalState);
+    } catch (err) {
+      console.error('[State Listener Error on subscribe]:', err);
+    }
     return () => listeners.delete(listener);
   },
 

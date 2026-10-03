@@ -74,10 +74,10 @@
 
     <!-- Acciones Rápidas del Header -->
     <div class="header-actions">
-      <!-- Indicador de Conexión Backend Real (Sprint 2) -->
-      <div class="header-connection-badge" title="Conectado exclusivamente con Backend FastAPI">
+      <!-- Indicador de Conexión Backend Real (Sprint 2 - Inicialmente Desconectado) -->
+      <div class="header-connection-badge is-disconnected" title="Sin conexión con Backend FastAPI">
         <span class="status-dot-pulse"></span>
-        <span>Backend API</span>
+        <span>Sin Conexión</span>
       </div>
 
     </div>
@@ -94,16 +94,32 @@
     <section id="viewLibrary" class="tab-view active">
       <div class="library-view-container">
         
-        <!-- Hero Header del Librero -->
         <div class="library-hero-header">
-          <span class="library-hero-badge">Tu Espacio de Aprendizaje con IA</span>
-          <h2 class="library-hero-title">
-            <span class="library-title-prefix">La Biblioteca de</span>
-            <img src="LogoPropuesta - Editado.png" alt="NuevaMente" class="library-hero-logo" height="92">
-          </h2>
+          <div class="library-hero-top">
+            <span class="library-hero-badge">Tu Espacio de Aprendizaje con IA</span>
+            <h2 class="library-hero-title">
+              <span class="library-title-prefix">La Biblioteca de</span>
+              <img src="LogoPropuesta - Editado.png" alt="NuevaMente" class="library-hero-logo" height="92">
+            </h2>
+          </div>
           <p class="library-hero-subtitle">
             Cada libro en la estantería representa un documento analizado. Haz clic en cualquiera para abrirlo y estudiar o añade tu propio PDF a la colección.
           </p>
+          <div class="library-hero-bottom">
+            <div class="library-stats-pill-stack">
+              <div class="stat-item-pill">
+                <span class="stat-pill-icon">📚</span>
+                <span>10 Tomos Didácticos</span>
+              </div>
+              <div class="stat-item-pill">
+                <span class="stat-pill-icon">⚡</span>
+                <span>Flashcards & Quiz</span>
+              </div>
+            </div>
+            <button type="button" class="btn-hero-add-pdf" id="btnHeroUploadQuick">
+              <span>+ Cargar Nuevo Documento</span>
+            </button>
+          </div>
         </div>
 
         <!-- Estantería de Madera con Libros en 3D -->
@@ -475,9 +491,9 @@
        BARRA INFERIOR DE ESTADO
        ======================================================================== -->
   <footer class="system-status-bar">
-    <div class="status-indicator">
+    <div class="status-indicator is-disconnected">
       <div class="status-dot"></div>
-      <span id="ociStatusText">Conectado a Backend API</span>
+      <span id="ociStatusText">Desconectado del servidor (FastAPI)</span>
     </div>
     <div>
       <span id="qualityScoreText">Explorando la biblioteca</span>
