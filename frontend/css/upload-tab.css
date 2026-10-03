@@ -4,23 +4,41 @@
    ========================================================================== */
 
 .upload-tab-container {
-  max-width: 1200px;
+  max-width: 960px;
   width: 100%;
   margin: 0 auto;
-  padding: 2rem 2.5rem 4rem;
+  padding: 2rem 2rem 4rem;
   display: flex;
   flex-direction: column;
   gap: 2.2rem;
 }
 
-/* Encabezado Principal de la Pestaña */
+/* Encabezado Principal de la Pestaña (Enmarcado Glassmorphic) */
 .upload-hero-header {
   display: flex;
   justify-content: space-between;
   align-items: flex-start;
   gap: 1.5rem;
-  border-bottom: 1px solid var(--border-ui);
-  padding-bottom: 1.5rem;
+  background: linear-gradient(165deg, rgba(11, 17, 30, 0.82) 0%, rgba(6, 10, 18, 0.90) 100%);
+  border: 1px solid rgba(254, 240, 138, 0.3);
+  border-radius: 24px;
+  padding: 1.75rem 2.25rem 1.6rem;
+  box-shadow: 
+    0 25px 65px -10px rgba(0, 0, 0, 0.9),
+    0 0 40px rgba(245, 158, 11, 0.1),
+    inset 0 1px 1px rgba(255, 255, 255, 0.18),
+    inset 0 -1px 1px rgba(0, 0, 0, 0.5);
+  backdrop-filter: blur(20px) saturate(180%);
+  -webkit-backdrop-filter: blur(20px) saturate(180%);
+  transition: border-color 0.3s ease, box-shadow 0.3s ease;
+}
+
+.upload-hero-header:hover {
+  border-color: rgba(254, 240, 138, 0.45);
+  box-shadow: 
+    0 30px 75px -10px rgba(0, 0, 0, 0.95),
+    0 0 50px rgba(245, 158, 11, 0.15),
+    inset 0 1px 1px rgba(255, 255, 255, 0.25);
 }
 
 .upload-hero-title-box h2 {
@@ -36,16 +54,17 @@
 
 .upload-hero-subtitle {
   font-size: 0.95rem;
-  color: var(--text-secondary);
-  line-height: 1.5;
+  color: #f1f5f9;
+  line-height: 1.55;
   max-width: 750px;
+  text-shadow: 0 1px 4px rgba(0, 0, 0, 0.6);
 }
 
 /* Bloques de la Pestaña */
 .upload-grid-layout {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 2rem;
+  gap: 1.75rem;
 }
 
 @media (max-width: 900px) {
@@ -55,15 +74,29 @@
 }
 
 .upload-panel-card {
-  background: var(--surface-glass);
-  border: 1px solid var(--border-ui);
-  backdrop-filter: blur(12px);
-  border-radius: 16px;
-  padding: 1.75rem;
+  background: linear-gradient(165deg, rgba(11, 17, 30, 0.82) 0%, rgba(6, 10, 18, 0.90) 100%);
+  border: 1px solid rgba(254, 240, 138, 0.28);
+  backdrop-filter: blur(20px) saturate(180%);
+  -webkit-backdrop-filter: blur(20px) saturate(180%);
+  border-radius: 24px;
+  padding: 1.85rem;
   display: flex;
   flex-direction: column;
   gap: 1.25rem;
-  box-shadow: var(--shadow-sm);
+  box-shadow: 
+    0 25px 65px -10px rgba(0, 0, 0, 0.88),
+    0 0 40px rgba(245, 158, 11, 0.08),
+    inset 0 1px 1px rgba(255, 255, 255, 0.16),
+    inset 0 -1px 1px rgba(0, 0, 0, 0.5);
+  transition: border-color 0.3s ease, box-shadow 0.3s ease;
+}
+
+.upload-panel-card:hover {
+  border-color: rgba(254, 240, 138, 0.42);
+  box-shadow: 
+    0 30px 75px -10px rgba(0, 0, 0, 0.92),
+    0 0 50px rgba(245, 158, 11, 0.12),
+    inset 0 1px 1px rgba(255, 255, 255, 0.22);
 }
 
 .panel-title-row {
@@ -286,14 +319,19 @@
 
 /* Sección del Pipeline Stepper */
 .pipeline-card {
-  background: var(--surface-glass);
-  border: 1px solid var(--border-ui);
-  border-radius: 16px;
+  background: linear-gradient(165deg, rgba(11, 17, 30, 0.82) 0%, rgba(6, 10, 18, 0.90) 100%);
+  border: 1px solid rgba(254, 240, 138, 0.28);
+  border-radius: 24px;
   padding: 2rem;
   display: flex;
   flex-direction: column;
   gap: 1.5rem;
-  box-shadow: var(--shadow-sm);
+  box-shadow: 
+    0 25px 65px -10px rgba(0, 0, 0, 0.88),
+    0 0 40px rgba(245, 158, 11, 0.08),
+    inset 0 1px 1px rgba(255, 255, 255, 0.16);
+  backdrop-filter: blur(20px) saturate(180%);
+  -webkit-backdrop-filter: blur(20px) saturate(180%);
 }
 
 .pipeline-stepper {
@@ -391,13 +429,19 @@
 
 /* Panel de Resultados y Resolver de Formato */
 .result-box-container {
-  background: var(--surface-glass);
-  border: 1px solid rgba(16, 185, 129, 0.3);
-  border-radius: 16px;
+  background: linear-gradient(165deg, rgba(11, 17, 30, 0.82) 0%, rgba(6, 10, 18, 0.90) 100%);
+  border: 1px solid rgba(16, 185, 129, 0.4);
+  border-radius: 24px;
   padding: 2rem;
   display: flex;
   flex-direction: column;
   gap: 1.5rem;
+  box-shadow: 
+    0 25px 65px -10px rgba(0, 0, 0, 0.88),
+    0 0 40px rgba(16, 185, 129, 0.1),
+    inset 0 1px 1px rgba(255, 255, 255, 0.16);
+  backdrop-filter: blur(20px) saturate(180%);
+  -webkit-backdrop-filter: blur(20px) saturate(180%);
   animation: fadeInView 0.3s ease;
 }
 
