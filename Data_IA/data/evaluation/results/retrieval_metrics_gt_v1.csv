@@ -1,0 +1,5 @@
+﻿metric,mean
+recall_at_3,0.54
+recall_at_5,0.72
+precision_at_3,0.18666666666666668
+precision_at_5,0.14800000000000002

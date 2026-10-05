@@ -1,6 +1,7 @@
-"""Configuración central de la aplicación.
+"""Configuración central de BackendAPI.
 
-Las variables se leen del entorno y del archivo `.env` (ver `.env.example`).
+Las variables se obtienen del entorno y, durante el desarrollo local,
+del archivo `.env`.
 """
 
 import json
@@ -8,10 +9,16 @@ from functools import lru_cache
 from typing import Annotated, Literal
 
 from pydantic import Field, field_validator
-from pydantic_settings import BaseSettings, NoDecode, SettingsConfigDict
+from pydantic_settings import (
+    BaseSettings,
+    NoDecode,
+    SettingsConfigDict,
+)
 
 
 class Settings(BaseSettings):
+    """Configuración tipada de la aplicación."""
+
     model_config = SettingsConfigDict(
         env_file=".env",
         env_file_encoding="utf-8",
@@ -21,9 +28,17 @@ class Settings(BaseSettings):
 
     # --- Aplicación ---
     PROJECT_NAME: str = "NuevaMente API"
-    DESCRIPTION: str = "Backend de NuevaMente — flashcards educativas con IA."
+    DESCRIPTION: str = (
+        "Backend API de NuevaMente para gestión de documentos "
+        "y adaptación educativa asistida por IA."
+    )
     VERSION: str = "0.1.0"
-    ENVIRONMENT: Literal["local", "development", "staging", "production"] = "local"
+    ENVIRONMENT: Literal[
+        "local",
+        "development",
+        "staging",
+        "production",
+    ] = "local"
     DEBUG: bool = True
 
     # --- API ---
@@ -34,44 +49,163 @@ class Settings(BaseSettings):
     PORT: int = 8000
 
     # --- CORS ---
-    # `NoDecode` evita que pydantic-settings intente parsear el valor como JSON
-    # antes de tiempo, para poder aceptar también una cadena separada por comas.
-    BACKEND_CORS_ORIGINS: Annotated[list[str], NoDecode] = Field(
-        default_factory=lambda: ["http://localhost:3000"]
+    BACKEND_CORS_ORIGINS: Annotated[
+        list[str],
+        NoDecode,
+    ] = Field(
+        default_factory=lambda: [
+            "http://localhost:3000"
+        ]
     )
 
-    # --- Uploads ---
+    # --- Documentos / almacenamiento temporal ---
     MAX_UPLOAD_SIZE_MB: int = 10
     UPLOAD_DIR: str = "storage/uploads"
 
-    @field_validator("BACKEND_CORS_ORIGINS", mode="before")
+    # --- Base de datos ---
+    DATABASE_URL: str = (
+        "sqlite:///storage/nuevamente.db"
+    )
+
+    # --- OCI Object Storage ---
+    OCI_NAMESPACE: str = ""
+    OCI_BUCKET_NAME: str = ""
+    OCI_REGION: str = ""
+    OCI_CONFIG_FILE: str = "~/.oci/config"
+    OCI_CONFIG_PROFILE: str = "DEFAULT"
+
+    # --- RAG ---
+    RAG_BASE_URL: str = (
+        "http://localhost:8001"
+    )
+    RAG_INDEX_PATH: str = "/api/v1/index"
+    RAG_TIMEOUT_SECONDS: float = Field(
+        default=30.0,
+        gt=0,
+    )
+
+    # --- Agentes ---
+    AGENTS_BASE_URL: str = (
+        "http://localhost:8001"
+    )
+    AGENTS_GENERATE_PATH: str = (
+        "/api/v1/generate"
+    )
+    AGENTS_TIMEOUT_SECONDS: float = Field(
+        default=60.0,
+        gt=0,
+    )
+
+    @field_validator(
+        "BACKEND_CORS_ORIGINS",
+        mode="before",
+    )
     @classmethod
-    def _parse_origins(cls, value: object) -> object:
-        """Acepta una lista JSON (`["a","b"]`) o una cadena `a,b`."""
-        if not isinstance(value, str):
+    def _parse_origins(
+        cls,
+        value: object,
+    ) -> object:
+        """Acepta una lista JSON o una cadena separada por comas."""
+        if not isinstance(
+            value,
+            str,
+        ):
             return value
+
         raw = value.strip()
+
         if raw.startswith("["):
-            return json.loads(raw)
-        return [origin.strip() for origin in raw.split(",") if origin.strip()]
+            return json.loads(
+                raw
+            )
+
+        return [
+            origin.strip()
+            for origin in raw.split(",")
+            if origin.strip()
+        ]
+
+    @field_validator(
+        "RAG_BASE_URL",
+        "AGENTS_BASE_URL",
+    )
+    @classmethod
+    def _validate_service_base_url(
+        cls,
+        value: str,
+    ) -> str:
+        """Valida y normaliza URLs base de servicios externos."""
+        normalized = (
+            value.strip().rstrip("/")
+        )
+
+        if not normalized.startswith(
+            (
+                "http://",
+                "https://",
+            )
+        ):
+            raise ValueError(
+                "Las URLs de servicios externos deben "
+                "utilizar http:// o https://."
+            )
+
+        return normalized
+
+    @field_validator(
+        "RAG_INDEX_PATH",
+        "AGENTS_GENERATE_PATH",
+    )
+    @classmethod
+    def _validate_service_path(
+        cls,
+        value: str,
+    ) -> str:
+        """Valida rutas HTTP configuradas para integraciones."""
+        normalized = value.strip()
+
+        if not normalized.startswith("/"):
+            raise ValueError(
+                "Las rutas HTTP de servicios externos "
+                "deben comenzar con '/'."
+            )
+
+        return normalized
 
     @property
     def is_production(self) -> bool:
-        return self.ENVIRONMENT == "production"
+        """Indica si la aplicación se ejecuta en producción."""
+        return (
+            self.ENVIRONMENT
+            == "production"
+        )
 
     @property
-    def max_upload_size_bytes(self) -> int:
-        return self.MAX_UPLOAD_SIZE_MB * 1024 * 1024
+    def max_upload_size_bytes(
+        self,
+    ) -> int:
+        """Convierte el límite de carga configurado de MB a bytes."""
+        return (
+            self.MAX_UPLOAD_SIZE_MB
+            * 1024
+            * 1024
+        )
 
     @property
-    def docs_url(self) -> str | None:
-        """La documentación interactiva se oculta en producción."""
-        return None if self.is_production else "/docs"
+    def docs_url(
+        self,
+    ) -> str | None:
+        """Deshabilita Swagger en producción."""
+        return (
+            None
+            if self.is_production
+            else "/docs"
+        )
 
 
 @lru_cache
 def get_settings() -> Settings:
-    """Settings cacheados: se instancian una sola vez por proceso."""
+    """Devuelve una única instancia de configuración por proceso."""
     return Settings()
 
 

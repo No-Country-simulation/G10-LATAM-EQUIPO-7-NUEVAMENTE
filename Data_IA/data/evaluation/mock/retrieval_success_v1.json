@@ -1,0 +1,41 @@
+{
+  "contract_version": "1.0",
+  "case_id": "CLD-ES-001-Q01",
+  "query": "¿Qué es Kubernetes?",
+  "top_k": 5,
+  "score_type": "cosine_similarity",
+  "status": "success",
+  "results": [
+    {
+      "rank": 1,
+      "chunk_id": "CLD-ES-001_CH_001",
+      "document_id": "CLD-ES-001",
+      "score": 0.91,
+      "text": "Kubernetes es una plataforma de código abierto para administrar cargas de trabajo y servicios en contenedores.",
+      "metadata": {
+        "category": "Cloud/DevOps"
+      }
+    },
+    {
+      "rank": 2,
+      "chunk_id": "CLD-ES-001_CH_002",
+      "document_id": "CLD-ES-001",
+      "score": 0.84,
+      "text": "Kubernetes facilita la configuración declarativa y la automatización.",
+      "metadata": {
+        "category": "Cloud/DevOps"
+      }
+    },
+    {
+      "rank": 3,
+      "chunk_id": "CLD-ES-001_CH_003",
+      "document_id": "CLD-ES-001",
+      "score": 0.79,
+      "text": "Kubernetes automatiza tareas relacionadas con la implementación y gestión de contenedores.",
+      "metadata": {
+        "category": "Cloud/DevOps"
+      }
+    }
+  ],
+  "error": null
+}

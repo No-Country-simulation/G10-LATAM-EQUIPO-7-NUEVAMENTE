@@ -1,74 +1,247 @@
-# 🎓 NuevaMente - Frontend (Flashcards Educativas con IA)
+# NuevaMente - Frontend
 
-Este módulo corresponde al **Frontend interactivo** del proyecto **NuevaMente** (Hackathon ONE · Grupo 10). 
-Desarrollado en **JavaScript moderno (ES6), HTML5 y CSS3** con diseño Glassmorphism y animaciones 3D.
+Este módulo corresponde al **Frontend** de la plataforma **NuevaMente** (Hackathon ONE · Grupo 10 · LATAM).
+Desarrollado en **JavaScript moderno (ES6 Modules), HTML5 y CSS3**, sin frameworks ni paso de build, bajo principios de arquitectura limpia y Responsabilidad Única (SRP), con diseño Glassmorphism y modo oscuro fijo.
 
 ---
 
-## 🚀 Cómo Ejecutar el Frontend Localmente
+## Cómo Ejecutar el Frontend Localmente
 
-Debido a que usamos módulos ES6 (`import { mockDatabase } from './mockData.js'`), los navegadores requieren que los archivos se sirvan a través de un servidor web local (por seguridad de CORS local).
+Debido al uso de módulos nativos ES6 (`import` / `export`), los navegadores requieren que los archivos se sirvan a través de un servidor web local (no funciona abriendo `index.html` directo con `file://`, por restricciones de CORS del navegador).
 
-Tienes cualquiera de estas 3 formas súper sencillas:
+Tienes cualquiera de estas 3 formas sencillas:
 
-### Opción 1: Con Python (La más rápida si tienes Python instalado)
-Abre una terminal en esta carpeta `frontend` y ejecuta:
+### Opción 1: Con Vite (Estándar recomendado)
+Abre tu terminal en la carpeta `frontend` y ejecuta:
+```bash
+npm install
+npm run dev
+```
+Vite iniciará el servidor de desarrollo en [http://localhost:3000](http://localhost:3000) con Hot Module Replacement (HMR).
+
+### Opción 2: Con Python
+Abre tu terminal en la carpeta `frontend` y ejecuta:
 ```bash
 python -m http.server 3000
 ```
-Luego abre en tu navegador: [http://localhost:3000](http://localhost:3000)
 
-### Opción 2: Con la extensión Live Server de VS Code
+### Opción 3: Con la extensión Live Server de VS Code
 1. Abre la carpeta `frontend` en Visual Studio Code.
-2. Haz clic derecho en `index.html`.
+2. Haz clic derecho sobre `index.html`.
 3. Selecciona **"Open with Live Server"**.
 
-### Opción 3: Con Node / npx
-```bash
-npx serve .
+### Conexión con Backend (FastAPI)
+
+El Frontend está conectado exclusivamente al Backend real (FastAPI). La URL se desacopló completamente:
+- Se configura en el archivo `.env` mediante `VITE_API_BASE_URL` (ver `.env.example`).
+- Soporta configuración dinámica en caliente desde la interfaz haciendo clic en el badge **"Backend API"** del header.
+- Por defecto apunta a `http://localhost:8000` con timeout de 30 segundos.
+
+---
+
+## Arquitectura Modular de Carpetas
+
+```
+frontend/
+├── index.html                   # Orquestador de vistas SPA (Single Page Application)
+├── README.md                    # Este documento
+├── package.json                 # Scripts y dependencias de Vite.js
+├── vite.config.js               # Configuración del servidor de desarrollo Vite
+├── .env.example                 # Plantilla pública de variables de entorno
+├── css/
+│   ├── main.css                 # Importador central de hojas de estilo modulares
+│   ├── variables.css            # Tokens de diseño, Glassmorphism y paleta dorada/cyan
+│   ├── layout.css               # Header, navbar de pestañas principales y barra de estado
+│   ├── components.css           # Botones, badges, inputs, chips y notificaciones toast
+│   ├── bookshelf.css            # El Gran Librero 3D y el Cuaderno Abierto realista
+│   ├── upload-tab.css           # Vista de Carga de Documento, stepper y panel de pruebas
+│   ├── notebook.css             # Cuaderno Interactivo Dinámico (hojas, índice y lectura)
+│   ├── study-hub.css            # Centro de Estudio (Flashcards, Quiz, Video, Resumen)
+│   ├── portada.css              # Portada de bienvenida a pantalla completa
+│   └── modals.css               # Modales de utilidad y diálogo de estado del Backend
+└── js/
+    ├── config.js                # Configuración desacoplada (Vite .env, runtime y límites)
+    ├── state.js                 # Almacén de estado reactivo global (Store con Observable)
+    ├── main.js                  # Punto de entrada y montaje de la aplicación
+    ├── api/
+    │   └── apiClient.js         # Cliente HTTP fetch hacia el Backend (FastAPI real)
+    └── modules/
+        ├── router.js            # Enrutador de pestañas (Biblioteca, Carga, Centro de Estudio)
+        ├── portada.js           # Controlador de la portada de bienvenida y transición
+        ├── bookshelf.js         # Controlador del Librero 3D y el Cuaderno Abierto
+        ├── uploadTab.js         # Controlador de carga, parámetros y flujo real con el Backend
+        ├── notifications.js     # Sistema de notificaciones toast (éxito, error, advertencia)
+        ├── statusDialog.js      # Diálogo de estado tras cada respuesta del Backend
+        ├── notebook.js          # Renderizador del Cuaderno dinámico
+        ├── studyHub.js          # Orquestador del Centro de Estudio multi-formato
+        ├── flashcards.js        # Lógica de Flashcards, volteo y atajos de teclado
+        ├── quiz.js              # Lógica de Quiz interactivo con justificación pedagógica
+        ├── videoGuide.js        # Guion didáctico y tutorial adaptativo
+        └── summary.js           # Síntesis ejecutiva y términos clave
 ```
 
 ---
 
-## 🛠️ Características Implementadas
+## Flujo y Experiencia de Usuario
 
-1. **Tarjetas 3D con Efecto Flip:**
-   - Volteo suave con perspectiva 3D al hacer clic o al presionar la tecla **Espacio** / **Enter**.
-   - Navegación entre tarjetas con botones o con las **flechas izquierda/derecha** del teclado.
-2. **Modo Mock (Datos Simulados) vs Modo Backend Real:**
-   - En la esquina superior derecha hay un selector:
-     - **Modo Mock:** Funciona de inmediato sin necesidad de backend. Simula todo el pipeline de RAG y carga de IA con datos reales sobre IA, Ciencia de Datos y Desarrollo Web.
-     - **Modo Backend Real:** Hace una petición `fetch(POST)` al endpoint `http://localhost:8000/api/adaptar` para conectarse a FastAPI.
-3. **Pistas Didácticas y Metadatos:**
-   - Muestra conceptos clave (#hashtags), tiempo de estudio, score de anclaje a fuentes y estado de subida a **OCI Object Storage**.
+1. **Portada de Bienvenida**
+   Vista de pantalla completa con el logo del proyecto. Un clic transiciona a la biblioteca.
+
+2. **La Biblioteca**
+   Estantería de libros interactivos en 3D. Al hacer clic en cualquiera, se despliega un cuaderno abierto con el detalle del documento (tiempo de lectura, cantidad de secciones, nivel) y las opciones de estudio disponibles.
+
+3. **Carga de Documento**
+   Zona de arrastrar y soltar para PDF, Markdown o TXT (hasta 10 MB). Selector de parámetros de adaptación pedagógica: perfil del estudiante, área temática y nivel de detalle (los 4 formatos se generan automáticamente en conjunto). Al procesar, un panel muestra el avance en tiempo real contra el Backend y notifica el resultado (documento guardado, duplicado detectado, o cualquier error) mediante un diálogo de estado y notificaciones toast.
+
+4. **Centro de Estudio**
+   - **Flashcards**: tarjetas con animación de volteo y pistas pedagógicas.
+   - **Quiz**: preguntas de autoevaluación con validación inmediata y justificación.
+   - **Tutorial**: guion pedagógico estructurado con marcas de tiempo.
+   - **Resumen**: síntesis ejecutiva con puntos clave y términos clave.
 
 ---
 
-## 🤝 Contrato de Integración para el Equipo de Backend (Python / FastAPI)
+## Contrato de Integración Frontend ↔ Backend
 
-Cuando el equipo de Backend tenga lista la API, solo deben asegurarse de cumplir este contrato:
+El Frontend está alineado con el contrato v1 cerrado y funcional del Backend.
 
-- **Endpoint:** `POST http://localhost:8000/api/adaptar`
-- **CORS Habilitado en FastAPI:**
-  ```python
-  from fastapi.middleware.cors import CORSMiddleware
-  app.add_middleware(
-      CORSMiddleware,
-      allow_origins=["*"],
-      allow_methods=["*"],
-      allow_headers=["*"],
-  )
-  ```
-- **Esquema de Entrada (Request JSON):**
+### 1. Carga y procesamiento del documento (POST /api/v1/documents)
+
+- **Endpoint:** `POST {BASE_URL}/api/v1/documents`
+- **Formato:** `multipart/form-data` (el navegador debe establecer el `boundary` de forma automática, sin header `Content-Type` manual).
+- **Campos del FormData:**
+  - `file`: Archivo binario (PDF, TXT o MD; máx. 10 MB) — *Obligatorio*
+  - `profile`: `beginner`, `intermediate`, `advanced` — *Obligatorio*
+  - `niche`: `general`, `backend`, `health`, `legal`, `business`, `humanities` — *Obligatorio*
+  - `detail_level`: Texto no vacío, por ejemplo `detailed`, `standard`, `concise` — *Obligatorio*
+  - `learning_objective`: Texto con el objetivo pedagógico — *Opcional*
+- **Front NO debe enviar:** `document_id`, `formats`, `output_format`, ni `chunks` (Backend los gestiona internamente).
+- **Nota arquitectónica:** El endpoint `/api/v1/adaptations` ya no está expuesto y Front no lo utiliza. Todo el pipeline de guardado en OCI, indexación RAG y generación de formatos (Quiz + Flashcards) se orquesta directamente en esta llamada.
+- **Respuesta (201 Created para nuevo / 200 OK para duplicado):**
   ```json
   {
-    "documento_titulo": "string",
-    "documento_contenido": "string",
-    "perfil_destinatario": "Principiante",
-    "formato_salida": "Flashcards",
-    "nicho_sector": "ia-principiante",
-    "nivel_detalle": "Didactico"
+    "document_id": "doc_d5a19fdaae6944e6949f0a2a028db22c",
+    "filename": "documento.txt",
+    "status": "indexed",
+    "duplicate": false
   }
   ```
-- **Esquema de Salida (Response JSON):**
-  El JSON que figura en las páginas 4 y 5 del PDF del Hackathon (ver `mockData.js` como referencia).
+  *(Nota de contrato: `POST /documents` actualmente no devuelve `formats`; su respuesta contiene `document_id`, `filename`, `status` y `duplicate`. Los formatos generados se obtienen mediante `GET /api/v1/documents/{document_id}/formats` al acceder al Centro de Estudio o abrir un libro desde La Biblioteca).*
+- **Errores:** `400` (vacío/inválido), `413` (>10 MB), `415` (no soportado), `422` (validación), `502` (fallo de persistencia OCI).
+
+### 3. Listar documentos para La Biblioteca (GET /api/v1/documents)
+
+- **Endpoint:** `GET {BASE_URL}/api/v1/documents`
+- **Content-Type:** `application/json`
+- **Respuesta (200 OK):** Soporta tanto array directo `[...]` como wrapper `{ "items": [...] }`.
+  ```json
+  [
+    {
+      "document_id": "doc_123",
+      "filename": "manual.pdf",
+      "status": "stored",
+      "size_bytes": 1048576,
+      "created_at": "2026-09-30T12:00:00Z",
+      "title": "Manual de Arquitectura",
+      "summary": "Resumen ejecutivo del documento analizado."
+    }
+  ]
+  ```
+
+### 4. Consultar detalle del documento (GET /api/v1/documents/{document_id})
+
+- **Endpoint:** `GET {BASE_URL}/api/v1/documents/{document_id}`
+- **Respuesta (200 OK):**
+  ```json
+  {
+    "document_id": "doc_123",
+    "filename": "manual.pdf",
+    "status": "indexed",
+    "content_type": "application/pdf",
+    "size_bytes": 1048576,
+    "created_at": "2026-09-30T12:00:00Z",
+    "updated_at": "2026-09-30T12:05:00Z",
+    "title": "Manual de Arquitectura",
+    "summary": "Resumen ejecutivo del documento analizado.",
+    "estimated_time": "10 min"
+  }
+  ```
+
+### 5. Consultar formatos generados (GET /api/v1/documents/{document_id}/formats)
+
+- **Endpoint:** `GET {BASE_URL}/api/v1/documents/{document_id}/formats`
+- **Respuesta (200 OK):** Contrato canónico acordado entre Backend, Agentes, Data/IA y Frontend.
+  ```json
+  {
+    "document_id": "doc_123",
+    "status": "ready",
+    "formats": {
+      "quiz": {
+        "format_id": "fmt_quiz_123",
+        "status": "success",
+        "content": {
+          "title": "Quiz de arquitectura de software",
+          "instructions": "Seleccione la respuesta correcta.",
+          "questions": [
+            {
+              "question_id": "q1",
+              "question": "¿Qué caracteriza a un microservicio?",
+              "options": [
+                "Despliegue independiente",
+                "Base de datos obligatoriamente compartida",
+                "Una única aplicación monolítica",
+                "Ausencia de interfaces"
+              ],
+              "correct_answer": "Despliegue independiente",
+              "explanation": "Un microservicio puede desplegarse y evolucionar de manera independiente."
+            }
+          ]
+        },
+        "error_message": null
+      },
+      "flashcards": {
+        "format_id": "fmt_flashcards_123",
+        "status": "success",
+        "content": {
+          "title": "Flashcards de arquitectura de software",
+          "instructions": "Revise cada concepto y su explicación.",
+          "cards": [
+            {
+              "card_id": "card_1",
+              "front": "Microservicio",
+              "back": "Servicio pequeño que puede desplegarse y evolucionar independientemente."
+            }
+          ]
+        },
+        "error_message": null
+      }
+    }
+  }
+  ```
+
+  - **Estados por formato:** `success`, `failed`, `no_results`.
+  - **Estados globales del endpoint:**
+    - `pending`: documento almacenado, adaptación aún no iniciada.
+    - `processing`: indexación o generación en curso.
+    - `ready`: Quiz y Flashcards disponibles.
+    - `partial`: al menos un formato exitoso.
+    - `error`: procesamiento o generación fallida.
+  - **Resolución didáctica:** En Frontend, `quiz.js` resuelve `correct_answer` tanto por texto exacto de la opción como por índice numérico; `flashcards.js` renderiza `content.cards` y mensajes pedagógicos ante fallos parciales o estados en proceso (`processing`).
+
+### Manejo de errores
+
+El cliente HTTP (`js/api/apiClient.js`) traduce las respuestas del Backend a mensajes legibles, desplegados mediante el diálogo de estado (`statusDialog.js`) y notificaciones toast (`notifications.js`). Códigos contemplados y probados: `200`, `201`, `400`, `404`, `408` (timeout de 120s para procesamiento RAG), `413` (límite 10 MB), `415`, `422`, `500`, `502` (error OCI), y `0` (Backend no disponible / fallo de red).
+
+---
+
+## Estado Actual de la Integración (Sprint 2)
+
+- **Carga y persistencia real en Backend y OCI (`POST /documents`):** ✅ **Funcional** (Tarea 1).
+- **Flujo de adaptación pedagógica integrado en `POST /documents`:** ✅ **Funcional** (Orquestación RAG + IA completada por el Backend en la carga).
+- **Límite máximo de 10 MB validado en cliente:** ✅ **Funcional** (Tarea 4).
+- **Manejo UX integral de códigos HTTP y errores:** ✅ **Funcional** (Tarea 5).
+- **Consulta y renderizado de la biblioteca (`GET /documents`):** ✅ **Funcional** (Tarea 6).
+- **Consulta de formatos del libro (`GET /documents/{id}/formats`):** ✅ **Funcional** (Tarea 7).
+- **Visualizador pedagógico de Quiz y Flashcards:** ✅ **Funcional** (Tarea 8).
+- **Configuración desacoplada y Vite.js (sin URL hardcodeada):** ✅ **Funcional** (Tarea 3).
+- **Modo único real (sin mocks):** ✅ **Completado**.

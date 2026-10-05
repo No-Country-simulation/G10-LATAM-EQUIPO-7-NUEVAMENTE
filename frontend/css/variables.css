@@ -1,0 +1,107 @@
+/* ==========================================================================
+   VARIABLES Y SISTEMA DE DISEÑO — NUEVAMENTE
+   Tokens CSS, Paleta de Colores, Glassmorphism y Modos Claro/Oscuro
+   ========================================================================== */
+
+:root {
+  /* Fondo y Superficies (Modo Oscuro por Defecto) */
+  --bg-desk: #090c10;
+  --surface-ui: #121822;
+  --surface-elevated: #1a2230;
+  --surface-subtle: rgba(255, 255, 255, 0.04);
+  --surface-glass: rgba(18, 24, 34, 0.75);
+  --border-ui: rgba(255, 255, 255, 0.1);
+  --border-focus: rgba(245, 158, 11, 0.5);
+
+  /* Tipografía y Textos */
+  --text-main: #f8fafc;
+  --text-secondary: #94a3b8;
+  --text-muted: #64748b;
+  --text-inverse: #0f172a;
+
+  /* Colores de Acento */
+  --accent-gold: #f59e0b;
+  --accent-gold-hover: #d97706;
+  --accent-green: #10b981;
+  --accent-cyan: #06b6d4;
+  --accent-red: #ef4444;
+  --accent-blue: #3b82f6;
+  --accent-purple: #8b5cf6;
+
+  /* Gradientes Oficiales — Firma Blanco a Dorado */
+  --gradient-brand: linear-gradient(135deg, #ffffff 0%, #fffbeb 25%, #fde047 65%, #f59e0b 100%);
+  --gradient-primary-btn: linear-gradient(135deg, #ffffff 0%, #fef08a 40%, #f59e0b 85%, #d97706 100%);
+  --gradient-accent: linear-gradient(135deg, #06b6d4, #3b82f6);
+
+  /* Flashcards */
+  --card-front-bg: linear-gradient(145deg, #182234, #0f1724);
+  --card-back-bg: linear-gradient(145deg, #1d2b40, #131d2d);
+  --hint-bg: rgba(245, 158, 11, 0.12);
+  --hint-border: #f59e0b;
+  --hint-text: #fde68a;
+
+  /* Cuaderno Digital */
+  --notebook-cover-bg: linear-gradient(145deg, #161e2e, #0d131d);
+  --notebook-page-bg: #141b27;
+  --notebook-border: rgba(255, 255, 255, 0.08);
+
+  /* Sombras */
+  --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.3);
+  --shadow-md: 0 10px 25px -5px rgba(0, 0, 0, 0.5);
+  --shadow-book: 0 30px 70px -15px rgba(0, 0, 0, 0.85);
+  --shadow-card: 0 25px 50px rgba(0, 0, 0, 0.75);
+
+  /* Transiciones */
+  --transition-fast: 0.15s ease;
+  --transition-normal: 0.25s ease;
+  --transition-slow: 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+[data-theme="light"] {
+  /* Fondo y Superficies (Modo Claro Cálido tipo Pergamino/Biblioteca) */
+  --bg-desk: #f9f7f1;
+  --surface-ui: #ffffff;
+  --surface-elevated: #f4efe2;
+  --surface-subtle: rgba(15, 23, 42, 0.04);
+  --surface-glass: rgba(255, 255, 255, 0.90);
+  --border-ui: rgba(15, 23, 42, 0.11);
+  --border-focus: rgba(180, 83, 9, 0.5);
+
+  /* Tipografía y Textos */
+  --text-main: #0f172a;
+  --text-secondary: #334155;
+  --text-muted: #64748b;
+  --text-inverse: #ffffff;
+
+  /* Colores de Acento con Alto Contraste para Fondo Claro */
+  --accent-gold: #b45309;
+  --accent-gold-hover: #92400e;
+  --accent-green: #047857;
+  --accent-cyan: #0e7490;
+  --accent-red: #b91c1c;
+  --accent-blue: #1d4ed8;
+  --accent-purple: #6d28d9;
+
+  /* Gradientes */
+  --gradient-brand: linear-gradient(135deg, #1e293b 0%, #78350f 30%, #b45309 65%, #d97706 100%);
+  --gradient-primary-btn: linear-gradient(135deg, #d97706, #b45309);
+  --gradient-accent: linear-gradient(135deg, #0e7490, #1d4ed8);
+
+  /* Flashcards */
+  --card-front-bg: linear-gradient(145deg, #ffffff, #faf7ef);
+  --card-back-bg: linear-gradient(145deg, #ffffff, #fefce8);
+  --hint-bg: rgba(245, 158, 11, 0.1);
+  --hint-border: #b45309;
+  --hint-text: #78350f;
+
+  /* Cuaderno Digital */
+  --notebook-cover-bg: linear-gradient(145deg, #ffffff, #faf7ef);
+  --notebook-page-bg: #faf7ef;
+  --notebook-border: rgba(15, 23, 42, 0.1);
+
+  /* Sombras */
+  --shadow-sm: 0 2px 8px rgba(15, 23, 42, 0.08);
+  --shadow-md: 0 10px 25px -5px rgba(15, 23, 42, 0.12);
+  --shadow-book: 0 25px 50px -12px rgba(15, 23, 42, 0.2);
+  --shadow-card: 0 20px 40px rgba(15, 23, 42, 0.15);
+}

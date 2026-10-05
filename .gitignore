@@ -1,0 +1,16 @@
+# Archivos de datos y bases vectoriales (Ignorados por peso y seguridad)
+agentes/chunks_v1.csv
+agentes/ground_truth_v1.csv
+chroma_test_db/
+chroma_db/
+chroma_demo_live/
+chroma_demo/
+
+# Python y Cache
+.pytest_cache/
+__pycache__/
+*.pyc
+
+# Variables de entorno y secretos
+.env
+.venv/

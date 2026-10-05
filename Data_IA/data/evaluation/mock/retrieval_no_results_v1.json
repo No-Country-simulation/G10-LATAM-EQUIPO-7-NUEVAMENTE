@@ -1,0 +1,10 @@
+{
+  "contract_version": "1.0",
+  "case_id": "CLD-ES-001-Q01",
+  "query": "¿Qué es Kubernetes?",
+  "top_k": 5,
+  "score_type": "cosine_similarity",
+  "status": "no_results",
+  "results": [],
+  "error": null
+}

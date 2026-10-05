@@ -1,0 +1,6 @@
+﻿case_id,categoria,pregunta,status,metric_eligible,relevant_chunk_ids,retrieved_chunk_ids,recall_at_3,recall_at_5,precision_at_3,precision_at_5,error_code,error_message
+AI-ES-001-Q01,IA,¿Qué pretende introducir este módulo sobre inteligencia artificial?,success,True,['AI-ES-001_CH_001'],"['AI-ES-001_CH_001', 'AI-ES-001_CH_002', 'AI-ES-002_CH_001', 'BE-ES-001_CH_001', 'DS-ES-001_CH_001']",1.0,1.0,0.3333333333333333,0.2,,
+AI-ES-001-Q03,IA,Menciona dos cargas de trabajo de IA tratadas en el módulo.,success,True,['AI-ES-001_CH_002'],"['AI-ES-001_CH_001', 'AI-ES-002_CH_001', 'BE-ES-001_CH_001', 'AI-ES-001_CH_002', 'DS-ES-001_CH_001']",0.0,1.0,0.0,0.2,,
+AI-ES-002-Q05,IA,¿El módulo incluye agentes de IA?,success,True,"['AI-ES-002_CH_001', 'AI-ES-002_CH_002']","['AI-ES-002_CH_001', 'BE-ES-001_CH_001', 'DS-ES-001_CH_001', 'AI-ES-002_CH_002', 'FE-ES-001_CH_001']",0.5,1.0,0.3333333333333333,0.4,,
+BE-ES-001-Q01,Backend,¿Qué clase se importa para crear una aplicación FastAPI?,no_results,True,['BE-ES-001_CH_010'],[],0.0,0.0,0.0,0.0,,
+DS-ES-001-Q01,Data Science,¿Qué habilidad relacionada con variables enseña el módulo?,error,False,['DS-ES-001_CH_001'],[],,,,,RETRIEVAL_FAILED,Error técnico simulado.

@@ -1,0 +1,1 @@
+﻿"""Infraestructura de persistencia de BackendAPI."""

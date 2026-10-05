@@ -1,0 +1,1 @@
+"""Contratos internos de BackendAPI con repositorios e integraciones externas."""

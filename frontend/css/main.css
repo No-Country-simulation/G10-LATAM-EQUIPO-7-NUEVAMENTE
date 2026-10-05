@@ -1,0 +1,14 @@
+/* ==========================================================================
+   MAIN CSS — NUEVAMENTE
+   Punto de entrada unificado y orquestador modular de estilos
+   ========================================================================== */
+
+@import './variables.css';
+@import './layout.css';
+@import './components.css';
+@import './bookshelf.css';
+@import './upload-tab.css';
+@import './notebook.css';
+@import './study-hub.css';
+@import './modals.css';
+@import './portada.css';

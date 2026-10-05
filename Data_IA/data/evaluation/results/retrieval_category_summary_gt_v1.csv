@@ -1,0 +1,6 @@
+﻿categoria,recall_at_3,recall_at_5,precision_at_3,precision_at_5
+Backend,0.4,0.6,0.13333333333333333,0.12000000000000002
+Cloud / DevOps,0.8,0.8,0.26666666666666666,0.16
+Data Science,0.6,0.8,0.2,0.16
+Frontend,0.3,0.5,0.1,0.1
+IA,0.6,0.9,0.2333333333333333,0.2
