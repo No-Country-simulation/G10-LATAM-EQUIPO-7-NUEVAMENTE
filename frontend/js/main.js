@@ -38,11 +38,11 @@ document.addEventListener('DOMContentLoaded', () => {
   // 8. Mostrar y permitir configurar la URL del Backend en el header con indicador reactivo
   setupBackendBadge();
 
-  // 9. Chequeo de salud del backend inmediato y periódico cada 10 segundos
+  // 9. Chequeo de salud del backend inmediato y periódico (cada 60 segundos)
   apiClient.checkHealth();
   setInterval(() => {
     apiClient.checkHealth();
-  }, 10000);
+  }, 60000);
 });
 
 function setupSystemStatusBar() {

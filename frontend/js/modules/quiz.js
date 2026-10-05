@@ -53,16 +53,26 @@ export const quiz = {
     if (this.questions.length === 0) {
       if (this.quizMeta?.status === 'failed') {
         questionText.textContent = 'Evaluación de Competencias (Quiz) No Disponible';
-        optionsList.innerHTML = `
-          <div style="text-align: center; padding: 2rem 1rem; color: #ef4444;">
-            <p style="font-size: 0.95rem; margin-bottom: 0.5rem;">
-              ${this.quizMeta.errorMessage || 'Ocurrió un error al generar las preguntas de evaluación de competencias.'}
-            </p>
-            <span style="font-size: 0.8rem; color: var(--text-secondary);">
-              Puedes continuar reforzando conocimientos con las Tarjetas de Refuerzo mientras el sistema reintenta este formato.
-            </span>
-          </div>
-        `;
+        optionsList.innerHTML = '';
+
+        const errorDiv = document.createElement('div');
+        errorDiv.style.textAlign = 'center';
+        errorDiv.style.padding = '2rem 1rem';
+        errorDiv.style.color = '#ef4444';
+
+        const p = document.createElement('p');
+        p.style.fontSize = '0.95rem';
+        p.style.marginBottom = '0.5rem';
+        p.textContent = this.quizMeta.errorMessage || 'Ocurrió un error al generar las preguntas de evaluación de competencias.';
+
+        const span = document.createElement('span');
+        span.style.fontSize = '0.8rem';
+        span.style.color = 'var(--text-secondary)';
+        span.textContent = 'Puedes continuar reforzando conocimientos con las Tarjetas de Refuerzo mientras el sistema reintenta este formato.';
+
+        errorDiv.appendChild(p);
+        errorDiv.appendChild(span);
+        optionsList.appendChild(errorDiv);
       } else if (this.quizMeta?.status === 'no_results') {
         questionText.textContent = 'Sin preguntas de evaluación generadas';
         optionsList.innerHTML = `
@@ -101,22 +111,43 @@ export const quiz = {
     }
 
     const currentQ = this.questions[this.currentIndex];
-    const question = currentQ.question || currentQ.pregunta || currentQ.prompt || currentQ.text;
+    const question = currentQ.question || currentQ.pregunta || currentQ.prompt || currentQ.text || '';
     const options = currentQ.options || currentQ.opciones || currentQ.choices || [];
     const totalQ = this.questions.length;
     const qNum = this.currentIndex + 1;
 
-    questionText.innerHTML = totalQ > 1
-      ? `<span style="font-size: 0.82rem; font-weight: 700; color: var(--accent-cyan); display: block; margin-bottom: 0.35rem;">Pregunta ${qNum} de ${totalQ}</span>${question}`
-      : question;
+    // Renderizado seguro de la pregunta: sin innerHTML con datos del LLM/Backend para prevenir XSS
+    questionText.textContent = '';
+    if (totalQ > 1) {
+      const badge = document.createElement('span');
+      badge.style.fontSize = '0.82rem';
+      badge.style.fontWeight = '700';
+      badge.style.color = 'var(--accent-cyan)';
+      badge.style.display = 'block';
+      badge.style.marginBottom = '0.35rem';
+      badge.textContent = `Pregunta ${qNum} de ${totalQ}`;
+      questionText.appendChild(badge);
+      questionText.appendChild(document.createTextNode(question));
+    } else {
+      questionText.textContent = question;
+    }
 
     optionsList.innerHTML = '';
 
     const letters = ['A', 'B', 'C', 'D', 'E'];
     options.forEach((opcion, index) => {
       const btn = document.createElement('button');
+      btn.type = 'button';
       btn.className = 'quiz-option-btn';
-      btn.innerHTML = `<strong>${letters[index] || index + 1})</strong> <span>${opcion}</span>`;
+
+      const strong = document.createElement('strong');
+      strong.textContent = `${letters[index] || index + 1}) `;
+
+      const span = document.createElement('span');
+      span.textContent = typeof opcion === 'string' ? opcion : String(opcion ?? '');
+
+      btn.appendChild(strong);
+      btn.appendChild(span);
 
       btn.addEventListener('click', () => {
         this.handleAnswer(index, currentQ);

@@ -95,53 +95,32 @@ export function mapBackendError(status, detail) {
 
 export const apiClient = {
   /**
-   * Verifica la conectividad real con el backend de FastAPI y sincroniza el estado global
+   * Verifica la disponibilidad del Backend mediante GET /api/v1/health y sincroniza el estado global
    * @returns {Promise<boolean>}
    */
   async checkHealth() {
+    const url = `${CONFIG.API.DEFAULT_BASE_URL}${CONFIG.API.V1_PREFIX}${CONFIG.API.ENDPOINTS.HEALTH}`;
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 2500);
+    const timeoutId = setTimeout(() => controller.abort(), 3000);
 
     try {
-      // 1. Verificar endpoint oficial de documentos de FastAPI (GET /api/v1/documents)
-      const docUrl = `${CONFIG.API.DEFAULT_BASE_URL}${CONFIG.API.V1_PREFIX}${CONFIG.API.ENDPOINTS.DOCUMENTS}`;
-      const docRes = await fetch(docUrl, {
+      const response = await fetch(url, {
         method: 'GET',
         headers: { 'Accept': 'application/json' },
         signal: controller.signal
       });
       clearTimeout(timeoutId);
 
-      const contentType = docRes.headers.get('content-type') || '';
-      // Debe ser respuesta exitosa de FastAPI y con content-type JSON
+      const contentType = response.headers.get('content-type') || '';
       const isJson = contentType.includes('application/json');
-      const isConnected = docRes.ok && isJson;
+      const isConnected = response.ok && isJson;
 
       state.set({ isBackendConnected: isConnected, lastConnectionCheck: Date.now() });
       return isConnected;
     } catch {
       clearTimeout(timeoutId);
-      // 2. Fallback: probar endpoint raíz de FastAPI (GET /)
-      try {
-        const rootController = new AbortController();
-        const rootTimeout = setTimeout(() => rootController.abort(), 2000);
-        const rootRes = await fetch(`${CONFIG.API.DEFAULT_BASE_URL}/`, {
-          method: 'GET',
-          headers: { 'Accept': 'application/json' },
-          signal: rootController.signal
-        });
-        clearTimeout(rootTimeout);
-
-        const contentType = rootRes.headers.get('content-type') || '';
-        const isJson = contentType.includes('application/json');
-        const isConnected = rootRes.ok && isJson;
-
-        state.set({ isBackendConnected: isConnected, lastConnectionCheck: Date.now() });
-        return isConnected;
-      } catch {
-        state.set({ isBackendConnected: false, lastConnectionCheck: Date.now() });
-        return false;
-      }
+      state.set({ isBackendConnected: false, lastConnectionCheck: Date.now() });
+      return false;
     }
   },
 

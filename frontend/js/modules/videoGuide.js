@@ -31,8 +31,17 @@ export const videoGuide = {
     }
 
     const items = videoData.key_points || videoData.puntos_video || [];
-    videoScriptList.innerHTML = items.length > 0
-      ? items.map(point => `<li>${point}</li>`).join('')
-      : '<li>Estructura de capacitación generada para facilitadores y colaboradores.</li>';
+    videoScriptList.innerHTML = '';
+    if (items.length > 0) {
+      items.forEach(point => {
+        const li = document.createElement('li');
+        li.textContent = typeof point === 'string' ? point : String(point ?? '');
+        videoScriptList.appendChild(li);
+      });
+    } else {
+      const li = document.createElement('li');
+      li.textContent = 'Estructura de capacitación generada para facilitadores y colaboradores.';
+      videoScriptList.appendChild(li);
+    }
   }
 };
