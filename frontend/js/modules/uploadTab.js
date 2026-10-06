@@ -4,7 +4,7 @@
  * Incorpora límite estricto de 10 MB (Tarea 4) y manejo UX de errores y estados (Tarea 5).
  */
 
-import { CONFIG } from '../config.js';
+import { CONFIG, getRandomSpineColor } from '../config.js';
 import { state } from '../state.js';
 import { apiClient, ApiError } from '../api/apiClient.js';
 import { router } from './router.js';
@@ -400,7 +400,7 @@ export const uploadTab = {
       filename: rawName,
       title: formattedTitle,
       discipline: discipline,
-      spineColor: 'gold-custom',
+      spineColor: getRandomSpineColor(),
       description: `Documento procesado y adaptado (${uploadResult.isDuplicate ? 'Registro existente reutilizado' : 'Nuevo registro creado'}).`,
       filesize: selectedFile.size || '1.0 MB',
       status: uploadResult.status || 'stored',

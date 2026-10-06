@@ -4,6 +4,7 @@
  */
 
 import { state } from '../state.js';
+import { getRandomSpineColor } from '../config.js';
 import { apiClient } from '../api/apiClient.js';
 import { router } from './router.js';
 import { statusDialog } from './statusDialog.js';
@@ -49,7 +50,6 @@ export const bookshelf = {
       const docs = await apiClient.getDocuments();
 
       if (Array.isArray(docs) && docs.length > 0) {
-        const customColors = ['gold-custom', 'ruby', 'cyan', 'purple', 'emerald', 'sapphire', 'amber'];
         this.booksFromBackend = docs.map((doc, idx) => {
           const rawTitle = doc.title || doc.filename || doc.original_filename || `Documento ${idx + 1}`;
           const cleanTitle = rawTitle.replace(/\.[^/.]+$/, '').replace(/[-_]/g, ' ').trim();
@@ -63,7 +63,7 @@ export const bookshelf = {
             title: formattedTitle,
             filename: doc.filename || doc.original_filename || `${cleanTitle}.pdf`,
             discipline: discipline,
-            spineColor: customColors[idx % customColors.length],
+            spineColor: doc.spineColor || getRandomSpineColor(),
             description: doc.summary || doc.description || `Documento persistido en Backend y OCI Object Storage.`,
             filesize: doc.size_bytes ? `${(doc.size_bytes / (1024 * 1024)).toFixed(1)} MB` : '1.5 MB',
             status: doc.status || 'stored',
@@ -193,13 +193,12 @@ export const bookshelf = {
     // 2. Libros subidos en cliente (state.customBooks)
     const booksMap = new Map();
     const customBooks = state.get().customBooks || [];
-    const customColors = ['gold-custom', 'ruby', 'cyan', 'purple', 'emerald', 'sapphire', 'amber'];
 
     // Priorizar customBooks subidos por el usuario en esta u otras sesiones
-    customBooks.forEach((cDoc, idx) => {
+    customBooks.forEach((cDoc) => {
       booksMap.set(cDoc.id, {
         ...cDoc,
-        spineColor: cDoc.spineColor || customColors[idx % customColors.length]
+        spineColor: cDoc.spineColor || getRandomSpineColor()
       });
     });
 
@@ -214,7 +213,7 @@ export const bookshelf = {
     if (currentDoc && !booksMap.has(currentDoc.id)) {
       booksMap.set(currentDoc.id, {
         ...currentDoc,
-        spineColor: currentDoc.spineColor || 'gold-custom'
+        spineColor: currentDoc.spineColor || getRandomSpineColor()
       });
     }
 
