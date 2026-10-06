@@ -14,7 +14,7 @@ El frontend se encuentra en [`../frontend`](../frontend).
 
 ## Estado actual
 
-El flujo principal de Sprint 2 se encuentra integrado de extremo a extremo desde BackendAPI.
+El flujo principal se encuentra integrado de extremo a extremo desde BackendAPI y, a partir de Sprint 3, **la indexación RAG y la generación de formatos tienen ciclos de ejecución separados**.
 
 Actualmente están implementados:
 
@@ -22,7 +22,7 @@ Actualmente están implementados:
 
 - API FastAPI y configuración centralizada.
 - Endpoint de salud.
-- `POST /api/v1/documents` como **única entrada pública para cargar y procesar un documento**.
+- `POST /api/v1/documents` como **única entrada pública para cargar, almacenar e indexar un documento y programar su generación pedagógica**.
 - `GET /api/v1/documents` para listar documentos disponibles en la biblioteca.
 - `GET /api/v1/documents/{document_id}` para consultar metadata y estado del documento.
 - `GET /api/v1/documents/{document_id}/formats` para consultar Quiz y Flashcards persistidos.
@@ -49,23 +49,37 @@ Actualmente están implementados:
 - Eliminación compensatoria del objeto OCI para evitar objetos huérfanos.
 - Manejo explícito mediante `DocumentStorageConsistencyError` cuando no puede garantizarse consistencia entre OCI y la BD.
 
-### Orquestación automática de adaptación
+### Orquestación de adaptación: indexación y generación separadas
 
 La carga pública ya no termina en `STORED`.
 
-Después de almacenar el documento, BackendAPI ejecuta internamente el caso de uso:
+Después de almacenar el documento, BackendAPI utiliza internamente:
 
 ```text
 AdaptationOrchestrationService
 ```
 
-El orquestador:
+A partir de Sprint 3, el orquestador separa explícitamente dos responsabilidades:
+
+```text
+ensure_document_indexed()
+        ↓
+indexación RAG síncrona
+
+
+generate_default_formats()
+        ↓
+generación de Quiz + Flashcards
+```
+
+El flujo de indexación:
 
 1. consulta el estado actual del documento;
-2. indexa el documento cuando está `STORED` o `INDEXING_FAILED`;
-3. evita reindexar un documento que ya está `INDEXED`;
-4. solicita automáticamente los formatos de Sprint 2;
-5. delega la generación y persistencia a `FormatGenerationService`.
+2. indexa cuando el documento está `STORED` o `INDEXING_FAILED`;
+3. evita reindexar cuando ya está `INDEXED`;
+4. solo permite responder exitosamente al `POST /documents` cuando el documento ya alcanzó `INDEXED`.
+
+Después de completar la indexación, la API programa la generación de formatos como una **BackgroundTask de FastAPI** y responde al Frontend sin esperar a que Agentes termine `/api/v1/generate`.
 
 Los formatos solicitados automáticamente son:
 
@@ -74,9 +88,16 @@ quiz
 flashcards
 ```
 
-El endpoint público independiente `/api/v1/adaptations` **ya no existe**. La adaptación permanece como un caso de uso interno y es invocada desde `POST /api/v1/documents`.
+El endpoint público independiente `/api/v1/adaptations` **no existe**. La adaptación permanece como un caso de uso interno.
 
-La capa API utiliza `app/api/adaptation_execution.py` para ejecutar la adaptación y traducir errores de aplicación e integración a respuestas HTTP sin trasladar lógica de negocio al endpoint.
+La capa API utiliza `app/api/adaptation_execution.py` para mantener separadas las dos etapas:
+
+- `execute_indexing(...)`: ejecuta la indexación síncrona y traduce sus errores a HTTP;
+- `execute_background_generation(...)`: ejecuta la generación después de la respuesta, registra fallos y deja que `FormatGenerationService` persista los intentos fallidos.
+
+Esta separación evita mezclar lógica HTTP, lógica de orquestación y lógica de integración externa.
+
+> La BackgroundTask no constituye una cola durable. Si el proceso de Backend se reinicia mientras una generación está ejecutándose, esa ejecución puede interrumpirse. La recuperación explícita mediante regeneración corresponde a una tarjeta posterior de Sprint 3.
 
 ### Contexto pedagógico recibido desde Frontend
 
@@ -99,13 +120,28 @@ output_format
 chunks
 ```
 
-Backend genera el `document_id` y decide internamente que Sprint 2 produce Quiz y Flashcards.
+Backend genera el `document_id` y decide internamente que la adaptación produce Quiz y Flashcards.
 
 ### Respuesta de carga
 
-`POST /api/v1/documents` ejecuta el procesamiento completo de forma **síncrona**.
+`POST /api/v1/documents` mantiene síncronas las etapas necesarias para garantizar que el documento está disponible en RAG:
 
-En una ejecución exitosa, Backend ya realizó almacenamiento, indexación, generación y persistencia antes de responder. Sin embargo, la respuesta de carga **no incluye el contenido de Quiz ni Flashcards**, porque esos recursos se consultan mediante el endpoint específico de formatos.
+```text
+validación
+→ registro
+→ almacenamiento
+→ indexación RAG
+→ INDEXED
+```
+
+Después:
+
+```text
+programar generación en background
+→ responder al Frontend
+```
+
+Por tanto, una respuesta exitosa significa que el documento ya fue almacenado e indexado, **no que Quiz y Flashcards hayan terminado de generarse**.
 
 Ejemplo:
 
@@ -138,7 +174,7 @@ con:
 }
 ```
 
-Un contenido duplicado reutiliza el mismo `document_id` y no vuelve a almacenar el archivo original en OCI. Si el documento ya está `INDEXED`, la orquestación evita una reindexación innecesaria y puede generar un nuevo intento de Quiz y Flashcards, conservando el historial de generaciones.
+Un contenido duplicado reutiliza el mismo `document_id` y no vuelve a almacenar el archivo original en OCI. Si el documento ya está `INDEXED`, la orquestación evita una reindexación innecesaria y puede programar un nuevo intento de generación, conservando el historial de formatos.
 
 ### Integración HTTP BackendAPI → RAG
 
@@ -204,6 +240,8 @@ Se manejan explícitamente:
 
 Un fallo de recuperación desde OCI no se clasifica como fallo propio de RAG.
 
+La indexación continúa siendo parte del contrato síncrono de `POST /documents`. Por ello, un fallo de OCI, recuperación o RAG puede impedir la respuesta exitosa del POST.
+
 ### Integración HTTP BackendAPI → Agentes
 
 La generación se implementa mediante:
@@ -239,6 +277,8 @@ AGENTS_GENERATE_PATH
 AGENTS_TIMEOUT_SECONDS
 ```
 
+`AGENTS_TIMEOUT_SECONDS` controla el timeout de la llamada de generación y es independiente del timeout de RAG.
+
 En desarrollo local RAG y Agentes pueden compartir el mismo servicio en:
 
 ```text
@@ -255,14 +295,14 @@ sin modificar código de aplicación.
 
 ### Modelo de generación de formatos
 
-Sprint 2 trabaja públicamente con dos formatos:
+BackendAPI trabaja públicamente con dos formatos:
 
 ```text
 quiz
 flashcards
 ```
 
-`AdaptationOrchestrationService` solicita ambos automáticamente.
+`generate_default_formats()` solicita ambos automáticamente.
 
 `FormatGenerationService`:
 
@@ -288,18 +328,20 @@ failed
 no_results
 ```
 
-Un error de comunicación con Agentes se traduce mediante `FormatGenerationIntegrationError`.
+Un error de comunicación con Agentes se traduce internamente mediante `FormatGenerationIntegrationError`.
 
-Cuando la llamada a Agentes falla antes de obtener resultados válidos, BackendAPI persiste un intento fallido para cada formato solicitado antes de propagar el error:
+Cuando la llamada a Agentes falla antes de obtener resultados válidos, BackendAPI persiste un intento fallido por cada formato solicitado:
 
 ```text
 quiz        → failed
 flashcards  → failed
 ```
 
-Del mismo modo, si Agentes responde pero incumple el contrato esperado —por ejemplo, retorna otro `document_id` o un conjunto incompleto de formatos— se persisten intentos `FAILED` antes de propagar `FormatGenerationContractError`.
+Del mismo modo, si Agentes responde pero incumple el contrato esperado —por ejemplo, retorna otro `document_id` o un conjunto incompleto de formatos— se persisten intentos `FAILED` antes de producir `FormatGenerationContractError`.
 
 Estos fallos **no modifican `DocumentStatus.INDEXED`**, porque la indexación ya terminó correctamente. El fallo pertenece al ciclo de vida de los formatos, no al ciclo de vida del documento.
+
+En el flujo de carga actual, los errores posteriores de generación ocurren en background y **no pueden convertir en `502` una respuesta de `POST /documents` que ya fue enviada**.
 
 ### Contrato BackendAPI → Agentes
 
@@ -503,7 +545,7 @@ Interpretación:
 
 | Estado | Significado |
 |---|---|
-| `pending` | No existe historial de generación y el documento no está indexándose ni se encuentra en un estado fallido. Esto incluye un documento `INDEXED` sin intentos persistidos de generación. |
+| `pending` | No existe historial de generación y el documento no está indexándose ni se encuentra en un estado fallido. Esto incluye un documento `INDEXED` cuya generación en background aún no ha persistido un resultado. |
 | `processing` | El documento se encuentra actualmente en estado `INDEXING`. |
 | `ready` | Quiz y Flashcards disponen de una generación exitosa. |
 | `partial` | Existe al menos un formato exitoso, pero no todos. |
@@ -551,9 +593,9 @@ Cuando un documento ya está `INDEXED` pero todavía no existe ningún intento d
 }
 ```
 
-BackendAPI no persiste actualmente un estado independiente `generation_in_progress`; por eso `processing` se reserva para la indexación activa y no se infiere a partir de `INDEXED`.
+BackendAPI no persiste todavía un estado independiente `generation_in_progress`. Por eso, durante esta primera tarjeta de Sprint 3, el estado `processing` continúa reservado para la indexación activa. La granularidad de estados de generación pertenece a la siguiente tarjeta de Sprint 3.
 
-Si la indexación finaliza correctamente pero la integración con Agentes falla, BackendAPI conserva el documento como `INDEXED`, persiste ambos intentos como `FAILED` y la consulta devuelve:
+Si la indexación finaliza correctamente pero la integración con Agentes falla o supera su timeout, BackendAPI conserva el documento como `INDEXED`, persiste ambos intentos como `FAILED` y la consulta devuelve:
 
 ```json
 {
@@ -624,7 +666,7 @@ Cuando ambos formatos están disponibles:
 }
 ```
 
-### Persistencia Sprint 2
+### Persistencia
 
 SQLite contiene tres estructuras principales:
 
@@ -808,7 +850,7 @@ Data/IA:
 - puede evaluar calidad del contenido generado;
 - no administra documentos;
 - no genera material educativo;
-- todavía no forma parte obligatoria del flujo integrado de Sprint 2.
+- todavía no forma parte obligatoria del flujo integrado actual.
 
 ### Flujo público actual
 
@@ -830,29 +872,38 @@ BackendAPI
    ├─ staging temporal
    ├─ SHA-256 / deduplicación
    ├─ metadata → SQLite
-   ├─ original → OCI Object Storage
+   └─ original → OCI Object Storage
    │
    ▼
 AdaptationOrchestrationService
    │
-   ├─ RAGIntegrationService
-   │      ├─ recupera original desde OCI
-   │      └─ POST /api/v1/index
-   │
-   └─ FormatGenerationService
-          └─ POST /api/v1/generate
-                 ├─ Quiz
-                 └─ Flashcards
-   │
-   ├─ GeneratedFormat → SQLite
-   └─ chunks_used → SQLite
-   │
-   ▼
+   └─ ensure_document_indexed()
+          ↓
+      RAGIntegrationService
+          ├─ recupera original desde OCI
+          └─ POST /api/v1/index
+                 ↓
+              INDEXED
+                 ↓
+      programar generación en background
+                 ↓
 Respuesta de carga
    ├─ document_id
    ├─ filename
-   ├─ status
+   ├─ status = indexed
    └─ duplicate
+                 │
+                 └──────────── background ────────────┐
+                                                     ↓
+                                         generate_default_formats()
+                                                     ↓
+                                         FormatGenerationService
+                                                     ↓
+                                         POST /api/v1/generate
+                                             ├─ Quiz
+                                             └─ Flashcards
+                                                     ↓
+                                   GeneratedFormat + chunks_used → SQLite
 ```
 
 Cuando Frontend necesita mostrar el material generado:
@@ -925,6 +976,8 @@ flashcards  = failed
 
 En ese caso, `GET /documents/{document_id}/formats` expone el estado agregado `error` sin alterar el estado correcto de indexación del documento.
 
+---
+
 ## Endpoints públicos actuales
 
 ### Salud
@@ -933,7 +986,7 @@ En ese caso, `GET /documents/{document_id}/formats` expone el estado agregado `e
 GET /api/v1/health
 ```
 
-### Cargar y procesar documento
+### Cargar e indexar documento
 
 ```http
 POST /api/v1/documents
@@ -958,16 +1011,25 @@ Formatos de archivo soportados:
 .txt
 ```
 
-Flujo ejecutado por una única solicitud:
+Flujo síncrono ejecutado por una solicitud:
 
 ```text
 validar
 → registrar
 → almacenar en OCI
 → indexar
-→ generar Quiz + Flashcards
-→ persistir formatos
+→ alcanzar INDEXED
+→ programar generación en background
 → responder metadata del documento
+```
+
+Después de responder al cliente:
+
+```text
+background task
+→ solicitar Quiz + Flashcards a Agentes
+→ validar resultados
+→ persistir GeneratedFormat
 ```
 
 Ejemplo con `curl`:
@@ -996,7 +1058,7 @@ HTTP/1.1 201 Created
 }
 ```
 
-Respuesta de contenido duplicado procesado:
+Respuesta de contenido duplicado:
 
 ```http
 HTTP/1.1 200 OK
@@ -1013,18 +1075,18 @@ HTTP/1.1 200 OK
 
 La respuesta **no contiene `formats`**. Frontend debe usar el endpoint de consulta de formatos cuando necesite mostrar Quiz o Flashcards.
 
-Errores principales:
+Errores principales de la etapa síncrona:
 
 | HTTP | Caso |
 |---:|---|
 | `400` | Documento vacío o inválido |
-| `409` | Estado del documento incompatible con la adaptación |
+| `409` | Estado del documento incompatible con la indexación |
 | `413` | Archivo supera el tamaño máximo permitido |
 | `415` | Extensión o MIME type no soportado |
 | `422` | Faltan parámetros obligatorios o el contexto pedagógico es inválido |
-| `502` | Fallo de OCI, recuperación, RAG, Agentes o contrato externo |
+| `502` | Fallo de OCI, recuperación del original o indexación RAG |
 
-> El endpoint es síncrono. Frontend espera la finalización del procesamiento antes de recibir una respuesta exitosa. El seguimiento por pasos/progreso en tiempo real no forma parte del contrato actual.
+> El endpoint es síncrono hasta completar la indexación. Los errores de generación que ocurren después no modifican la respuesta ya enviada; su resultado se consulta mediante `/formats`.
 
 ### Listar documentos
 
@@ -1085,7 +1147,7 @@ estimated_time
 
 están preparados para metadata enriquecida futura y actualmente pueden permanecer en `null`.
 
-`formats_status` no forma parte de este contrato. La única fuente de verdad para disponibilidad y estado de Quiz y Flashcards es `/formats`.
+`formats_status` no forma parte de este contrato. La fuente de verdad para disponibilidad y estado de Quiz y Flashcards es `/formats`.
 
 ### Consultar formatos
 
@@ -1149,33 +1211,53 @@ No existe un endpoint público:
 POST /api/v1/adaptations
 ```
 
-La adaptación educativa es una operación interna ejecutada desde `POST /api/v1/documents`.
+La adaptación educativa es una operación interna iniciada desde `POST /api/v1/documents`.
 
 ---
 
 ## Manejo de errores del flujo integrado
 
-La API traduce explícitamente excepciones de aplicación e integración.
+La API traduce explícitamente los errores de la etapa que todavía forma parte de la solicitud HTTP.
+
+### Durante almacenamiento e indexación
 
 Casos relevantes:
 
 ```text
 DocumentNotFoundError
-FormatGenerationDocumentNotFoundError
     → 404
 
 AdaptationDocumentStateError
 DocumentNotStoredError
 DocumentIndexingStateError
-DocumentNotReadyForGenerationError
     → 409
 
 DocumentRetrievalError
 RAGIntegrationError
-FormatGenerationIntegrationError
-FormatGenerationContractError
     → 502
 ```
+
+El fallo ocurre antes de programar la generación, por lo que el `POST /documents` puede fallar.
+
+### Durante generación en background
+
+Casos relevantes:
+
+```text
+FormatGenerationDocumentNotFoundError
+DocumentNotReadyForGenerationError
+FormatGenerationIntegrationError
+FormatGenerationContractError
+```
+
+Estos errores ya no se convierten en una respuesta HTTP del `POST /documents`, porque la respuesta fue enviada después de la indexación.
+
+`execute_background_generation()`:
+
+1. ejecuta `generate_default_formats()`;
+2. permite que `FormatGenerationService` persista los intentos fallidos cuando corresponde;
+3. registra el error en logs;
+4. evita que una excepción de background cambie la respuesta ya enviada al cliente.
 
 ### Fallos atómicos informados válidamente por Agentes
 
@@ -1196,7 +1278,7 @@ GET /api/v1/documents/{document_id}/formats
 
 Por ello, un documento puede permanecer `INDEXED` aunque uno de sus formatos tenga resultado `failed` o `no_results`.
 
-### Fallo de integración o incumplimiento de contrato después de indexar
+### Fallo de integración o contrato después de indexar
 
 Si el documento ya quedó `INDEXED` pero ocurre uno de estos casos:
 
@@ -1205,23 +1287,24 @@ AgentsError
 FormatGenerationContractError
 ```
 
-`FormatGenerationService` persiste un intento `FAILED` por cada formato solicitado antes de propagar el error.
+`FormatGenerationService` persiste un intento `FAILED` por cada formato solicitado.
 
-El flujo observable queda:
+El flujo observable actual queda:
 
 ```text
 indexación
     ↓
 INDEXED
     ↓
-generación
-    ↓
-falla integración o contrato
-    ↓
-quiz = FAILED
-flashcards = FAILED
-    ↓
-POST /documents = 502
+POST /documents responde 201/200
+    │
+    └── generación background
+            ↓
+       falla integración,
+       timeout o contrato
+            ↓
+       quiz = FAILED
+       flashcards = FAILED
 ```
 
 Posteriormente:
@@ -1231,8 +1314,6 @@ GET /documents/{document_id}
 → status = indexed
 ```
 
-y:
-
 ```text
 GET /documents/{document_id}/formats
 → status = error
@@ -1240,7 +1321,9 @@ GET /documents/{document_id}/formats
 
 De esta forma, `INDEXED` conserva su significado correcto y el fallo posterior queda representado por el historial de `GeneratedFormat`.
 
-El reintento explícito de generación después de este tipo de fallo no forma parte del alcance actual y puede refinarse en un Sprint posterior.
+El endpoint explícito de regeneración no forma parte todavía de esta tarjeta y corresponde a una implementación posterior de Sprint 3.
+
+---
 
 ## Stack
 
@@ -1368,7 +1451,7 @@ backend/
 └── README.md
 ```
 
-El scaffolding anterior de `Process` fue eliminado porque no representaba un caso de uso persistido ni era necesario para el flujo real de Sprint 2.
+El scaffolding anterior de `Process` fue eliminado porque no representaba un caso de uso persistido ni era necesario para el flujo real.
 
 ---
 
@@ -1493,7 +1576,7 @@ Swagger de Agentes:
 http://127.0.0.1:8001/docs
 ```
 
-> El servicio de Agentes utilizado durante las validaciones actuales ejecuta indexación/retrieval reales, mientras que el contenido generado por el agente continúa usando la simulación existente en ese módulo.
+El módulo actual de Agentes contiene integración con Gemini y requiere la configuración correspondiente para ejercer generación real. Una prueba exclusivamente de indexación puede requerir igualmente que las variables de entorno de Agentes estén presentes durante el import del módulo.
 
 ---
 
@@ -1502,15 +1585,16 @@ http://127.0.0.1:8001/docs
 Ejecutar desde `backend/`:
 
 ```bash
-python -m ruff check app tests
-python -m pytest
+python -m ruff check .
+python -m pytest -q
 ```
 
-Última validación local del flujo actual:
+Última validación local de esta tarjeta de Sprint 3:
 
 ```text
 Ruff: All checks passed!
-Pytest: 121 passed
+Pytest: suite completa OK
+Git diff --check: OK
 ```
 
 La suite cubre, entre otros:
@@ -1543,9 +1627,9 @@ La suite cubre, entre otros:
 - respuestas incompatibles de Agentes;
 - contenido canónico inválido;
 - inicialización de servicios en el lifespan;
-- `AdaptationOrchestrationService`;
-- ejecución automática de indexación desde `POST /documents`;
-- generación automática de Quiz y Flashcards;
+- separación de `ensure_document_indexed()` y `generate_default_formats()`;
+- indexación síncrona desde `POST /documents`;
+- generación automática de Quiz y Flashcards como tarea en segundo plano;
 - persistencia SQLite de los resultados recibidos vía HTTP;
 - lectura posterior de esos resultados desde SQLite;
 - contexto pedagógico de generación;
@@ -1555,8 +1639,8 @@ La suite cubre, entre otros:
 - persistencia de intentos `FAILED` ante errores de integración con Agentes;
 - persistencia de intentos `FAILED` ante incumplimientos del contrato de Agentes;
 - semántica de `INDEXED` separada del estado de generación;
-- `INDEXING` como único estado de documento que produce `formats.status = processing` sin historial;
-- `INDEXED` sin intentos de generación como `formats.status = pending`;
+- `INDEXING` como único estado de documento que produce actualmente `formats.status = processing` sin historial;
+- `INDEXED` sin intentos persistidos como `formats.status = pending`;
 - rechazo de `format_id` duplicado;
 - rechazo de referencias a documentos inexistentes;
 - consulta pública de formatos;
@@ -1570,129 +1654,164 @@ La suite cubre, entre otros:
 
 ---
 
-## Validación end-to-end real
+## Validación funcional de la separación indexación / generación
 
-El flujo integrado fue validado localmente utilizando servicios reales de infraestructura del proyecto.
+La tarjeta de Sprint 3 **“Separar indexación RAG síncrona y generación con tiempo controlado”** fue validada funcionalmente en local.
 
-### Happy path
+### 1. Validación aislada de RAG
 
-Se comprobó:
+Se ejecutó directamente:
 
 ```text
-POST /api/v1/documents
-    ↓
-SQLite
-    ↓
-OCI Object Storage
-    ↓
-recuperación del original desde OCI
-    ↓
-BackendAPI → POST Agentes/RAG /api/v1/index
-    ↓
-extracción + limpieza + chunking + Vector Store
-    ↓
-BackendAPI → POST Agentes /api/v1/generate
-    ↓
-retrieval
-    ↓
-Quiz + Flashcards
-    ↓
-validación de contratos
-    ↓
-persistencia de GeneratedFormat + chunks_used en SQLite
-    ↓
-respuesta de metadata a Frontend
+POST http://127.0.0.1:8001/api/v1/index
 ```
 
-Respuesta validada de carga:
+con un archivo TXT de prueba.
+
+Resultado:
+
+```http
+HTTP/1.1 200 OK
+```
 
 ```json
 {
-  "document_id": "doc_1d587f6a1399430080c33747a226f3dc",
-  "filename": "e2e_contract.txt",
-  "status": "indexed",
-  "duplicate": true
+  "document_id": "doc_rag_test_sprint3",
+  "status": "indexed"
 }
 ```
 
-La respuesta no incluyó `formats`.
-
-Posteriormente se consultó:
+Tiempo observado:
 
 ```text
-GET /api/v1/documents/{document_id}/formats
+~0.34 s
 ```
 
-obteniendo:
+Esto confirmó que el servicio de indexación estaba operativo antes de probar el comportamiento asíncrono del Backend.
+
+### 2. Generación lenta con timeout controlado
+
+Para aislar la responsabilidad de Backend, la generación se dirigió temporalmente a un mock HTTP que demoraba 10 segundos en responder:
 
 ```text
-status = ready
-quiz = success
-flashcards = success
+RAG_BASE_URL=http://127.0.0.1:8001
+RAG_TIMEOUT_SECONDS=30
+
+AGENTS_BASE_URL=http://127.0.0.1:8002
+AGENTS_TIMEOUT_SECONDS=2
 ```
 
-También se comprobó que:
-
-- los formatos permanecen persistidos después de finalizar el `POST`;
-- la biblioteca muestra el documento con estado `indexed`;
-- `/api/v1/adaptations` no aparece en OpenAPI;
-- una llamada directa a `/api/v1/adaptations` retorna `404 Not Found`.
-
-### Fallo de generación después de indexación
-
-También se reprodujo de forma end-to-end el caso reportado durante la revisión de la PR #41.
-
-La indexación permaneció operativa y se configuró deliberadamente un endpoint de generación no disponible para provocar el fallo después de que el documento quedara indexado.
-
-Flujo comprobado:
+El flujo probado fue:
 
 ```text
 POST /api/v1/documents
     ↓
 SQLite + OCI
     ↓
-RAG /index
+RAG /index real
     ↓
 INDEXED
     ↓
-Agentes /generate
+programar generación background
     ↓
-fallo de conexión
-    ↓
-persistencia de intentos FAILED
-    ↓
-HTTP 502
+HTTP 201
+         │
+         └── POST /api/v1/generate
+                  ↓
+            mock demora 10 s
+                  ↓
+        Backend corta a los 2 s
+                  ↓
+       persistencia de FAILED
 ```
 
-Se verificó que el documento conservó correctamente:
+Respuesta observada de `POST /documents`:
 
-```text
-status = indexed
+```http
+HTTP/1.1 201 Created
 ```
 
-y que:
+```json
+{
+  "document_id": "doc_0621bc23b79f4c948f25c0c53a7bd25f",
+  "filename": "e2e_async_timeout.txt",
+  "status": "indexed",
+  "duplicate": false
+}
+```
+
+Tiempo observado:
 
 ```text
-GET /api/v1/documents/{document_id}/formats
+TOTAL_TIME=0.277318s
+```
+
+El POST respondió mucho antes del timeout de generación y mucho antes de los 10 segundos del mock, demostrando que `/generate` ya no bloquea la solicitud de carga.
+
+### 3. Estado del documento después del timeout
+
+Posteriormente:
+
+```text
+GET /api/v1/documents/doc_0621bc23b79f4c948f25c0c53a7bd25f
+```
+
+mantuvo:
+
+```json
+{
+  "status": "indexed"
+}
+```
+
+### 4. Estado de formatos después del timeout
+
+La consulta:
+
+```text
+GET /api/v1/documents/doc_0621bc23b79f4c948f25c0c53a7bd25f/formats
 ```
 
 retornó:
 
-```text
-status = error
-quiz = failed
-flashcards = failed
+```json
+{
+  "document_id": "doc_0621bc23b79f4c948f25c0c53a7bd25f",
+  "status": "error",
+  "formats": {
+    "quiz": {
+      "status": "failed",
+      "content": null
+    },
+    "flashcards": {
+      "status": "failed",
+      "content": null
+    }
+  }
+}
 ```
 
-Cada formato conservó además su `format_id`, `content = null` y un `error_message` explícito.
+Ambos formatos conservaron además su `format_id` y un `error_message` explícito.
 
-Esta validación confirma que `INDEXED` no se utiliza como sinónimo de procesamiento de formatos y que un fallo posterior de generación queda representado en el historial de `GeneratedFormat`.
+La prueba confirma:
 
-La generación textual del módulo de Agentes continúa marcada como simulación. El transporte HTTP, almacenamiento, OCI, indexación, Vector Store, retrieval, persistencia y contratos de BackendAPI sí fueron ejercitados de forma real.
+```text
+indexación síncrona                     ✅
+POST responde después de INDEXED       ✅
+generación desacoplada                  ✅
+timeout independiente de Agentes        ✅
+fallo de generación no produce 502      ✅
+documento permanece INDEXED             ✅
+fallos quedan persistidos por formato   ✅
+```
+
+También se comprobó previamente el comportamiento complementario: si RAG falla durante la etapa síncrona, `POST /documents` responde `502` y el documento queda en `INDEXING_FAILED`. Esto confirma que la separación entre ambas etapas es efectiva.
+
+---
 
 ## Semántica del flujo actual para Frontend
 
-El contrato actual separa explícitamente **procesamiento** de **consulta de contenido**.
+El contrato actual separa explícitamente **estado del documento** de **estado del material generado**.
 
 ### Durante la carga
 
@@ -1702,17 +1821,23 @@ Frontend ejecuta:
 POST /api/v1/documents
 ```
 
-Backend completa internamente:
+Backend completa antes de responder:
 
 ```text
 persistencia
 → almacenamiento
 → indexación
-→ generación
+→ INDEXED
+```
+
+Después programa:
+
+```text
+Quiz + Flashcards
 → persistencia de formatos
 ```
 
-Frontend recibe únicamente la metadata final del documento.
+Frontend recibe la metadata del documento una vez terminada la indexación, sin esperar a la generación.
 
 ### Al mostrar material educativo
 
@@ -1731,21 +1856,19 @@ Ese endpoint es la fuente de verdad para:
 - errores atómicos de generación;
 - fallos de integración de generación persistidos como `FAILED`.
 
-### Progreso por pasos
+### Estado durante la generación
 
-El seguimiento visual de pasos como:
+En esta primera tarjeta de Sprint 3 **todavía no se agregó un estado persistido `processing` específico de generación**.
+
+Por ello, después de que el documento alcanza `INDEXED` y antes de que exista historial de formatos, `/formats` puede retornar:
 
 ```text
-almacenando
-indexando
-generando
+status = pending
 ```
 
-no forma parte del alcance implementado actualmente.
+La granularidad de estados reales para Frontend corresponde a la tarjeta posterior **“Envío de estados a Frontend”**.
 
-El flujo público es síncrono, por lo que Frontend recibe el `document_id` después de finalizar el procesamiento. Un futuro seguimiento de progreso en tiempo real requeriría un contrato de procesamiento independiente y, probablemente, ejecución asíncrona o consulta periódica de estado.
-
-No se deben mezclar esos futuros estados de proceso con `DocumentStatus`, ya que documento y generación mantienen ciclos de vida distintos.
+No se debe ampliar artificialmente `DocumentStatus` con estados de Quiz o Flashcards, porque documento y generación mantienen ciclos de vida distintos.
 
 ---
 
@@ -1761,9 +1884,9 @@ FormatEvaluationService
 FormatEvaluationRepositoryPort
 ```
 
-La integración HTTP concreta dependerá del endpoint funcional disponible en Data/IA.
+La integración HTTP concreta todavía debe cablearse mediante un adapter cuando se implemente la conexión efectiva BackendAPI ↔ Data/IA.
 
-Su conexión al pipeline no es obligatoria para completar el flujo actual de Sprint 2.
+Su conexión al pipeline no es obligatoria para completar esta primera tarjeta de Sprint 3.
 
 ### Metadata enriquecida
 
@@ -1777,19 +1900,23 @@ estimated_time
 
 ya forman parte del contrato de detalle, pero actualmente permanecen en `null` mientras no exista una fuente real que los calcule.
 
-### Seguimiento de procesamiento
+### Estados de generación
 
-Un futuro requerimiento de progreso por pasos debería modelarse como una responsabilidad separada del documento y de los formatos.
+La separación indexación/generación ya está implementada, pero el modelado de estados detallados de ejecución de Quiz y Flashcards corresponde a una tarjeta posterior.
 
-Una posible evolución podría contemplar conceptos como:
+La evolución debe mantener esta separación:
 
 ```text
-ProcessingStep
-ProcessingStepStatus
-ProcessingStatusService
+DocumentStatus
+→ ciclo de vida del documento e indexación
+
+GeneratedFormat / estado agregado de formatos
+→ ciclo de vida del contenido pedagógico
 ```
 
-sin ampliar artificialmente `DocumentStatus` con estados de generación.
+### Regeneración
+
+El endpoint explícito para regenerar formatos todavía no forma parte del contrato público actual. Su implementación debe reutilizar `FormatGenerationService`, conservar el contexto pedagógico y evitar reindexaciones innecesarias.
 
 ### Persistencia alternativa
 
@@ -1819,7 +1946,7 @@ SQLite es el motor actual de desarrollo. Un motor adicional puede incorporarse m
 
 ---
 
-## Resumen del flujo Sprint 2
+## Resumen del flujo actual
 
 ```text
 Frontend
@@ -1833,21 +1960,30 @@ BackendAPI
    └── OCI Object Storage
    ↓
 AdaptationOrchestrationService
-   ├── RAGIntegrationService
-   │      ↓
-   │   POST /api/v1/index
-   │      ↓
-   │   INDEXED
-   │
-   └── FormatGenerationService
-          ↓
-       POST /api/v1/generate
-          ↓
-       Quiz + Flashcards
-          ↓
-       SQLite
    ↓
-Respuesta de metadata
+ensure_document_indexed()
+   ↓
+RAGIntegrationService
+   ↓
+POST /api/v1/index
+   ↓
+INDEXED
+   ↓
+programar BackgroundTask
+   ↓
+Respuesta de metadata al Frontend
+   │
+   └────────────── background ──────────────┐
+                                            ↓
+                              generate_default_formats()
+                                            ↓
+                              FormatGenerationService
+                                            ↓
+                              POST /api/v1/generate
+                                            ↓
+                                  Quiz + Flashcards
+                                            ↓
+                                         SQLite
 
 Frontend
    ↓

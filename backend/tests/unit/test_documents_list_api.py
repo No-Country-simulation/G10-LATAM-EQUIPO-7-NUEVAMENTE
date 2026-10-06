@@ -38,7 +38,7 @@ def test_list_documents_returns_processed_documents(
         FakeAdaptationOrchestrationService
     ),
 ) -> None:
-    """Retorna documentos procesados disponibles en biblioteca."""
+    """Retorna documentos indexados disponibles en biblioteca."""
     first_upload = client.post(
         f"{api_prefix}/documents",
         data=_ADAPTATION_DATA,
@@ -66,9 +66,41 @@ def test_list_documents_returns_processed_documents(
     assert first_upload.status_code == 201
     assert second_upload.status_code == 201
 
+    first_document_id = (
+        first_upload.json()["document_id"]
+    )
+
+    second_document_id = (
+        second_upload.json()["document_id"]
+    )
+
+    assert (
+        fake_adaptation_orchestration_service
+        .indexing_requests
+        == [
+            first_document_id,
+            second_document_id,
+        ]
+    )
+
     assert len(
-        fake_adaptation_orchestration_service.requests
+        fake_adaptation_orchestration_service
+        .generation_requests
     ) == 2
+
+    generated_document_ids = {
+        request["document_id"]
+        for request
+        in (
+            fake_adaptation_orchestration_service
+            .generation_requests
+        )
+    }
+
+    assert generated_document_ids == {
+        first_document_id,
+        second_document_id,
+    }
 
     response = client.get(
         f"{api_prefix}/documents"
@@ -89,8 +121,8 @@ def test_list_documents_returns_processed_documents(
     }
 
     assert returned_ids == {
-        first_upload.json()["document_id"],
-        second_upload.json()["document_id"],
+        first_document_id,
+        second_document_id,
     }
 
     for document in body["documents"]:

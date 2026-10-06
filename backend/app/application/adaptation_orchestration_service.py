@@ -25,23 +25,21 @@ class AdaptationDocumentStateError(Exception):
 class AdaptationOrchestrationService:
     """Coordina indexación y generación de formatos educativos.
 
-    Este servicio representa el caso de uso completo de adaptación
-    dentro de BackendAPI.
+    BackendAPI separa explícitamente dos etapas del flujo:
 
-    Sus responsabilidades son:
+    1. indexación síncrona del documento;
+    2. generación de formatos, ejecutable posteriormente en segundo plano.
 
-    1. consultar el estado actual del documento;
-    2. indexarlo cuando todavía está almacenado o requiere reintento;
-    3. evitar una indexación innecesaria cuando ya está indexado;
-    4. solicitar automáticamente Quiz y Flashcards;
-    5. devolver los formatos generados y persistidos.
+    Esta separación permite que ``POST /documents`` confirme al cliente
+    que el documento quedó correctamente indexado sin mantener abierta
+    la petición HTTP mientras Agentes genera Quiz y Flashcards.
 
-    No implementa acceso directo a OCI, RAG, Agentes ni persistencia.
-    Estas responsabilidades permanecen delegadas a los servicios
-    especializados.
+    El servicio no implementa acceso directo a OCI, RAG, Agentes ni
+    persistencia. Estas responsabilidades permanecen delegadas a los
+    servicios especializados.
     """
 
-    _SPRINT_2_FORMATS = (
+    _DEFAULT_FORMATS = (
         GeneratedFormatType.QUIZ,
         GeneratedFormatType.FLASHCARDS,
     )
@@ -68,45 +66,26 @@ class AdaptationOrchestrationService:
             format_generation_service
         )
 
-    async def adapt_document(
+    async def ensure_document_indexed(
         self,
-        *,
         document_id: str,
-        profile: str,
-        niche: str,
-        detail_level: str,
-        learning_objective: str | None = None,
-    ) -> list[GeneratedFormat]:
-        """Ejecuta el flujo de adaptación de un documento.
+    ) -> None:
+        """Garantiza que un documento esté disponible en RAG.
 
-        Un documento almacenado se indexa antes de generar contenido.
-        Una indexación previamente fallida puede reintentarse. Un
-        documento ya indexado pasa directamente a generación.
-
-        Sprint 2 genera automáticamente Quiz y Flashcards.
+        Un documento almacenado se indexa de forma síncrona. Una
+        indexación previamente fallida puede reintentarse. Si el
+        documento ya se encuentra indexado no se repite el trabajo.
 
         Args:
             document_id: Identificador canónico del documento.
-            profile: Perfil educativo del destinatario.
-            niche: Área temática o contexto de aplicación.
-            detail_level: Nivel de detalle requerido.
-            learning_objective: Objetivo de aprendizaje opcional.
-
-        Returns:
-            Formatos generados y persistidos por
-            FormatGenerationService.
 
         Raises:
             DocumentNotFoundError:
                 Si el documento no existe.
             AdaptationDocumentStateError:
-                Si el estado actual no permite iniciar la adaptación.
+                Si el estado actual no permite iniciar la indexación.
             RAGIntegrationError:
-                Si falla la indexación.
-            FormatGenerationIntegrationError:
-                Si falla la integración con Agentes.
-            FormatGenerationContractError:
-                Si Agentes incumple el contrato de generación.
+                Si RAG no puede completar la indexación.
         """
         document = self._document_service.get_document(
             document_id
@@ -122,22 +101,59 @@ class AdaptationOrchestrationService:
                     document_id
                 )
             )
+            return
 
-        elif (
+        if (
             document.status
-            != DocumentStatus.INDEXED
+            == DocumentStatus.INDEXED
         ):
-            raise AdaptationDocumentStateError(
-                f"El documento {document_id} está en estado "
-                f"{document.status.value} y no puede iniciar "
-                "la adaptación."
-            )
+            return
 
+        raise AdaptationDocumentStateError(
+            f"El documento {document_id} está en estado "
+            f"{document.status.value} y no puede iniciar "
+            "la indexación para adaptación."
+        )
+
+    async def generate_default_formats(
+        self,
+        *,
+        document_id: str,
+        profile: str,
+        niche: str,
+        detail_level: str,
+        learning_objective: str | None = None,
+    ) -> list[GeneratedFormat]:
+        """Genera Quiz y Flashcards para un documento indexado.
+
+        Esta operación está diseñada para ejecutarse después de la
+        indexación y puede ser programada como tarea en segundo plano.
+
+        Args:
+            document_id: Identificador canónico del documento.
+            profile: Perfil educativo del destinatario.
+            niche: Área temática o contexto de aplicación.
+            detail_level: Nivel de detalle requerido.
+            learning_objective: Objetivo de aprendizaje opcional.
+
+        Returns:
+            Formatos generados y persistidos.
+
+        Raises:
+            FormatGenerationDocumentNotFoundError:
+                Si el documento no existe.
+            DocumentNotReadyForGenerationError:
+                Si el documento no está indexado.
+            FormatGenerationIntegrationError:
+                Si falla la integración con Agentes.
+            FormatGenerationContractError:
+                Si Agentes incumple el contrato de generación.
+        """
         return await (
             self._format_generation_service
             .generate_formats(
                 document_id=document_id,
-                formats=self._SPRINT_2_FORMATS,
+                formats=self._DEFAULT_FORMATS,
                 profile=profile,
                 niche=niche,
                 detail_level=detail_level,

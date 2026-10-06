@@ -238,16 +238,15 @@ class FailingRAGPort:
 
 
 class FakeAdaptationOrchestrationService:
-    """Simula la adaptación completa utilizada por las pruebas HTTP.
+    """Simula indexación y generación para las pruebas HTTP.
 
-    El fake reproduce los efectos observables relevantes para BackendAPI:
+    El fake conserva la separación establecida en Sprint 3:
 
-    - registra el contexto pedagógico recibido;
-    - lleva el documento de STORED a INDEXED;
-    - genera Quiz y Flashcards válidos;
-    - persiste ambos formatos.
+    - ``ensure_document_indexed`` representa la etapa síncrona;
+    - ``generate_default_formats`` representa la generación que el
+      endpoint programa como tarea en segundo plano.
 
-    No ejecuta llamadas HTTP hacia RAG ni Agentes.
+    No ejecuta llamadas HTTP reales hacia RAG ni Agentes.
     """
 
     def __init__(
@@ -261,28 +260,19 @@ class FakeAdaptationOrchestrationService:
             generated_format_repository
         )
 
-        self.requests: list[
+        self.indexing_requests: list[str] = []
+
+        self.generation_requests: list[
             dict[str, object]
         ] = []
 
-    async def adapt_document(
+    async def ensure_document_indexed(
         self,
-        *,
         document_id: str,
-        profile: str,
-        niche: str,
-        detail_level: str,
-        learning_objective: str | None = None,
-    ) -> list[GeneratedFormat]:
-        """Simula indexación y generación exitosa de ambos formatos."""
-        self.requests.append(
-            {
-                "document_id": document_id,
-                "profile": profile,
-                "niche": niche,
-                "detail_level": detail_level,
-                "learning_objective": learning_objective,
-            }
+    ) -> None:
+        """Simula la indexación síncrona de un documento."""
+        self.indexing_requests.append(
+            document_id
         )
 
         document = (
@@ -298,17 +288,58 @@ class FakeAdaptationOrchestrationService:
             self._document_service.start_indexing(
                 document_id
             )
+
             self._document_service.complete_indexing(
                 document_id
             )
 
-        elif (
+            return
+
+        if (
+            document.status
+            == DocumentStatus.INDEXED
+        ):
+            return
+
+        raise RuntimeError(
+            "El fake de indexación recibió un documento "
+            f"en estado inesperado: {document.status.value}."
+        )
+
+    async def generate_default_formats(
+        self,
+        *,
+        document_id: str,
+        profile: str,
+        niche: str,
+        detail_level: str,
+        learning_objective: str | None = None,
+    ) -> list[GeneratedFormat]:
+        """Simula la generación exitosa de Quiz y Flashcards."""
+        self.generation_requests.append(
+            {
+                "document_id": document_id,
+                "profile": profile,
+                "niche": niche,
+                "detail_level": detail_level,
+                "learning_objective": learning_objective,
+            }
+        )
+
+        document = (
+            self._document_service.get_document(
+                document_id
+            )
+        )
+
+        if (
             document.status
             != DocumentStatus.INDEXED
         ):
             raise RuntimeError(
-                "El fake de adaptación recibió un documento "
-                f"en estado inesperado: {document.status.value}."
+                "El fake de generación recibió un documento "
+                "que no está indexado: "
+                f"{document.status.value}."
             )
 
         context = GenerationContext(

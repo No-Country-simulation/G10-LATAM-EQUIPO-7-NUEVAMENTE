@@ -37,7 +37,7 @@ class SpyRAGIntegrationService:
 
 
 class SpyFormatGenerationService:
-    """Registra la solicitud de generación recibida."""
+    """Registra las solicitudes de generación recibidas."""
 
     def __init__(self) -> None:
         self.requests: list[
@@ -137,8 +137,8 @@ def build_service(
     )
 
 
-def test_stored_document_is_indexed_before_generation() -> None:
-    """Indexa un documento almacenado antes de generar formatos."""
+def test_stored_document_is_indexed_without_generation() -> None:
+    """Indexa un documento almacenado sin iniciar generación."""
     (
         service,
         rag_service,
@@ -148,7 +148,154 @@ def test_stored_document_is_indexed_before_generation() -> None:
     )
 
     asyncio.run(
-        service.adapt_document(
+        service.ensure_document_indexed(
+            "doc_123"
+        )
+    )
+
+    assert rag_service.document_ids == [
+        "doc_123"
+    ]
+
+    assert (
+        generation_service.requests
+        == []
+    )
+
+
+def test_indexing_failed_document_retries_indexing() -> None:
+    """Reintenta RAG después de una indexación fallida."""
+    (
+        service,
+        rag_service,
+        generation_service,
+    ) = build_service(
+        DocumentStatus.INDEXING_FAILED
+    )
+
+    asyncio.run(
+        service.ensure_document_indexed(
+            "doc_123"
+        )
+    )
+
+    assert rag_service.document_ids == [
+        "doc_123"
+    ]
+
+    assert (
+        generation_service.requests
+        == []
+    )
+
+
+def test_indexed_document_skips_indexing() -> None:
+    """No reindexa un documento ya disponible en RAG."""
+    (
+        service,
+        rag_service,
+        generation_service,
+    ) = build_service(
+        DocumentStatus.INDEXED
+    )
+
+    asyncio.run(
+        service.ensure_document_indexed(
+            "doc_123"
+        )
+    )
+
+    assert rag_service.document_ids == []
+
+    assert (
+        generation_service.requests
+        == []
+    )
+
+
+@pytest.mark.parametrize(
+    "status",
+    [
+        DocumentStatus.RECEIVED,
+        DocumentStatus.VALIDATED,
+        DocumentStatus.STORING,
+        DocumentStatus.INDEXING,
+        DocumentStatus.VALIDATION_FAILED,
+        DocumentStatus.STORAGE_FAILED,
+    ],
+)
+def test_document_in_invalid_state_cannot_be_indexed(
+    status: DocumentStatus,
+) -> None:
+    """Rechaza estados incompatibles con la indexación."""
+    (
+        service,
+        rag_service,
+        generation_service,
+    ) = build_service(
+        status
+    )
+
+    with pytest.raises(
+        AdaptationDocumentStateError,
+        match=(
+            "no puede iniciar la indexación "
+            "para adaptación"
+        ),
+    ):
+        asyncio.run(
+            service.ensure_document_indexed(
+                "doc_123"
+            )
+        )
+
+    assert rag_service.document_ids == []
+
+    assert (
+        generation_service.requests
+        == []
+    )
+
+
+def test_unknown_document_is_rejected_during_indexing() -> None:
+    """Propaga el error si el documento a indexar no existe."""
+    repository = FakeDocumentRepository()
+
+    service = AdaptationOrchestrationService(
+        document_service=DocumentService(
+            repository
+        ),
+        rag_integration_service=(
+            SpyRAGIntegrationService()
+        ),
+        format_generation_service=(
+            SpyFormatGenerationService()
+        ),
+    )
+
+    with pytest.raises(
+        DocumentNotFoundError,
+        match="doc_inexistente",
+    ):
+        asyncio.run(
+            service.ensure_document_indexed(
+                "doc_inexistente"
+            )
+        )
+
+
+def test_default_formats_are_generated_separately() -> None:
+    """Genera Quiz y Flashcards sin ejecutar indexación."""
+    (
+        service,
+        rag_service,
+        generation_service,
+    ) = build_service(
+        DocumentStatus.INDEXED
+    )
+
+    asyncio.run(
+        service.generate_default_formats(
             document_id="doc_123",
             profile="intermediate",
             niche="general",
@@ -159,9 +306,7 @@ def test_stored_document_is_indexed_before_generation() -> None:
         )
     )
 
-    assert rag_service.document_ids == [
-        "doc_123"
-    ]
+    assert rag_service.document_ids == []
 
     assert len(
         generation_service.requests
@@ -169,6 +314,11 @@ def test_stored_document_is_indexed_before_generation() -> None:
 
     request = (
         generation_service.requests[0]
+    )
+
+    assert (
+        request["document_id"]
+        == "doc_123"
     )
 
     assert request["formats"] == (
@@ -191,43 +341,16 @@ def test_stored_document_is_indexed_before_generation() -> None:
         == "detailed"
     )
 
-    assert request[
-        "learning_objective"
-    ] == (
-        "Comprender los conceptos principales."
-    )
-
-
-def test_indexing_failed_document_retries_indexing() -> None:
-    """Reintenta RAG después de una indexación fallida."""
-    (
-        service,
-        rag_service,
-        generation_service,
-    ) = build_service(
-        DocumentStatus.INDEXING_FAILED
-    )
-
-    asyncio.run(
-        service.adapt_document(
-            document_id="doc_123",
-            profile="beginner",
-            niche="backend",
-            detail_level="basic",
+    assert (
+        request["learning_objective"]
+        == (
+            "Comprender los conceptos principales."
         )
     )
 
-    assert rag_service.document_ids == [
-        "doc_123"
-    ]
 
-    assert len(
-        generation_service.requests
-    ) == 1
-
-
-def test_indexed_document_skips_indexing() -> None:
-    """No reindexa un documento que ya está disponible en RAG."""
+def test_default_generation_accepts_optional_learning_objective() -> None:
+    """Permite generar formatos sin objetivo de aprendizaje."""
     (
         service,
         rag_service,
@@ -237,11 +360,11 @@ def test_indexed_document_skips_indexing() -> None:
     )
 
     asyncio.run(
-        service.adapt_document(
+        service.generate_default_formats(
             document_id="doc_123",
-            profile="advanced",
-            niche="business",
-            detail_level="detailed",
+            profile="beginner",
+            niche="backend",
+            detail_level="basic",
         )
     )
 
@@ -251,72 +374,11 @@ def test_indexed_document_skips_indexing() -> None:
         generation_service.requests
     ) == 1
 
-
-@pytest.mark.parametrize(
-    "status",
-    [
-        DocumentStatus.RECEIVED,
-        DocumentStatus.VALIDATED,
-        DocumentStatus.STORING,
-        DocumentStatus.INDEXING,
-        DocumentStatus.VALIDATION_FAILED,
-        DocumentStatus.STORAGE_FAILED,
-    ],
-)
-def test_document_in_invalid_state_is_rejected(
-    status: DocumentStatus,
-) -> None:
-    """No inicia adaptación desde estados no disponibles."""
-    (
-        service,
-        rag_service,
-        generation_service,
-    ) = build_service(
-        status
+    request = (
+        generation_service.requests[0]
     )
 
-    with pytest.raises(
-        AdaptationDocumentStateError,
-        match="no puede iniciar la adaptación",
-    ):
-        asyncio.run(
-            service.adapt_document(
-                document_id="doc_123",
-                profile="intermediate",
-                niche="general",
-                detail_level="detailed",
-            )
-        )
-
-    assert rag_service.document_ids == []
-    assert generation_service.requests == []
-
-
-def test_unknown_document_is_rejected() -> None:
-    """Propaga el error cuando el documento no existe."""
-    repository = FakeDocumentRepository()
-
-    service = AdaptationOrchestrationService(
-        document_service=DocumentService(
-            repository
-        ),
-        rag_integration_service=(
-            SpyRAGIntegrationService()
-        ),
-        format_generation_service=(
-            SpyFormatGenerationService()
-        ),
+    assert (
+        request["learning_objective"]
+        is None
     )
-
-    with pytest.raises(
-        DocumentNotFoundError,
-        match="doc_inexistente",
-    ):
-        asyncio.run(
-            service.adapt_document(
-                document_id="doc_inexistente",
-                profile="intermediate",
-                niche="general",
-                detail_level="detailed",
-            )
-        )

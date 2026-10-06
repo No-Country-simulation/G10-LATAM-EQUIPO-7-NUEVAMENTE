@@ -41,7 +41,7 @@ def test_upload_valid_document(
     filename: str,
     content_type: str,
 ) -> None:
-    """Procesa el documento sin exponer formatos en la respuesta de carga."""
+    """Almacena e indexa el documento y programa su generación."""
     file_content = b"contenido de prueba"
 
     response = client.post(
@@ -70,7 +70,15 @@ def test_upload_valid_document(
 
     assert (
         fake_adaptation_orchestration_service
-        .requests
+        .indexing_requests
+        == [
+            body["document_id"]
+        ]
+    )
+
+    assert (
+        fake_adaptation_orchestration_service
+        .generation_requests
         == [
             {
                 "document_id": body["document_id"],
@@ -281,7 +289,13 @@ def test_upload_returns_502_when_object_storage_fails(
 
     assert (
         fake_adaptation_orchestration_service
-        .requests
+        .indexing_requests
+        == []
+    )
+
+    assert (
+        fake_adaptation_orchestration_service
+        .generation_requests
         == []
     )
 
@@ -295,7 +309,7 @@ def test_duplicate_document_reuses_document_id(
         FakeAdaptationOrchestrationService
     ),
 ) -> None:
-    """Un duplicado reutiliza document_id sin volver a almacenar el archivo."""
+    """Un duplicado reutiliza document_id sin volver a almacenarse."""
     file_content = b"mismo contenido"
 
     first_response = client.post(
@@ -342,20 +356,37 @@ def test_duplicate_document_reuses_document_id(
     assert "formats" not in first_body
     assert "formats" not in second_body
 
+    document_id = (
+        first_body["document_id"]
+    )
+
+    assert (
+        fake_adaptation_orchestration_service
+        .indexing_requests
+        == [
+            document_id,
+            document_id,
+        ]
+    )
+
     assert len(
-        fake_adaptation_orchestration_service.requests
+        fake_adaptation_orchestration_service
+        .generation_requests
     ) == 2
 
     assert all(
         request["document_id"]
-        == first_body["document_id"]
+        == document_id
         for request
-        in fake_adaptation_orchestration_service.requests
+        in (
+            fake_adaptation_orchestration_service
+            .generation_requests
+        )
     )
 
     formats_response = client.get(
         f"{api_prefix}/documents/"
-        f"{first_body['document_id']}/formats"
+        f"{document_id}/formats"
     )
 
     assert (
@@ -379,7 +410,7 @@ def test_duplicate_document_reuses_document_id(
     ) == 1
 
     expected_object_name = (
-        f"documents/{first_body['document_id']}/"
+        f"documents/{document_id}/"
         "original.txt"
     )
 
@@ -493,7 +524,7 @@ def test_get_registered_document(
         FakeAdaptationOrchestrationService
     ),
 ) -> None:
-    """Consulta la metadata pública de un documento ya procesado."""
+    """Consulta la metadata pública de un documento indexado."""
     file_content = b"contenido persistido"
 
     create_response = client.post(
@@ -512,6 +543,14 @@ def test_get_registered_document(
 
     document_id = (
         create_response.json()["document_id"]
+    )
+
+    assert (
+        fake_adaptation_orchestration_service
+        .indexing_requests
+        == [
+            document_id
+        ]
     )
 
     response = client.get(
@@ -578,7 +617,7 @@ def test_adaptations_endpoint_is_not_public(
     client: TestClient,
     api_prefix: str,
 ) -> None:
-    """La adaptación se ejecuta internamente y no expone endpoint público."""
+    """La adaptación continúa siendo un caso de uso interno."""
     response = client.post(
         f"{api_prefix}/adaptations",
         json={

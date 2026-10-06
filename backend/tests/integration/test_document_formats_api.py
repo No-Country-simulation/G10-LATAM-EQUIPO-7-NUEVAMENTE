@@ -314,7 +314,7 @@ def test_formats_returns_ready_after_upload(
         FakeAdaptationOrchestrationService
     ),
 ) -> None:
-    """El flujo de carga deja Quiz y Flashcards disponibles."""
+    """La carga indexa y genera Quiz y Flashcards en etapas separadas."""
     document_id = upload_document(
         client=client,
         api_prefix=api_prefix,
@@ -322,7 +322,24 @@ def test_formats_returns_ready_after_upload(
 
     assert (
         fake_adaptation_orchestration_service
-        .requests[0]["document_id"]
+        .indexing_requests
+        == [
+            document_id
+        ]
+    )
+
+    assert len(
+        fake_adaptation_orchestration_service
+        .generation_requests
+    ) == 1
+
+    generation_request = (
+        fake_adaptation_orchestration_service
+        .generation_requests[0]
+    )
+
+    assert (
+        generation_request["document_id"]
         == document_id
     )
 
