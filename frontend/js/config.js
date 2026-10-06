@@ -93,6 +93,12 @@ export const CONFIG = {
     ALLOWED_EXTENSIONS: ['pdf', 'md', 'txt']
   },
 
+  // Paleta de colores de lomo disponibles para los libros (debe coincidir con .spine-* en bookshelf.css)
+  SPINE_COLORS: [
+    'navy', 'emerald', 'burgundy', 'amber', 'purple',
+    'forest', 'slate', 'ruby', 'indigo', 'cyan', 'gold-custom'
+  ],
+
   // Parámetros de adaptación pedagógica desacoplados (Sprint 2)
   PEDAGOGICAL: {
     DEFAULT_PROFILE: 'intermediate',
@@ -116,6 +122,14 @@ export const CONFIG = {
     BACKEND_URL: 'nuevamente_backend_url'
   }
 };
+
+/**
+ * Devuelve un color de lomo aleatorio de la paleta disponible.
+ */
+export function getRandomSpineColor() {
+  const colors = CONFIG.SPINE_COLORS;
+  return colors[Math.floor(Math.random() * colors.length)];
+}
 
 // Helper de consola para QA y desarrolladores: cambiar URL del backend al instante
 if (typeof window !== 'undefined') {
