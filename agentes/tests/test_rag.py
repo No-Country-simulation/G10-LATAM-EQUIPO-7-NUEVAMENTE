@@ -106,7 +106,7 @@ def test_retrieve_for_evaluation_success_shape(vector_store):
         case_id="CASE-001", query="kubernetes", top_k=2
     )
     assert response["status"] == "success"
-    assert response["contract_version"] == "1.0"
+    assert response["contract_version"] == "2.0"
     assert response["error"] is None
     assert response["results"][0]["rank"] == 1
     assert response["results"][0]["document_id"] == "doc1"
@@ -118,6 +118,7 @@ def test_retrieve_for_evaluation_no_results(empty_vector_store):
         case_id="CASE-002", query="kubernetes", top_k=5
     )
     assert response["status"] == "no_results"
+    assert response["contract_version"] == "2.0"
     assert response["results"] == []
     assert response["error"] is None
 
@@ -125,6 +126,7 @@ def test_retrieve_for_evaluation_no_results(empty_vector_store):
 def test_build_no_results_response_shape():
     response = build_no_results_response("CASE-003", "query", 5)
     assert response["status"] == "no_results"
+    assert response["contract_version"] == "2.0"
     assert response["results"] == []
     assert response["error"] is None
 
@@ -134,6 +136,7 @@ def test_build_error_response_shape():
         "CASE-004", "query", 5, "RETRIEVAL_FAILED", "boom"
     )
     assert response["status"] == "error"
+    assert response["contract_version"] == "2.0"
     assert response["error"] == {"code": "RETRIEVAL_FAILED", "message": "boom"}
 
 

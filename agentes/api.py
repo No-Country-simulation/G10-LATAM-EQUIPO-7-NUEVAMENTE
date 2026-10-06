@@ -23,6 +23,11 @@ app = FastAPI(title="NuevaMente - API de Agentes")
 # ==========================================
 # ESQUEMAS ESTRUCTURADOS (Contratos Data/IA)
 # ==========================================
+class LearningMetadata(BaseModel):
+    key_concepts: List[str] = Field(..., description="Lista de 3 a 5 conceptos clave abordados en el contenido.")
+    prerequisites: List[str] = Field(..., description="Conocimientos previos recomendados para entender el tema.")
+    estimated_time_minutes: int = Field(..., description="Tiempo estimado de estudio o lectura en minutos.")
+
 class CardItem(BaseModel):
     card_id: str = Field(..., description="Identificador único de la tarjeta.")
     front: str = Field(..., description="Concepto o pregunta (anverso de la tarjeta).")
@@ -54,7 +59,8 @@ class GenerateRequest(BaseModel):
     profile: str
     niche: str
     detail_level: str
-    learning_objective: Optional[str] = None  # <-- Campo opcional añadido
+    learning_objective: Optional[str] = None
+    query: Optional[str] = Field(None, description="Consulta directa (opcional). Usada prioritariamente para benchmarks y búsquedas exactas.")
 
 # ==========================================
 # ENDPOINTS
@@ -106,10 +112,14 @@ def generate_formats(payload: GenerateRequest):
     """
     respuestas_generadas = []
     
-    # Query dinámico para optimizar el retriever según las necesidades del usuario
-    query_dinamico = f"Conceptos principales sobre {payload.niche} para un perfil {payload.profile} con nivel {payload.detail_level}."
-    if payload.learning_objective:
-        query_dinamico += f" Objetivo: {payload.learning_objective}"
+    # Si existe una query directa (como en los benchmarks), la usamos.
+    # Si no, caemos en el comportamiento por defecto generando contexto a partir de los metadatos.
+    if payload.query:
+        query_rag = payload.query
+    else:
+        query_rag = f"Conceptos principales sobre {payload.niche} para un perfil {payload.profile} con nivel {payload.detail_level}."
+        if payload.learning_objective:
+            query_rag += f" Objetivo: {payload.learning_objective}"
 
     for formato in payload.formats:
         
@@ -119,16 +129,16 @@ def generate_formats(payload: GenerateRequest):
         if formato not in ["quiz", "flashcards"]:
             respuestas_generadas.append({
                 "format": formato,
-                "status": "failed",  # SOLUCIÓN DEUDA TÉCNICA: Cambiado de "error" a "failed"
+                "status": "failed",
                 "content": None,
                 "sources_used": [],
                 "error_message": f"El formato '{formato}' no está soportado en esta versión."
             })
-            continue # Saltamos la ejecución del agente y pasamos al siguiente formato
+            continue 
 
         # El agente ahora se encargará de devolver la estructura Pydantic exacta y los chunks completos
         resultado_atomico = agent.answer(
-            query=query_dinamico,
+            query=query_rag,
             document_id=payload.document_id,
             formato=formato,
             perfil=payload.profile,
