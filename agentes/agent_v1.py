@@ -41,7 +41,7 @@ class AgentV1:
         
         # CAPACIDAD ATÓMICA COMPLETA: El try/except cubre recuperación, prompt, llamada al LLM y validación Pydantic
         try:
-            # 1. Recuperación Híbrida en ChromaDB (Fase 1, 2 y 3 ejecutadas desde el backend)
+            # 1. Recuperación Híbrida en ChromaDB (Fase 1, 2 y 3 ejecutadas dentro de Agentes)
             # Pasamos dict con filter por document_id para que el nuevo Retrieval V2 funcione
             resultados = self.retriever.retrieve(query=query, top_k=top_k, metadata_filters={"document_id": document_id})
             
@@ -133,5 +133,5 @@ class AgentV1:
                 "error_message": f"Error crítico en el pipeline o generación con Gemini: {str(e)}"
             }
 
-    def answer_for_evaluation(self, case_id: str, query: str, top_k: int = 5) -> dict:
-        return self.retriever.retrieve_for_evaluation(case_id=case_id, query=query, top_k=top_k)
+    def answer_for_evaluation(self, case_id: str, query: str, top_k: int = 5, metadata_filters: dict = None) -> dict:
+        return self.retriever.retrieve_for_evaluation(case_id=case_id, query=query, top_k=top_k, metadata_filters=metadata_filters)
