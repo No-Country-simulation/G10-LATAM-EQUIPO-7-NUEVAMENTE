@@ -43,6 +43,16 @@ document.addEventListener('DOMContentLoaded', () => {
   setInterval(() => {
     apiClient.checkHealth();
   }, 60000);
+
+  // 10. Captura global de excepciones y promesas no controladas (Resiliencia en tiempo de ejecución)
+  window.addEventListener('unhandledrejection', (event) => {
+    console.warn('[Global] Promesa no controlada interceptada:', event.reason);
+    event.preventDefault();
+  });
+
+  window.addEventListener('error', (event) => {
+    console.warn('[Global] Excepción no controlada interceptada:', event.message);
+  });
 });
 
 function setupSystemStatusBar() {

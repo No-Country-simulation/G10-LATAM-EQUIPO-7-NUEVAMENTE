@@ -4,6 +4,8 @@
  * Soporta colecciones de preguntas del Backend real (Tarea 8).
  */
 
+import { toFriendlyError } from '../utils/friendlyError.js';
+
 export const quiz = {
   elements: {},
   questions: [],
@@ -52,27 +54,35 @@ export const quiz = {
 
     if (this.questions.length === 0) {
       if (this.quizMeta?.status === 'failed') {
-        questionText.textContent = 'Evaluación de Competencias (Quiz) No Disponible';
-        optionsList.innerHTML = '';
+        const friendly = toFriendlyError({ message: this.quizMeta.errorMessage });
+        questionText.textContent = 'Evaluación de Competencias (Quiz)';
+        optionsList.innerHTML = `
+          <div class="format-friendly-notice">
+            <div class="friendly-notice-icon">📋</div>
+            <h4 class="friendly-notice-title">Evaluación en Proceso de Generación</h4>
+            <p class="friendly-notice-text">
+              ${friendly.message}
+            </p>
+            <div class="friendly-notice-actions">
+              <button type="button" class="btn-friendly-action btn-retry-quiz" id="btnRetryQuizFromNotice">
+                <span>↻ Sincronizar Formatos</span>
+              </button>
+              <button type="button" class="btn-friendly-action btn-switch-flashcards" id="btnGoFlashcardsFromNotice">
+                <span>✦ Estudiar con Flashcards</span>
+              </button>
+            </div>
+          </div>
+        `;
 
-        const errorDiv = document.createElement('div');
-        errorDiv.style.textAlign = 'center';
-        errorDiv.style.padding = '2rem 1rem';
-        errorDiv.style.color = '#ef4444';
+        optionsList.querySelector('#btnRetryQuizFromNotice')?.addEventListener('click', () => {
+          const btnRefresh = document.getElementById('btnRefreshFormats');
+          if (btnRefresh) btnRefresh.click();
+        });
 
-        const p = document.createElement('p');
-        p.style.fontSize = '0.95rem';
-        p.style.marginBottom = '0.5rem';
-        p.textContent = this.quizMeta.errorMessage || 'Ocurrió un error al generar las preguntas de evaluación de competencias.';
-
-        const span = document.createElement('span');
-        span.style.fontSize = '0.8rem';
-        span.style.color = 'var(--text-secondary)';
-        span.textContent = 'Puedes continuar reforzando conocimientos con las Tarjetas de Refuerzo mientras el sistema reintenta este formato.';
-
-        errorDiv.appendChild(p);
-        errorDiv.appendChild(span);
-        optionsList.appendChild(errorDiv);
+        optionsList.querySelector('#btnGoFlashcardsFromNotice')?.addEventListener('click', () => {
+          const flashTab = document.querySelector('.format-tab-btn[data-format="flashcards"]');
+          if (flashTab) flashTab.click();
+        });
       } else if (this.quizMeta?.status === 'no_results') {
         questionText.textContent = 'Sin preguntas de evaluación generadas';
         optionsList.innerHTML = `

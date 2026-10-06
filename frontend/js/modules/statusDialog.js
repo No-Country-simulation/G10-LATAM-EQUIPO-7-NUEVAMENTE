@@ -317,7 +317,8 @@ export const statusDialog = {
     }
 
     if (!detailsHtml) {
-      detailsHtml = `<div class="error-detail-line" style="color: var(--text-muted); font-style: italic;">Sin detalles adicionales del servidor. Código de respuesta HTTP ${status}.</div>`;
+      const codeInfo = status === 0 ? 'Fallo de conexión o servidor no disponible.' : `Código de respuesta HTTP ${status}.`;
+      detailsHtml = `<div class="error-detail-line" style="color: var(--text-muted); font-style: italic;">Sin detalles adicionales del servidor. ${codeInfo}</div>`;
     }
 
     errorBox.innerHTML = detailsHtml;

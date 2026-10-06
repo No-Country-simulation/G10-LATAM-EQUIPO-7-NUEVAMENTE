@@ -11,6 +11,7 @@ import { videoGuide } from './videoGuide.js';
 import { summary } from './summary.js';
 import { statusDialog } from './statusDialog.js';
 import { notifyError, notifySuccess } from './notifications.js';
+import { toFriendlyError } from '../utils/friendlyError.js';
 
 export const studyHub = {
   elements: {},
@@ -52,12 +53,25 @@ export const studyHub = {
 
   setupActions() {
     if (this.elements.btnRefreshFormats) {
-      this.elements.btnRefreshFormats.addEventListener('click', () => {
+      this.elements.btnRefreshFormats.addEventListener('click', async () => {
         const doc = state.get().currentDocument;
         if (doc) {
-          this.fetchFormatsForCurrentDocument(doc);
+          this.updateSyncButtonState(true);
+          await this.fetchFormatsForCurrentDocument(doc);
         }
       });
+    }
+  },
+
+  updateSyncButtonState(isLoading) {
+    if (!this.elements.btnRefreshFormats) return;
+    this.elements.btnRefreshFormats.disabled = isLoading;
+    if (isLoading) {
+      this.elements.btnRefreshFormats.classList.add('is-syncing');
+      this.elements.btnRefreshFormats.innerHTML = '<span class="spin-icon">↻</span> Sincronizando...';
+    } else {
+      this.elements.btnRefreshFormats.classList.remove('is-syncing');
+      this.elements.btnRefreshFormats.innerHTML = '<span>↻ Sincronizar Formatos</span>';
     }
   },
 
@@ -130,7 +144,7 @@ export const studyHub = {
     const globalStatus = hubState.formatsStatus || 'ready';
     // Actualizar botón de reintento/sincronización de formatos
     if (this.elements.btnRefreshFormats) {
-      this.elements.btnRefreshFormats.style.display = (globalStatus === 'error' || globalStatus === 'partial') ? 'inline-flex' : 'none';
+      this.elements.btnRefreshFormats.style.display = (globalStatus === 'error' || globalStatus === 'partial' || globalStatus === 'processing') ? 'inline-flex' : 'none';
     }
 
     // Auto-recuperar formatos si no están en memoria aún para el documento activo
@@ -206,17 +220,20 @@ export const studyHub = {
         }
       });
 
+      const friendly = toFriendlyError(err);
+
       statusDialog.showError({
-        status: err.status || 500,
-        code: err.code || 'FORMATS_FETCH_ERROR',
-        message: err.message || `No fue posible cargar los formatos de capacitación para "${doc.title || doc.filename}".`,
-        details: [`Documento ID: ${doc.id}`, err.message],
+        status: friendly.status,
+        code: friendly.code,
+        message: friendly.message,
+        details: [`Documento ID: ${doc.id}`, ...friendly.details],
         filename: doc.filename || doc.title
       });
 
-      notifyError(`Error en Formatos (${err.status || 500})`, err.message);
+      notifyError(friendly.title, friendly.message);
     } finally {
       this.isFetchingFormats = false;
+      this.updateSyncButtonState(false);
     }
   },
 
