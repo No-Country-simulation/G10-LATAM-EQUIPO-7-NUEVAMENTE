@@ -3,57 +3,110 @@
    Estantería de madera noble con 10 tomos interactivos y cuaderno abierto
    ========================================================================== */
 
-/* Contenedor Principal de la Biblioteca */
+/* Contenedor Principal de la Biblioteca (Disposición Horizontal: Hero al lado del Librero) */
 .library-view-container {
   width: 100%;
-  min-height: calc(100vh - 120px);
+  max-width: 1560px;
+  margin: auto;
+  min-height: min-content;
+  position: relative;
+  display: flex;
+  flex-direction: row;
+  align-items: stretch; /* Ambas cajas tienen exactamente la misma altura y simetría */
+  justify-content: center;
+  gap: clamp(1.2rem, 2vw, 2.4rem);
+  padding: clamp(0.75rem, 1.8vh, 1.5rem) clamp(1rem, 2.5vw, 2.5rem) clamp(1.2rem, 2.5vh, 2rem);
+}
+
+/* Encabezado del Librero (Tarjeta Lateral Glassmorphic de igual altura que el estante) */
+.library-hero-header {
+  position: relative;
+  text-align: center;
+  flex: 0 0 clamp(330px, 28vw, 420px);
+  width: clamp(330px, 28vw, 420px);
+  max-width: 440px;
+  margin-bottom: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: space-between;
+  gap: clamp(1rem, 2vh, 1.75rem);
+  z-index: 10;
+  background: linear-gradient(165deg, rgba(11, 17, 30, 0.85) 0%, rgba(6, 10, 18, 0.94) 100%);
+  border: 1px solid rgba(254, 240, 138, 0.35);
+  border-radius: 28px;
+  box-shadow: 
+    0 25px 65px -10px rgba(0, 0, 0, 0.92),
+    0 0 45px rgba(245, 158, 11, 0.12),
+    inset 0 1px 1px rgba(255, 255, 255, 0.2),
+    inset 0 -1px 1px rgba(0, 0, 0, 0.5);
+  backdrop-filter: blur(20px) saturate(180%);
+  -webkit-backdrop-filter: blur(20px) saturate(180%);
+  padding: clamp(1.6rem, 3vh, 2.6rem) clamp(1.3rem, 2vw, 2rem);
+  transition: border-color 0.3s ease, box-shadow 0.3s ease;
+}
+
+.library-hero-header:hover {
+  border-color: rgba(254, 240, 138, 0.5);
+  box-shadow: 
+    0 30px 75px -10px rgba(0, 0, 0, 0.95),
+    0 0 55px rgba(245, 158, 11, 0.18),
+    inset 0 1px 1px rgba(255, 255, 255, 0.3);
+}
+
+.library-hero-top {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: clamp(0.75rem, 1.5vh, 1.25rem);
+  width: 100%;
+}
+
+.library-hero-badge {
+  font-size: clamp(0.85rem, 1.05vw, 0.95rem);
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.14em;
+  background: rgba(245, 158, 11, 0.15);
+  color: #fef08a;
+  border: 1px solid rgba(253, 230, 138, 0.55);
+  padding: 0.4rem 1.15rem;
+  border-radius: 999px;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.4);
+}
+
+.library-hero-title {
   position: relative;
   display: flex;
   flex-direction: column;
   align-items: center;
-  justify-content: flex-start;
-  padding: 2rem 2rem 5rem;
-  overflow-x: hidden;
-}
-
-/* Encabezado del Librero */
-.library-hero-header {
-  text-align: center;
-  max-width: 820px;
-  margin-bottom: 2.5rem;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 0.6rem;
-  z-index: 10;
-}
-
-.library-hero-badge {
-  font-size: 0.78rem;
-  font-weight: 800;
-  text-transform: uppercase;
-  letter-spacing: 0.12em;
-  background: rgba(245, 158, 11, 0.2);
-  color: var(--accent-gold);
-  border: 1px solid rgba(245, 158, 11, 0.4);
-  padding: 0.25rem 0.85rem;
-  border-radius: 999px;
-}
-
-.library-hero-title {
-  display: flex;
-  align-items: center;
   justify-content: center;
-  flex-wrap: wrap;
-  gap: 0.85rem;
-  font-size: 2.2rem;
-  font-weight: 900;
-  letter-spacing: -0.02em;
-  margin: 0.2rem 0;
-  line-height: 1.2;
+  gap: 0.5rem;
+  margin: 0;
+  line-height: 1.15;
+}
+
+/* Resplandor radial suave detrás del logo para realzar contraste */
+.library-hero-title::before {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 250px;
+  max-width: 90%;
+  height: 90px;
+  background: radial-gradient(ellipse at center, rgba(255, 255, 255, 0.16) 0%, rgba(6, 182, 212, 0.12) 45%, transparent 75%);
+  pointer-events: none;
+  z-index: 0;
+  filter: blur(10px);
 }
 
 .library-hero-title .library-title-prefix {
+  position: relative;
+  z-index: 1;
+  font-size: clamp(1.8rem, 2.3vw, 2.25rem);
+  font-weight: 800;
   background: linear-gradient(135deg, #ffffff 0%, #fffbeb 25%, #fde047 65%, #f59e0b 100%);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
@@ -62,39 +115,121 @@
 }
 
 .library-hero-logo {
-  height: 92px;
-  max-height: 96px;
+  position: relative;
+  z-index: 1;
+  height: clamp(66px, 8.5vh, 90px);
+  max-height: 95px;
   width: auto;
   object-fit: contain;
   vertical-align: middle;
-  filter: drop-shadow(0 0 2px rgba(255, 255, 255, 0.95)) drop-shadow(0 0 16px rgba(6, 182, 212, 0.45)) drop-shadow(0 4px 16px rgba(0, 0, 0, 0.85));
+  filter: drop-shadow(0 0 16px rgba(255, 255, 255, 0.35)) drop-shadow(0 0 20px rgba(6, 182, 212, 0.45)) drop-shadow(0 4px 16px rgba(0, 0, 0, 0.85));
   transition: transform 0.25s ease, filter 0.25s ease;
 }
 
 .library-hero-logo:hover {
   transform: scale(1.03);
-  filter: drop-shadow(0 0 3px rgba(255, 255, 255, 1)) drop-shadow(0 0 22px rgba(6, 182, 212, 0.65)) drop-shadow(0 6px 20px rgba(0, 0, 0, 0.95));
+  filter: drop-shadow(0 0 22px rgba(255, 255, 255, 0.5)) drop-shadow(0 0 28px rgba(6, 182, 212, 0.65)) drop-shadow(0 6px 20px rgba(0, 0, 0, 0.95));
 }
 
 .library-hero-subtitle {
-  font-size: 1rem;
-  color: var(--text-secondary);
-  line-height: 1.5;
-  text-shadow: 0 1px 4px rgba(0, 0, 0, 0.5);
+  position: relative;
+  z-index: 1;
+  font-size: clamp(1.02rem, 1.25vw, 1.16rem);
+  color: #f1f5f9;
+  line-height: 1.6;
+  max-width: 360px;
+  text-shadow: 0 1px 4px rgba(0, 0, 0, 0.6);
+  margin: 0;
+}
+
+.library-hero-bottom {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: clamp(0.75rem, 1.5vh, 1.25rem);
+  width: 100%;
+}
+
+.library-stats-pill-stack {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 0.5rem;
+}
+
+.stat-item-pill {
+  font-size: clamp(0.82rem, 1vw, 0.9rem);
+  font-weight: 700;
+  color: #f8fafc;
+  background: rgba(10, 16, 28, 0.55);
+  border: 1px solid rgba(254, 240, 138, 0.25);
+  padding: 0.35rem 0.85rem;
+  border-radius: 12px;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+}
+
+.btn-hero-add-pdf {
+  width: 100%;
+  max-width: 320px;
+  background: linear-gradient(135deg, rgba(245, 158, 11, 0.22), rgba(217, 119, 6, 0.16));
+  border: 1.5px solid rgba(254, 240, 138, 0.6);
+  color: #fef08a;
+  font-size: clamp(0.92rem, 1.1vw, 1.02rem);
+  font-weight: 800;
+  padding: 0.65rem 1.25rem;
+  border-radius: 14px;
+  cursor: pointer;
+  transition: all 0.25s ease;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.5);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+}
+
+.btn-hero-add-pdf:hover {
+  background: linear-gradient(135deg, #fef08a, #fbbf24 60%, #f59e0b);
+  color: #0f172a;
+  border-color: #fef08a;
+  transform: translateY(-2px);
+  box-shadow: 0 8px 25px rgba(245, 158, 11, 0.45);
 }
 
 /* --------------------------------------------------------------------------
-   ESTANTERÍA DE MADERA & LOMOS DE LIBROS EN 3D
+   ESTANTERÍA DE MADERA & LOMOS DE LIBROS EN 3D (ENMARCADA Y REDIMENSIONADA)
    -------------------------------------------------------------------------- */
 .bookshelf-rack {
-  width: 100%;
-  max-width: 1200px;
+  flex: 1;
+  max-width: 960px;
   display: flex;
   flex-direction: column;
-  gap: 3.5rem;
+  gap: clamp(1.6rem, 2.8vh, 2.5rem);
   position: relative;
   z-index: 10;
   perspective: 1200px;
+  background: linear-gradient(165deg, rgba(11, 17, 30, 0.85) 0%, rgba(6, 10, 18, 0.94) 100%);
+  border: 1px solid rgba(254, 240, 138, 0.32);
+  border-radius: 28px;
+  box-shadow: 
+    0 30px 80px -10px rgba(0, 0, 0, 0.95),
+    0 0 55px rgba(245, 158, 11, 0.12),
+    inset 0 1px 1px rgba(255, 255, 255, 0.2),
+    inset 0 -1px 1px rgba(0, 0, 0, 0.5);
+  backdrop-filter: blur(20px) saturate(180%);
+  -webkit-backdrop-filter: blur(20px) saturate(180%);
+  padding: clamp(1.2rem, 2.2vh, 2rem) clamp(1.2rem, 2.2vw, 2.2rem) clamp(0.9rem, 1.6vh, 1.5rem);
+  transition: border-color 0.3s ease, box-shadow 0.3s ease;
+}
+
+.bookshelf-rack:hover {
+  border-color: rgba(254, 240, 138, 0.48);
+  box-shadow: 
+    0 35px 90px -10px rgba(0, 0, 0, 0.98),
+    0 0 65px rgba(245, 158, 11, 0.18),
+    inset 0 1px 1px rgba(255, 255, 255, 0.3);
 }
 
 .shelf-row {
@@ -102,8 +237,8 @@
   display: flex;
   align-items: flex-end;
   justify-content: center;
-  gap: 1.2rem;
-  padding: 0 2.5rem 1.2rem;
+  gap: clamp(0.6rem, 1vw, 1rem);
+  padding: 0 0.8rem clamp(0.6rem, 1vh, 0.9rem);
   flex-wrap: wrap;
 }
 
@@ -111,13 +246,13 @@
 .shelf-plank {
   position: absolute;
   bottom: 0;
-  left: 0;
-  right: 0;
-  height: 22px;
+  left: 0.5rem;
+  right: 0.5rem;
+  height: 18px;
   background: linear-gradient(to bottom, #854d0e, #533107 40%, #291802);
   border-top: 3px solid #b45309;
-  border-radius: 6px;
-  box-shadow: 0 15px 35px rgba(0, 0, 0, 0.9), inset 0 2px 4px rgba(255, 255, 255, 0.2);
+  border-radius: 5px;
+  box-shadow: 0 12px 28px rgba(0, 0, 0, 0.9), inset 0 2px 4px rgba(255, 255, 255, 0.2);
   z-index: 1;
 }
 
@@ -127,16 +262,16 @@
   top: 100%;
   left: 5%;
   right: 5%;
-  height: 14px;
+  height: 12px;
   background: rgba(0, 0, 0, 0.6);
-  filter: blur(8px);
+  filter: blur(6px);
 }
 
-/* Lomo Individual de Libro 3D */
+/* Lomo Individual de Libro 3D (Dimensiones estilizadas y armónicas) */
 .book-spine {
   position: relative;
-  width: 76px;
-  height: 285px;
+  width: clamp(56px, 4.4vw, 68px);
+  height: clamp(210px, 26vh, 248px);
   background: linear-gradient(90deg, #182234, #2c3a50 35%, #3e4f68 50%, #2c3a50 65%, #182234);
   border-radius: 6px 6px 2px 2px;
   cursor: pointer;
@@ -146,7 +281,7 @@
   flex-direction: column;
   justify-content: space-between;
   align-items: center;
-  padding: 1.1rem 0.45rem 0.95rem;
+  padding: 0.8rem 0.3rem 0.7rem;
   transform-origin: bottom center;
   transition: transform 0.35s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.35s ease;
   box-shadow: 3px 6px 18px rgba(0, 0, 0, 0.8), inset -3px 0 8px rgba(0, 0, 0, 0.6), inset 2px 0 6px rgba(255, 255, 255, 0.18);
@@ -154,13 +289,13 @@
 }
 
 /* Variaciones sutiles de altura y anchura para realismo */
-.book-spine:nth-child(2n) { height: 275px; width: 72px; }
-.book-spine:nth-child(3n) { height: 298px; width: 82px; }
-.book-spine:nth-child(5n) { height: 282px; width: 78px; }
+.book-spine:nth-child(2n) { height: clamp(200px, 25vh, 238px); width: clamp(52px, 4.2vw, 64px); }
+.book-spine:nth-child(3n) { height: clamp(220px, 27vh, 256px); width: clamp(60px, 4.8vw, 72px); }
+.book-spine:nth-child(5n) { height: clamp(208px, 25.5vh, 244px); width: clamp(55px, 4.3vw, 66px); }
 
 /* Efecto Hover: El libro se adelanta hacia afuera */
 .book-spine:hover {
-  transform: translateY(-26px) rotateZ(-3deg) scale(1.05);
+  transform: translateY(-18px) rotateZ(-2.5deg) scale(1.05);
   box-shadow: 0 25px 50px rgba(0, 0, 0, 0.95), 0 0 30px rgba(245, 158, 11, 0.45);
   z-index: 25;
 }
@@ -176,7 +311,7 @@
 
 /* Icono en el lomo */
 .spine-icon {
-  font-size: 1.3rem;
+  font-size: 1.15rem;
   filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.85));
 }
 
@@ -185,36 +320,58 @@
   writing-mode: vertical-rl;
   text-orientation: mixed;
   transform: rotate(180deg);
-  font-size: 0.82rem;
+  font-size: clamp(0.82rem, 1vw, 0.92rem);
   font-weight: 700;
   letter-spacing: 0.05em;
   color: #fef08a;
   text-shadow: 0 1px 4px rgba(0, 0, 0, 0.95);
-  max-height: 180px;
+  max-height: 155px;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  padding: 0.25rem 0;
+  padding: 0.2rem 0;
   line-height: 1.2;
 }
 
 /* Disciplina o Código en la Base del Lomo (Ajustado para no desbordar) */
 .spine-code-tag {
-  font-size: 0.62rem;
+  font-size: clamp(0.68rem, 0.8vw, 0.76rem);
   font-weight: 800;
   color: #fde047;
   letter-spacing: 0.04em;
   font-family: inherit;
-  background: rgba(0, 0, 0, 0.45);
-  border: 1px solid rgba(253, 230, 138, 0.3);
-  padding: 0.15rem 0.4rem;
-  border-radius: 6px;
-  max-width: 92%;
+  background: rgba(0, 0, 0, 0.55);
+  border: 1px solid rgba(253, 230, 138, 0.4);
+  padding: 0.16rem 0.45rem;
+  border-radius: 5px;
+  max-width: 94%;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
   text-align: center;
   box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.5);
+}
+
+/* En laptops y pantallas más pequeñas (ej. 1366x768), se mantienen una al lado de la otra SIEMPRE */
+@media (max-width: 1366px) {
+  .library-view-container {
+    flex-direction: row;
+    gap: clamp(0.85rem, 1.5vw, 1.5rem);
+    padding: 0.75rem 1rem;
+    align-items: stretch;
+  }
+  .library-hero-header {
+    flex: 0 0 clamp(290px, 26vw, 360px);
+    width: clamp(290px, 26vw, 360px);
+    padding: 1.4rem 1.1rem;
+  }
+  .bookshelf-rack {
+    padding: 1rem 0.8rem;
+  }
+  .book-spine {
+    width: clamp(48px, 4.1vw, 62px);
+    height: clamp(190px, 24vh, 232px);
+  }
 }
 
 /* Paleta de Colores de Lomo de Cuero / Tela */
@@ -298,7 +455,7 @@
 .book-spine-upload:hover {
   background: linear-gradient(135deg, rgba(245, 158, 11, 0.3), rgba(16, 185, 129, 0.3));
   border-color: #fde047;
-  transform: translateY(-26px) scale(1.08);
+  transform: translateY(-20px) scale(1.05);
 }
 
 .book-spine-upload .spine-title-vertical {
@@ -339,8 +496,8 @@
 /* El Cuaderno Abierto de Doble Página (Diseño Editorial Realista sin mesa externa) */
 .open-notebook-spread {
   width: 100%;
-  max-width: 1060px;
-  min-height: 580px;
+  max-width: 1040px;
+  max-height: 88vh;
   background: #fbf7ee;
   border-radius: 14px;
   border: 1px solid #d4c39c;
@@ -406,7 +563,7 @@
   pointer-events: none;
 }
 
-@media (max-width: 880px) {
+@media (max-width: 880px), (max-height: 650px) {
   .open-notebook-spread {
     grid-template-columns: 1fr;
     max-height: 90vh;
@@ -420,11 +577,11 @@
 
 /* Hoja Izquierda: Ficha del Documento sobre Pergamino */
 .notebook-page-left {
-  padding: 2.75rem 2.75rem 2.5rem 3rem;
+  padding: clamp(1.2rem, 2.2vh, 2.2rem) clamp(1.2rem, 2.2vw, 2.4rem);
   display: flex;
   flex-direction: column;
   justify-content: space-between;
-  gap: 1.25rem;
+  gap: clamp(0.6rem, 1.2vh, 1.1rem);
   background:
     radial-gradient(ellipse at right, rgba(0, 0, 0, 0.09) 0%, rgba(0, 0, 0, 0) 22%),
     linear-gradient(to right, #faf5ea 0%, #f7f0e0 94%, #ede2cb 100%);
@@ -457,7 +614,7 @@
 }
 
 .opened-doc-title {
-  font-size: 1.65rem;
+  font-size: clamp(1.2rem, 2.2vh, 1.6rem);
   font-weight: 800;
   line-height: 1.25;
   letter-spacing: -0.02em;
@@ -468,8 +625,8 @@
 }
 
 .opened-doc-summary {
-  font-size: 0.92rem;
-  line-height: 1.6;
+  font-size: clamp(0.78rem, 1.1vh, 0.9rem);
+  line-height: 1.5;
   color: #334155;
   font-weight: 500;
 }
@@ -478,11 +635,11 @@
   background: #ffffff;
   border: 1px solid rgba(212, 163, 75, 0.45);
   border-radius: 12px;
-  padding: 0.85rem 1.1rem;
+  padding: clamp(0.5rem, 1vh, 0.8rem) clamp(0.75rem, 1.2vw, 1rem);
   display: grid;
   grid-template-columns: repeat(3, 1fr);
-  gap: 0.6rem;
-  font-size: 0.82rem;
+  gap: 0.5rem;
+  font-size: clamp(0.72rem, 0.95vh, 0.8rem);
   color: #475569;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
 }
@@ -500,11 +657,11 @@
 
 /* Hoja Derecha: Opciones de Estudio Interactivas sobre Pergamino */
 .notebook-page-right {
-  padding: 2.75rem 3rem 2.5rem 2.75rem;
+  padding: clamp(1.2rem, 2.2vh, 2.2rem) clamp(1.2rem, 2.2vw, 2.4rem);
   display: flex;
   flex-direction: column;
   justify-content: space-between;
-  gap: 1.25rem;
+  gap: clamp(0.6rem, 1.2vh, 1.1rem);
   background:
     radial-gradient(ellipse at left, rgba(0, 0, 0, 0.09) 0%, rgba(0, 0, 0, 0) 22%),
     linear-gradient(to right, #ede2cb 0%, #f7f0e0 6%, #faf5ea 100%);
@@ -677,14 +834,26 @@
 }
 
 @media (max-width: 768px) {
+  .library-hero-header {
+    padding: 1.5rem 1.25rem 1.4rem;
+    border-radius: 18px;
+    margin-bottom: 1.5rem;
+  }
+
+  .bookshelf-rack {
+    padding: 1.75rem 1rem 1.5rem;
+    border-radius: 20px;
+    gap: 2.25rem;
+  }
+
   .library-hero-title {
-    font-size: 1.8rem;
+    font-size: 1.7rem;
     gap: 0.5rem;
   }
 
   .library-hero-logo {
-    height: 64px;
-    max-height: 68px;
+    height: 62px;
+    max-height: 66px;
     width: auto;
   }
 }
@@ -741,4 +910,516 @@
   font-size: 0.9rem;
   padding: 0.65rem 1.4rem;
 }
+
+/* ========================================================================
+   MODO LISTA (CATÁLOGO EJECUTIVO DE DOCUMENTOS) — NUEVAMENTE
+   ======================================================================== */
+
+/* Contenedor del Modo Lista (Visible por Defecto) */
+.library-catalog-view {
+  display: flex;
+  flex-direction: column;
+  gap: clamp(0.75rem, 1.2vh, 1rem);
+  width: 100%;
+  max-width: 1080px;
+  margin: 0.25rem auto 1rem auto;
+  padding: clamp(1rem, 2vh, 1.4rem) clamp(1.2rem, 2vw, 1.8rem);
+  background: linear-gradient(165deg, rgba(11, 17, 30, 0.92) 0%, rgba(6, 10, 18, 0.97) 100%);
+  border: 1px solid rgba(254, 240, 138, 0.3);
+  backdrop-filter: blur(24px) saturate(180%);
+  -webkit-backdrop-filter: blur(24px) saturate(180%);
+  border-radius: 1.5rem;
+  box-shadow: 0 25px 65px -10px rgba(0, 0, 0, 0.9), inset 0 1px 1px rgba(255, 255, 255, 0.15);
+  box-sizing: border-box;
+}
+
+/* Modo Interactivo oculto por defecto */
+.interactive-bookshelf-wrapper {
+  display: none;
+  width: 100%;
+  justify-content: center;
+}
+
+/* Cuando se activa el Modo Interactivo */
+body.interactive-mode-active .library-catalog-view {
+  display: none;
+}
+
+body.interactive-mode-active .interactive-bookshelf-wrapper {
+  display: flex;
+}
+
+/* Botón Conmutador de Modo Interactivo en Header */
+.btn-toggle-interactive-mode {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.42rem 1rem;
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: #fef08a;
+  border-radius: 999px;
+  border: 1.5px solid rgba(254, 240, 138, 0.45);
+  background: rgba(245, 158, 11, 0.15);
+  text-decoration: none;
+  cursor: pointer;
+  transition: all 0.25s ease;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.3);
+}
+
+.btn-toggle-interactive-mode:hover {
+  background: linear-gradient(135deg, rgba(245, 158, 11, 0.35), rgba(217, 119, 6, 0.3));
+  color: #ffffff;
+  border-color: #fde047;
+  box-shadow: 0 0 20px rgba(245, 158, 11, 0.4);
+  transform: translateY(-1px);
+}
+
+body.interactive-mode-active .btn-toggle-interactive-mode {
+  background: rgba(6, 182, 212, 0.18);
+  border-color: rgba(34, 211, 238, 0.5);
+  color: #67e8f9;
+}
+
+body.interactive-mode-active .btn-toggle-interactive-mode:hover {
+  background: rgba(6, 182, 212, 0.35);
+  border-color: #22d3ee;
+  color: #ffffff;
+  box-shadow: 0 0 20px rgba(6, 182, 212, 0.4);
+}
+
+/* Botón de retorno a Modo Lista dentro de la tarjeta lateral de la estantería */
+.btn-toggle-to-list {
+  background: transparent;
+  border: 1px solid rgba(254, 240, 138, 0.3);
+  color: #fef08a;
+  border-radius: 12px;
+  padding: 0.45rem 1rem;
+  font-size: 0.82rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  width: 100%;
+  max-width: 320px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.45rem;
+}
+
+.btn-toggle-to-list:hover {
+  background: rgba(245, 158, 11, 0.18);
+  border-color: #fde047;
+  color: #ffffff;
+  box-shadow: 0 4px 12px rgba(245, 158, 11, 0.25);
+  transform: translateY(-1px);
+}
+
+/* Ribbon de KPIs */
+.cosmic-metrics-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 1rem;
+  margin-bottom: 0.25rem;
+}
+
+@media (max-width: 640px) {
+  .cosmic-metrics-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.cosmic-metric-card {
+  background: rgba(18, 24, 38, 0.85);
+  backdrop-filter: blur(16px);
+  border: 1px solid rgba(254, 240, 138, 0.22);
+  border-radius: 1rem;
+  padding: 0.85rem 1.25rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.4);
+  transition: border-color 0.25s ease;
+}
+
+.cosmic-metric-card:hover {
+  border-color: rgba(254, 240, 138, 0.45);
+}
+
+.cosmic-metric-label {
+  font-size: 0.74rem;
+  color: #fde047;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.cosmic-metric-val {
+  font-size: 1.35rem;
+  font-weight: 800;
+  color: #ffffff;
+  display: flex;
+  align-items: baseline;
+  gap: 0.5rem;
+}
+
+.cosmic-metric-sub {
+  font-size: 0.74rem;
+  color: var(--text-secondary);
+  font-weight: 500;
+}
+
+/* Barra de Búsqueda del Catálogo */
+.cosmic-search-wrapper {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.85rem;
+  margin: 0.25rem 0;
+  width: 100%;
+  flex-wrap: wrap;
+}
+
+.cosmic-search-input-box {
+  position: relative;
+  display: flex;
+  align-items: center;
+  flex: 1;
+  min-width: 260px;
+  background: rgba(10, 16, 28, 0.75);
+  backdrop-filter: blur(14px);
+  border: 1px solid rgba(254, 240, 138, 0.25);
+  border-radius: 0.875rem;
+  padding: 0.6rem 0.95rem;
+  transition: all 0.25s ease;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.25);
+}
+
+.cosmic-search-input-box:focus-within {
+  border-color: #fde047;
+  box-shadow: 0 0 20px rgba(245, 158, 11, 0.3);
+  background: rgba(15, 23, 42, 0.9);
+}
+
+.cosmic-search-icon {
+  font-size: 0.95rem;
+  margin-right: 0.75rem;
+  opacity: 0.8;
+  user-select: none;
+}
+
+.cosmic-search-input {
+  background: transparent;
+  border: none;
+  outline: none;
+  color: #ffffff;
+  font-size: 0.9rem;
+  width: 100%;
+  font-family: inherit;
+}
+
+.cosmic-search-input::placeholder {
+  color: var(--text-muted);
+  font-size: 0.86rem;
+}
+
+.cosmic-search-clear {
+  background: rgba(245, 158, 11, 0.2);
+  border: 1px solid rgba(254, 240, 138, 0.3);
+  color: #fef08a;
+  width: 1.5rem;
+  height: 1.5rem;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  font-size: 1rem;
+  line-height: 1;
+  margin-left: 0.5rem;
+  transition: all 0.2s ease;
+}
+
+.cosmic-search-clear:hover {
+  background: rgba(245, 158, 11, 0.5);
+  color: #ffffff;
+}
+
+.cosmic-search-count {
+  font-size: 0.78rem;
+  color: #fef08a;
+  font-weight: 700;
+  white-space: nowrap;
+  padding: 0.42rem 0.85rem;
+  background: rgba(245, 158, 11, 0.15);
+  border: 1px solid rgba(254, 240, 138, 0.3);
+  border-radius: 9999px;
+}
+
+/* Filtros Rápidos */
+.cosmic-filters-row {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  overflow-x: auto;
+  padding-bottom: 0.25rem;
+  margin-bottom: 0.15rem;
+}
+
+.cosmic-chip {
+  padding: 0.38rem 0.9rem;
+  border-radius: 0.625rem;
+  font-size: 0.78rem;
+  font-weight: 600;
+  background: rgba(18, 24, 38, 0.75);
+  backdrop-filter: blur(12px);
+  color: #cbd5e1;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  cursor: pointer;
+  transition: all 0.2s ease;
+  white-space: nowrap;
+}
+
+.cosmic-chip:hover {
+  background: rgba(245, 158, 11, 0.2);
+  color: #fef08a;
+  border-color: rgba(254, 240, 138, 0.35);
+}
+
+.cosmic-chip.active {
+  background: linear-gradient(135deg, rgba(245, 158, 11, 0.35), rgba(217, 119, 6, 0.35));
+  color: #fef08a;
+  border-color: #fde047;
+  box-shadow: 0 2px 10px rgba(245, 158, 11, 0.25);
+}
+
+/* Lista de Documentos */
+.cosmic-doc-list {
+  max-height: clamp(280px, 44vh, 480px);
+  overflow-y: auto;
+  padding-right: 0.35rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.65rem;
+}
+
+.cosmic-doc-list::-webkit-scrollbar {
+  width: 6px;
+}
+
+.cosmic-doc-list::-webkit-scrollbar-track {
+  background: rgba(0, 0, 0, 0.2);
+  border-radius: 4px;
+}
+
+.cosmic-doc-list::-webkit-scrollbar-thumb {
+  background: rgba(245, 158, 11, 0.35);
+  border-radius: 4px;
+}
+
+.cosmic-doc-list::-webkit-scrollbar-thumb:hover {
+  background: rgba(245, 158, 11, 0.6);
+}
+
+.cosmic-doc-card {
+  padding: 0.95rem 1.35rem;
+  background: rgba(18, 24, 38, 0.85);
+  backdrop-filter: blur(16px);
+  border: 1px solid rgba(254, 240, 138, 0.2);
+  border-radius: 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.85rem;
+  transition: all 0.25s ease;
+  cursor: pointer;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.35);
+}
+
+@media (min-width: 640px) {
+  .cosmic-doc-card {
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+  }
+}
+
+.cosmic-doc-card:hover {
+  background: rgba(24, 32, 50, 0.95);
+  border-color: rgba(254, 240, 138, 0.5);
+  transform: translateY(-2px);
+  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.5), 0 0 15px rgba(245, 158, 11, 0.15);
+}
+
+.cosmic-format-tag {
+  width: 3rem;
+  height: 3rem;
+  border-radius: 0.75rem;
+  background: rgba(245, 158, 11, 0.18);
+  border: 1.5px solid rgba(254, 240, 138, 0.4);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: monospace;
+  font-size: 0.8rem;
+  font-weight: 800;
+  color: #fef08a;
+  flex-shrink: 0;
+}
+
+.catalog-doc-tag {
+  background: rgba(245, 158, 11, 0.18);
+  color: #fde047;
+  padding: 2px 7px;
+  border-radius: 5px;
+  border: 1px solid rgba(254, 240, 138, 0.3);
+  font-weight: 600;
+  font-size: 0.74rem;
+}
+
+.catalog-format-pill {
+  font-size: 0.74rem;
+  font-weight: 700;
+  padding: 4px 9px;
+  border-radius: 6px;
+}
+
+.catalog-format-pill.quiz-pill {
+  color: #fde047;
+  background: rgba(245, 158, 11, 0.15);
+  border: 1px solid rgba(254, 240, 138, 0.3);
+}
+
+.catalog-format-pill.flashcards-pill {
+  color: #67e8f9;
+  background: rgba(6, 182, 212, 0.15);
+  border: 1px solid rgba(6, 182, 212, 0.3);
+}
+
+.btn-study-doc {
+  background: linear-gradient(135deg, rgba(245, 158, 11, 0.25), rgba(217, 119, 6, 0.2));
+  border: 1.5px solid rgba(254, 240, 138, 0.5);
+  color: #fef08a;
+  padding: 0.45rem 1rem;
+  border-radius: 0.65rem;
+  font-size: 0.82rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  white-space: nowrap;
+}
+
+.btn-study-doc:hover {
+  background: linear-gradient(135deg, #fef08a, #fbbf24 60%, #f59e0b);
+  color: #0f172a;
+  border-color: #fef08a;
+  box-shadow: 0 4px 15px rgba(245, 158, 11, 0.4);
+  transform: translateY(-1px);
+}
+
+.btn-delete-doc-item {
+  background: rgba(239, 68, 68, 0.15);
+  border: 1px solid rgba(239, 68, 68, 0.35);
+  color: #fca5a5;
+  width: 2rem;
+  height: 2rem;
+  border-radius: 0.5rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  font-size: 0.9rem;
+  transition: all 0.2s ease;
+}
+
+.btn-delete-doc-item:hover {
+  background: rgba(239, 68, 68, 0.4);
+  color: #ffffff;
+  border-color: #ef4444;
+}
+
+.catalog-empty-state {
+  text-align: center;
+  padding: 2.5rem 1rem;
+  color: var(--text-secondary);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.catalog-empty-state h4 {
+  font-size: 1.15rem;
+  color: #ffffff;
+  margin: 0;
+}
+
+.catalog-empty-state p {
+  font-size: 0.88rem;
+  margin: 0;
+}
+
+.btn-catalog-empty-upload {
+  margin-top: 0.5rem;
+  font-size: 0.85rem;
+  padding: 0.55rem 1.25rem;
+}
+
+/* ========================================================================
+   BARRA DE BÚSQUEDA 3D Y EFECTOS DE RESALTE EN LA ESTANTERÍA INTERACTIVA
+   ======================================================================== */
+.interactive-search-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.45rem;
+  width: 100%;
+  max-width: 320px;
+  margin: 0.25rem auto;
+}
+
+.cosmic-search-input-box.search-box-3d {
+  width: 100%;
+  background: rgba(10, 16, 28, 0.85);
+  border: 1.5px solid rgba(254, 240, 138, 0.4);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.6), 0 0 16px rgba(245, 158, 11, 0.15);
+  border-radius: 12px;
+}
+
+.cosmic-search-input-box.search-box-3d:focus-within {
+  border-color: #fde047;
+  box-shadow: 0 0 24px rgba(245, 158, 11, 0.45);
+}
+
+.interactive-search-count {
+  font-size: 0.74rem;
+  color: #fef08a;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  background: rgba(245, 158, 11, 0.2);
+  padding: 0.2rem 0.75rem;
+  border-radius: 9999px;
+  border: 1px solid rgba(254, 240, 138, 0.35);
+}
+
+/* Efectos visuales de filtrado en los lomos de la estantería 3D */
+.book-spine.book-dimmed {
+  opacity: 0.2;
+  filter: grayscale(85%) blur(0.5px);
+  transform: scale(0.95);
+  transition: all 0.3s ease;
+}
+
+.book-spine.book-highlighted {
+  opacity: 1;
+  filter: none;
+  transform: translateY(-24px) scale(1.08);
+  box-shadow: 
+    0 25px 50px rgba(0, 0, 0, 0.95), 
+    0 0 35px rgba(245, 158, 11, 0.75), 
+    0 0 15px rgba(6, 182, 212, 0.5);
+  z-index: 30;
+  border: 1.5px solid rgba(254, 240, 138, 0.95);
+  transition: all 0.3s ease;
+}
+
 

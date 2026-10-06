@@ -138,20 +138,20 @@ export const flashcards = {
 
     if (this.cards.length === 0) {
       if (this.formatMeta?.status === 'failed') {
-        if (frontText) frontText.textContent = 'Flashcards No Disponibles';
+        if (frontText) frontText.textContent = 'Tarjetas de Refuerzo No Disponibles';
         if (backText) backText.textContent = this.formatMeta.errorMessage || 'Ocurrió un error al procesar este formato en el backend.';
-        if (hintText) hintText.textContent = 'Puedes continuar estudiando con el Quiz interactivo.';
+        if (hintText) hintText.textContent = 'Puedes continuar con la Evaluación de Competencias mientras el backend reintenta.';
       } else if (this.formatMeta?.status === 'no_results') {
-        if (frontText) frontText.textContent = 'Sin conceptos suficientes';
-        if (backText) backText.textContent = 'El documento no contiene suficiente información para extraer flashcards.';
-        if (hintText) hintText.textContent = 'Intenta con un documento más extenso o detallado.';
+        if (frontText) frontText.textContent = 'Sin competencias suficientes';
+        if (backText) backText.textContent = 'El documento corporativo no contiene suficiente información para extraer tarjetas de refuerzo.';
+        if (hintText) hintText.textContent = 'Intenta con un manual o directriz con mayor detalle operativo.';
       } else if (this.formatMeta?.status === 'processing') {
-        if (frontText) frontText.textContent = 'Generando Flashcards...';
-        if (backText) backText.textContent = 'El pipeline de IA está procesando los conceptos del documento.';
-        if (hintText) hintText.textContent = 'Por favor espera unos instantes mientras se sintetiza el material.';
+        if (frontText) frontText.textContent = 'Generando Tarjetas de Refuerzo...';
+        if (backText) backText.textContent = 'El pipeline de IA está procesando las directrices y competencias del material.';
+        if (hintText) hintText.textContent = 'Por favor espera unos instantes mientras se sintetiza el contenido de capacitación.';
       } else {
-        if (frontText) frontText.textContent = 'No hay flashcards generadas aún para este documento.';
-        if (backText) backText.textContent = 'Las flashcards se generarán automáticamente a través del pipeline RAG.';
+        if (frontText) frontText.textContent = 'No hay tarjetas de refuerzo generadas aún para este documento.';
+        if (backText) backText.textContent = 'Las tarjetas de refuerzo se generarán automáticamente a través del pipeline RAG.';
         if (hintText) hintText.textContent = 'Consejo: Sube un documento o espera a que el Backend complete la indexación.';
       }
       if (progressTop) progressTop.textContent = '0 / 0';
@@ -179,14 +179,14 @@ export const flashcards = {
         || currentCard.answer 
         || currentCard.respuesta 
         || currentCard.definition 
-        || 'Explicación didáctica';
+        || 'Fundamento y justificación técnica';
     }
     if (hintText) {
       hintText.textContent = currentCard.didactic_hint 
         || currentCard.pista_didactica 
         || currentCard.hint 
         || currentCard.pista 
-        || 'Reflexiona sobre el concepto clave de la pregunta.';
+        || 'Analiza el procedimiento y las directrices operativas de la organización.';
     }
 
     if (progressTop) progressTop.textContent = `${currentNum} / ${total}`;

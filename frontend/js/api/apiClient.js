@@ -5,6 +5,7 @@
  */
 
 import { CONFIG } from '../config.js';
+import { state } from '../state.js';
 
 /**
  * Error personalizado con metadatos HTTP para feedback enriquecido en la UI
@@ -94,12 +95,13 @@ export function mapBackendError(status, detail) {
 
 export const apiClient = {
   /**
-   * Verifica la disponibilidad del backend
+   * Verifica la disponibilidad del Backend mediante GET /api/v1/health y sincroniza el estado global
+   * @returns {Promise<boolean>}
    */
   async checkHealth() {
     const url = `${CONFIG.API.DEFAULT_BASE_URL}${CONFIG.API.V1_PREFIX}${CONFIG.API.ENDPOINTS.HEALTH}`;
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 2500);
+    const timeoutId = setTimeout(() => controller.abort(), 3000);
 
     try {
       const response = await fetch(url, {
@@ -108,9 +110,16 @@ export const apiClient = {
         signal: controller.signal
       });
       clearTimeout(timeoutId);
-      return response.ok;
+
+      const contentType = response.headers.get('content-type') || '';
+      const isJson = contentType.includes('application/json');
+      const isConnected = response.ok && isJson;
+
+      state.set({ isBackendConnected: isConnected, lastConnectionCheck: Date.now() });
+      return isConnected;
     } catch {
       clearTimeout(timeoutId);
+      state.set({ isBackendConnected: false, lastConnectionCheck: Date.now() });
       return false;
     }
   },
@@ -169,6 +178,8 @@ export const apiClient = {
         throw new ApiError(response.status, json);
       }
 
+      state.set({ isBackendConnected: true, lastConnectionCheck: Date.now() });
+
       return {
         ...json,
         httpStatus: response.status,
@@ -183,6 +194,7 @@ export const apiClient = {
         });
       }
       if (err instanceof TypeError && err.message.toLowerCase().includes('fetch')) {
+        state.set({ isBackendConnected: false, lastConnectionCheck: Date.now() });
         throw new ApiError(0, {
           code: 'CONNECTION_REFUSED',
           message: `No se pudo conectar con el Backend (FastAPI). Verifica que esté activo en ${CONFIG.API.DEFAULT_BASE_URL}`
@@ -217,6 +229,8 @@ export const apiClient = {
         throw new ApiError(response.status, json);
       }
 
+      state.set({ isBackendConnected: true, lastConnectionCheck: Date.now() });
+
       if (Array.isArray(json)) return json;
       if (Array.isArray(json.items)) return json.items;
       if (Array.isArray(json.documents)) return json.documents;
@@ -226,6 +240,7 @@ export const apiClient = {
         throw new ApiError(408, { message: 'Tiempo de espera agotado al consultar los documentos.' });
       }
       if (err instanceof TypeError && err.message.toLowerCase().includes('fetch')) {
+        state.set({ isBackendConnected: false, lastConnectionCheck: Date.now() });
         throw new ApiError(0, {
           code: 'CONNECTION_REFUSED',
           message: `No se pudo conectar con el Backend (FastAPI). Verifica que esté activo en ${CONFIG.API.DEFAULT_BASE_URL}`
@@ -262,10 +277,14 @@ export const apiClient = {
         throw new ApiError(response.status, json);
       }
 
+      state.set({ isBackendConnected: true, lastConnectionCheck: Date.now() });
       return json;
     } catch (err) {
       if (err.name === 'AbortError') {
         throw new ApiError(408, { message: 'Tiempo de espera agotado al consultar el documento.' });
+      }
+      if (err instanceof TypeError && err.message.toLowerCase().includes('fetch')) {
+        state.set({ isBackendConnected: false, lastConnectionCheck: Date.now() });
       }
       throw err;
     }
@@ -299,10 +318,14 @@ export const apiClient = {
         throw new ApiError(response.status, json);
       }
 
+      state.set({ isBackendConnected: true, lastConnectionCheck: Date.now() });
       return json;
     } catch (err) {
       if (err.name === 'AbortError') {
         throw new ApiError(408, { message: 'Tiempo de espera agotado al consultar los formatos.' });
+      }
+      if (err instanceof TypeError && err.message.toLowerCase().includes('fetch')) {
+        state.set({ isBackendConnected: false, lastConnectionCheck: Date.now() });
       }
       throw err;
     }
