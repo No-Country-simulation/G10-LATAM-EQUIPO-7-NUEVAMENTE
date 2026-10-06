@@ -23,6 +23,11 @@ app = FastAPI(title="NuevaMente - API de Agentes")
 # ==========================================
 # ESQUEMAS ESTRUCTURADOS (Contratos Data/IA)
 # ==========================================
+class LearningMetadata(BaseModel):
+    key_concepts: List[str] = Field(..., description="Lista de 3 a 5 conceptos clave abordados en el contenido.")
+    prerequisites: List[str] = Field(..., description="Conocimientos previos recomendados para entender el tema.")
+    estimated_time_minutes: int = Field(..., description="Tiempo estimado de estudio o lectura en minutos.")
+
 class CardItem(BaseModel):
     card_id: str = Field(..., description="Identificador único de la tarjeta.")
     front: str = Field(..., description="Concepto o pregunta (anverso de la tarjeta).")

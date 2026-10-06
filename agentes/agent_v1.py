@@ -16,6 +16,17 @@ MODEL_NAME = os.environ["GEMINI_MODEL"]
 
 client = genai.Client(api_key=API_KEY)
 
+# ==========================================
+# PROMPTS BASE Y METADATOS PEDAGÓGICOS
+# ==========================================
+# Añadimos una instrucción transversal para forzar la extracción de los LearningMetadata
+INSTRUCCION_METADATOS = """
+Además del formato solicitado, DEBES extraer obligatoriamente los siguientes metadatos pedagógicos basándote en el contexto:
+1. "key_concepts": Lista exacta de 3 a 5 conceptos técnicos o ideas principales abordadas.
+2. "prerequisites": Lista de 1 a 3 conocimientos previos recomendados para entender el texto. (Si es un tema básico, deduce conceptos fundamentales genéricos).
+3. "estimated_time_minutes": Calcula el tiempo estimado de estudio (en minutos) basándote en la longitud y complejidad del contexto provisto.
+"""
+
 PROMPTS_BASE = {
     "quiz": "Genera un cuestionario interactivo de opción múltiple (mínimo 3 preguntas) asegurando incluir la respuesta correcta, opciones de distracción coherentes y una breve justificación pedagógica.",
     "flashcards": "Genera 5 tarjetas de memorización (flashcards). Cada una debe tener un concepto clave en la cara frontal y su definición concisa en la cara trasera."
@@ -30,8 +41,9 @@ class AgentV1:
         
         # CAPACIDAD ATÓMICA COMPLETA: El try/except cubre recuperación, prompt, llamada al LLM y validación Pydantic
         try:
-            # 1. Recuperación vectorial en ChromaDB
-            resultados = self.retriever.retrieve(query=query, top_k=top_k, document_id=document_id)
+            # 1. Recuperación Híbrida en ChromaDB (Fase 1, 2 y 3 ejecutadas desde el backend)
+            # Pasamos dict con filter por document_id para que el nuevo Retrieval V2 funcione
+            resultados = self.retriever.retrieve(query=query, top_k=top_k, metadata_filters={"document_id": document_id})
             
             if not resultados:
                 return {
@@ -60,6 +72,9 @@ class AgentV1:
             INSTRUCCIÓN PRINCIPAL:
             {instruccion_base}
             
+            METADATOS PEDAGÓGICOS OBLIGATORIOS (LearningMetadata):
+            {INSTRUCCION_METADATOS}
+            
             REGLAS DE ADAPTACIÓN:
             - Perfil objetivo: {perfil}
             - Nicho temático: {nicho}
@@ -72,7 +87,7 @@ class AgentV1:
             Adapta el lenguaje y la complejidad estrictamente a este perfil.
             Genera identificadores únicos (IDs) cortos y alfanuméricos para cada pregunta o tarjeta.
 
-            CONTEXTO RECUPERADO (Usa ÚNICA Y ESTRICTAMENTE esta información, no inventes datos):
+            CONTEXTO RECUPERADO (Usa ÚNICA Y ESTRICTAMENTE esta información, no inventes datos externos):
             {contexto_unificado}
             """
 
