@@ -476,13 +476,24 @@ export const bookshelf = {
 
     if (!booksToRender || booksToRender.length === 0) {
       if (this.currentSearchQuery || this.activeCategory) {
-        docListEl.innerHTML = `
-          <div class="catalog-empty-state">
-            <span style="font-size: 2.2rem;">🔍</span>
-            <h4>Sin resultados</h4>
-            <p>No se encontraron módulos de capacitación que coincidan con "${this.currentSearchQuery || this.activeCategory}".</p>
-          </div>
-        `;
+        docListEl.innerHTML = '';
+        const emptyDiv = document.createElement('div');
+        emptyDiv.className = 'catalog-empty-state';
+
+        const icon = document.createElement('span');
+        icon.style.fontSize = '2.2rem';
+        icon.textContent = '🔍';
+
+        const h4 = document.createElement('h4');
+        h4.textContent = 'Sin resultados';
+
+        const p = document.createElement('p');
+        p.textContent = `No se encontraron módulos de capacitación que coincidan con "${this.currentSearchQuery || this.activeCategory}".`;
+
+        emptyDiv.appendChild(icon);
+        emptyDiv.appendChild(h4);
+        emptyDiv.appendChild(p);
+        docListEl.appendChild(emptyDiv);
       } else {
         docListEl.innerHTML = `
           <div class="catalog-empty-state">
@@ -501,7 +512,9 @@ export const bookshelf = {
       return;
     }
 
-    docListEl.innerHTML = booksToRender.map(book => {
+    docListEl.innerHTML = '';
+
+    booksToRender.forEach(book => {
       const ext = (book.filename || '').split('.').pop().toUpperCase() || 'PDF';
       const pages = book.sections?.length ? `${book.sections.length} secciones` : '1 sección';
       const size = book.filesize || '1.5 MB';
@@ -509,66 +522,121 @@ export const bookshelf = {
       const time = book.metadatos?.tiempo_estudio || '8 min';
       const isCustom = book.id?.startsWith('custom_') || !this.booksFromBackend.some(b => b.id === book.id);
 
-      return `
-        <div class="cosmic-doc-card" data-book-id="${book.id}">
-          <div style="display: flex; align-items: center; gap: 1rem; flex: 1; min-width: 0;">
-            <div class="cosmic-format-tag">${ext}</div>
-            <div style="min-width: 0; flex: 1;">
-              <h3 style="font-size: 1.05rem; font-weight: 700; color: #ffffff; margin: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
-                ${book.title}
-              </h3>
-              <div style="display: flex; align-items: center; gap: 0.6rem; font-size: 0.78rem; color: var(--text-secondary); margin-top: 0.3rem; flex-wrap: wrap;">
-                <span style="font-family: monospace; opacity: 0.85;">${book.id || 'doc'}</span>
-                <span>•</span>
-                <span>${pages}</span>
-                <span>•</span>
-                <span>${time}</span>
-                <span>•</span>
-                <span>${size}</span>
-                <span class="catalog-doc-tag">${tag}</span>
-              </div>
-            </div>
-          </div>
-          <div class="catalog-card-actions" style="display: flex; align-items: center; gap: 0.65rem; flex-shrink: 0;">
-            <span class="catalog-format-pill quiz-pill">Quiz</span>
-            <span class="catalog-format-pill flashcards-pill">Flashcards</span>
-            <button type="button" class="btn-study-doc" data-book-id="${book.id}">
-              Capacitar &rarr;
-            </button>
-            ${isCustom ? `
-              <button type="button" class="btn-delete-doc-item" data-book-id="${book.id}" title="Eliminar documento">
-                🗑️
-              </button>
-            ` : ''}
-          </div>
-        </div>
-      `;
-    }).join('');
+      const card = document.createElement('div');
+      card.className = 'cosmic-doc-card';
+      card.dataset.bookId = book.id || '';
 
-    docListEl.querySelectorAll('.cosmic-doc-card').forEach(card => {
-      const bookId = card.getAttribute('data-book-id');
-      const book = (this.allBooks || []).find(b => b.id === bookId);
-      if (!book) return;
+      // Información y metadatos del documento (Renderizado seguro con textContent)
+      const infoContainer = document.createElement('div');
+      infoContainer.style.cssText = 'display: flex; align-items: center; gap: 1rem; flex: 1; min-width: 0;';
+
+      const formatTag = document.createElement('div');
+      formatTag.className = 'cosmic-format-tag';
+      formatTag.textContent = ext;
+
+      const titleMetaCol = document.createElement('div');
+      titleMetaCol.style.cssText = 'min-width: 0; flex: 1;';
+
+      const h3 = document.createElement('h3');
+      h3.style.cssText = 'font-size: 1.05rem; font-weight: 700; color: #ffffff; margin: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;';
+      h3.textContent = book.title || 'Documento sin título';
+
+      const metaRow = document.createElement('div');
+      metaRow.style.cssText = 'display: flex; align-items: center; gap: 0.6rem; font-size: 0.78rem; color: var(--text-secondary); margin-top: 0.3rem; flex-wrap: wrap;';
+
+      const idSpan = document.createElement('span');
+      idSpan.style.cssText = 'font-family: monospace; opacity: 0.85;';
+      idSpan.textContent = book.id || 'doc';
+
+      const dot1 = document.createElement('span');
+      dot1.textContent = '•';
+
+      const pagesSpan = document.createElement('span');
+      pagesSpan.textContent = pages;
+
+      const dot2 = document.createElement('span');
+      dot2.textContent = '•';
+
+      const timeSpan = document.createElement('span');
+      timeSpan.textContent = time;
+
+      const dot3 = document.createElement('span');
+      dot3.textContent = '•';
+
+      const sizeSpan = document.createElement('span');
+      sizeSpan.textContent = size;
+
+      const tagSpan = document.createElement('span');
+      tagSpan.className = 'catalog-doc-tag';
+      tagSpan.textContent = tag;
+
+      metaRow.appendChild(idSpan);
+      metaRow.appendChild(dot1);
+      metaRow.appendChild(pagesSpan);
+      metaRow.appendChild(dot2);
+      metaRow.appendChild(timeSpan);
+      metaRow.appendChild(dot3);
+      metaRow.appendChild(sizeSpan);
+      metaRow.appendChild(tagSpan);
+
+      titleMetaCol.appendChild(h3);
+      titleMetaCol.appendChild(metaRow);
+
+      infoContainer.appendChild(formatTag);
+      infoContainer.appendChild(titleMetaCol);
+
+      // Acciones del documento
+      const actionsContainer = document.createElement('div');
+      actionsContainer.className = 'catalog-card-actions';
+      actionsContainer.style.cssText = 'display: flex; align-items: center; gap: 0.65rem; flex-shrink: 0;';
+
+      const quizPill = document.createElement('span');
+      quizPill.className = 'catalog-format-pill quiz-pill';
+      quizPill.textContent = 'Quiz';
+
+      const flashcardsPill = document.createElement('span');
+      flashcardsPill.className = 'catalog-format-pill flashcards-pill';
+      flashcardsPill.textContent = 'Flashcards';
+
+      const btnStudy = document.createElement('button');
+      btnStudy.type = 'button';
+      btnStudy.className = 'btn-study-doc';
+      btnStudy.dataset.bookId = book.id || '';
+      btnStudy.textContent = 'Capacitar →';
+
+      btnStudy.addEventListener('click', (e) => {
+        e.stopPropagation();
+        this.selectBookAndStudy(book, 'flashcards');
+      });
+
+      actionsContainer.appendChild(quizPill);
+      actionsContainer.appendChild(flashcardsPill);
+      actionsContainer.appendChild(btnStudy);
+
+      if (isCustom) {
+        const btnDelete = document.createElement('button');
+        btnDelete.type = 'button';
+        btnDelete.className = 'btn-delete-doc-item';
+        btnDelete.dataset.bookId = book.id || '';
+        btnDelete.title = 'Eliminar documento';
+        btnDelete.textContent = '🗑️';
+
+        btnDelete.addEventListener('click', (e) => {
+          e.stopPropagation();
+          this.deleteCustomBook(book.id);
+        });
+
+        actionsContainer.appendChild(btnDelete);
+      }
+
+      card.appendChild(infoContainer);
+      card.appendChild(actionsContainer);
 
       card.addEventListener('click', () => {
         this.openBookModal(book);
       });
 
-      const btnStudy = card.querySelector('.btn-study-doc');
-      if (btnStudy) {
-        btnStudy.addEventListener('click', (e) => {
-          e.stopPropagation();
-          this.selectBookAndStudy(book, 'flashcards');
-        });
-      }
-
-      const btnDelete = card.querySelector('.btn-delete-doc-item');
-      if (btnDelete) {
-        btnDelete.addEventListener('click', (e) => {
-          e.stopPropagation();
-          this.deleteCustomBook(book.id);
-        });
-      }
+      docListEl.appendChild(card);
     });
   },
 
@@ -650,12 +718,24 @@ export const bookshelf = {
 
     const shortTag = this.getShortDisciplineTag(book.discipline);
 
-    spine.innerHTML = `
-      <div class="spine-top-rib"></div>
-      <span class="spine-title-vertical">${book.title}</span>
-      <span class="spine-code-tag">${shortTag}</span>
-      <div class="spine-bottom-rib"></div>
-    `;
+    const topRib = document.createElement('div');
+    topRib.className = 'spine-top-rib';
+
+    const titleSpan = document.createElement('span');
+    titleSpan.className = 'spine-title-vertical';
+    titleSpan.textContent = book.title || 'Documento';
+
+    const codeSpan = document.createElement('span');
+    codeSpan.className = 'spine-code-tag';
+    codeSpan.textContent = shortTag;
+
+    const bottomRib = document.createElement('div');
+    bottomRib.className = 'spine-bottom-rib';
+
+    spine.appendChild(topRib);
+    spine.appendChild(titleSpan);
+    spine.appendChild(codeSpan);
+    spine.appendChild(bottomRib);
 
     spine.addEventListener('click', () => {
       this.openBookModal(book);
@@ -705,10 +785,16 @@ export const bookshelf = {
     if (openedSections) openedSections.textContent = book.sections?.length || 1;
     if (openedLevel) openedLevel.textContent = this.getLevelLabel(meta.perfil);
 
-    // Chips de conceptos clave de la primera sección
+    // Chips de conceptos clave de la primera sección (Renderizado seguro con textContent)
     if (openedChips) {
       const concepts = book.sections?.[0]?.key_concepts || ['Competencia Base', 'Procedimiento Clave', 'Buenas Prácticas'];
-      openedChips.innerHTML = concepts.map(c => `<span class="concept-chip">${c}</span>`).join('');
+      openedChips.innerHTML = '';
+      concepts.forEach(c => {
+        const chip = document.createElement('span');
+        chip.className = 'concept-chip';
+        chip.textContent = typeof c === 'string' ? c : String(c ?? '');
+        openedChips.appendChild(chip);
+      });
     }
 
     // Mostrar modal
