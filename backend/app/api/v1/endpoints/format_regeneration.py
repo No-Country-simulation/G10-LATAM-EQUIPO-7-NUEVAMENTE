@@ -6,7 +6,6 @@ from fastapi import (
     APIRouter,
     BackgroundTasks,
     Depends,
-    HTTPException,
     status,
 )
 
@@ -32,6 +31,8 @@ from app.application.format_regeneration_service import (
     FormatRegenerationInProgressError,
     FormatRegenerationService,
 )
+from app.core.error_codes import ErrorCode
+from app.core.http_exceptions import APIHTTPException
 from app.ports.document_repository_port import (
     DocumentRepositoryError,
 )
@@ -71,6 +72,11 @@ router = APIRouter(
                 "El documento no está indexed, no existe contexto "
                 "previo reutilizable o alguno de los formatos "
                 "solicitados continúa en processing."
+            ),
+        },
+        422: {
+            "description": (
+                "Formatos vacíos, duplicados o no soportados."
             ),
         },
         500: {
@@ -114,30 +120,65 @@ async def regenerate_formats(
         FormatRegenerationDocumentNotFoundError,
         FormatGenerationDocumentNotFoundError,
     ) as exc:
-        raise HTTPException(
+        raise APIHTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
+            code=ErrorCode.DOCUMENT_NOT_FOUND,
             detail=str(exc),
         ) from exc
 
     except (
         FormatRegenerationDocumentStateError,
-        FormatRegenerationInProgressError,
-        FormatRegenerationContextNotFoundError,
-        FormatRegenerationContextConflictError,
         DocumentNotReadyForGenerationError,
     ) as exc:
-        raise HTTPException(
+        raise APIHTTPException(
             status_code=status.HTTP_409_CONFLICT,
+            code=ErrorCode.DOCUMENT_NOT_INDEXED,
             detail=str(exc),
         ) from exc
 
-    except (
-        DocumentRepositoryError,
-        GeneratedFormatRepositoryError,
-    ) as exc:
-        raise HTTPException(
+    except FormatRegenerationInProgressError as exc:
+        raise APIHTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            code=(
+                ErrorCode.FORMAT_REGENERATION_IN_PROGRESS
+            ),
+            detail=str(exc),
+        ) from exc
+
+    except FormatRegenerationContextNotFoundError as exc:
+        raise APIHTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            code=ErrorCode.FORMAT_CONTEXT_NOT_FOUND,
+            detail=str(exc),
+        ) from exc
+
+    except FormatRegenerationContextConflictError as exc:
+        raise APIHTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            code=ErrorCode.FORMAT_CONTEXT_CONFLICT,
+            detail=str(exc),
+        ) from exc
+
+    except DocumentRepositoryError as exc:
+        raise APIHTTPException(
             status_code=(
                 status.HTTP_500_INTERNAL_SERVER_ERROR
+            ),
+            code=ErrorCode.PERSISTENCE_ERROR,
+            detail=(
+                "No fue posible consultar la persistencia "
+                "del documento durante la regeneración."
+            ),
+        ) from exc
+
+    except GeneratedFormatRepositoryError as exc:
+        raise APIHTTPException(
+            status_code=(
+                status.HTTP_500_INTERNAL_SERVER_ERROR
+            ),
+            code=(
+                ErrorCode
+                .FORMAT_REGENERATION_REGISTRATION_FAILED
             ),
             detail=(
                 "No fue posible registrar los nuevos "

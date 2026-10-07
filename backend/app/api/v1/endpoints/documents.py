@@ -10,7 +10,6 @@ from fastapi import (
     Depends,
     File,
     Form,
-    HTTPException,
     Response,
     UploadFile,
     status,
@@ -41,7 +40,15 @@ from app.application.generated_format_query_service import (
     GeneratedFormatQueryService,
 )
 from app.core.config import settings
+from app.core.error_codes import ErrorCode
+from app.core.http_exceptions import APIHTTPException
 from app.domain.document import Document
+from app.ports.document_repository_port import (
+    DocumentRepositoryError,
+)
+from app.ports.generated_format_repository_port import (
+    GeneratedFormatRepositoryError,
+)
 from app.ports.object_storage_port import ObjectStoragePort
 from app.ports.temporary_storage_port import (
     FileTooLargeError,
@@ -101,8 +108,9 @@ def _validate_document_type(
 ) -> None:
     """Valida la extensión y el MIME type declarado del documento."""
     if not filename:
-        raise HTTPException(
+        raise APIHTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
+            code=ErrorCode.DOCUMENT_FILENAME_REQUIRED,
             detail="El documento debe tener un nombre.",
         )
 
@@ -113,8 +121,9 @@ def _validate_document_type(
     )
 
     if allowed_mime_types is None:
-        raise HTTPException(
+        raise APIHTTPException(
             status_code=status.HTTP_415_UNSUPPORTED_MEDIA_TYPE,
+            code=ErrorCode.UNSUPPORTED_FILE_TYPE,
             detail=(
                 "Formato de documento no soportado. "
                 "Se admiten archivos PDF, Markdown (.md) y TXT."
@@ -129,8 +138,9 @@ def _validate_document_type(
     )
 
     if normalized_content_type not in allowed_mime_types:
-        raise HTTPException(
+        raise APIHTTPException(
             status_code=status.HTTP_415_UNSUPPORTED_MEDIA_TYPE,
+            code=ErrorCode.MIME_TYPE_MISMATCH,
             detail=(
                 "El MIME type informado no corresponde "
                 "con un formato admitido."
@@ -283,10 +293,11 @@ async def upload_document(
                 )
             )
         except FileTooLargeError as exc:
-            raise HTTPException(
+            raise APIHTTPException(
                 status_code=(
                     status.HTTP_413_CONTENT_TOO_LARGE
                 ),
+                code=ErrorCode.FILE_TOO_LARGE,
                 detail=(
                     "El archivo supera el máximo de "
                     f"{settings.MAX_UPLOAD_SIZE_MB} MB."
@@ -302,8 +313,9 @@ async def upload_document(
             missing_ok=True
         )
 
-        raise HTTPException(
+        raise APIHTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
+            code=ErrorCode.DOCUMENT_EMPTY,
             detail="El documento no puede estar vacío.",
         )
 
@@ -329,11 +341,24 @@ async def upload_document(
             )
 
     except DocumentStorageError as exc:
-        raise HTTPException(
+        raise APIHTTPException(
             status_code=status.HTTP_502_BAD_GATEWAY,
+            code=ErrorCode.DOCUMENT_STORAGE_FAILED,
             detail=(
                 "El documento fue registrado, pero no pudo "
                 "almacenarse en OCI Object Storage."
+            ),
+        ) from exc
+
+    except DocumentRepositoryError as exc:
+        raise APIHTTPException(
+            status_code=(
+                status.HTTP_500_INTERNAL_SERVER_ERROR
+            ),
+            code=ErrorCode.PERSISTENCE_ERROR,
+            detail=(
+                "No fue posible acceder a la persistencia "
+                "de documentos."
             ),
         ) from exc
 
@@ -408,9 +433,21 @@ async def list_documents(
     ],
 ) -> DocumentListResponse:
     """Obtiene los documentos activos de la biblioteca."""
-    documents = (
-        document_service.list_active_documents()
-    )
+    try:
+        documents = (
+            document_service.list_active_documents()
+        )
+    except DocumentRepositoryError as exc:
+        raise APIHTTPException(
+            status_code=(
+                status.HTTP_500_INTERNAL_SERVER_ERROR
+            ),
+            code=ErrorCode.PERSISTENCE_ERROR,
+            detail=(
+                "No fue posible consultar la persistencia "
+                "de documentos."
+            ),
+        ) from exc
 
     return DocumentListResponse(
         documents=[
@@ -460,11 +497,27 @@ async def get_document_formats(
     except (
         GeneratedFormatQueryDocumentNotFoundError
     ) as exc:
-        raise HTTPException(
+        raise APIHTTPException(
             status_code=(
                 status.HTTP_404_NOT_FOUND
             ),
+            code=ErrorCode.DOCUMENT_NOT_FOUND,
             detail=str(exc),
+        ) from exc
+
+    except (
+        DocumentRepositoryError,
+        GeneratedFormatRepositoryError,
+    ) as exc:
+        raise APIHTTPException(
+            status_code=(
+                status.HTTP_500_INTERNAL_SERVER_ERROR
+            ),
+            code=ErrorCode.PERSISTENCE_ERROR,
+            detail=(
+                "No fue posible consultar la persistencia "
+                "de formatos del documento."
+            ),
         ) from exc
 
     formats = (
@@ -516,10 +569,24 @@ async def get_document(
         document = document_service.get_document(
             document_id
         )
+
     except DocumentNotFoundError as exc:
-        raise HTTPException(
+        raise APIHTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
+            code=ErrorCode.DOCUMENT_NOT_FOUND,
             detail=str(exc),
+        ) from exc
+
+    except DocumentRepositoryError as exc:
+        raise APIHTTPException(
+            status_code=(
+                status.HTTP_500_INTERNAL_SERVER_ERROR
+            ),
+            code=ErrorCode.PERSISTENCE_ERROR,
+            detail=(
+                "No fue posible consultar la persistencia "
+                "del documento."
+            ),
         ) from exc
 
     return _to_document_response(
