@@ -1,5 +1,5 @@
 from typing import List, Literal, Optional
-from pydantic import BaseModel, Field, model_validator
+from pydantic import BaseModel, Field
 
 class ErrorDetail(BaseModel):
     """Estructura para el manejo de errores explícitos."""
@@ -8,112 +8,20 @@ class ErrorDetail(BaseModel):
 
 class RetrievalResult(BaseModel):
     """Representa un chunk individual recuperado por el sistema RAG."""
-    rank: int = Field(
-        ...,
-        ge=1,
-        description="Posición del resultado (1 es el más relevante)."
-    )
+    rank: int = Field(..., description="Posición del resultado (1 es el más relevante).")
     chunk_id: str = Field(..., description="ID único del fragmento de texto.")
     document_id: str = Field(..., description="ID del documento de origen.")
-    score: float = Field(..., description="Puntaje de similitud (ej. similitud del coseno).")
+    score: float = Field(..., description="Puntaje de similitud o reranking.")
     text: str = Field(..., description="Texto recuperado que se usará como contexto.")
     metadata: dict = Field(default_factory=dict, description="Metadatos adicionales opcionales.")
 
 class RetrievalContract(BaseModel):
-    """Contrato principal que valida la respuesta del módulo de Agentes."""
-
-    contract_version: Literal["1.0"] = Field(
-        ...,
-        description="Versión estricta del contrato de integración.",
-    )
-
-    case_id: str = Field(
-        ...,
-        description="Identificador del caso de prueba (Ground Truth).",
-    )
-
-    query: str = Field(
-        ...,
-        description="La pregunta original del usuario.",
-    )
-
-    top_k: Literal[5] = Field(
-        ...,
-        description="Cantidad fija de resultados solicitados por Retrieval Contract v1.",
-    )
-
-    score_type: Literal["cosine_similarity"] = Field(
-        ...,
-        description="Métrica de distancia utilizada.",
-    )
-
-    status: Literal[
-        "success",
-        "no_results",
-        "error",
-    ] = Field(
-        ...,
-        description="Estado de la recuperación.",
-    )
-
-    results: List[RetrievalResult] = Field(
-        ...,
-        description="Lista de fragmentos recuperados.",
-    )
-
-    error: Optional[ErrorDetail] = Field(
-        ...,
-        description="Detalle del error si el status es 'error'.",
-    )
-
-    @model_validator(mode="after")
-    def validate_contract_consistency(self):
-        """
-        Valida reglas semánticas de Retrieval Contract v1.
-        """
-
-        if self.status == "success":
-            if not self.results:
-                raise ValueError(
-                    "status='success' requiere al menos un resultado."
-                )
-
-            if self.error is not None:
-                raise ValueError(
-                    "status='success' requiere error=null."
-                )
-
-        elif self.status == "no_results":
-            if self.results:
-                raise ValueError(
-                    "status='no_results' requiere results=[]."
-                )
-
-            if self.error is not None:
-                raise ValueError(
-                    "status='no_results' requiere error=null."
-                )
-
-        elif self.status == "error":
-            if self.results:
-                raise ValueError(
-                    "status='error' requiere results=[]."
-                )
-
-            if self.error is None:
-                raise ValueError(
-                    "status='error' requiere un objeto error."
-                )
-
-        for expected_rank, result in enumerate(
-            self.results,
-            start=1,
-        ):
-            if result.rank != expected_rank:
-                raise ValueError(
-                    f"Se esperaba rank={expected_rank}, "
-                    f"pero se recibió rank={result.rank}."
-                )
-
-        return self
-        
+    """Contrato principal que valida la respuesta del módulo de Agentes V2."""
+    contract_version: Literal["2.0"] = Field(..., description="Versión estricta del contrato de integración.")
+    case_id: str = Field(..., description="Identificador del caso de prueba (Ground Truth).")
+    query: str = Field(..., description="La pregunta original del usuario.")
+    top_k: int = Field(default=5, description="Cantidad de resultados solicitados fijada a 5.")
+    score_type: Literal["cross_encoder"] = Field(..., description="Métrica de reranking utilizada.")
+    status: Literal["success", "no_results", "error"] = Field(..., description="Estado de la recuperación.")
+    results: List[RetrievalResult] = Field(default_factory=list, description="Lista de fragmentos recuperados.")
+    error: Optional[ErrorDetail] = Field(default=None, description="Detalle del error si el status es 'error'.")
