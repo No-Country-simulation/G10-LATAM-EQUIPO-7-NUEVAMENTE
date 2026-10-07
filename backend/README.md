@@ -2,7 +2,7 @@
 
 Backend de **NuevaMente**, desarrollado con **FastAPI**, **Pydantic v2**, **SQLite** y **OCI Object Storage**.
 
-BackendAPI actúa como **orquestador del producto**: recibe las solicitudes del Frontend, administra la metadata técnica y pedagógica y el ciclo de vida de los documentos, persiste los archivos originales, coordina la indexación con RAG/Agentes, solicita la generación de material educativo y conserva los resultados para su consulta posterior.
+BackendAPI actúa como **orquestador del producto**: recibe las solicitudes del Frontend, administra la metadata técnica y pedagógica y el ciclo de vida de los documentos, persiste los archivos originales, coordina la indexación con RAG/Agentes, solicita la generación de material educativo, conserva los resultados para su consulta posterior y mantiene en OCI un paquete JSON con el contenido educativo vigente.
 
 BackendAPI **no implementa internamente** extracción de texto, limpieza, chunking, embeddings, Vector Store, retrieval semántico, prompts ni generación mediante LLM. Tampoco ejecuta directamente la evaluación de calidad de Data/IA. Estas responsabilidades permanecen desacopladas mediante Ports y Adapters.
 
@@ -46,8 +46,13 @@ Actualmente están implementados:
 - Implementación SQLite mediante `SQLiteDocumentRepositoryAdapter`.
 - Persistencia del archivo original en OCI mediante `ObjectStoragePort`.
 - Implementación OCI mediante `OCIObjectStorageAdapter`.
-- Convención de objetos OCI: `documents/{document_id}/original.ext`.
+- Convención del original en OCI: `documents/{document_id}/original.ext`.
 - Persistencia de `oci_object_name`.
+- Persistencia del paquete educativo generado en el **mismo bucket OCI** mediante `documents/{document_id}/generated/content.json`.
+- Escritura del paquete JSON en memoria mediante `ObjectStoragePort.upload_bytes(...)`, sin archivo temporal adicional.
+- Reconstrucción del paquete desde el estado canónico persistido de BackendAPI, sin guardar directamente la respuesta bruta de Agentes.
+- El paquete OCI incluye `document_id`, `learning_metadata` y los formatos educativos vigentes.
+- `chunks_used`, `GenerationContext` y la evaluación de Data/IA no forman parte del paquete OCI actual.
 - Recepción de `learning_metadata` desde Agentes a nivel raíz del contrato de generación.
 - Persistencia de `learning_metadata` una sola vez a nivel de documento mediante `learning_metadata_json`.
 - Exposición de `learning_metadata` mediante `GET /api/v1/documents/{document_id}`.
@@ -120,9 +125,11 @@ La tarea:
 1. recibe los intentos persistidos en `processing`;
 2. invoca `POST /api/v1/generate` en Agentes;
 3. valida el contrato recibido, incluyendo `learning_metadata`;
-4. persiste `learning_metadata` una sola vez a nivel del documento;
+4. persiste `learning_metadata` a nivel del documento cuando corresponde;
 5. actualiza los mismos `format_id`;
-6. termina cada intento en uno de estos estados:
+6. termina cada intento en uno de estos estados;
+7. reconstruye el paquete educativo terminal vigente;
+8. persiste `documents/{document_id}/generated/content.json` en OCI:
 
 ```text
 success
@@ -210,9 +217,11 @@ La generación mediante Agentes ocurre después:
 ```text
 background
 → POST /api/v1/generate
-→ validar y persistir learning_metadata
+→ validar y persistir learning_metadata cuando corresponda
 → actualizar mismos format_id
 → success | failed | no_results
+→ reconstruir snapshot educativo vigente
+→ persistir documents/{document_id}/generated/content.json en OCI
 ```
 
 Una respuesta exitosa significa:
@@ -447,6 +456,85 @@ Responsabilidades:
 
 Si la persistencia de `learning_metadata` falla, BackendAPI cierra los intentos que continúen en `processing` como `failed` y registra `FormatGenerationMetadataPersistenceError`.
 
+#### `GeneratedPackageStorageService`
+
+La persistencia del paquete educativo se mantiene separada de `FormatGenerationService`.
+
+Flujo:
+
+```text
+FormatGenerationService
+→ persiste estados terminales en SQLite
+↓
+AdaptationOrchestrationService
+↓
+GeneratedPackageStorageService
+↓
+ObjectStoragePort
+↓
+OCIObjectStorageAdapter
+```
+
+El objeto canónico se almacena en:
+
+```text
+documents/{document_id}/generated/content.json
+```
+
+Contrato:
+
+```json
+{
+  "document_id": "doc_123",
+  "learning_metadata": {
+    "key_concepts": [
+      "RAG"
+    ],
+    "prerequisites": [
+      "Fundamentos de Python"
+    ],
+    "estimated_time_minutes": 18
+  },
+  "formats": {
+    "quiz": {
+      "format_id": "fmt_quiz_2",
+      "status": "success",
+      "content": {},
+      "error_message": null
+    },
+    "flashcards": {
+      "format_id": "fmt_flashcards_1",
+      "status": "success",
+      "content": {},
+      "error_message": null
+    }
+  }
+}
+```
+
+Selección estable por tipo:
+
+```text
+processing
+→ no reemplaza el snapshot OCI vigente
+
+si existe al menos un success histórico
+→ usar el success más reciente
+
+si nunca existió success
+→ usar el intento terminal más reciente
+```
+
+Así, una regeneración exitosa de un solo formato actualiza únicamente ese formato dentro del snapshot reconstruido y conserva el otro formato vigente. Una regeneración fallida no elimina un `success` anterior válido.
+
+El paquete no incluye actualmente:
+
+```text
+chunks_used
+GenerationContext
+evaluación Data/IA
+```
+
 #### `FormatRegenerationService`
 
 La regeneración explícita permanece separada de la generación inicial.
@@ -596,7 +684,10 @@ Reglas:
 - el objeto pertenece al documento/adaptación y no a un formato particular;
 - BackendAPI lo recibe desde Agentes, lo valida, lo convierte a dominio y lo persiste en `documents`;
 - durante la generación inicial puede permanecer en `null` hasta que exista una respuesta válida de Agentes;
-- el fallback de Agentes puede producir listas vacías y `estimated_time_minutes = 0` sin romper el flujo.
+- la primera metadata pedagógica útil queda estable a nivel de documento;
+- regenerar Quiz o Flashcards no reemplaza metadata pedagógica útil ya persistida;
+- el fallback de Agentes puede producir listas vacías y `estimated_time_minutes = 0` sin romper el flujo;
+- si el documento solo conserva ese fallback vacío, una generación posterior puede reemplazarlo por metadata útil.
 
 El tiempo de estudio canónico se expone exclusivamente como:
 
@@ -852,6 +943,8 @@ Esto permite:
 - conservar contenido válido previo cuando un reintento posterior ya terminó fallando;
 - mantener separado el historial de intentos del contenido vigente.
 
+Esta regla de consulta pública no debe confundirse con la selección del snapshot OCI. Mientras `/formats` expone un intento `processing` para que Frontend pueda observarlo, `generated/content.json` conserva únicamente una proyección terminal estable hasta que la nueva generación finaliza.
+
 ---
 
 ### Persistencia
@@ -970,6 +1063,40 @@ Errores explícitos:
 - `GeneratedFormatRepositoryError`
 
 La inicialización de SQLite incluye dos migraciones idempotentes relevantes: una agrega `learning_metadata_json` a `documents` cuando la columna no existe y otra actualiza bases anteriores cuyo `CHECK` de `generated_formats.status` no incluía `processing`. Ambas conservan los datos existentes; la migración de formatos mantiene además las relaciones con `format_evaluations`, recrea los índices y valida integridad referencial mediante `foreign_key_check`.
+
+### Persistencia del contenido educativo en OCI
+
+SQLite conserva el historial de generaciones. OCI conserva una proyección JSON del contenido educativo vigente.
+
+Para un mismo documento:
+
+```text
+bucket configurado en OCI_BUCKET_NAME
+└── documents/
+    └── {document_id}/
+        ├── original.ext
+        └── generated/
+            └── content.json
+```
+
+Se utiliza el **mismo bucket** para el original y el JSON generado.
+
+`ObjectStoragePort` expone:
+
+```text
+upload_file(...)
+upload_bytes(...)
+download_file(...)
+delete_object(...)
+```
+
+`upload_bytes(...)` permite almacenar el JSON directamente como bytes UTF-8 con:
+
+```text
+Content-Type: application/json
+```
+
+La ruta `generated/content.json` funciona como snapshot actual y puede reemplazarse para el mismo `document_id` después de una generación o regeneración. Esto no modifica la regla de no sobrescritura de archivos originales: `original.ext` continúa siendo inmutable para la identidad lógica del documento y SQLite conserva el historial completo de generaciones.
 
 ### Modelo de evaluación preparado
 
@@ -1130,6 +1257,15 @@ POST /api/v1/generate
 │
 ▼
 mismos format_id → estado terminal
+│
+▼
+GeneratedPackageStorageService
+│
+▼
+documents/{document_id}/generated/content.json
+│
+▼
+OCI Object Storage
 ```
 
 Frontend consulta:
@@ -1166,6 +1302,10 @@ Agentes /generate
 mismos nuevos format_id
 ↓
 success | failed | no_results
+↓
+reconstruir snapshot terminal vigente
+↓
+actualizar generated/content.json en OCI
 ```
 
 Frontend continúa consultando el mismo `GET /formats`; no existe un endpoint adicional de estado para la regeneración.
@@ -1508,7 +1648,17 @@ Antes de crear los nuevos intentos Backend valida:
 3. que ninguno de los formatos solicitados tenga un intento activo en `processing`;
 4. que exista un contexto pedagógico previo reutilizable para los formatos solicitados.
 
-Si cualquiera de los formatos pedidos ya está en `processing`, la solicitud completa se rechaza y no se inicia una regeneración parcial.
+La regeneración no está limitada a contenido fallido. Un formato solicitado puede tener previamente:
+
+```text
+success
+failed
+no_results
+```
+
+y aun así generar un nuevo `format_id`. Por tanto, estados agregados `ready`, `partial` o `error` no bloquean por sí mismos la regeneración.
+
+Si cualquiera de los **formatos solicitados** ya está en `processing`, la solicitud completa se rechaza y no se inicia una regeneración parcial.
 
 Respuesta aceptada:
 
@@ -1559,7 +1709,7 @@ Errores principales:
 
 \| `500` | No fue posible registrar los nuevos intentos |
 
-La regeneración no vuelve a almacenar el archivo original en OCI y no ejecuta una nueva indexación RAG.
+La regeneración no vuelve a almacenar el archivo original en OCI y no ejecuta una nueva indexación RAG. Después de alcanzar estados terminales, Backend reconstruye el paquete educativo y actualiza `documents/{document_id}/generated/content.json`, conservando los formatos vigentes que no fueron regenerados.
 
 ### Endpoint de adaptación
 
@@ -1765,6 +1915,7 @@ FormatGenerationDocumentNotFoundError
 FormatGenerationMetadataPersistenceError
 FormatGenerationRecoveryError
 GeneratedFormatRepositoryError
+GeneratedPackageError
 ```
 
 `execute_background_generation()` registra explícitamente el error.
@@ -1786,6 +1937,8 @@ Como la respuesta HTTP ya fue enviada, estos errores se observan posteriormente
 mediante `GET /documents/{document_id}/formats` y no mediante un nuevo
 
 `ErrorResponse`.
+
+Si Quiz o Flashcards ya alcanzaron estados terminales en SQLite y posteriormente falla la escritura de `generated/content.json` en OCI, Backend registra el fallo de infraestructura pero no convierte artificialmente en `failed` un formato que Agentes ya generó correctamente. La persistencia SQLite continúa siendo la fuente de verdad del historial de generación.
 
 ### Regeneración
 
@@ -1909,6 +2062,7 @@ backend/
 │   │   ├── document.py
 │   │   ├── enums.py
 │   │   ├── generated_content.py
+│   │   ├── generated_educational_package.py
 │   │   ├── generated_format.py
 │   │   ├── learning_metadata.py
 │   │   └── format_evaluation.py
@@ -1919,6 +2073,7 @@ backend/
 │   │   ├── format_generation_service.py
 │   │   ├── format_regeneration_service.py
 │   │   ├── generated_format_query_service.py
+│   │   ├── generated_package_storage_service.py
 │   │   └── format_evaluation_service.py
 │   ├── ports/
 │   │   ├── document_repository_port.py
@@ -1960,12 +2115,14 @@ backend/
 │   │   ├── test_document_overwrite_behavior.py
 │   │   ├── test_error_contract.py
 │   │   ├── test_format_regeneration_api.py
-│   │   └── test_learning_metadata_api.py
+│   │   ├── test_learning_metadata_api.py
+│   │   └── test_regeneration_existing_content_api.py
 │   └── unit/
 │       ├── test_adaptation_orchestration_service.py
 │       ├── test_application_wiring.py
 │       ├── test_database.py
 │       ├── test_document_domain.py
+│       ├── test_document_learning_metadata.py
 │       ├── test_document_indexing_state.py
 │       ├── test_document_listing.py
 │       ├── test_document_repository.py
@@ -1975,8 +2132,10 @@ backend/
 │       ├── test_format_generation_service.py
 │       ├── test_format_regeneration_service.py
 │       ├── test_generated_content.py
+│       ├── test_generated_educational_package.py
 │       ├── test_generated_format_query_service.py
 │       ├── test_generated_format_repository.py
+│       ├── test_generated_package_storage_service.py
 │       ├── test_hashing.py
 │       ├── test_http_agents_adapter.py
 │       ├── test_http_rag_adapter.py
@@ -2208,6 +2367,18 @@ La suite cubre, entre otros:
 - creación de nuevos `format_id` sin sobrescribir el historial anterior;
 - rechazo `409` cuando alguno de los formatos solicitados ya está en `processing`;
 - rechazo de regeneración para documentos no `INDEXED`;
+- regeneración de un formato previamente `success`;
+- regeneración desde estados agregados `ready` y `partial`;
+- estabilidad de `learning_metadata` durante regeneraciones;
+- reemplazo del fallback vacío de `learning_metadata` cuando posteriormente existe metadata útil;
+- serialización del paquete educativo canónico;
+- exclusión de `chunks_used` y `GenerationContext` del paquete OCI;
+- selección del `success` más reciente por formato para el snapshot OCI;
+- preservación del éxito previo cuando una regeneración posterior falla;
+- actualización de Quiz conservando las Flashcards vigentes y viceversa;
+- escritura directa de bytes mediante `ObjectStoragePort.upload_bytes(...)`;
+- ruta canónica `documents/{document_id}/generated/content.json`;
+- codificación UTF-8 y `Content-Type: application/json`;
 - validación `422` para listas vacías, formatos duplicados y formatos no soportados;
 - traducción a `500` cuando no es posible registrar los nuevos intentos de regeneración.
 - contrato transversal `code + detail + errors[] + timestamp`;
@@ -2471,6 +2642,91 @@ regeneración no reindexa el documento       ✅
 
 ---
 
+### 6. Persistencia real del paquete educativo en OCI
+
+También se validó la tarjeta de persistencia del JSON generado utilizando BackendAPI, OCI Object Storage, RAG/Agentes y Gemini reales.
+
+Documento:
+
+```text
+doc_57c8136e661545f4be1fb06ad3df8d1f
+```
+
+Generación inicial:
+
+```text
+document.status       = indexed
+formats.status        = ready
+quiz.status           = success
+flashcards.status     = success
+```
+
+Objetos verificados en el mismo bucket:
+
+```text
+documents/doc_57c8136e661545f4be1fb06ad3df8d1f/original.txt
+documents/doc_57c8136e661545f4be1fb06ad3df8d1f/generated/content.json
+```
+
+El paquete inicial confirmó:
+
+```text
+document_id                         ✅
+learning_metadata                   ✅
+Quiz vigente                        ✅
+Flashcards vigentes                 ✅
+UTF-8                               ✅
+mismo bucket OCI                    ✅
+sin evaluación Data/IA en la raíz   ✅
+```
+
+Resultado:
+
+```text
+E2E OCI INICIAL: OK
+```
+
+Después se regeneró únicamente Quiz. Backend creó un nuevo `format_id` y mantuvo las Flashcards anteriores.
+
+Estado final validado:
+
+```text
+Quiz vigente:
+fmt_05f5c9bb8dfc41039699e5bfebc3e398
+
+Flashcards vigentes:
+fmt_4e90377ad0b94dc9b7bfb67939340eef
+```
+
+La comparación directa entre Backend y OCI confirmó:
+
+```text
+Metadata Backend == OCI: True
+Quiz Backend == OCI: True
+Flashcards Backend == OCI: True
+```
+
+Además, después de reiniciar Backend con la política de metadata estable y regenerar nuevamente solo Quiz:
+
+```text
+Metadata estable: True
+```
+
+Validación final:
+
+```text
+Metadata Backend == Metadata OCI         ✅
+Quiz regenerado sincronizado con OCI     ✅
+Flashcards anteriores conservadas        ✅
+UTF-8 validado                           ✅
+
+E2E METADATA ESTABLE + OCI: OK
+```
+
+La visualización `bÃ¡sicos` observada en algunas salidas de PowerShell correspondía al renderizado de consola. La comparación directa en Python entre la respuesta HTTP y los bytes UTF-8 descargados de OCI confirmó que el contenido persistido conserva correctamente los caracteres.
+
+---
+
 ## Semántica del flujo actual para Frontend
 
 Frontend debe separar:
@@ -2517,6 +2773,8 @@ polling
 ↓
 ready | partial | error
 ```
+
+Frontend puede solicitar uno o varios formatos independientemente de que el estado agregado previo sea `ready`, `partial` o `error`. Backend no impide regenerar un formato porque su intento anterior haya terminado en `success`.
 
 Si alguno de los formatos solicitados ya posee un intento `processing`, Backend responde `409` y Frontend debe continuar observando el intento existente.
 
@@ -2622,11 +2880,54 @@ GET /api/v1/documents/{document_id}
 
 Agentes genera los metadatos; BackendAPI los recibe, valida, persiste y expone. No se duplican dentro de los formatos individuales.
 
+Una vez existe metadata pedagógica útil en el documento, regenerar un formato no la reemplaza. Solo el fallback vacío oficial puede ser sustituido posteriormente por metadata útil.
+
 `estimated_time_minutes` representa minutos estimados de estudio; no es un timeout técnico ni controla esperas entre servicios.
 
 ### Persistencia de contenido educativo en OCI
 
-Pendiente definir y persistir JSON estructurado de resultados educativos en OCI.
+La persistencia ya está implementada mediante:
+
+```text
+GeneratedPackageStorageService
+↓
+ObjectStoragePort.upload_bytes(...)
+↓
+OCIObjectStorageAdapter
+```
+
+Ruta:
+
+```text
+documents/{document_id}/generated/content.json
+```
+
+Se utiliza el mismo bucket definido en `OCI_BUCKET_NAME`.
+
+El objeto contiene el snapshot terminal vigente de:
+
+```text
+document_id
+learning_metadata
+quiz
+flashcards
+```
+
+SQLite conserva el historial completo de intentos. OCI conserva la proyección educativa vigente.
+
+Una regeneración individual reconstruye el paquete completo. Por ejemplo:
+
+```text
+antes:
+Quiz v1 + Flashcards v1
+
+regenerar Quiz:
+Quiz v2 + Flashcards v1
+```
+
+Una regeneración fallida no reemplaza un `success` histórico previo dentro del snapshot OCI.
+
+La evaluación de Data/IA permanece excluida del JSON hasta que el equipo cierre su contrato de evaluación.
 
 ### Persistencia alternativa
 
@@ -2687,6 +2988,12 @@ POST responde
              mismos format_id → estado terminal
                                 ↓
                    success | failed | no_results
+                                ↓
+              reconstruir snapshot educativo
+                                ↓
+ documents/{document_id}/generated/content.json
+                                ↓
+                        mismo bucket OCI
 
 Frontend
    ↓
@@ -2718,9 +3025,13 @@ BackendAPI
                                 ↓
                          Agentes /generate
                                 ↓
-             learning_metadata → documento
+             learning_metadata estable → documento
                                 ↓
              mismos nuevos format_id → estado terminal
+                                ↓
+               reconstruir snapshot vigente
+                                ↓
+                  actualizar JSON en OCI
 
 Frontend
    ↓
