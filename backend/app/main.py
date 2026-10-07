@@ -1,4 +1,4 @@
-﻿"""Punto de entrada de la aplicación FastAPI."""
+"""Punto de entrada de la aplicación FastAPI."""
 
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
@@ -25,6 +25,9 @@ from app.application.format_regeneration_service import (
 )
 from app.application.generated_format_query_service import (
     GeneratedFormatQueryService,
+)
+from app.application.generated_package_storage_service import (
+    GeneratedPackageStorageService,
 )
 from app.application.rag_integration_service import (
     RAGIntegrationService,
@@ -91,6 +94,20 @@ async def lifespan(
             region=settings.OCI_REGION,
             config_file=settings.OCI_CONFIG_FILE,
             config_profile=settings.OCI_CONFIG_PROFILE,
+        )
+    )
+
+    generated_package_storage_service = (
+        GeneratedPackageStorageService(
+            document_repository=(
+                document_repository
+            ),
+            generated_format_repository=(
+                generated_format_repository
+            ),
+            object_storage=(
+                object_storage
+            ),
         )
     )
 
@@ -165,6 +182,9 @@ async def lifespan(
                 format_generation_service=(
                     format_generation_service
                 ),
+                generated_package_storage_service=(
+                    generated_package_storage_service
+                ),
             )
         )
 
@@ -174,6 +194,10 @@ async def lifespan(
 
         app.state.generated_format_query_service = (
             generated_format_query_service
+        )
+
+        app.state.generated_package_storage_service = (
+            generated_package_storage_service
         )
 
         app.state.format_generation_service = (

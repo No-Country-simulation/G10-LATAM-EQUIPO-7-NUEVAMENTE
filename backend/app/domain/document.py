@@ -89,6 +89,35 @@ class Document:
         self,
         learning_metadata: LearningMetadata,
     ) -> None:
-        """Asocia los metadatos pedagógicos devueltos por Agentes."""
-        self.learning_metadata = learning_metadata
+        """Asocia metadata pedagógica estable a nivel de documento.
+
+        La regeneración de Quiz o Flashcards no representa una nueva
+        adaptación del documento, por lo que no debe reemplazar metadata
+        pedagógica útil ya persistida únicamente por la variabilidad de una
+        nueva respuesta del LLM.
+
+        Se permite reemplazar el fallback vacío oficial para que una
+        generación posterior pueda recuperar metadata útil si la extracción
+        inicial falló.
+        """
+        empty_metadata = (
+            LearningMetadata.empty()
+        )
+
+        if (
+            self.learning_metadata is not None
+            and self.learning_metadata
+            != empty_metadata
+        ):
+            return
+
+        if (
+            self.learning_metadata
+            == learning_metadata
+        ):
+            return
+
+        self.learning_metadata = (
+            learning_metadata
+        )
         self.updated_at = datetime.now(UTC)

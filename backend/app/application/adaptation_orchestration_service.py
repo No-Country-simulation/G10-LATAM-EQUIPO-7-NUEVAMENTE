@@ -6,6 +6,9 @@ from app.application.document_service import (
 from app.application.format_generation_service import (
     FormatGenerationService,
 )
+from app.application.generated_package_storage_service import (
+    GeneratedPackageStorageService,
+)
 from app.application.rag_integration_service import (
     RAGIntegrationService,
 )
@@ -23,14 +26,15 @@ class AdaptationDocumentStateError(Exception):
 
 
 class AdaptationOrchestrationService:
-    """Coordina indexación y generación de formatos educativos.
+    """Coordina indexación, generación y persistencia del paquete educativo.
 
-    BackendAPI separa explícitamente cuatro responsabilidades:
+    BackendAPI separa explícitamente cinco responsabilidades:
 
     1. garantizar que el documento quede indexado;
     2. registrar los intentos de generación en ``processing``;
     3. completar esos intentos posteriormente mediante Agentes;
-    4. cerrar en ``failed`` cualquier intento que continúe activo cuando
+    4. persistir en Object Storage el snapshot educativo terminal vigente;
+    5. cerrar en ``failed`` cualquier intento que continúe activo cuando
        la ejecución en segundo plano termina con un error.
 
     De esta forma ``POST /documents`` puede responder cuando el
@@ -60,6 +64,9 @@ class AdaptationOrchestrationService:
         document_service: DocumentService,
         rag_integration_service: RAGIntegrationService,
         format_generation_service: FormatGenerationService,
+        generated_package_storage_service: (
+            GeneratedPackageStorageService
+        ),
     ) -> None:
         self._document_service = document_service
         self._rag_integration_service = (
@@ -67,6 +74,9 @@ class AdaptationOrchestrationService:
         )
         self._format_generation_service = (
             format_generation_service
+        )
+        self._generated_package_storage_service = (
+            generated_package_storage_service
         )
 
     async def ensure_document_indexed(
@@ -139,17 +149,26 @@ class AdaptationOrchestrationService:
             ...,
         ],
     ) -> list[GeneratedFormat]:
-        """Completa un lote previamente registrado como ``processing``.
+        """Completa un lote y actualiza el paquete JSON persistido en OCI.
 
-        Esta operación está diseñada para ejecutarse en segundo plano.
-        Los mismos ``format_id`` pasan a un estado terminal.
+        La misma operación se utiliza tanto para la generación inicial como
+        para regeneraciones de uno o varios formatos. El paquete se reconstruye
+        después de persistir los estados terminales en SQLite, por lo que una
+        regeneración individual conserva los demás formatos vigentes.
         """
-        return await (
+        completed_attempts = await (
             self._format_generation_service
             .complete_generation(
                 attempts=attempts
             )
         )
+
+        if completed_attempts:
+            self._generated_package_storage_service.persist_current_package(
+                completed_attempts[0].document_id
+            )
+
+        return completed_attempts
 
     def fail_default_generation(
         self,
