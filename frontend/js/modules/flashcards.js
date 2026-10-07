@@ -4,6 +4,7 @@
  */
 
 import { state } from '../state.js';
+import { toFriendlyError } from '../utils/friendlyError.js';
 
 export const flashcards = {
   elements: {},
@@ -138,9 +139,10 @@ export const flashcards = {
 
     if (this.cards.length === 0) {
       if (this.formatMeta?.status === 'failed') {
-        if (frontText) frontText.textContent = 'Tarjetas de Refuerzo No Disponibles';
-        if (backText) backText.textContent = this.formatMeta.errorMessage || 'Ocurrió un error al procesar este formato en el backend.';
-        if (hintText) hintText.textContent = 'Puedes continuar con la Evaluación de Competencias mientras el backend reintenta.';
+        const friendly = toFriendlyError({ message: this.formatMeta.errorMessage });
+        if (frontText) frontText.textContent = 'Tarjetas de Refuerzo en Proceso';
+        if (backText) backText.textContent = friendly.message;
+        if (hintText) hintText.textContent = 'Consejo: Puedes pulsar "Sincronizar Formatos" arriba para consultar si ya están disponibles.';
       } else if (this.formatMeta?.status === 'no_results') {
         if (frontText) frontText.textContent = 'Sin competencias suficientes';
         if (backText) backText.textContent = 'El documento corporativo no contiene suficiente información para extraer tarjetas de refuerzo.';

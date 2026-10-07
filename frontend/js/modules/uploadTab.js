@@ -7,6 +7,7 @@
 import { CONFIG, getRandomSpineColor } from '../config.js';
 import { state } from '../state.js';
 import { apiClient, ApiError } from '../api/apiClient.js';
+import { toFriendlyError } from '../utils/friendlyError.js';
 import { router } from './router.js';
 import { statusDialog } from './statusDialog.js';
 import {
@@ -335,34 +336,37 @@ export const uploadTab = {
     } catch (err) {
       console.error('[Pipeline Error]:', err);
       
+      const friendly = toFriendlyError(err);
+
       if (this.currentActiveStep) {
-        this.setStepFailed(this.currentActiveStep, err.message);
+        this.setStepFailed(this.currentActiveStep, friendly.title);
       }
 
       if (this.elements.pipelineLiveLog) {
-        this.elements.pipelineLiveLog.textContent = `Error: ${err.message}`;
+        this.elements.pipelineLiveLog.textContent = `Aviso: ${friendly.message}`;
       }
 
       if (this.elements.pipelineStatusBadge) {
-        this.elements.pipelineStatusBadge.textContent = `Error ${err.status || 500}`;
-        this.elements.pipelineStatusBadge.style.background = 'rgba(239, 68, 68, 0.2)';
-        this.elements.pipelineStatusBadge.style.color = '#ef4444';
+        const badgeLabel = friendly.status === 0 ? 'Sin Conexión' : `Estado ${friendly.status}`;
+        this.elements.pipelineStatusBadge.textContent = badgeLabel;
+        this.elements.pipelineStatusBadge.style.background = 'rgba(245, 158, 11, 0.18)';
+        this.elements.pipelineStatusBadge.style.color = 'var(--accent-gold)';
       }
 
-      // Desplegar diálogo temporal con detalles exactos del error devuelto por backend
+      // Desplegar diálogo temporal con detalles exactos y amigables
       statusDialog.showError({
-        status: err.status || 500,
-        code: err.code || 'PIPELINE_ERROR',
-        message: err.message,
-        details: err.details || [],
+        status: friendly.status,
+        code: friendly.code,
+        message: friendly.message,
+        details: friendly.details,
         filename: selectedFile ? selectedFile.name : ''
       });
 
       notifyError(
-        `Error HTTP ${err.status || 500}: ${err.code || 'PIPELINE_ERROR'}`,
-        err.message,
+        friendly.title,
+        friendly.message,
         {
-          actionText: 'Reintentar',
+          actionText: friendly.actionText || 'Reintentar',
           onAction: () => {
             if (selectedFile) this.runPipeline(selectedFile, params, apiMode);
           }

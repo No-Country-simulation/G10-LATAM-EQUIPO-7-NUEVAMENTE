@@ -9,6 +9,7 @@ import { apiClient } from '../api/apiClient.js';
 import { router } from './router.js';
 import { statusDialog } from './statusDialog.js';
 import { notifyError, notifyWarning } from './notifications.js';
+import { toFriendlyError } from '../utils/friendlyError.js';
 
 export const bookshelf = {
   elements: {},
@@ -90,19 +91,18 @@ export const bookshelf = {
     } catch (err) {
       console.warn('[Bookshelf] Backend GET /documents no disponible aún o sin conexión:', err.message);
       this.booksFromBackend = [];
-      if (err.status >= 500 || err.status === 502) {
+      const friendly = toFriendlyError(err);
+      if (friendly.status >= 500 || friendly.status === 502) {
         statusDialog.showError({
-          status: err.status,
-          code: err.code || 'DOCUMENTS_FETCH_ERROR',
-          message: err.message || 'Error al obtener la lista de documentos desde el backend.',
-          details: err.details || ['GET /api/v1/documents', err.message]
+          status: friendly.status,
+          code: friendly.code,
+          message: friendly.message,
+          details: err.details || ['GET /api/v1/documents', friendly.message]
         });
       }
       notifyWarning(
-        `Biblioteca (${err.status || 0})`,
-        err.status === 0
-          ? 'Backend fuera de línea. Mostrando estantería local.'
-          : (err.message || 'No fue posible sincronizar los libros.')
+        friendly.title,
+        friendly.message
       );
     } finally {
       this.isLoadingBackend = false;
@@ -912,22 +912,24 @@ export const bookshelf = {
           }
         });
 
+        const friendly = toFriendlyError(err);
+
         // Desplegar ventana de error para retroalimentación UX inmediata (Tarea 5 y 7)
         statusDialog.showError({
-          status: err.status || 500,
-          code: err.code || 'FORMATS_NOT_AVAILABLE',
-          message: err.message || `No fue posible cargar los formatos de capacitación para "${book.title}".`,
+          status: friendly.status,
+          code: friendly.code,
+          message: friendly.message,
           details: [
-            `Documento ID: ${book.id}`,
+            `Módulo: ${book.title}`,
             `Formato solicitado: ${targetFormat}`,
-            err.message
+            ...friendly.details
           ],
           filename: book.filename || book.title
         });
 
-        notifyError(
-          `Formatos No Disponibles (${err.status || 500})`,
-          err.message || 'Error al obtener formatos desde el servidor.'
+        notifyWarning(
+          friendly.title,
+          friendly.message
         );
       }
     }

@@ -4,6 +4,8 @@
  * Soporta colecciones de preguntas del Backend real (Tarea 8).
  */
 
+import { toFriendlyError } from '../utils/friendlyError.js';
+
 export const quiz = {
   elements: {},
   questions: [],
@@ -52,27 +54,61 @@ export const quiz = {
 
     if (this.questions.length === 0) {
       if (this.quizMeta?.status === 'failed') {
-        questionText.textContent = 'Evaluación de Competencias (Quiz) No Disponible';
+        const friendly = toFriendlyError({ message: this.quizMeta.errorMessage });
+        questionText.textContent = 'Evaluación de Competencias (Quiz)';
         optionsList.innerHTML = '';
 
-        const errorDiv = document.createElement('div');
-        errorDiv.style.textAlign = 'center';
-        errorDiv.style.padding = '2rem 1rem';
-        errorDiv.style.color = '#ef4444';
+        const noticeCard = document.createElement('div');
+        noticeCard.className = 'format-friendly-notice';
 
-        const p = document.createElement('p');
-        p.style.fontSize = '0.95rem';
-        p.style.marginBottom = '0.5rem';
-        p.textContent = this.quizMeta.errorMessage || 'Ocurrió un error al generar las preguntas de evaluación de competencias.';
+        const iconEl = document.createElement('div');
+        iconEl.className = 'friendly-notice-icon';
+        iconEl.textContent = '📋';
 
-        const span = document.createElement('span');
-        span.style.fontSize = '0.8rem';
-        span.style.color = 'var(--text-secondary)';
-        span.textContent = 'Puedes continuar reforzando conocimientos con las Tarjetas de Refuerzo mientras el sistema reintenta este formato.';
+        const titleEl = document.createElement('h4');
+        titleEl.className = 'friendly-notice-title';
+        titleEl.textContent = friendly.title || 'Evaluación en Proceso de Generación';
 
-        errorDiv.appendChild(p);
-        errorDiv.appendChild(span);
-        optionsList.appendChild(errorDiv);
+        const textEl = document.createElement('p');
+        textEl.className = 'friendly-notice-text';
+        textEl.textContent = friendly.message;
+
+        const actionsEl = document.createElement('div');
+        actionsEl.className = 'friendly-notice-actions';
+
+        const btnRetry = document.createElement('button');
+        btnRetry.type = 'button';
+        btnRetry.className = 'btn-friendly-action btn-retry-quiz';
+        btnRetry.id = 'btnRetryQuizFromNotice';
+        const retrySpan = document.createElement('span');
+        retrySpan.textContent = '↻ Sincronizar Formatos';
+        btnRetry.appendChild(retrySpan);
+        btnRetry.addEventListener('click', () => {
+          const btnRefresh = document.getElementById('btnRefreshFormats');
+          if (btnRefresh) btnRefresh.click();
+        });
+
+        const btnFlash = document.createElement('button');
+        btnFlash.type = 'button';
+        btnFlash.className = 'btn-friendly-action btn-switch-flashcards';
+        btnFlash.id = 'btnGoFlashcardsFromNotice';
+        const flashSpan = document.createElement('span');
+        flashSpan.textContent = '✦ Estudiar con Flashcards';
+        btnFlash.appendChild(flashSpan);
+        btnFlash.addEventListener('click', () => {
+          const flashTab = document.querySelector('.format-tab-btn[data-format="flashcards"]');
+          if (flashTab) flashTab.click();
+        });
+
+        actionsEl.appendChild(btnRetry);
+        actionsEl.appendChild(btnFlash);
+
+        noticeCard.appendChild(iconEl);
+        noticeCard.appendChild(titleEl);
+        noticeCard.appendChild(textEl);
+        noticeCard.appendChild(actionsEl);
+
+        optionsList.appendChild(noticeCard);
       } else if (this.quizMeta?.status === 'no_results') {
         questionText.textContent = 'Sin preguntas de evaluación generadas';
         optionsList.innerHTML = `
