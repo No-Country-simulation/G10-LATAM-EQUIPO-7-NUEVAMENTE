@@ -28,15 +28,23 @@ export class ApiError extends Error {
       } else if (typeof rawBody.detail === 'string' && rawBody.detail.trim()) {
         resolvedMessage = rawBody.detail;
       } else if (Array.isArray(rawBody.detail) && rawBody.detail.length > 0) {
-        resolvedMessage = rawBody.detail.map(d => `${d.loc ? d.loc.join('.') + ': ' : ''}${d.msg}`).join('; ');
-        resolvedDetails = rawBody.detail;
+        resolvedMessage = rawBody.detail.map(d => `${d.loc ? d.loc.join('.') + ': ' : ''}${d.msg || d.message}`).join('; ');
       } else if (Array.isArray(rawBody.errors) && rawBody.errors.length > 0) {
         resolvedMessage = rawBody.errors.map(e => `${e.field ? e.field + ': ' : ''}${e.message || e.msg || ''}`).join('; ');
       } else {
         resolvedMessage = ApiError.getDefaultMessageForStatus(resolvedStatus);
       }
+
+      // Preservar siempre errors[] (Auditoria.md P2 / S2)
+      if (Array.isArray(rawBody.errors) && rawBody.errors.length > 0) {
+        resolvedDetails = rawBody.errors;
+      } else if (Array.isArray(rawBody.detail) && rawBody.detail.length > 0) {
+        resolvedDetails = rawBody.detail;
+      } else if (rawBody.details) {
+        resolvedDetails = rawBody.details;
+      }
+
       resolvedCode = rawBody.code || ApiError.getDefaultCodeForStatus(resolvedStatus);
-      if (rawBody.details) resolvedDetails = rawBody.details;
     } else {
       resolvedMessage = statusOrMessage || 'Error en la petición API';
       resolvedStatus = typeof bodyOrStatus === 'number' ? bodyOrStatus : 500;
@@ -48,6 +56,7 @@ export class ApiError extends Error {
     this.name = 'ApiError';
     this.status = resolvedStatus;
     this.code = resolvedCode;
+    this.errors = Array.isArray(rawBody.errors) ? rawBody.errors : [];
     this.details = Array.isArray(resolvedDetails) ? resolvedDetails : [resolvedDetails];
     this.timestamp = new Date().toISOString();
     this.rawBody = rawBody;
@@ -59,12 +68,13 @@ export class ApiError extends Error {
       201: 'DOCUMENT_CREATED',
       400: 'BAD_REQUEST',
       404: 'DOCUMENT_NOT_FOUND',
-      408: 'TIMEOUT_ERROR',
+      408: 'REQUEST_TIMEOUT',
+      409: 'DOCUMENT_STATE_CONFLICT',
       413: 'FILE_TOO_LARGE',
       415: 'UNSUPPORTED_MEDIA_TYPE',
       422: 'REQUEST_VALIDATION_ERROR',
       500: 'INTERNAL_SERVER_ERROR',
-      502: 'OCI_STORAGE_ERROR'
+      502: 'BAD_GATEWAY'
     };
     return map[status] || `HTTP_${status}`;
   }
@@ -76,10 +86,11 @@ export class ApiError extends Error {
       400: 'Documento inválido o vacío.',
       404: 'Recurso o documento no encontrado.',
       408: 'Tiempo de espera agotado al comunicarse con el servidor (Timeout).',
+      409: 'Conflicto con el estado actual del recurso en el servidor.',
       413: `El archivo supera el tamaño máximo permitido de ${CONFIG.UPLOAD.MAX_SIZE_MB} MB.`,
       415: 'Formato o MIME type no soportado. Se admiten archivos PDF, Markdown (.md) y TXT.',
       422: 'Error de validación en la estructura del request.',
-      502: 'Fallo al almacenar o comunicarse con OCI Object Storage.',
+      502: 'Una dependencia externa o servicio de integración no respondió a tiempo.',
       500: 'Error interno inesperado en el servidor.'
     };
     return map[status] || `Error del servidor HTTP ${status}`;
@@ -260,10 +271,15 @@ export const apiClient = {
 
       state.set({ isBackendConnected: true, lastConnectionCheck: Date.now() });
 
+      if (Array.isArray(json.documents)) return json.documents;
       if (Array.isArray(json)) return json;
       if (Array.isArray(json.items)) return json.items;
-      if (Array.isArray(json.documents)) return json.documents;
-      return [];
+
+      // Validación estricta de contrato (Auditoria.md Sec 3: P1 / S1)
+      throw new ApiError(200, {
+        code: 'API_CONTRACT_ERROR',
+        message: 'La respuesta de documentos no cumple con el contrato esperado ({ documents: [...] }).'
+      });
     } catch (err) {
       clearTimeout(timeoutId);
       throw wrapFetchError(err, 'Tiempo de espera agotado al consultar los documentos.');
@@ -333,11 +349,66 @@ export const apiClient = {
         throw new ApiError(response.status, json);
       }
 
+      // Validación estricta de contrato (Auditoria.md Sec 5)
+      if (!json || typeof json !== 'object' || (!json.status && !json.formats)) {
+        throw new ApiError(200, {
+          code: 'API_CONTRACT_ERROR',
+          message: 'La respuesta de formatos no cumple con la estructura esperada por el cliente ({ status, formats }).'
+        });
+      }
+
       state.set({ isBackendConnected: true, lastConnectionCheck: Date.now() });
       return json;
     } catch (err) {
       clearTimeout(timeoutId);
       throw wrapFetchError(err, 'Tiempo de espera agotado al consultar los formatos.');
+    }
+  },
+
+  /**
+   * Solicita la regeneración asíncrona de formatos educativos (POST /api/v1/documents/{id}/formats/regenerate)
+   * Backend responde 202 Accepted con status 'processing' y nuevos format_id.
+   * @param {string} documentId - ID del documento
+   * @param {Array<string>} formats - Formatos a regenerar (ej. ['quiz'], ['flashcards'] o ['quiz', 'flashcards'])
+   * @returns {Promise<Object>}
+   */
+  async regenerateFormats(documentId, formats) {
+    if (!documentId) throw new Error('ID de documento requerido para regenerar.');
+    if (!Array.isArray(formats) || formats.length === 0) {
+      throw new Error('Debe indicarse al menos un formato para regenerar.');
+    }
+
+    const endpoint = typeof CONFIG.API.ENDPOINTS.DOCUMENT_REGENERATE === 'function'
+      ? CONFIG.API.ENDPOINTS.DOCUMENT_REGENERATE(documentId)
+      : `/documents/${documentId}/formats/regenerate`;
+    const url = `${CONFIG.API.DEFAULT_BASE_URL}${CONFIG.API.V1_PREFIX}${endpoint}`;
+
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), CONFIG.API.TIMEOUT_MS);
+
+    try {
+      const response = await fetch(url, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json'
+        },
+        body: JSON.stringify({ formats }),
+        signal: controller.signal
+      });
+
+      clearTimeout(timeoutId);
+      const json = await parseResponseBody(response);
+
+      if (!response.ok) {
+        throw new ApiError(response.status, json);
+      }
+
+      state.set({ isBackendConnected: true, lastConnectionCheck: Date.now() });
+      return json;
+    } catch (err) {
+      clearTimeout(timeoutId);
+      throw wrapFetchError(err, 'Tiempo de espera agotado al solicitar la regeneración de formatos.');
     }
   }
 };

@@ -157,8 +157,9 @@ export const flashcards = {
       btnRetry.appendChild(retrySpan);
       btnRetry.addEventListener('click', (e) => {
         e.stopPropagation();
-        const btnRefresh = document.getElementById('btnRefreshFormats');
-        if (btnRefresh) btnRefresh.click();
+        import('./studyHub.js').then(({ studyHub }) => {
+          studyHub.triggerRegeneration(['flashcards']);
+        });
       });
 
       const btnQuiz = document.createElement('button');
@@ -191,17 +192,20 @@ export const flashcards = {
         const friendly = toFriendlyError({ message: this.formatMeta.errorMessage });
         if (frontText) frontText.textContent = 'Tarjetas de Refuerzo No Disponibles';
         if (backText) backText.textContent = friendly.message;
-        if (hintText) hintText.textContent = 'La generación de tarjetas presentó un inconveniente. Puedes reintentar la sincronización.';
+        if (hintText) hintText.textContent = 'La generación de tarjetas presentó un inconveniente. Puedes regenerarlas con la acción de abajo.';
         this.renderCardActions(true);
       } else if (this.formatMeta?.status === 'no_results') {
         this.renderCardActions(false);
         if (frontText) frontText.textContent = 'Sin competencias suficientes';
         if (backText) backText.textContent = 'El documento corporativo no contiene suficiente información para extraer tarjetas de refuerzo.';
         if (hintText) hintText.textContent = 'Intenta con un manual o directriz con mayor detalle operativo.';
-      } else if (this.formatMeta?.status === 'processing') {
+      } else if (this.formatMeta?.status === 'processing' || this.formatMeta?.status === 'pending') {
         this.renderCardActions(false);
-        if (frontText) frontText.textContent = 'Generando Tarjetas de Refuerzo...';
-        if (backText) backText.textContent = 'El pipeline de IA está procesando las directrices y competencias del material.';
+        const isPending = this.formatMeta?.status === 'pending';
+        if (frontText) frontText.textContent = isPending ? 'Tarjetas de Refuerzo Pendientes...' : 'Generando Tarjetas de Refuerzo...';
+        if (backText) backText.textContent = isPending
+          ? 'El documento fue indexado y se encuentra en espera para sintetizar los conceptos clave.'
+          : 'El pipeline de IA está procesando las directrices y competencias del material.';
         if (hintText) hintText.textContent = 'Por favor espera unos instantes mientras se sintetiza el contenido de capacitación.';
       } else {
         this.renderCardActions(false);

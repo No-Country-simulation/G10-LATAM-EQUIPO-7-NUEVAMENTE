@@ -61,8 +61,8 @@ export const studyHub = {
         const doc = state.get().currentDocument;
         if (doc && !this.isFetchingFormats) {
           const currentStatus = state.get().studyHub?.formatsStatus;
-          if (currentStatus === 'processing') return; // En polling activo, no enviar reintentos concurrentes
-          await this.fetchFormatsForCurrentDocument(doc, true);
+          if (currentStatus === 'processing' || currentStatus === 'pending') return; // En polling activo, no enviar reintentos concurrentes
+          await this.triggerRegeneration();
         }
       });
     }
@@ -92,7 +92,7 @@ export const studyHub = {
 
     btn.textContent = ''; // Limpieza segura
 
-    if (globalStatus === 'processing' || this.isFetchingFormats) {
+    if (globalStatus === 'processing' || globalStatus === 'pending' || this.isFetchingFormats) {
       btn.style.display = 'inline-flex';
       btn.disabled = true;
       btn.className = 'btn-refresh-formats is-syncing';
@@ -104,7 +104,7 @@ export const studyHub = {
 
       const label = document.createElement('span');
       label.style.marginLeft = '0.35rem';
-      label.textContent = 'Generando formatos...';
+      label.textContent = globalStatus === 'pending' ? 'Generación pendiente...' : 'Generando formatos...';
 
       btn.appendChild(icon);
       btn.appendChild(label);
@@ -113,8 +113,8 @@ export const studyHub = {
       btn.disabled = false;
       btn.className = 'btn-refresh-formats btn-retry-highlight';
       btn.title = globalStatus === 'partial'
-        ? 'Uno de los formatos falló. Haz clic para reintentar la sincronización.'
-        : 'La generación de formatos presentó fallos. Haz clic para reintentar.';
+        ? 'Uno de los formatos falló. Haz clic para regenerar solo el formato que presentó fallo.'
+        : 'La generación de formatos presentó fallos. Haz clic para reintentar la regeneración.';
 
       const label = document.createElement('span');
       label.textContent = 'Reintentar Formatos';
@@ -132,7 +132,8 @@ export const studyHub = {
   },
 
   /**
-   * Inicia el sondeo (polling) reactivo periódico cada 3.5 segundos mientras los formatos estén en 'processing'
+   * Inicia el sondeo (polling) reactivo periódico cada 3.5 segundos mientras los formatos estén en 'processing'/'pending'
+   * Controla errores consecutivos para evitar peticiones infinitas ante caída de servidor (Auditoria.md Sec 5: S3).
    */
   startPolling(docId) {
     if (this.pollingTimer && this.currentPollingDocId === docId) {
@@ -141,6 +142,7 @@ export const studyHub = {
 
     this.stopPolling();
     this.currentPollingDocId = docId;
+    this.consecutivePollingErrors = 0;
 
     this.pollingTimer = setInterval(async () => {
       const s = state.get();
@@ -156,6 +158,8 @@ export const studyHub = {
 
       try {
         const formatsResponse = await apiClient.getDocumentFormats(docId);
+        this.consecutivePollingErrors = 0; // Reset ante éxito
+
         const resolvedFormats = formatsResponse?.formats || formatsResponse;
         const globalStatus = formatsResponse?.status || (resolvedFormats ? 'ready' : 'empty');
 
@@ -174,14 +178,17 @@ export const studyHub = {
           if (globalStatus === 'ready') {
             notifySuccess('Formatos Listos', '¡El Quiz y las Flashcards ya están disponibles para estudiar!');
           } else if (globalStatus === 'partial') {
-            notifyWarning('Generación Parcial', 'Uno de los formatos se completó, pero el otro presentó un fallo. Puedes reintentarlo.');
+            notifyWarning('Generación Parcial', 'Uno de los formatos se completó, pero el otro presentó un fallo. Puedes regenerarlo.');
           } else if (globalStatus === 'error') {
             notifyError('Fallo en Formatos', 'No fue posible generar los formatos pedagógicos.');
           }
         }
       } catch (err) {
-        console.warn('[StudyHub Polling] Inconveniente al consultar formatos:', err.message);
-        if (err.status === 404 || err.status === 400) {
+        this.consecutivePollingErrors = (this.consecutivePollingErrors || 0) + 1;
+        console.warn(`[StudyHub Polling] Inconveniente al consultar formatos (${this.consecutivePollingErrors}/3):`, err.message);
+
+        // Detener sondeo ante 404, 400 o 3 fallos consecutivos de red/servidor (Auditoria.md Sec 5: S3)
+        if (err.status === 404 || err.status === 400 || this.consecutivePollingErrors >= 3) {
           this.stopPolling();
           state.set({
             studyHub: {
@@ -189,6 +196,9 @@ export const studyHub = {
               formatsStatus: 'error'
             }
           });
+          if (this.consecutivePollingErrors >= 3) {
+            notifyWarning('Sondeo Pausado', 'No fue posible actualizar el estado tras varios intentos. Puedes reintentar cuando el servidor esté accesible.');
+          }
         }
       }
     }, 3500);
@@ -203,6 +213,96 @@ export const studyHub = {
       this.pollingTimer = null;
     }
     this.currentPollingDocId = null;
+    this.consecutivePollingErrors = 0;
+  },
+
+  /**
+   * Dispara la regeneración real de formatos educativos (POST /documents/{id}/formats/regenerate)
+   * Si el estado es 'partial', regenera únicamente los formatos fallidos (Auditoria.md Sec 5: S2 y Sec 6: S1, S7).
+   * @param {Array<string>|null} explicitFormats - Formatos específicos a regenerar (ej. ['quiz'])
+   */
+  async triggerRegeneration(explicitFormats = null) {
+    const doc = state.get().currentDocument;
+    if (!doc?.id || this.isFetchingFormats) return;
+
+    const hubState = state.get().studyHub || {};
+    const currentFormats = hubState.formats || {};
+    const globalStatus = hubState.formatsStatus;
+
+    if (globalStatus === 'processing') {
+      notifyWarning('Generación en Curso', 'Los formatos ya se están procesando en segundo plano.');
+      return;
+    }
+
+    let formatsToRegenerate = [];
+
+    if (Array.isArray(explicitFormats) && explicitFormats.length > 0) {
+      formatsToRegenerate = explicitFormats;
+    } else if (globalStatus === 'partial') {
+      // Auditoria.md Sec 5: P2 / S2 -> En partial, enviar ÚNICAMENTE formatos fallidos
+      if (currentFormats.quiz?.status === 'failed' || currentFormats.quiz?.status === 'no_results') {
+        formatsToRegenerate.push('quiz');
+      }
+      if (currentFormats.flashcards?.status === 'failed' || currentFormats.flashcards?.status === 'no_results') {
+        formatsToRegenerate.push('flashcards');
+      }
+      if (formatsToRegenerate.length === 0) {
+        formatsToRegenerate = ['quiz', 'flashcards'];
+      }
+    } else {
+      formatsToRegenerate = ['quiz', 'flashcards'];
+    }
+
+    this.isFetchingFormats = true;
+    this.updateHeaderButtonUI('processing');
+
+    try {
+      const response = await apiClient.regenerateFormats(doc.id, formatsToRegenerate);
+
+      // Auditoria.md Sec 6: S2 -> Mergear nuevos intentos devueltos (202 Accepted) y arrancar polling
+      const updatedFormats = { ...currentFormats };
+      formatsToRegenerate.forEach(fmt => {
+        updatedFormats[fmt] = {
+          format_id: response?.formats?.[fmt]?.format_id || updatedFormats[fmt]?.format_id || `fmt_retry_${Date.now()}`,
+          status: 'processing',
+          content: null,
+          error_message: null
+        };
+      });
+
+      state.set({
+        studyHub: {
+          ...state.get().studyHub,
+          formats: updatedFormats,
+          formatsStatus: 'processing'
+        }
+      });
+
+      notifySuccess('Regeneración Solicitada', `Se inició un nuevo intento para: ${formatsToRegenerate.join(', ')}.`);
+      this.startPolling(doc.id);
+    } catch (err) {
+      console.warn('[StudyHub] Error al solicitar regeneración:', err);
+      const friendly = toFriendlyError(err);
+
+      // Auditoria.md Sec 6: S4 -> Si 409 FORMAT_REGENERATION_IN_PROGRESS, continuar polling
+      if (err.status === 409 && (err.code === 'FORMAT_REGENERATION_IN_PROGRESS' || friendly.code === 'FORMAT_REGENERATION_IN_PROGRESS')) {
+        notifyWarning(friendly.title, friendly.message);
+        this.startPolling(doc.id);
+      } else {
+        statusDialog.showError({
+          status: friendly.status,
+          code: friendly.code,
+          message: friendly.message,
+          details: err.details || [`Documento ID: ${doc.id}`, friendly.message],
+          filename: doc.filename || doc.title
+        });
+        notifyError(friendly.title, friendly.message);
+      }
+    } finally {
+      this.isFetchingFormats = false;
+      const currentGlobalStatus = state.get().studyHub?.formatsStatus || 'ready';
+      this.updateHeaderButtonUI(currentGlobalStatus);
+    }
   },
 
   syncWithState(s) {
@@ -271,10 +371,10 @@ export const studyHub = {
     // Actualizar botón de Reintentar / Sincronizar
     this.updateHeaderButtonUI(globalStatus);
 
-    // Gestión del Polling Reactivo según estado global
-    if (globalStatus === 'processing' && currentDocument.id) {
+    // Gestión del Polling Reactivo según estado global (incluye pending, Auditoria.md Sec 5: S4)
+    if ((globalStatus === 'processing' || globalStatus === 'pending') && currentDocument.id) {
       this.startPolling(currentDocument.id);
-    } else if (globalStatus !== 'processing') {
+    } else if (globalStatus !== 'processing' && globalStatus !== 'pending') {
       this.stopPolling();
     }
 
@@ -287,7 +387,7 @@ export const studyHub = {
     const flashcardsData = backendFormats.flashcards 
       || activeSection?.flashcards 
       || (backendFormats.cards ? backendFormats.cards : null)
-      || (globalStatus === 'processing' || globalStatus === 'loading' ? { status: 'processing' } : null)
+      || (globalStatus === 'processing' || globalStatus === 'pending' || globalStatus === 'loading' ? { status: globalStatus === 'pending' ? 'pending' : 'processing' } : null)
       || (globalStatus === 'error' ? { status: 'failed', errorMessage: 'No fue posible generar las Tarjetas de Refuerzo.' } : null);
     flashcards.render(flashcardsData);
 
@@ -295,7 +395,7 @@ export const studyHub = {
     const quizData = backendFormats.quiz 
       || activeSection?.quiz 
       || (backendFormats.questions ? backendFormats.questions : null)
-      || (globalStatus === 'processing' || globalStatus === 'loading' ? { status: 'processing' } : null)
+      || (globalStatus === 'processing' || globalStatus === 'pending' || globalStatus === 'loading' ? { status: globalStatus === 'pending' ? 'pending' : 'processing' } : null)
       || (globalStatus === 'error' ? { status: 'failed', errorMessage: 'No fue posible generar la Evaluación de Competencias (Quiz).' } : null);
     quiz.render(quizData);
 

@@ -83,8 +83,9 @@ export const quiz = {
         retrySpan.textContent = 'Reintentar Quiz';
         btnRetry.appendChild(retrySpan);
         btnRetry.addEventListener('click', () => {
-          const btnRefresh = document.getElementById('btnRefreshFormats');
-          if (btnRefresh) btnRefresh.click();
+          import('./studyHub.js').then(({ studyHub }) => {
+            studyHub.triggerRegeneration(['quiz']);
+          });
         });
 
         const btnFlash = document.createElement('button');
@@ -117,12 +118,17 @@ export const quiz = {
             </p>
           </div>
         `;
-      } else if (this.quizMeta?.status === 'processing') {
-        questionText.textContent = 'Generando Evaluación de Competencias...';
+      } else if (this.quizMeta?.status === 'processing' || this.quizMeta?.status === 'pending') {
+        const isPending = this.quizMeta?.status === 'pending';
+        questionText.textContent = isPending
+          ? 'Evaluación de Competencias Pendiente...'
+          : 'Generando Evaluación de Competencias...';
         optionsList.innerHTML = `
           <div style="text-align: center; padding: 2rem 1rem; color: var(--text-secondary);">
             <p style="font-size: 0.95rem; margin-bottom: 0.5rem;">
-              El pipeline de IA está formulando las preguntas a partir del material corporativo indexado.
+              ${isPending
+                ? 'El material fue indexado y se encuentra en cola para formular las preguntas pedagógicas.'
+                : 'El pipeline de IA está formulando las preguntas a partir del material corporativo indexado.'}
             </p>
             <span style="font-size: 0.8rem; color: var(--accent-gold);">
               Por favor espera unos instantes.

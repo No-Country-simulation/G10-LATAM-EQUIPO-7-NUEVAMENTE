@@ -231,12 +231,18 @@ export const statusDialog = {
       ? `El archivo "${filename}" fue validado, indexado y almacenado de forma persistente en OCI Object Storage.`
       : `El contenido del archivo "${filename}" ya se encontraba registrado (identificado por SHA-256). Se reutilizó el ID existente en OCI.`;
 
-    // Mostrar sección de OCI
+    // Mostrar sección de metadatos (sin reconstruir oci_object_name inventado, Auditoria.md Sec 2: S4)
     metaCard.style.display = 'flex';
     errorDetails.style.display = 'none';
 
-    const cleanOciId = ociId || `documents/${documentId}/original.${(filename.split('.').pop() || 'pdf').toLowerCase()}`;
-    elOciId.textContent = cleanOciId;
+    const ociFieldContainer = elOciId ? elOciId.closest('.status-meta-field') : null;
+    if (ociId) {
+      if (ociFieldContainer) ociFieldContainer.style.display = 'block';
+      elOciId.textContent = ociId;
+    } else {
+      if (ociFieldContainer) ociFieldContainer.style.display = 'none';
+    }
+
     docId.textContent = documentId;
     fileName.textContent = filename;
 
@@ -247,7 +253,7 @@ export const statusDialog = {
   },
 
   /**
-   * Muestra el dialog cuando el backend responde con un error HTTP (400, 404, 413, 415, 422, 502, 500)
+   * Muestra el dialog cuando el backend responde con un error HTTP (400, 404, 409, 413, 415, 422, 502, 500)
    */
   showError({
     status = 500,
@@ -282,13 +288,21 @@ export const statusDialog = {
     const titleForStatus = this.getTitleForStatus(status);
 
     const isConnError = status === 0;
-    badgeRow.innerHTML = `
-      <span class="status-badge badge-http-error">${isConnError ? 'CONEXIÓN / RED' : `HTTP ${status}`}</span>
-      <span class="status-badge badge-code-error">${codeLabel}</span>
-    `;
+
+    // Renderizado seguro de badges (Auditoria.md Sec 8: Prevención DOM XSS)
+    badgeRow.textContent = '';
+    const badgeStatus = document.createElement('span');
+    badgeStatus.className = 'status-badge badge-http-error';
+    badgeStatus.textContent = isConnError ? 'CONEXIÓN / RED' : `HTTP ${status}`;
+
+    const badgeCode = document.createElement('span');
+    badgeCode.className = 'status-badge badge-code-error';
+    badgeCode.textContent = codeLabel;
+
+    badgeRow.appendChild(badgeStatus);
+    badgeRow.appendChild(badgeCode);
 
     title.textContent = titleForStatus;
-
     mainMessage.textContent = message || this.getDefaultMessageForStatus(status);
 
     metaCard.style.display = 'none';
@@ -296,32 +310,59 @@ export const statusDialog = {
 
     errorCode.textContent = codeLabel;
 
-    // Renderizar detalles si existen
-    let detailsHtml = '';
+    // Renderizado 100% seguro de detalles mediante nodos DOM (Auditoria.md Sec 8)
+    errorBox.textContent = '';
+    let hasDetails = false;
+
     if (filename) {
-      detailsHtml += `<div class="error-detail-line"><strong>Archivo:</strong> ${filename}</div>`;
+      const fileRow = document.createElement('div');
+      fileRow.className = 'error-detail-line';
+      const strong = document.createElement('strong');
+      strong.textContent = 'Archivo: ';
+      fileRow.appendChild(strong);
+      fileRow.appendChild(document.createTextNode(filename));
+      errorBox.appendChild(fileRow);
+      hasDetails = true;
     }
 
     if (Array.isArray(details) && details.length > 0) {
       details.forEach((d) => {
+        const row = document.createElement('div');
+        row.className = 'error-detail-line';
         if (typeof d === 'string') {
-          detailsHtml += `<div class="error-detail-line">• ${d}</div>`;
+          row.textContent = `• ${d}`;
         } else if (typeof d === 'object' && d !== null) {
           const field = d.field || (Array.isArray(d.loc) ? d.loc.join('.') : '');
           const msg = d.message || d.msg || JSON.stringify(d);
-          detailsHtml += `<div class="error-detail-line">${field ? `<strong>${field}:</strong> ` : '• '}${msg}</div>`;
+          if (field) {
+            const strong = document.createElement('strong');
+            strong.textContent = `${field}: `;
+            row.appendChild(strong);
+          } else {
+            row.appendChild(document.createTextNode('• '));
+          }
+          row.appendChild(document.createTextNode(msg));
         }
+        errorBox.appendChild(row);
+        hasDetails = true;
       });
     } else if (typeof details === 'string' && details.trim()) {
-      detailsHtml += `<div class="error-detail-line">${details}</div>`;
+      const row = document.createElement('div');
+      row.className = 'error-detail-line';
+      row.textContent = details;
+      errorBox.appendChild(row);
+      hasDetails = true;
     }
 
-    if (!detailsHtml) {
+    if (!hasDetails) {
+      const emptyRow = document.createElement('div');
+      emptyRow.className = 'error-detail-line';
+      emptyRow.style.color = 'var(--text-muted)';
+      emptyRow.style.fontStyle = 'italic';
       const codeInfo = status === 0 ? 'Fallo de conexión o servidor no disponible.' : `Código de respuesta HTTP ${status}.`;
-      detailsHtml = `<div class="error-detail-line" style="color: var(--text-muted); font-style: italic;">Sin detalles adicionales del servidor. ${codeInfo}</div>`;
+      emptyRow.textContent = `Sin detalles adicionales del servidor. ${codeInfo}`;
+      errorBox.appendChild(emptyRow);
     }
-
-    errorBox.innerHTML = detailsHtml;
 
     timestamp.textContent = `Reportado: ${new Date().toLocaleTimeString()}`;
     timerText.textContent = `Auto-cierre en ${(durationMs / 1000).toFixed(0)}s (posar el cursor pausa el tiempo)`;
