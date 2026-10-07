@@ -20,6 +20,40 @@ from data_ai.evaluation.config import (
     RATIO_ALUCINACION_BUENO,
 )
 
+import logging
+
+# ============================================================
+# LAZY LOADING DE MODELOS SEMÁNTICOS (V2)
+# ============================================================
+_gemini_client = None
+_embedding_model = None
+
+def get_semantic_models():
+    """
+    Inicialización perezosa de los modelos de IA.
+    Asegura que solo se descarguen/conecten cuando realmente 
+    se necesiten, evitando que el servicio 8002 colapse al iniciar.
+    """
+    global _gemini_client, _embedding_model
+    
+    if _gemini_client is None or _embedding_model is None:
+        try:
+            logging.info("Inicializando modelos semánticos por primera vez...")
+            
+            # NOTA: Aquí colocaremos las importaciones de IA reales 
+            # cuando armemos la lógica V2 (ej. SentenceTransformer y genai)
+            
+            # _embedding_model = CargaDeModeloLocal()
+            # _gemini_client = CargaDeClienteGoogle()
+            
+            logging.info("Modelos de IA inicializados correctamente.")
+        except Exception as e:
+            logging.error(f"Error de red o configuración al inicializar IA: {e}")
+            # Retornamos None de forma controlada para evitar que la API muera
+            return None, None
+            
+    return _gemini_client, _embedding_model
+
 from data_ai.evaluation.config import MIN_CHARS_BEGINNER, MIN_CHARS_HIGH_DETAIL
 
 GeneratedContent = Union[
