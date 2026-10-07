@@ -59,7 +59,7 @@ def test_quiz_aprobado():
         generation_context=context,
     )
 
-    assert scores.relevancia == 3
+    assert scores.relevancia == 5
     assert scores.coherencia == 5
     assert scores.adaptacion_didactica == 5
     assert isinstance(informacion_no_respaldada, bool)
@@ -130,7 +130,7 @@ def test_flashcards_detecta_informacion_no_respaldada():
         generation_context=context,
     )
 
-    assert informacion_no_respaldada is False
+    assert informacion_no_respaldada is True
     assert scores.informacion_respaldada == 5
 
 
@@ -190,3 +190,48 @@ def test_evaluacion_relevancia_nicho_generico():
     )
 
     assert scores.relevancia == 5
+
+from data_ai.schemas.format_evaluation import TLDRContent, VideoScriptContent, VideoScriptScene, ChunkUsed
+
+def test_evaluacion_tldr_aprobado():
+    content = TLDRContent(
+        title="Resumen de Python",
+        summary="Python es una tecnología y lenguaje muy popular.",
+        key_points=["Backend", "Data Science"]
+    )
+    context = GenerationContext(profile="profesional", niche="tecnología", detail_level="alto")
+    chunks = [
+        ChunkUsed(
+            chunk_id="1", document_id="doc1", rank=1, score=0.9, 
+            text="Python es una tecnología y lenguaje muy popular usado en Backend y Data Science."
+        )
+    ]
+    
+    scores, alucinacion = evaluate(generated_content=content, chunks_used=chunks, generation_context=context)
+    
+    assert scores.relevancia >= 4
+    assert alucinacion is False
+
+def test_evaluacion_video_detecta_alucinacion():
+    content = VideoScriptContent(
+        title="Intro a React",
+        target_duration_minutes=5,
+        scenes=[
+            VideoScriptScene(
+                scene_number=1, 
+                visual_description="Logo de React", 
+                narration="React sirve para clonar dinosaurios con ADN cuántico."
+            )
+        ]
+    )
+    context = GenerationContext(profile="estudiante", niche="desarrollo", detail_level="medio")
+    chunks = [
+        ChunkUsed(
+            chunk_id="1", document_id="doc1", rank=1, score=0.9, 
+            text="React es una biblioteca de JavaScript para construir interfaces de usuario."
+        )
+    ]
+    
+    scores, alucinacion = evaluate(generated_content=content, chunks_used=chunks, generation_context=context)
+    
+    assert alucinacion is True

@@ -179,29 +179,29 @@ class FlashcardsContent(StrictModel):
         return self
 
 ### ============================================================
-### TLDR (RESUMEN EJECUTIVO)
+### TL;DR (RESUMEN EJECUTIVO)
 ### ============================================================
 
 class TLDRContent(StrictModel):
-    """Contenido generado para el formato resumen ejecutivo."""
+    """Contenido generado para el formato de Resumen Ejecutivo (TL;DR)."""
     title: str = Field(..., min_length=1, description="Título del resumen.")
-    summary: str = Field(..., min_length=1, description="Cuerpo principal del resumen ejecutivo.")
-    key_points: List[str] = Field(default_factory=list, description="Lista de puntos clave o viñetas importantes.")
+    summary: str = Field(..., min_length=1, description="Cuerpo principal del resumen.")
+    key_points: List[str] = Field(default_factory=list, description="Lista de viñetas o puntos clave.")
 
 ### ============================================================
-### VIDEO SCRIPT (GUION DE VIDEO)
+### GUION DE VIDEO
 ### ============================================================
-
-class VideoScene(StrictModel):
-    """Una escena individual del guion de video."""
+class VideoScriptScene(StrictModel):
+    """Escena individual de un guion de video."""
     scene_number: int = Field(..., ge=1, description="Número secuencial de la escena.")
-    visual_description: str = Field(..., min_length=1, description="Lo que se muestra en pantalla (acciones, imágenes).")
-    narration: str = Field(..., min_length=1, description="El texto hablado por el narrador o personajes.")
+    visual_description: str = Field(..., min_length=1, description="Descripción visual o de cámara.")
+    narration: str = Field(..., min_length=1, description="Texto que leerá el presentador/voz en off.")
 
 class VideoScriptContent(StrictModel):
-    """Contenido generado para el formato de guion de video."""
-    title: str = Field(..., min_length=1, description="Título del guion.")
-    scenes: List[VideoScene] = Field(..., min_length=1, description="Secuencia de escenas del guion.")
+    """Contenido generado para el formato de Guion de Video."""
+    title: str = Field(..., min_length=1, description="Título del video.")
+    target_duration_minutes: int = Field(default=0, description="Duración estimada.")
+    scenes: List[VideoScriptScene] = Field(..., min_length=1, description="Lista de escenas.")
 
 # ============================================================
 # CHUNKS UTILIZADOS COMO EVIDENCIA
@@ -352,12 +352,12 @@ class FlashcardsEvaluationRequest(EvaluationRequestBase):
 
 
 class TLDREvaluationRequest(EvaluationRequestBase):
-    """Solicitud de evaluación para un resumen ejecutivo."""
+    """Solicitud de evaluación para TL;DR."""
     format: Literal["tldr"]
     generated_content: TLDRContent
 
 class VideoScriptEvaluationRequest(EvaluationRequestBase):
-    """Solicitud de evaluación para un guion de video."""
+    """Solicitud de evaluación para Guion de Video."""
     format: Literal["video_script"]
     generated_content: VideoScriptContent
 
@@ -370,7 +370,7 @@ EvaluationRequest = Annotated[
     ],
     Field(discriminator="format"),
 ]
-
+      
 # ============================================================
 # RESPONSE
 # ============================================================
@@ -502,7 +502,7 @@ __all__ = [
     "QuizQuestion",
     "TLDRContent",
     "TLDREvaluationRequest",
-    "VideoScene",
+    "VideoScriptScene",
     "VideoScriptContent",
     "VideoScriptEvaluationRequest",
 ]
