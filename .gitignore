@@ -14,3 +14,7 @@ __pycache__/
 # Variables de entorno y secretos
 .env
 .venv/
+
+# Retrieval V2 local benchmark
+.benchmark_chroma_v2/
+.venv-agentes/
