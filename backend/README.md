@@ -22,10 +22,11 @@ Actualmente están implementados:
 
 - API FastAPI y configuración centralizada.
 - Endpoint de salud.
-- `POST /api/v1/documents` como **única entrada pública para cargar, almacenar e indexar un documento y programar su generación pedagógica**.
+- `POST /api/v1/documents` como entrada pública para cargar, almacenar e indexar un documento y programar su generación pedagógica inicial.
 - `GET /api/v1/documents` para listar documentos disponibles en la biblioteca.
 - `GET /api/v1/documents/{document_id}` para consultar metadata y estado del documento.
 - `GET /api/v1/documents/{document_id}/formats` para consultar Quiz y Flashcards persistidos.
+- `POST /api/v1/documents/{document_id}/formats/regenerate` para iniciar una nueva generación de uno o varios formatos reutilizando el contexto pedagógico persistido.
 - Admisión de archivos PDF, Markdown (`.md`) y TXT.
 - Validación de extensión y MIME type declarado.
 - Rechazo de archivos vacíos.
@@ -397,6 +398,20 @@ Responsabilidades:
 - actualizar cada intento sobre el mismo `format_id`;
 - conservar chunks utilizados como evidencia;
 - terminar en `success`, `failed` o `no_results`.
+
+#### `FormatRegenerationService`
+
+La regeneración explícita permanece separada de la generación inicial.
+
+Responsabilidades:
+
+- validar que el documento exista y permanezca `INDEXED`;
+- rechazar la solicitud completa si alguno de los formatos pedidos ya tiene un intento `processing`;
+- recuperar el `GenerationContext` del intento previo más reciente;
+- reutilizar `profile`, `niche`, `detail_level` y `learning_objective`;
+- delegar la creación de nuevos intentos a `FormatGenerationService`;
+- crear un nuevo `format_id` por formato sin sobrescribir el historial anterior;
+- reutilizar el mismo flujo de generación en segundo plano sin reindexar el documento.
 
 Estados soportados por formato:
 
@@ -997,6 +1012,32 @@ y hace polling mientras:
 status = processing
 ```
 
+La regeneración reutiliza el mismo pipeline de generación:
+
+```text
+POST /api/v1/documents/{document_id}/formats/regenerate
+        ↓
+FormatRegenerationService
+        ↓
+validar INDEXED + ausencia de processing en formatos solicitados
+        ↓
+reutilizar GenerationContext persistido
+        ↓
+nuevos format_id = processing
+        ↓
+202 Accepted
+        │
+        └──────────── background ─────────────┐
+                                              ↓
+                                   Agentes /generate
+                                              ↓
+                         mismos nuevos format_id
+                                              ↓
+                              success | failed | no_results
+```
+
+Frontend continúa consultando el mismo `GET /formats`; no existe un endpoint adicional de estado para la regeneración.
+
 ---
 ### Flujo de estados del documento
 
@@ -1271,6 +1312,102 @@ Ejemplo con formatos disponibles:
 }
 ```
 
+### Regenerar formatos
+
+```http
+POST /api/v1/documents/{document_id}/formats/regenerate
+Content-Type: application/json
+```
+
+Permite iniciar una nueva generación de uno o varios formatos soportados sin volver a cargar ni reindexar el documento.
+
+Solicitud para un solo formato:
+
+```json
+{
+  "formats": [
+    "quiz"
+  ]
+}
+```
+
+Solicitud para varios formatos:
+
+```json
+{
+  "formats": [
+    "quiz",
+    "flashcards"
+  ]
+}
+```
+
+Frontend **no vuelve a enviar**:
+
+```text
+profile
+niche
+detail_level
+learning_objective
+```
+
+Backend recupera automáticamente esos valores desde el contexto pedagógico persistido de la generación anterior.
+
+Antes de crear los nuevos intentos Backend valida:
+
+1. que el documento exista;
+2. que el documento esté `INDEXED`;
+3. que ninguno de los formatos solicitados tenga un intento activo en `processing`;
+4. que exista un contexto pedagógico previo reutilizable para los formatos solicitados.
+
+Si cualquiera de los formatos pedidos ya está en `processing`, la solicitud completa se rechaza y no se inicia una regeneración parcial.
+
+Respuesta aceptada:
+
+```http
+HTTP/1.1 202 Accepted
+```
+
+```json
+{
+  "document_id": "doc_123",
+  "status": "processing",
+  "formats": {
+    "quiz": {
+      "format_id": "fmt_quiz_2",
+      "status": "processing"
+    }
+  }
+}
+```
+
+Cada regeneración crea un nuevo `format_id`. Los intentos anteriores permanecen persistidos como historial.
+
+Después del `202`, la generación continúa en segundo plano mediante el mismo pipeline utilizado por la generación inicial:
+
+```text
+processing
+    ↓
+success | failed | no_results
+```
+
+Frontend debe continuar haciendo polling mediante:
+
+```http
+GET /api/v1/documents/{document_id}/formats
+```
+
+Errores principales:
+
+| HTTP | Caso |
+|---:|---|
+| `404` | `document_id` inexistente |
+| `409` | Documento no `INDEXED`, formato solicitado en `processing` o ausencia/conflicto de contexto previo reutilizable |
+| `422` | `formats` vacío, duplicado o con un formato no soportado |
+| `500` | No fue posible registrar los nuevos intentos |
+
+La regeneración no vuelve a almacenar el archivo original en OCI y no ejecuta una nueva indexación RAG.
+
 ### Endpoint de adaptación
 
 No existe un endpoint público:
@@ -1279,7 +1416,7 @@ No existe un endpoint público:
 POST /api/v1/adaptations
 ```
 
-La adaptación educativa es una operación interna iniciada desde `POST /api/v1/documents`.
+La adaptación educativa inicial es una operación interna iniciada desde `POST /api/v1/documents`.
 
 ---
 
@@ -1332,6 +1469,26 @@ El documento permanece:
 INDEXED
 ```
 
+### Regeneración
+
+La preparación de una regeneración traduce los errores de aplicación al contrato HTTP:
+
+```text
+FormatRegenerationDocumentNotFoundError
+    → 404
+
+FormatRegenerationDocumentStateError
+FormatRegenerationInProgressError
+FormatRegenerationContextNotFoundError
+FormatRegenerationContextConflictError
+    → 409
+
+GeneratedFormatRepositoryError
+    → 500
+```
+
+Los errores de validación del body se resuelven mediante Pydantic como `422`.
+
 ---
 ## Stack
 
@@ -1373,12 +1530,14 @@ backend/
 │   │       ├── router.py
 │   │       └── endpoints/
 │   │           ├── health.py
-│   │           └── documents.py
+│   │           ├── documents.py
+│   │           └── format_regeneration.py
 │   ├── schemas/
 │   │   ├── common.py
 │   │   ├── adaptation.py
 │   │   ├── document.py
-│   │   └── generated_format.py
+│   │   ├── generated_format.py
+│   │   └── format_regeneration.py
 │   ├── domain/
 │   │   ├── document.py
 │   │   ├── enums.py
@@ -1390,6 +1549,7 @@ backend/
 │   │   ├── document_service.py
 │   │   ├── rag_integration_service.py
 │   │   ├── format_generation_service.py
+│   │   ├── format_regeneration_service.py
 │   │   ├── generated_format_query_service.py
 │   │   └── format_evaluation_service.py
 │   ├── ports/
@@ -1426,7 +1586,8 @@ backend/
 │   ├── integration/
 │   │   ├── test_agents_generation_integration.py
 │   │   ├── test_document_formats_api.py
-│   │   └── test_documents_api.py
+│   │   ├── test_documents_api.py
+│   │   └── test_format_regeneration_api.py
 │   └── unit/
 │       ├── test_adaptation_orchestration_service.py
 │       ├── test_application_wiring.py
@@ -1439,6 +1600,7 @@ backend/
 │       ├── test_document_service.py
 │       ├── test_documents_list_api.py
 │       ├── test_format_generation_service.py
+│       ├── test_format_regeneration_service.py
 │       ├── test_generated_content.py
 │       ├── test_generated_format_query_service.py
 │       ├── test_generated_format_repository.py
@@ -1598,12 +1760,11 @@ python -m pytest -q
 git diff --check
 ```
 
-Última validación local de esta tarjeta de Sprint 3:
+Última validación automatizada local después de implementar la regeneración:
 
 ```text
 Ruff: All checks passed!
 Pytest: suite completa OK
-Git diff --check: OK
 ```
 
 La suite cubre, entre otros:
@@ -1663,7 +1824,14 @@ La suite cubre, entre otros:
 - separación entre listado, detalle y formatos;
 - ausencia de `/api/v1/adaptations` como endpoint público;
 - respuesta de `POST /documents` sin contenidos de formatos;
-- disponibilidad posterior de Quiz y Flashcards mediante `/formats`.
+- disponibilidad posterior de Quiz y Flashcards mediante `/formats`;
+- regeneración de un solo formato y de varios formatos en una misma solicitud;
+- reutilización automática de `profile`, `niche`, `detail_level` y `learning_objective`;
+- creación de nuevos `format_id` sin sobrescribir el historial anterior;
+- rechazo `409` cuando alguno de los formatos solicitados ya está en `processing`;
+- rechazo de regeneración para documentos no `INDEXED`;
+- validación `422` para listas vacías, formatos duplicados y formatos no soportados;
+- traducción a `500` cuando no es posible registrar los nuevos intentos de regeneración.
 
 ---
 ## Validación E2E de Sprint 3
@@ -1798,6 +1966,103 @@ mantuvo:
 }
 ```
 
+### 5. Regeneración real con Agentes/Gemini
+
+También se validó el endpoint de regeneración contra BackendAPI y el servicio real de Agentes con Gemini.
+
+Documento utilizado:
+
+```text
+doc_0621bc23b79f4c948f25c0c53a7bd25f
+```
+
+Estado previo:
+
+```text
+document.status = indexed
+quiz.status = failed
+flashcards.status = failed
+formats.status = error
+```
+
+Se solicitó únicamente:
+
+```json
+{
+  "formats": [
+    "quiz"
+  ]
+}
+```
+
+Backend respondió:
+
+```text
+HTTP 202 Accepted
+TIME_MS=71
+```
+
+con un nuevo intento:
+
+```json
+{
+  "document_id": "doc_0621bc23b79f4c948f25c0c53a7bd25f",
+  "status": "processing",
+  "formats": {
+    "quiz": {
+      "format_id": "fmt_908088188f9f417fa6e3353b1239e7f7",
+      "status": "processing"
+    }
+  }
+}
+```
+
+Un segundo `POST /formats/regenerate` inmediato para `quiz` devolvió:
+
+```text
+HTTP 409 Conflict
+```
+
+porque el nuevo intento todavía estaba activo.
+
+La generación real terminó posteriormente con el mismo `format_id`:
+
+```text
+fmt_908088188f9f417fa6e3353b1239e7f7
+processing → success
+```
+
+Como Flashcards conservaba su fallo anterior, el estado agregado pasó a:
+
+```text
+partial
+```
+
+El documento permaneció:
+
+```text
+indexed
+```
+
+por lo que la regeneración no modificó el estado de indexación.
+
+También se comprobó la validación de duplicados:
+
+```json
+{
+  "formats": [
+    "quiz",
+    "quiz"
+  ]
+}
+```
+
+Resultado:
+
+```text
+HTTP 422 Unprocessable Entity
+```
+
 ### Conclusión E2E
 
 La prueba confirma:
@@ -1812,6 +2077,13 @@ timeout de Agentes es independiente         ✅
 processing termina en failed               ✅
 mismo format_id se conserva                ✅
 documento permanece INDEXED                ✅
+regeneración responde 202                     ✅
+regeneración crea un nuevo format_id          ✅
+segundo intento activo se rechaza con 409     ✅
+regeneración real termina en success          ✅
+historial previo se conserva                  ✅
+body con formatos duplicados devuelve 422     ✅
+regeneración no reindexa el documento         ✅
 ```
 
 ---
@@ -1831,7 +2103,7 @@ GET /documents/{id}/formats
 → estado de generación
 ```
 
-Flujo recomendado:
+Flujo recomendado para la generación inicial:
 
 ```text
 POST /documents
@@ -1846,6 +2118,22 @@ polling
     ↓
 ready | partial | error
 ```
+
+Cuando Frontend necesite regenerar uno o varios formatos:
+
+```text
+POST /documents/{id}/formats/regenerate
+    ↓
+202 processing
+    ↓
+GET /documents/{id}/formats
+    ↓
+polling
+    ↓
+ready | partial | error
+```
+
+Si alguno de los formatos solicitados ya posee un intento `processing`, Backend responde `409` y Frontend debe continuar observando el intento existente.
 
 No se requiere un endpoint adicional de estado.
 
@@ -1912,11 +2200,9 @@ Opciones futuras:
 
 No es necesario mezclar esta mejora con el alcance actual mientras el equipo no defina explícitamente el mecanismo de recuperación.
 
+La misma limitación aplica a las regeneraciones, ya que reutilizan `FastAPI BackgroundTasks`.
+
 ---
-### Regeneración
-
-El endpoint explícito para regenerar formatos todavía no forma parte del contrato público actual. Su implementación debe reutilizar `FormatGenerationService`, conservar el contexto pedagógico y evitar reindexaciones innecesarias.
-
 ### Learning metadata
 
 Pendiente incorporar una estructura a nivel de adaptación/documento:
@@ -1996,6 +2282,32 @@ Frontend
 GET /api/v1/documents/{id}/formats
    ↓
 pending | processing | ready | partial | error
+
+Cuando solicita regeneración:
+
+Frontend
+   ↓
+POST /api/v1/documents/{id}/formats/regenerate
+   ↓
+BackendAPI
+   ├── validar INDEXED
+   ├── rechazar si un formato solicitado sigue processing
+   ├── reutilizar GenerationContext previo
+   └── crear nuevos format_id en processing
+   ↓
+202 Accepted
+   │
+   └──────── background ────────┐
+                                ↓
+                         Agentes /generate
+                                ↓
+             mismos nuevos format_id → estado terminal
+
+Frontend
+   ↓
+GET /api/v1/documents/{id}/formats
+   ↓
+polling hasta ready | partial | error
 ```
 
 El objetivo arquitectónico se mantiene: **Frontend conoce BackendAPI; BackendAPI orquesta; RAG/Agentes resuelve recuperación y generación; Data/IA permanece desacoplado para evaluación.**
