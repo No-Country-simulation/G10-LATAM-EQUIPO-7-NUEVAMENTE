@@ -208,6 +208,16 @@ class GeneratedFormatQueryService:
             if not candidates:
                 continue
 
+            processing_candidates = [
+                generated_format
+                for generated_format
+                in candidates
+                if (
+                    generated_format.status
+                    == GeneratedFormatStatus.PROCESSING
+                )
+            ]
+
             successful_candidates = [
                 generated_format
                 for generated_format
@@ -218,11 +228,18 @@ class GeneratedFormatQueryService:
                 )
             ]
 
-            available_candidates = (
-                successful_candidates
-                if successful_candidates
-                else candidates
-            )
+            if processing_candidates:
+                available_candidates = (
+                    processing_candidates
+                )
+
+            elif successful_candidates:
+                available_candidates = (
+                    successful_candidates
+                )
+
+            else:
+                available_candidates = candidates
 
             current_format = max(
                 available_candidates,
@@ -248,7 +265,26 @@ class GeneratedFormatQueryService:
             ...
         ],
     ) -> DocumentFormatsStatus:
-        """Calcula el estado agregado consumido por Frontend."""
+        """Calcula el estado agregado consumido por Frontend.
+
+        Cualquier intento activo mantiene el agregado en ``processing``
+        para que Frontend continúe haciendo polling.
+
+        Cuando no existen intentos activos:
+        - todos los formatos exitosos -> ``ready``;
+        - al menos un éxito -> ``partial``;
+        - ningún éxito -> ``error``.
+        """
+        if any(
+            generated_format.status
+            == GeneratedFormatStatus.PROCESSING
+            for generated_format
+            in formats
+        ):
+            return (
+                DocumentFormatsStatus.PROCESSING
+            )
+
         successful_types = {
             generated_format.format_type
             for generated_format

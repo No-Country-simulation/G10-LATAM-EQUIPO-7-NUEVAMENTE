@@ -16,10 +16,11 @@ body {
     url('../biblioteca.jpg') center center / cover no-repeat fixed;
   color: var(--text-main);
   font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-  min-height: 100vh;
+  height: 100vh;
+  max-height: 100vh;
   display: flex;
   flex-direction: column;
-  overflow-x: hidden;
+  overflow: hidden;
   transition: background 0.3s ease, color 0.3s ease;
 }
 
@@ -53,11 +54,11 @@ body {
   position: sticky;
   top: 0;
   z-index: 100;
-  padding: 0.75rem 2rem;
+  padding: clamp(0.4rem, 0.9vh, 0.7rem) clamp(1rem, 2vw, 2rem);
   display: flex;
   justify-content: space-between;
   align-items: center;
-  gap: 1.5rem;
+  gap: 1rem;
 }
 
 .brand {
@@ -186,25 +187,40 @@ body {
 .header-connection-badge {
   display: inline-flex;
   align-items: center;
-  gap: 0.5rem;
+  gap: 0.55rem;
   background: rgba(16, 185, 129, 0.1);
   border: 1px solid rgba(16, 185, 129, 0.35);
-  padding: 0.38rem 0.85rem;
+  padding: 0.38rem 0.9rem;
   border-radius: 999px;
-  font-size: 0.78rem;
+  font-size: 0.82rem;
   font-weight: 700;
   color: var(--accent-green);
   user-select: none;
   letter-spacing: 0.02em;
+  transition: all var(--transition-normal);
 }
 
 .status-dot-pulse {
-  width: 8px;
-  height: 8px;
+  width: 9px;
+  height: 9px;
   border-radius: 50%;
   background: var(--accent-green);
   box-shadow: 0 0 8px var(--accent-green);
   animation: pulseDotGreen 2s infinite ease-in-out;
+  transition: all var(--transition-normal);
+}
+
+/* Estado Desconectado (Backend Offline - Rojo Reactivo) */
+.header-connection-badge.is-disconnected {
+  background: rgba(239, 68, 68, 0.12);
+  border-color: rgba(239, 68, 68, 0.45);
+  color: #ef4444;
+}
+
+.header-connection-badge.is-disconnected .status-dot-pulse {
+  background: #ef4444;
+  box-shadow: 0 0 10px rgba(239, 68, 68, 0.85);
+  animation: pulseDotRed 2s infinite ease-in-out;
 }
 
 @keyframes pulseDotGreen {
@@ -212,13 +228,20 @@ body {
   50% { opacity: 0.4; transform: scale(0.8); }
 }
 
+@keyframes pulseDotRed {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.4; transform: scale(0.85); }
+}
+
 /* Contenedor Principal de la App y Sistema de Vistas */
 .app-container {
   flex: 1;
+  min-height: 0;
   display: flex;
   flex-direction: column;
   position: relative;
   width: 100%;
+  overflow: hidden;
 }
 
 .tab-view {
@@ -226,7 +249,35 @@ body {
   flex-direction: column;
   width: 100%;
   flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  overflow-x: hidden;
+  scroll-behavior: smooth;
   animation: fadeInView 0.25s ease forwards;
+}
+
+/* Scrollbar sutil y elegante que solo aparece cuando el contenido desborda */
+.tab-view::-webkit-scrollbar {
+  width: 8px;
+}
+
+.tab-view::-webkit-scrollbar-track {
+  background: rgba(0, 0, 0, 0.2);
+}
+
+.tab-view::-webkit-scrollbar-thumb {
+  background: rgba(245, 158, 11, 0.35);
+  border-radius: 4px;
+  border: 1px solid rgba(254, 240, 138, 0.2);
+}
+
+.tab-view::-webkit-scrollbar-thumb:hover {
+  background: rgba(245, 158, 11, 0.65);
+}
+
+.tab-view {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(245, 158, 11, 0.35) rgba(0, 0, 0, 0.2);
 }
 
 .tab-view.active {
@@ -249,11 +300,11 @@ body {
   border-top: 1px solid var(--border-ui);
   background: var(--surface-glass);
   backdrop-filter: blur(8px);
-  padding: 0.6rem 2rem;
+  padding: 0.5rem clamp(1rem, 2vw, 2rem);
   display: flex;
   justify-content: space-between;
   align-items: center;
-  font-size: 0.78rem;
+  font-size: 0.82rem;
   color: var(--text-muted);
   z-index: 50;
 }
@@ -262,6 +313,7 @@ body {
   display: flex;
   align-items: center;
   gap: 0.55rem;
+  transition: color 0.3s ease;
 }
 
 .status-dot {
@@ -271,6 +323,19 @@ body {
   border-radius: 50%;
   box-shadow: 0 0 10px rgba(16, 185, 129, 0.7);
   animation: pulseDot 2s infinite;
+  transition: all 0.3s ease;
+}
+
+/* Estado Desconectado en Footer */
+.status-indicator.is-disconnected .status-dot {
+  background-color: #ef4444;
+  box-shadow: 0 0 10px rgba(239, 68, 68, 0.85);
+  animation: pulseDotRed 2s infinite;
+}
+
+.status-indicator.is-disconnected span {
+  color: #f87171;
+  font-weight: 600;
 }
 
 @keyframes pulseDot {
@@ -281,11 +346,26 @@ body {
 @media (max-width: 960px) {
   .app-header {
     flex-wrap: wrap;
-    padding: 0.75rem 1rem;
+    padding: 0.5rem 1rem;
   }
   .main-nav-tabs {
     order: 3;
     width: 100%;
     justify-content: center;
+  }
+}
+
+/* Fallback responsive para pantallas móviles o de baja altura */
+@media (max-width: 768px), (max-height: 600px) {
+  body {
+    height: auto;
+    min-height: 100vh;
+    overflow-y: auto;
+  }
+  .app-container {
+    overflow: visible;
+  }
+  .tab-view {
+    overflow: visible;
   }
 }

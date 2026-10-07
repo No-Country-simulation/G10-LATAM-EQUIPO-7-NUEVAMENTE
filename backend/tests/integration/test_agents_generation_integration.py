@@ -158,7 +158,7 @@ def _build_agents_response() -> dict[str, object]:
 def test_generation_through_http_agents_is_persisted_in_sqlite(
     tmp_path: Path,
 ) -> None:
-    """Genera mediante HTTPAgentsAdapter y persiste el resultado real."""
+    """Prepara, genera mediante HTTPAgentsAdapter y persiste resultados."""
 
     database = SQLiteDatabase(
         "sqlite:///"
@@ -245,8 +245,8 @@ def test_generation_through_http_agents_is_persisted_in_sqlite(
                 )
             )
 
-            generated_formats = (
-                await service.generate_formats(
+            attempts = (
+                service.prepare_generation(
                     document_id=DOCUMENT_ID,
                     formats=(
                         GeneratedFormatType.QUIZ,
@@ -263,8 +263,58 @@ def test_generation_through_http_agents_is_persisted_in_sqlite(
             )
 
             assert len(
+                attempts
+            ) == 2
+
+            assert all(
+                attempt.status
+                == GeneratedFormatStatus.PROCESSING
+                for attempt in attempts
+            )
+
+            processing_formats = (
+                generated_format_repository
+                .find_by_document_id(
+                    DOCUMENT_ID
+                )
+            )
+
+            assert len(
+                processing_formats
+            ) == 2
+
+            assert all(
+                generated_format.status
+                == GeneratedFormatStatus.PROCESSING
+                for generated_format
+                in processing_formats
+            )
+
+            processing_ids = {
+                generated_format.format_type:
+                generated_format.format_id
+                for generated_format
+                in processing_formats
+            }
+
+            generated_formats = (
+                await service.complete_generation(
+                    attempts=tuple(
+                        attempts
+                    )
+                )
+            )
+
+            assert len(
                 generated_formats
             ) == 2
+
+            assert {
+                generated_format.format_type:
+                generated_format.format_id
+                for generated_format
+                in generated_formats
+            } == processing_ids
 
     asyncio.run(
         run_test()

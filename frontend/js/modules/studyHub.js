@@ -84,7 +84,7 @@ export const studyHub = {
         this.elements.topicBadge.textContent = 'BIBLIOTECA';
       }
       if (this.elements.topicTitle) {
-        this.elements.topicTitle.textContent = 'Selecciona o sube un documento en La Biblioteca para comenzar a estudiar';
+        this.elements.topicTitle.textContent = 'Selecciona o carga un documento en la Biblioteca para iniciar la capacitación';
       }
       flashcards.render([]);
       quiz.render(null);
@@ -195,7 +195,7 @@ export const studyHub = {
       });
 
       if (globalStatus === 'ready') {
-        notifySuccess('Formatos Sincronizados', 'Se cargaron los materiales pedagógicos desde el Backend.');
+        notifySuccess('Módulos Sincronizados', 'Se cargaron los materiales de capacitación desde el Backend.');
       }
     } catch (err) {
       console.warn('[StudyHub] Error al consultar formatos desde el backend:', err.message);
@@ -209,7 +209,7 @@ export const studyHub = {
       statusDialog.showError({
         status: err.status || 500,
         code: err.code || 'FORMATS_FETCH_ERROR',
-        message: err.message || `No fue posible cargar los formatos de estudio para "${doc.title || doc.filename}".`,
+        message: err.message || `No fue posible cargar los formatos de capacitación para "${doc.title || doc.filename}".`,
         details: [`Documento ID: ${doc.id}`, err.message],
         filename: doc.filename || doc.title
       });
