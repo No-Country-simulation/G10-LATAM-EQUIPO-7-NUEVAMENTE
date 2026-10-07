@@ -510,10 +510,10 @@ export const statusDialog = {
         this.showError({
           status: 0,
           code: 'CONNECTION_REFUSED',
-          message: 'No se pudo conectar con el Backend (FastAPI). Verifica que esté activo en http://localhost:8000',
+          message: 'No se pudo conectar con el servidor Backend. Verifica que el servicio esté iniciado y accesible.',
           details: [
-            'Servicio backend no disponible en el puerto especificado.',
-            'Comando local recomendado: uvicorn app.main:app --reload --port 8000'
+            'Servicio backend no disponible en la dirección configurada.',
+            'Verifica que el servicio backend esté activo y accesible.'
           ],
           filename: demoFileName
         });

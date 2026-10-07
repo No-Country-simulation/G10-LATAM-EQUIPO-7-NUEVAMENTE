@@ -5,6 +5,8 @@
  * mensajes pedagógicos claros, comprensibles y libres de tecnicismos agresivos.
  */
 
+import { CONFIG } from '../config.js';
+
 export function toFriendlyError(err) {
   if (!err) {
     return {
@@ -43,10 +45,10 @@ export function toFriendlyError(err) {
       status: 0,
       code: 'CONNECTION_REFUSED',
       title: 'Servidor Fuera de Línea',
-      message: 'No fue posible conectar con el servidor backend (FastAPI). Por favor verifica que el servicio esté iniciado.',
+      message: 'No fue posible conectar con el servidor backend. Por favor verifica que el servicio esté iniciado y accesible.',
       details: [
         'El navegador no pudo comunicarse con la URL configurada.',
-        'Verifica que el backend esté ejecutándose en http://localhost:8000.'
+        `Verifica que el servicio backend esté activo en ${CONFIG.API.DEFAULT_BASE_URL}.`
       ],
       isNetwork: true,
       actionText: 'Reintentar Conexión'

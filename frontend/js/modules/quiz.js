@@ -56,33 +56,59 @@ export const quiz = {
       if (this.quizMeta?.status === 'failed') {
         const friendly = toFriendlyError({ message: this.quizMeta.errorMessage });
         questionText.textContent = 'Evaluación de Competencias (Quiz)';
-        optionsList.innerHTML = `
-          <div class="format-friendly-notice">
-            <div class="friendly-notice-icon">📋</div>
-            <h4 class="friendly-notice-title">Evaluación en Proceso de Generación</h4>
-            <p class="friendly-notice-text">
-              ${friendly.message}
-            </p>
-            <div class="friendly-notice-actions">
-              <button type="button" class="btn-friendly-action btn-retry-quiz" id="btnRetryQuizFromNotice">
-                <span>↻ Sincronizar Formatos</span>
-              </button>
-              <button type="button" class="btn-friendly-action btn-switch-flashcards" id="btnGoFlashcardsFromNotice">
-                <span>✦ Estudiar con Flashcards</span>
-              </button>
-            </div>
-          </div>
-        `;
+        optionsList.innerHTML = '';
 
-        optionsList.querySelector('#btnRetryQuizFromNotice')?.addEventListener('click', () => {
+        const noticeCard = document.createElement('div');
+        noticeCard.className = 'format-friendly-notice';
+
+        const iconEl = document.createElement('div');
+        iconEl.className = 'friendly-notice-icon';
+        iconEl.textContent = '📋';
+
+        const titleEl = document.createElement('h4');
+        titleEl.className = 'friendly-notice-title';
+        titleEl.textContent = friendly.title || 'Evaluación en Proceso de Generación';
+
+        const textEl = document.createElement('p');
+        textEl.className = 'friendly-notice-text';
+        textEl.textContent = friendly.message;
+
+        const actionsEl = document.createElement('div');
+        actionsEl.className = 'friendly-notice-actions';
+
+        const btnRetry = document.createElement('button');
+        btnRetry.type = 'button';
+        btnRetry.className = 'btn-friendly-action btn-retry-quiz';
+        btnRetry.id = 'btnRetryQuizFromNotice';
+        const retrySpan = document.createElement('span');
+        retrySpan.textContent = '↻ Sincronizar Formatos';
+        btnRetry.appendChild(retrySpan);
+        btnRetry.addEventListener('click', () => {
           const btnRefresh = document.getElementById('btnRefreshFormats');
           if (btnRefresh) btnRefresh.click();
         });
 
-        optionsList.querySelector('#btnGoFlashcardsFromNotice')?.addEventListener('click', () => {
+        const btnFlash = document.createElement('button');
+        btnFlash.type = 'button';
+        btnFlash.className = 'btn-friendly-action btn-switch-flashcards';
+        btnFlash.id = 'btnGoFlashcardsFromNotice';
+        const flashSpan = document.createElement('span');
+        flashSpan.textContent = '✦ Estudiar con Flashcards';
+        btnFlash.appendChild(flashSpan);
+        btnFlash.addEventListener('click', () => {
           const flashTab = document.querySelector('.format-tab-btn[data-format="flashcards"]');
           if (flashTab) flashTab.click();
         });
+
+        actionsEl.appendChild(btnRetry);
+        actionsEl.appendChild(btnFlash);
+
+        noticeCard.appendChild(iconEl);
+        noticeCard.appendChild(titleEl);
+        noticeCard.appendChild(textEl);
+        noticeCard.appendChild(actionsEl);
+
+        optionsList.appendChild(noticeCard);
       } else if (this.quizMeta?.status === 'no_results') {
         questionText.textContent = 'Sin preguntas de evaluación generadas';
         optionsList.innerHTML = `
