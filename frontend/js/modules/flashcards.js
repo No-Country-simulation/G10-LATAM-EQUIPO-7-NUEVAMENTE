@@ -27,7 +27,8 @@ export const flashcards = {
       counterText: document.getElementById('cardCounter'),
       btnPrev: document.getElementById('btnPrevCard'),
       btnNext: document.getElementById('btnNextCard'),
-      btnFlip: document.getElementById('btnFlipCard')
+      btnFlip: document.getElementById('btnFlipCard'),
+      btnRegen: document.getElementById('btnRegenFlashcards')
     };
   },
 
@@ -56,6 +57,15 @@ export const flashcards = {
       btnNext.addEventListener('click', (e) => {
         e.stopPropagation();
         this.nextCard();
+      });
+    }
+
+    if (this.elements.btnRegen) {
+      this.elements.btnRegen.addEventListener('click', (e) => {
+        e.stopPropagation();
+        import('./studyHub.js').then(({ studyHub }) => {
+          studyHub.triggerRegeneration(['flashcards']);
+        });
       });
     }
 
@@ -182,8 +192,13 @@ export const flashcards = {
   },
 
   updateCardDisplay() {
-    const { card, frontText, backText, hintText, progressTop, counterText, btnPrev, btnNext } = this.elements;
+    const { card, frontText, backText, hintText, progressTop, counterText, btnPrev, btnNext, btnRegen } = this.elements;
     if (!card) return;
+
+    if (btnRegen) {
+      const isBusy = this.formatMeta?.status === 'processing' || this.formatMeta?.status === 'pending';
+      btnRegen.disabled = isBusy;
+    }
 
     card.classList.remove('flipped');
 

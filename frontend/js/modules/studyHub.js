@@ -124,14 +124,14 @@ export const studyHub = {
       btn.style.display = 'inline-flex';
       btn.disabled = false;
       btn.className = 'btn-refresh-formats';
-      btn.title = 'Haz clic para regenerar los formatos pedagógicos a demanda.';
+      btn.title = 'Haz clic para regenerar todos los módulos de capacitación a demanda.';
 
       const icon = document.createElement('span');
       icon.textContent = '↻';
 
       const label = document.createElement('span');
       label.style.marginLeft = '0.35rem';
-      label.textContent = 'Regenerar Formatos';
+      label.textContent = 'Regenerar Módulos';
 
       btn.appendChild(icon);
       btn.appendChild(label);
