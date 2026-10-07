@@ -22,10 +22,12 @@ Actualmente están implementados:
 
 - API FastAPI y configuración centralizada.
 - Endpoint de salud.
-- `POST /api/v1/documents` como **única entrada pública para cargar, almacenar e indexar un documento y programar su generación pedagógica**.
+- `POST /api/v1/documents` como entrada pública para cargar, almacenar e indexar un documento y programar su generación pedagógica inicial.
 - `GET /api/v1/documents` para listar documentos disponibles en la biblioteca.
 - `GET /api/v1/documents/{document_id}` para consultar metadata y estado del documento.
 - `GET /api/v1/documents/{document_id}/formats` para consultar Quiz y Flashcards persistidos.
+- `POST /api/v1/documents/{document_id}/formats/regenerate` para iniciar una nueva generación de uno o varios formatos reutilizando el contexto pedagógico persistido.
+- Contrato transversal de errores con `code`, `detail`, `errors[]` y `timestamp`, independiente de los mensajes de UI de Frontend.
 - Admisión de archivos PDF, Markdown (`.md`) y TXT.
 - Validación de extensión y MIME type declarado.
 - Rechazo de archivos vacíos.
@@ -397,6 +399,20 @@ Responsabilidades:
 - actualizar cada intento sobre el mismo `format_id`;
 - conservar chunks utilizados como evidencia;
 - terminar en `success`, `failed` o `no_results`.
+
+#### `FormatRegenerationService`
+
+La regeneración explícita permanece separada de la generación inicial.
+
+Responsabilidades:
+
+- validar que el documento exista y permanezca `INDEXED`;
+- rechazar la solicitud completa si alguno de los formatos pedidos ya tiene un intento `processing`;
+- recuperar el `GenerationContext` del intento previo más reciente;
+- reutilizar `profile`, `niche`, `detail_level` y `learning_objective`;
+- delegar la creación de nuevos intentos a `FormatGenerationService`;
+- crear un nuevo `format_id` por formato sin sobrescribir el historial anterior;
+- reutilizar el mismo flujo de generación en segundo plano sin reindexar el documento.
 
 Estados soportados por formato:
 
@@ -997,6 +1013,32 @@ y hace polling mientras:
 status = processing
 ```
 
+La regeneración reutiliza el mismo pipeline de generación:
+
+```text
+POST /api/v1/documents/{document_id}/formats/regenerate
+        ↓
+FormatRegenerationService
+        ↓
+validar INDEXED + ausencia de processing en formatos solicitados
+        ↓
+reutilizar GenerationContext persistido
+        ↓
+nuevos format_id = processing
+        ↓
+202 Accepted
+        │
+        └──────────── background ─────────────┐
+                                              ↓
+                                   Agentes /generate
+                                              ↓
+                         mismos nuevos format_id
+                                              ↓
+                              success | failed | no_results
+```
+
+Frontend continúa consultando el mismo `GET /formats`; no existe un endpoint adicional de estado para la regeneración.
+
 ---
 ### Flujo de estados del documento
 
@@ -1271,6 +1313,102 @@ Ejemplo con formatos disponibles:
 }
 ```
 
+### Regenerar formatos
+
+```http
+POST /api/v1/documents/{document_id}/formats/regenerate
+Content-Type: application/json
+```
+
+Permite iniciar una nueva generación de uno o varios formatos soportados sin volver a cargar ni reindexar el documento.
+
+Solicitud para un solo formato:
+
+```json
+{
+  "formats": [
+    "quiz"
+  ]
+}
+```
+
+Solicitud para varios formatos:
+
+```json
+{
+  "formats": [
+    "quiz",
+    "flashcards"
+  ]
+}
+```
+
+Frontend **no vuelve a enviar**:
+
+```text
+profile
+niche
+detail_level
+learning_objective
+```
+
+Backend recupera automáticamente esos valores desde el contexto pedagógico persistido de la generación anterior.
+
+Antes de crear los nuevos intentos Backend valida:
+
+1. que el documento exista;
+2. que el documento esté `INDEXED`;
+3. que ninguno de los formatos solicitados tenga un intento activo en `processing`;
+4. que exista un contexto pedagógico previo reutilizable para los formatos solicitados.
+
+Si cualquiera de los formatos pedidos ya está en `processing`, la solicitud completa se rechaza y no se inicia una regeneración parcial.
+
+Respuesta aceptada:
+
+```http
+HTTP/1.1 202 Accepted
+```
+
+```json
+{
+  "document_id": "doc_123",
+  "status": "processing",
+  "formats": {
+    "quiz": {
+      "format_id": "fmt_quiz_2",
+      "status": "processing"
+    }
+  }
+}
+```
+
+Cada regeneración crea un nuevo `format_id`. Los intentos anteriores permanecen persistidos como historial.
+
+Después del `202`, la generación continúa en segundo plano mediante el mismo pipeline utilizado por la generación inicial:
+
+```text
+processing
+    ↓
+success | failed | no_results
+```
+
+Frontend debe continuar haciendo polling mediante:
+
+```http
+GET /api/v1/documents/{document_id}/formats
+```
+
+Errores principales:
+
+| HTTP | Caso |
+|---:|---|
+| `404` | `document_id` inexistente |
+| `409` | Documento no `INDEXED`, formato solicitado en `processing` o ausencia/conflicto de contexto previo reutilizable |
+| `422` | `formats` vacío, duplicado o con un formato no soportado |
+| `500` | No fue posible registrar los nuevos intentos |
+
+La regeneración no vuelve a almacenar el archivo original en OCI y no ejecuta una nueva indexación RAG.
+
 ### Endpoint de adaptación
 
 No existe un endpoint público:
@@ -1279,33 +1417,160 @@ No existe un endpoint público:
 POST /api/v1/adaptations
 ```
 
-La adaptación educativa es una operación interna iniciada desde `POST /api/v1/documents`.
+La adaptación educativa inicial es una operación interna iniciada desde `POST /api/v1/documents`.
 
 ---
 
 ## Manejo de errores del flujo integrado
 
+BackendAPI expone un contrato transversal de errores para que Frontend pueda
+distinguir la causa funcional sin depender únicamente del HTTP status ni de
+comparar mensajes humanos.
+
+La respuesta estándar es:
+
+```json
+{
+  "code": "RAG_INDEXING_FAILED",
+  "detail": "No fue posible completar la indexación del documento.",
+  "errors": [],
+  "timestamp": "2026-10-07T18:00:00Z"
+}
+```
+
+Responsabilidad de cada campo:
+
+| Campo | Responsabilidad |
+|---|---|
+| HTTP status | Semántica del protocolo (`404`, `409`, `422`, `500`, `502`, etc.). |
+| `code` | Identificador funcional estable consumible por Frontend. |
+| `detail` | Mensaje seguro y legible para el cliente. |
+| `errors[]` | Detalles estructurados, especialmente validaciones por campo. |
+| `timestamp` | Momento en que Backend construyó la respuesta de error. |
+
+Los códigos públicos se centralizan en:
+
+```text
+app/core/error_codes.py
+```
+
+Los errores HTTP controlados utilizan:
+
+```text
+APIHTTPException
+```
+
+definida en:
+
+```text
+app/core/http_exceptions.py
+```
+
+La traducción final al `ErrorResponse` continúa centralizada en:
+
+```text
+app/core/exceptions.py
+```
+
+Frontend no debe depender de nombres de excepciones Python ni comparar el texto
+de `detail` para decidir comportamiento. Debe usar prioritariamente `code`.
+
+### Validaciones `422`
+
+Los errores de Pydantic conservan un código raíz estable y el detalle por campo:
+
+```json
+{
+  "code": "REQUEST_VALIDATION_ERROR",
+  "detail": "Error de validación en la petición.",
+  "errors": [
+    {
+      "code": "value_error",
+      "message": "formats no puede contener valores duplicados.",
+      "field": "formats"
+    }
+  ],
+  "timestamp": "2026-10-07T18:00:00Z"
+}
+```
+
+El `code` raíz identifica la categoría funcional completa. El `code` interno de
+cada elemento de `errors[]` conserva el identificador específico producido por
+la validación.
+
+### Códigos funcionales expuestos
+
+| `code` | HTTP | Caso principal |
+|---|---:|---|
+| `DOCUMENT_FILENAME_REQUIRED` | `400` | El archivo no tiene un nombre válido. |
+| `DOCUMENT_EMPTY` | `400` | El archivo recibido tiene cero bytes. |
+| `DOCUMENT_NOT_FOUND` | `404` | El `document_id` solicitado no existe. |
+| `DOCUMENT_STATE_CONFLICT` | `409` | El documento no permite la transición solicitada. |
+| `DOCUMENT_NOT_INDEXED` | `409` | Se intenta generar/regenerar sin estado `INDEXED`. |
+| `FILE_TOO_LARGE` | `413` | El archivo supera el máximo configurado. |
+| `UNSUPPORTED_FILE_TYPE` | `415` | La extensión no está soportada. |
+| `MIME_TYPE_MISMATCH` | `415` | El MIME type declarado no corresponde al formato admitido. |
+| `REQUEST_VALIDATION_ERROR` | `422` | El request no cumple el schema HTTP. |
+| `DOCUMENT_STORAGE_FAILED` | `502` | Falló el almacenamiento del original en OCI. |
+| `DOCUMENT_RETRIEVAL_FAILED` | `502` | No fue posible recuperar el original desde Object Storage. |
+| `RAG_INDEXING_FAILED` | `502` | Falló la integración/indexación RAG. |
+| `FORMAT_REGISTRATION_FAILED` | `500` | No fue posible registrar los intentos iniciales de generación. |
+| `FORMAT_REGENERATION_IN_PROGRESS` | `409` | Algún formato solicitado ya tiene un intento `processing`. |
+| `FORMAT_CONTEXT_NOT_FOUND` | `409` | No existe contexto pedagógico previo reutilizable. |
+| `FORMAT_CONTEXT_CONFLICT` | `409` | Los formatos solicitados no comparten un contexto reutilizable. |
+| `FORMAT_REGENERATION_REGISTRATION_FAILED` | `500` | No fue posible registrar los nuevos intentos de regeneración. |
+| `PERSISTENCE_ERROR` | `500` | Fallo conocido al acceder a la persistencia. |
+| `INTERNAL_SERVER_ERROR` | `500` | Excepción no controlada. |
+| `HTTP_ERROR` | variable | `HTTPException` de framework/ruta sin una causa funcional clasificada. |
+
+`BAD_REQUEST` permanece disponible en el catálogo para errores `400` genéricos
+que no tengan todavía una causa más específica.
+
 ### Durante almacenamiento e indexación
+
+La traducción diferencia causas que pueden compartir el mismo HTTP status:
 
 ```text
 DocumentNotFoundError
-    → 404
+    → 404 DOCUMENT_NOT_FOUND
 
 AdaptationDocumentStateError
 DocumentNotStoredError
 DocumentIndexingStateError
-    → 409
+    → 409 DOCUMENT_STATE_CONFLICT
 
 DocumentRetrievalError
+    → 502 DOCUMENT_RETRIEVAL_FAILED
+
 RAGIntegrationError
-    → 502
+    → 502 RAG_INDEXING_FAILED
+
+DocumentStorageError
+    → 502 DOCUMENT_STORAGE_FAILED
 ```
+
+De esta forma un fallo RAG ya no necesita interpretarse en Frontend como si
+fuera un fallo de OCI únicamente porque ambos utilicen `502`.
 
 ### Preparación de generación
 
 El registro de intentos `processing` ocurre antes de responder.
 
-Un fallo de persistencia en esta etapa impide programar una generación que Frontend no pueda observar correctamente.
+Casos públicos principales:
+
+```text
+FormatGenerationDocumentNotFoundError
+    → 404 DOCUMENT_NOT_FOUND
+
+DocumentNotReadyForGenerationError
+    → 409 DOCUMENT_NOT_INDEXED
+
+GeneratedFormatRepositoryError
+    → 500 FORMAT_REGISTRATION_FAILED
+```
+
+Un fallo de persistencia en esta etapa impide programar una generación que
+Frontend no pueda observar correctamente.
 
 ### Generación en background
 
@@ -1315,6 +1580,7 @@ Casos relevantes:
 FormatGenerationAttemptStateError
 FormatGenerationIntegrationError
 FormatGenerationContractError
+FormatGenerationRecoveryError
 GeneratedFormatRepositoryError
 ```
 
@@ -1331,6 +1597,66 @@ El documento permanece:
 ```text
 INDEXED
 ```
+
+Como la respuesta HTTP ya fue enviada, estos errores se observan posteriormente
+mediante `GET /documents/{document_id}/formats` y no mediante un nuevo
+`ErrorResponse`.
+
+### Regeneración
+
+La preparación de una regeneración traduce cada conflicto a un código estable:
+
+```text
+FormatRegenerationDocumentNotFoundError
+FormatGenerationDocumentNotFoundError
+    → 404 DOCUMENT_NOT_FOUND
+
+FormatRegenerationDocumentStateError
+DocumentNotReadyForGenerationError
+    → 409 DOCUMENT_NOT_INDEXED
+
+FormatRegenerationInProgressError
+    → 409 FORMAT_REGENERATION_IN_PROGRESS
+
+FormatRegenerationContextNotFoundError
+    → 409 FORMAT_CONTEXT_NOT_FOUND
+
+FormatRegenerationContextConflictError
+    → 409 FORMAT_CONTEXT_CONFLICT
+
+GeneratedFormatRepositoryError
+    → 500 FORMAT_REGENERATION_REGISTRATION_FAILED
+
+DocumentRepositoryError
+    → 500 PERSISTENCE_ERROR
+```
+
+Los errores de validación del body se resuelven mediante Pydantic como:
+
+```text
+422 REQUEST_VALIDATION_ERROR
+```
+
+### Fallbacks seguros
+
+Un error HTTP del framework que no tenga una clasificación funcional explícita
+usa:
+
+```text
+HTTP_ERROR
+```
+
+Por ejemplo, una ruta inexistente no se etiqueta falsamente como
+`DOCUMENT_NOT_FOUND`.
+
+Cualquier excepción no controlada utiliza:
+
+```text
+500 INTERNAL_SERVER_ERROR
+```
+
+y el detalle interno se registra en Backend sin exponer stack traces ni nombres
+de excepciones al cliente.
 
 ---
 ## Stack
@@ -1373,12 +1699,14 @@ backend/
 │   │       ├── router.py
 │   │       └── endpoints/
 │   │           ├── health.py
-│   │           └── documents.py
+│   │           ├── documents.py
+│   │           └── format_regeneration.py
 │   ├── schemas/
 │   │   ├── common.py
 │   │   ├── adaptation.py
 │   │   ├── document.py
-│   │   └── generated_format.py
+│   │   ├── generated_format.py
+│   │   └── format_regeneration.py
 │   ├── domain/
 │   │   ├── document.py
 │   │   ├── enums.py
@@ -1390,6 +1718,7 @@ backend/
 │   │   ├── document_service.py
 │   │   ├── rag_integration_service.py
 │   │   ├── format_generation_service.py
+│   │   ├── format_regeneration_service.py
 │   │   ├── generated_format_query_service.py
 │   │   └── format_evaluation_service.py
 │   ├── ports/
@@ -1417,16 +1746,20 @@ backend/
 │   │       └── oci_object_storage_adapter.py
 │   └── core/
 │       ├── config.py
+│       ├── error_codes.py
 │       ├── exceptions.py
-│       ├── logging.py
-│       └── hashing.py
+│       ├── hashing.py
+│       ├── http_exceptions.py
+│       └── logging.py
 ├── tests/
 │   ├── conftest.py
 │   ├── fakes.py
 │   ├── integration/
 │   │   ├── test_agents_generation_integration.py
 │   │   ├── test_document_formats_api.py
-│   │   └── test_documents_api.py
+│   │   ├── test_documents_api.py
+│   │   ├── test_error_contract.py
+│   │   └── test_format_regeneration_api.py
 │   └── unit/
 │       ├── test_adaptation_orchestration_service.py
 │       ├── test_application_wiring.py
@@ -1439,6 +1772,7 @@ backend/
 │       ├── test_document_service.py
 │       ├── test_documents_list_api.py
 │       ├── test_format_generation_service.py
+│       ├── test_format_regeneration_service.py
 │       ├── test_generated_content.py
 │       ├── test_generated_format_query_service.py
 │       ├── test_generated_format_repository.py
@@ -1598,12 +1932,13 @@ python -m pytest -q
 git diff --check
 ```
 
-Última validación local de esta tarjeta de Sprint 3:
+Última validación automatizada local después de estandarizar el contrato de errores críticos:
 
 ```text
 Ruff: All checks passed!
+Pytest test_error_contract.py: 20/20 OK
 Pytest: suite completa OK
-Git diff --check: OK
+git diff --check: OK
 ```
 
 La suite cubre, entre otros:
@@ -1663,7 +1998,21 @@ La suite cubre, entre otros:
 - separación entre listado, detalle y formatos;
 - ausencia de `/api/v1/adaptations` como endpoint público;
 - respuesta de `POST /documents` sin contenidos de formatos;
-- disponibilidad posterior de Quiz y Flashcards mediante `/formats`.
+- disponibilidad posterior de Quiz y Flashcards mediante `/formats`;
+- regeneración de un solo formato y de varios formatos en una misma solicitud;
+- reutilización automática de `profile`, `niche`, `detail_level` y `learning_objective`;
+- creación de nuevos `format_id` sin sobrescribir el historial anterior;
+- rechazo `409` cuando alguno de los formatos solicitados ya está en `processing`;
+- rechazo de regeneración para documentos no `INDEXED`;
+- validación `422` para listas vacías, formatos duplicados y formatos no soportados;
+- traducción a `500` cuando no es posible registrar los nuevos intentos de regeneración.
+- contrato transversal `code + detail + errors[] + timestamp`;
+- clasificación estable de errores `400`, `404`, `409`, `413`, `415`, `422`, `500` y `502`;
+- diferenciación entre fallo de almacenamiento OCI, recuperación del original e indexación RAG;
+- diferenciación de conflictos de regeneración mediante códigos funcionales;
+- conservación de errores de validación por campo en `errors[]`;
+- fallback `HTTP_ERROR` para errores HTTP no clasificados sin asignar causas funcionales incorrectas;
+- fallback `INTERNAL_SERVER_ERROR` para excepciones no controladas.
 
 ---
 ## Validación E2E de Sprint 3
@@ -1798,6 +2147,103 @@ mantuvo:
 }
 ```
 
+### 5. Regeneración real con Agentes/Gemini
+
+También se validó el endpoint de regeneración contra BackendAPI y el servicio real de Agentes con Gemini.
+
+Documento utilizado:
+
+```text
+doc_0621bc23b79f4c948f25c0c53a7bd25f
+```
+
+Estado previo:
+
+```text
+document.status = indexed
+quiz.status = failed
+flashcards.status = failed
+formats.status = error
+```
+
+Se solicitó únicamente:
+
+```json
+{
+  "formats": [
+    "quiz"
+  ]
+}
+```
+
+Backend respondió:
+
+```text
+HTTP 202 Accepted
+TIME_MS=71
+```
+
+con un nuevo intento:
+
+```json
+{
+  "document_id": "doc_0621bc23b79f4c948f25c0c53a7bd25f",
+  "status": "processing",
+  "formats": {
+    "quiz": {
+      "format_id": "fmt_908088188f9f417fa6e3353b1239e7f7",
+      "status": "processing"
+    }
+  }
+}
+```
+
+Un segundo `POST /formats/regenerate` inmediato para `quiz` devolvió:
+
+```text
+HTTP 409 Conflict
+```
+
+porque el nuevo intento todavía estaba activo.
+
+La generación real terminó posteriormente con el mismo `format_id`:
+
+```text
+fmt_908088188f9f417fa6e3353b1239e7f7
+processing → success
+```
+
+Como Flashcards conservaba su fallo anterior, el estado agregado pasó a:
+
+```text
+partial
+```
+
+El documento permaneció:
+
+```text
+indexed
+```
+
+por lo que la regeneración no modificó el estado de indexación.
+
+También se comprobó la validación de duplicados:
+
+```json
+{
+  "formats": [
+    "quiz",
+    "quiz"
+  ]
+}
+```
+
+Resultado:
+
+```text
+HTTP 422 Unprocessable Entity
+```
+
 ### Conclusión E2E
 
 La prueba confirma:
@@ -1812,6 +2258,13 @@ timeout de Agentes es independiente         ✅
 processing termina en failed               ✅
 mismo format_id se conserva                ✅
 documento permanece INDEXED                ✅
+regeneración responde 202                     ✅
+regeneración crea un nuevo format_id          ✅
+segundo intento activo se rechaza con 409     ✅
+regeneración real termina en success          ✅
+historial previo se conserva                  ✅
+body con formatos duplicados devuelve 422     ✅
+regeneración no reindexa el documento         ✅
 ```
 
 ---
@@ -1831,7 +2284,7 @@ GET /documents/{id}/formats
 → estado de generación
 ```
 
-Flujo recomendado:
+Flujo recomendado para la generación inicial:
 
 ```text
 POST /documents
@@ -1846,6 +2299,22 @@ polling
     ↓
 ready | partial | error
 ```
+
+Cuando Frontend necesite regenerar uno o varios formatos:
+
+```text
+POST /documents/{id}/formats/regenerate
+    ↓
+202 processing
+    ↓
+GET /documents/{id}/formats
+    ↓
+polling
+    ↓
+ready | partial | error
+```
+
+Si alguno de los formatos solicitados ya posee un intento `processing`, Backend responde `409` y Frontend debe continuar observando el intento existente.
 
 No se requiere un endpoint adicional de estado.
 
@@ -1912,11 +2381,9 @@ Opciones futuras:
 
 No es necesario mezclar esta mejora con el alcance actual mientras el equipo no defina explícitamente el mecanismo de recuperación.
 
+La misma limitación aplica a las regeneraciones, ya que reutilizan `FastAPI BackgroundTasks`.
+
 ---
-### Regeneración
-
-El endpoint explícito para regenerar formatos todavía no forma parte del contrato público actual. Su implementación debe reutilizar `FormatGenerationService`, conservar el contexto pedagógico y evitar reindexaciones innecesarias.
-
 ### Learning metadata
 
 Pendiente incorporar una estructura a nivel de adaptación/documento:
@@ -1996,6 +2463,32 @@ Frontend
 GET /api/v1/documents/{id}/formats
    ↓
 pending | processing | ready | partial | error
+
+Cuando solicita regeneración:
+
+Frontend
+   ↓
+POST /api/v1/documents/{id}/formats/regenerate
+   ↓
+BackendAPI
+   ├── validar INDEXED
+   ├── rechazar si un formato solicitado sigue processing
+   ├── reutilizar GenerationContext previo
+   └── crear nuevos format_id en processing
+   ↓
+202 Accepted
+   │
+   └──────── background ────────┐
+                                ↓
+                         Agentes /generate
+                                ↓
+             mismos nuevos format_id → estado terminal
+
+Frontend
+   ↓
+GET /api/v1/documents/{id}/formats
+   ↓
+polling hasta ready | partial | error
 ```
 
 El objetivo arquitectónico se mantiene: **Frontend conoce BackendAPI; BackendAPI orquesta; RAG/Agentes resuelve recuperación y generación; Data/IA permanece desacoplado para evaluación.**

@@ -67,7 +67,7 @@ export const quiz = {
 
         const titleEl = document.createElement('h4');
         titleEl.className = 'friendly-notice-title';
-        titleEl.textContent = friendly.title || 'Evaluación en Proceso de Generación';
+        titleEl.textContent = friendly.title || 'Evaluación No Disponible';
 
         const textEl = document.createElement('p');
         textEl.className = 'friendly-notice-text';
@@ -81,7 +81,7 @@ export const quiz = {
         btnRetry.className = 'btn-friendly-action btn-retry-quiz';
         btnRetry.id = 'btnRetryQuizFromNotice';
         const retrySpan = document.createElement('span');
-        retrySpan.textContent = '↻ Sincronizar Formatos';
+        retrySpan.textContent = '↻ Reintentar Quiz';
         btnRetry.appendChild(retrySpan);
         btnRetry.addEventListener('click', () => {
           const btnRefresh = document.getElementById('btnRefreshFormats');
