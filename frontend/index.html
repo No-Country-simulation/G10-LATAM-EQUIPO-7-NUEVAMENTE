@@ -40,12 +40,12 @@
 
       <button type="button" class="btn-enter-library" id="btnEnterLibrary">
         <span class="btn-enter-icon"></span>
-        <span class="btn-enter-label">Acceder a La Biblioteca</span>
+        <span class="btn-enter-label">Acceder al Catálogo de Capacitaciones</span>
         <span class="btn-enter-arrow">&rarr;</span>
       </button>
 
       <p class="portada-click-anywhere-hint">
-        Haz clic en el botón o en cualquier lugar para ingresar a La Biblioteca
+        Haz clic en el botón o en cualquier lugar para ingresar al Catálogo de Capacitaciones
       </p>
     </div>
   </aside>
@@ -61,8 +61,8 @@
 
     <!-- Navegación por Pestañas Principales (3 Pilares) -->
     <nav class="main-nav-tabs" aria-label="Navegación principal">
-      <button type="button" class="nav-tab-btn active" data-tab="library" title="La Biblioteca de NuevaMente">
-        <span>La Biblioteca</span>
+      <button type="button" class="nav-tab-btn active" data-tab="library" title="Catálogo de Capacitaciones de NuevaMente">
+        <span>Catálogo de Capacitaciones</span>
       </button>
       <button type="button" class="nav-tab-btn" data-tab="upload" title="Carga y Adaptación de Documentación">
         <span>Cargar Documento</span>
@@ -76,7 +76,7 @@
     <div class="header-actions">
       <!-- Botón de Conmutación: Modo Interactivo / Modo Lista -->
       <button type="button" class="btn-toggle-interactive-mode" id="btnToggleInteractive" title="Alternar entre catálogo en lista y estantería interactiva 3D">
-        <span>✦ Modo Interactivo</span>
+        <span>Modo Interactivo</span>
       </button>
 
       <!-- Indicador de Conexión Backend Real (Sprint 2 - Inicialmente Desconectado) -->
@@ -121,7 +121,7 @@
         <!-- Barra de Búsqueda del Catálogo -->
         <div class="cosmic-search-wrapper">
           <div class="cosmic-search-input-box">
-            <span class="cosmic-search-icon">🔍</span>
+            <span class="cosmic-search-icon"></span>
             <input type="text" id="searchDocList" class="cosmic-search-input" placeholder="Buscar módulo por título, área operativa o palabra clave..." autocomplete="off">
             <button type="button" class="cosmic-search-clear" id="btnClearSearchList" title="Limpiar búsqueda" style="display: none;">&times;</button>
           </div>
@@ -154,7 +154,7 @@
             <div class="library-hero-top">
               <span class="library-hero-badge">Formación Corporativa con IA</span>
               <h2 class="library-hero-title">
-                <span class="library-title-prefix">La Biblioteca de</span>
+                <span class="library-title-prefix">Catálogo de Capacitaciones de</span>
                 <img src="LogoPropuesta - Editado.png" alt="NuevaMente" class="library-hero-logo" height="92">
               </h2>
             </div>
@@ -165,7 +165,7 @@
             <!-- Barra de Búsqueda 3D en la Estantería (Lupa) -->
             <div class="interactive-search-container">
               <div class="cosmic-search-input-box search-box-3d">
-                <span class="cosmic-search-icon">🔍</span>
+                <span class="cosmic-search-icon"></span>
                 <input type="text" id="searchDoc3D" class="cosmic-search-input" placeholder="Buscar en la estantería..." autocomplete="off">
                 <button type="button" class="cosmic-search-clear" id="btnClearSearch3D" title="Limpiar búsqueda" style="display: none;">&times;</button>
               </div>
@@ -177,7 +177,7 @@
                 <span>+ Cargar Nuevo Documento</span>
               </button>
               <button type="button" class="btn-toggle-to-list" id="btnReturnToListMode">
-                <span>📋 Ver en Modo Lista</span>
+                <span>Ver en Modo Lista</span>
               </button>
             </div>
           </div>
@@ -407,10 +407,10 @@
 
             <div class="secondary-actions-row">
               <button type="button" class="btn-primary-action" id="btnIrALaBiblioteca">
-                <span>Ver en La Biblioteca</span>
+                <span>Ver en el Catálogo de Capacitaciones</span>
               </button>
               <button type="button" class="btn-primary-action" id="btnIrAlCentroEstudio" style="background: linear-gradient(135deg, rgba(6, 182, 212, 0.25), rgba(245, 158, 11, 0.2)); border: 1px solid var(--accent-cyan);">
-                <span>✦ Ir al Centro de Estudio</span>
+                <span>Ir al Centro de Estudio</span>
               </button>
             </div>
           </div>
@@ -432,8 +432,8 @@
             <h3 class="study-topic-title" id="studyTopicTitle">Módulo de Capacitación</h3>
           </div>
           <div class="study-header-actions">
-            <button type="button" class="btn-refresh-formats" id="btnRefreshFormats" title="Reintentar consultar formatos al Backend" style="display: none;">
-              <span>↻ Sincronizar Formatos</span>
+            <button type="button" class="btn-refresh-formats" id="btnRefreshFormats" title="Reintentar consultar formatos generados" style="display: none;">
+              <span>Sincronizar Formatos</span>
             </button>
           </div>
         </div>

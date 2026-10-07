@@ -63,7 +63,6 @@ export const quiz = {
 
         const iconEl = document.createElement('div');
         iconEl.className = 'friendly-notice-icon';
-        iconEl.textContent = '📋';
 
         const titleEl = document.createElement('h4');
         titleEl.className = 'friendly-notice-title';
@@ -81,11 +80,12 @@ export const quiz = {
         btnRetry.className = 'btn-friendly-action btn-retry-quiz';
         btnRetry.id = 'btnRetryQuizFromNotice';
         const retrySpan = document.createElement('span');
-        retrySpan.textContent = '↻ Reintentar Quiz';
+        retrySpan.textContent = 'Reintentar Quiz';
         btnRetry.appendChild(retrySpan);
         btnRetry.addEventListener('click', () => {
-          const btnRefresh = document.getElementById('btnRefreshFormats');
-          if (btnRefresh) btnRefresh.click();
+          import('./studyHub.js').then(({ studyHub }) => {
+            studyHub.triggerRegeneration(['quiz']);
+          });
         });
 
         const btnFlash = document.createElement('button');
@@ -93,7 +93,7 @@ export const quiz = {
         btnFlash.className = 'btn-friendly-action btn-switch-flashcards';
         btnFlash.id = 'btnGoFlashcardsFromNotice';
         const flashSpan = document.createElement('span');
-        flashSpan.textContent = '✦ Estudiar con Flashcards';
+        flashSpan.textContent = 'Estudiar con Flashcards';
         btnFlash.appendChild(flashSpan);
         btnFlash.addEventListener('click', () => {
           const flashTab = document.querySelector('.format-tab-btn[data-format="flashcards"]');
@@ -118,12 +118,17 @@ export const quiz = {
             </p>
           </div>
         `;
-      } else if (this.quizMeta?.status === 'processing') {
-        questionText.textContent = 'Generando Evaluación de Competencias...';
+      } else if (this.quizMeta?.status === 'processing' || this.quizMeta?.status === 'pending') {
+        const isPending = this.quizMeta?.status === 'pending';
+        questionText.textContent = isPending
+          ? 'Evaluación de Competencias Pendiente...'
+          : 'Generando Evaluación de Competencias...';
         optionsList.innerHTML = `
           <div style="text-align: center; padding: 2rem 1rem; color: var(--text-secondary);">
             <p style="font-size: 0.95rem; margin-bottom: 0.5rem;">
-              El pipeline de IA está formulando las preguntas a partir del material corporativo indexado.
+              ${isPending
+                ? 'El material fue indexado y se encuentra en cola para formular las preguntas pedagógicas.'
+                : 'El pipeline de IA está formulando las preguntas a partir del material corporativo indexado.'}
             </p>
             <span style="font-size: 0.8rem; color: var(--accent-gold);">
               Por favor espera unos instantes.
@@ -261,6 +266,37 @@ export const quiz = {
           this.renderCurrentQuestion();
         });
         feedbackBox.appendChild(nextBtn);
+      } else {
+        const finishedActions = document.createElement('div');
+        finishedActions.className = 'btn-next-question';
+        finishedActions.style.display = 'flex';
+        finishedActions.style.gap = '0.5rem';
+        finishedActions.style.marginTop = '0.75rem';
+        finishedActions.style.alignSelf = 'flex-end';
+
+        const restartBtn = document.createElement('button');
+        restartBtn.type = 'button';
+        restartBtn.className = 'btn-secondary-action';
+        restartBtn.textContent = 'Reiniciar Evaluación';
+        restartBtn.addEventListener('click', () => {
+          this.currentIndex = 0;
+          this.renderCurrentQuestion();
+        });
+
+        const regenBtn = document.createElement('button');
+        regenBtn.type = 'button';
+        regenBtn.className = 'btn-primary-action';
+        regenBtn.innerHTML = '<span>↻ Generar Nuevo Quiz</span>';
+        regenBtn.title = 'Solicita una nueva evaluación con preguntas renovadas al motor pedagógico';
+        regenBtn.addEventListener('click', () => {
+          import('./studyHub.js').then(({ studyHub }) => {
+            studyHub.triggerRegeneration(['quiz']);
+          });
+        });
+
+        finishedActions.appendChild(restartBtn);
+        finishedActions.appendChild(regenBtn);
+        feedbackBox.appendChild(finishedActions);
       }
     }
   }
