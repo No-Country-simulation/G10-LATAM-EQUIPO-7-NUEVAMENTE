@@ -62,6 +62,17 @@ def _build_agents_response() -> dict[str, object]:
     """Construye una respuesta canónica de generación."""
     return {
         "document_id": DOCUMENT_ID,
+        "learning_metadata": {
+            "key_concepts": [
+                "BackendAPI",
+                "Orquestación",
+                "Persistencia",
+            ],
+            "prerequisites": [
+                "Fundamentos de APIs REST",
+            ],
+            "estimated_time_minutes": 12,
+        },
         "results": [
             {
                 "format": "quiz",
@@ -158,7 +169,7 @@ def _build_agents_response() -> dict[str, object]:
 def test_generation_through_http_agents_is_persisted_in_sqlite(
     tmp_path: Path,
 ) -> None:
-    """Prepara, genera mediante HTTPAgentsAdapter y persiste resultados."""
+    """Persiste formatos y metadata pedagógica recibidos desde Agentes."""
 
     database = SQLiteDatabase(
         "sqlite:///"
@@ -318,6 +329,42 @@ def test_generation_through_http_agents_is_persisted_in_sqlite(
 
     asyncio.run(
         run_test()
+    )
+
+    persisted_document = (
+        document_repository.find_by_id(
+            DOCUMENT_ID
+        )
+    )
+
+    assert persisted_document is not None
+    assert (
+        persisted_document.learning_metadata
+        is not None
+    )
+    assert (
+        persisted_document
+        .learning_metadata
+        .key_concepts
+        == (
+            "BackendAPI",
+            "Orquestación",
+            "Persistencia",
+        )
+    )
+    assert (
+        persisted_document
+        .learning_metadata
+        .prerequisites
+        == (
+            "Fundamentos de APIs REST",
+        )
+    )
+    assert (
+        persisted_document
+        .learning_metadata
+        .estimated_time_minutes
+        == 12
     )
 
     persisted_formats = (

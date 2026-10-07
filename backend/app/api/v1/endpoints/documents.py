@@ -63,6 +63,7 @@ from app.schemas.document import (
     DocumentCreatedResponse,
     DocumentListResponse,
     DocumentResponse,
+    LearningMetadataResponse,
 )
 from app.schemas.generated_format import (
     DocumentFormatsResponse,
@@ -152,6 +153,15 @@ def _to_document_response(
     document: Document,
 ) -> DocumentResponse:
     """Convierte la entidad de dominio al contrato HTTP público."""
+    learning_metadata = (
+        LearningMetadataResponse.from_domain(
+            document.learning_metadata
+        )
+        if document.learning_metadata
+        is not None
+        else None
+    )
+
     return DocumentResponse(
         document_id=document.document_id,
         filename=document.original_filename,
@@ -160,6 +170,7 @@ def _to_document_response(
         size_bytes=document.size_bytes,
         created_at=document.created_at,
         updated_at=document.updated_at,
+        learning_metadata=learning_metadata,
     )
 
 
@@ -548,8 +559,8 @@ async def get_document_formats(
     status_code=status.HTTP_200_OK,
     summary="Consultar documento",
     description=(
-        "Consulta la metadata y el estado actual de "
-        "un documento mediante su document_id."
+        "Consulta la metadata, el estado y los metadatos "
+        "pedagógicos actuales de un documento mediante su document_id."
     ),
     responses={
         404: {
