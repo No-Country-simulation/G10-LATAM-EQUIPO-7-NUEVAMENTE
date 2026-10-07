@@ -699,5 +699,34 @@
   to { transform: rotate(360deg); }
 }
 
+/* Botón de reintento destacado cuando hay fallos parciales o totales */
+.btn-refresh-formats.btn-retry-highlight {
+  background: rgba(239, 68, 68, 0.2);
+  border: 1px solid rgba(248, 113, 113, 0.6);
+  color: #fca5a5;
+  box-shadow: 0 0 12px rgba(239, 68, 68, 0.25);
+  animation: pulseRetry 2.4s infinite;
+}
 
+.btn-refresh-formats.btn-retry-highlight:hover {
+  background: #ef4444;
+  color: #ffffff;
+  border-color: #ef4444;
+  box-shadow: 0 4px 18px rgba(239, 68, 68, 0.45);
+}
 
+@keyframes pulseRetry {
+  0%, 100% { transform: scale(1); opacity: 1; }
+  50% { transform: scale(1.02); opacity: 0.9; }
+}
+
+.btn-friendly-action.btn-retry-flashcards {
+  background: rgba(245, 158, 11, 0.15);
+  border-color: rgba(245, 158, 11, 0.5);
+  color: #fef08a;
+}
+
+.btn-friendly-action.btn-retry-flashcards:hover {
+  background: var(--accent-gold);
+  color: #000000;
+}

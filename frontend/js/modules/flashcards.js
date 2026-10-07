@@ -131,6 +131,55 @@ export const flashcards = {
     }
   },
 
+  renderCardActions(show) {
+    const cardBody = document.querySelector('.card-face-front .card-body');
+    if (!cardBody) return;
+
+    let actionsEl = document.getElementById('flashcardFailureActions');
+    if (!show) {
+      if (actionsEl) actionsEl.remove();
+      return;
+    }
+
+    if (!actionsEl) {
+      actionsEl = document.createElement('div');
+      actionsEl.id = 'flashcardFailureActions';
+      actionsEl.className = 'friendly-notice-actions';
+      actionsEl.style.marginTop = '1rem';
+      actionsEl.style.justifyContent = 'center';
+
+      const btnRetry = document.createElement('button');
+      btnRetry.type = 'button';
+      btnRetry.className = 'btn-friendly-action btn-retry-flashcards';
+      btnRetry.id = 'btnRetryFlashcardsFromCard';
+      const retrySpan = document.createElement('span');
+      retrySpan.textContent = '↻ Reintentar Flashcards';
+      btnRetry.appendChild(retrySpan);
+      btnRetry.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const btnRefresh = document.getElementById('btnRefreshFormats');
+        if (btnRefresh) btnRefresh.click();
+      });
+
+      const btnQuiz = document.createElement('button');
+      btnQuiz.type = 'button';
+      btnQuiz.className = 'btn-friendly-action btn-switch-flashcards';
+      btnQuiz.id = 'btnGoQuizFromCard';
+      const quizSpan = document.createElement('span');
+      quizSpan.textContent = '✦ Ir a Evaluación (Quiz)';
+      btnQuiz.appendChild(quizSpan);
+      btnQuiz.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const quizTab = document.querySelector('.format-tab-btn[data-format="quiz"]');
+        if (quizTab) quizTab.click();
+      });
+
+      actionsEl.appendChild(btnRetry);
+      actionsEl.appendChild(btnQuiz);
+      cardBody.appendChild(actionsEl);
+    }
+  },
+
   updateCardDisplay() {
     const { card, frontText, backText, hintText, progressTop, counterText, btnPrev, btnNext } = this.elements;
     if (!card) return;
@@ -140,18 +189,22 @@ export const flashcards = {
     if (this.cards.length === 0) {
       if (this.formatMeta?.status === 'failed') {
         const friendly = toFriendlyError({ message: this.formatMeta.errorMessage });
-        if (frontText) frontText.textContent = 'Tarjetas de Refuerzo en Proceso';
+        if (frontText) frontText.textContent = 'Tarjetas de Refuerzo No Disponibles';
         if (backText) backText.textContent = friendly.message;
-        if (hintText) hintText.textContent = 'Consejo: Puedes pulsar "Sincronizar Formatos" arriba para consultar si ya están disponibles.';
+        if (hintText) hintText.textContent = 'La generación de tarjetas presentó un inconveniente. Puedes reintentar la sincronización.';
+        this.renderCardActions(true);
       } else if (this.formatMeta?.status === 'no_results') {
+        this.renderCardActions(false);
         if (frontText) frontText.textContent = 'Sin competencias suficientes';
         if (backText) backText.textContent = 'El documento corporativo no contiene suficiente información para extraer tarjetas de refuerzo.';
         if (hintText) hintText.textContent = 'Intenta con un manual o directriz con mayor detalle operativo.';
       } else if (this.formatMeta?.status === 'processing') {
+        this.renderCardActions(false);
         if (frontText) frontText.textContent = 'Generando Tarjetas de Refuerzo...';
         if (backText) backText.textContent = 'El pipeline de IA está procesando las directrices y competencias del material.';
         if (hintText) hintText.textContent = 'Por favor espera unos instantes mientras se sintetiza el contenido de capacitación.';
       } else {
+        this.renderCardActions(false);
         if (frontText) frontText.textContent = 'No hay tarjetas de refuerzo generadas aún para este documento.';
         if (backText) backText.textContent = 'Las tarjetas de refuerzo se generarán automáticamente a través del pipeline RAG.';
         if (hintText) hintText.textContent = 'Consejo: Sube un documento o espera a que el Backend complete la indexación.';
@@ -162,6 +215,8 @@ export const flashcards = {
       if (btnNext) btnNext.disabled = true;
       return;
     }
+
+    this.renderCardActions(false);
 
     const currentCard = this.cards[this.currentIndex];
     const total = this.cards.length;

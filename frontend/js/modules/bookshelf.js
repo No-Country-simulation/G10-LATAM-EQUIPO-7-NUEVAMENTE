@@ -70,16 +70,22 @@ export const bookshelf = {
             status: doc.status || 'stored',
             metadatos: {
               document_id: docId,
-              tiempo_estudio: doc.estimated_time || '8 min',
-              perfil: doc.target_profile || 'intermediate',
+              tiempo_estudio: typeof doc.estimated_time_minutes === 'number'
+                ? `${doc.estimated_time_minutes} min`
+                : (doc.estimated_time || '8 min'),
+              perfil: doc.target_profile || doc.profile || 'intermediate',
               formato: ext
             },
+            key_concepts: Array.isArray(doc.key_concepts) ? doc.key_concepts : [],
+            prerequisites: Array.isArray(doc.prerequisites) ? doc.prerequisites : [],
             sections: doc.sections || [
               {
                 id: `sec_${docId}`,
                 title: formattedTitle,
                 summary: doc.summary || `Contenido de ${formattedTitle} analizado por NuevaMente.`,
-                key_concepts: [discipline, 'Concepto Clave', 'Persistencia OCI']
+                key_concepts: Array.isArray(doc.key_concepts) && doc.key_concepts.length > 0
+                  ? doc.key_concepts
+                  : [discipline, 'Concepto Clave', 'Persistencia OCI']
               }
             ]
           };
@@ -803,9 +809,41 @@ export const bookshelf = {
     // Diagrama C: Consulta GET /documents/{id} para validar y enriquecer metadata
     if (book.id && !book.id.startsWith('mock_')) {
       apiClient.getDocumentById(book.id).then(docDetail => {
-        if (docDetail && openedTitle) {
+        if (docDetail) {
           if (docDetail.filename && !book.title) {
-            openedTitle.textContent = docDetail.filename;
+            if (openedTitle) openedTitle.textContent = docDetail.filename;
+          }
+
+          // Enriquecimiento con metadatos pedagógicos del documento (Sprint 3)
+          if (typeof docDetail.estimated_time_minutes === 'number') {
+            const timeStr = `${docDetail.estimated_time_minutes} min`;
+            if (openedTime) openedTime.textContent = timeStr;
+            if (book.metadatos) book.metadatos.tiempo_estudio = timeStr;
+          }
+
+          if (Array.isArray(docDetail.key_concepts) && docDetail.key_concepts.length > 0) {
+            book.key_concepts = docDetail.key_concepts;
+            if (book.sections && book.sections[0]) {
+              book.sections[0].key_concepts = docDetail.key_concepts;
+            }
+            if (openedChips) {
+              openedChips.innerHTML = '';
+              docDetail.key_concepts.forEach(c => {
+                const chip = document.createElement('span');
+                chip.className = 'concept-chip';
+                chip.textContent = typeof c === 'string' ? c : String(c ?? '');
+                openedChips.appendChild(chip);
+              });
+            }
+          }
+
+          if (Array.isArray(docDetail.prerequisites) && docDetail.prerequisites.length > 0) {
+            book.prerequisites = docDetail.prerequisites;
+          }
+
+          if (docDetail.summary && openedSummary) {
+            openedSummary.textContent = docDetail.summary;
+            book.description = docDetail.summary;
           }
         }
       }).catch(err => {
