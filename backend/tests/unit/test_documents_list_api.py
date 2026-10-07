@@ -85,22 +85,37 @@ def test_list_documents_returns_processed_documents(
 
     assert len(
         fake_adaptation_orchestration_service
-        .generation_requests
+        .preparation_requests
     ) == 2
 
-    generated_document_ids = {
+    prepared_document_ids = {
         request["document_id"]
         for request
         in (
             fake_adaptation_orchestration_service
-            .generation_requests
+            .preparation_requests
         )
     }
 
-    assert generated_document_ids == {
+    assert prepared_document_ids == {
         first_document_id,
         second_document_id,
     }
+
+    assert len(
+        fake_adaptation_orchestration_service
+        .completion_requests
+    ) == 2
+
+    assert all(
+        len(completed_format_ids)
+        == 2
+        for completed_format_ids
+        in (
+            fake_adaptation_orchestration_service
+            .completion_requests
+        )
+    )
 
     response = client.get(
         f"{api_prefix}/documents"
@@ -130,10 +145,12 @@ def test_list_documents_returns_processed_documents(
             document["status"]
             == "indexed"
         )
+
         assert (
             document["content_type"]
             == "text/plain"
         )
+
         assert document["size_bytes"] > 0
 
         assert "filename" in document

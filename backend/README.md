@@ -51,54 +51,108 @@ Actualmente están implementados:
 
 ### Orquestación de adaptación: indexación y generación separadas
 
-La carga pública ya no termina en `STORED`.
-
-Después de almacenar el documento, BackendAPI utiliza internamente:
+Después de almacenar un documento, BackendAPI utiliza internamente:
 
 ```text
 AdaptationOrchestrationService
 ```
 
-A partir de Sprint 3, el orquestador separa explícitamente dos responsabilidades:
+En Sprint 3, el orquestador separa tres responsabilidades:
 
 ```text
 ensure_document_indexed()
         ↓
 indexación RAG síncrona
 
-
-generate_default_formats()
+prepare_default_formats()
         ↓
-generación de Quiz + Flashcards
+registro persistente de Quiz y Flashcards en processing
+
+complete_default_generation()
+        ↓
+generación real en segundo plano
 ```
 
-El flujo de indexación:
+#### 1. Indexación síncrona
+
+`ensure_document_indexed()`:
 
 1. consulta el estado actual del documento;
 2. indexa cuando el documento está `STORED` o `INDEXING_FAILED`;
 3. evita reindexar cuando ya está `INDEXED`;
 4. solo permite responder exitosamente al `POST /documents` cuando el documento ya alcanzó `INDEXED`.
 
-Después de completar la indexación, la API programa la generación de formatos como una **BackgroundTask de FastAPI** y responde al Frontend sin esperar a que Agentes termine `/api/v1/generate`.
+#### 2. Preparación de formatos antes de responder
 
-Los formatos solicitados automáticamente son:
+Después de que el documento queda `INDEXED`, BackendAPI ejecuta:
+
+```text
+prepare_default_formats()
+```
+
+Esta etapa:
+
+- crea un intento para `quiz`;
+- crea un intento para `flashcards`;
+- persiste ambos con estado `processing`;
+- asigna un `format_id` estable a cada intento;
+- conserva el contexto pedagógico de generación;
+- ocurre **antes** de registrar la tarea de segundo plano y antes de responder al Frontend.
+
+Por tanto, cuando `POST /documents` responde exitosamente, los formatos solicitados ya existen en persistencia y pueden ser observados por Frontend mediante polling.
+
+#### 3. Generación en segundo plano
+
+Luego BackendAPI registra una `BackgroundTask` de FastAPI:
+
+```text
+complete_default_generation()
+```
+
+La tarea:
+
+1. recibe los intentos persistidos en `processing`;
+2. invoca `POST /api/v1/generate` en Agentes;
+3. valida el contrato recibido;
+4. actualiza los mismos `format_id`;
+5. termina cada intento en uno de estos estados:
+
+```text
+success
+failed
+no_results
+```
+
+El flujo por formato es:
+
+```text
+processing
+    ↓
+success | failed | no_results
+```
+
+No se crea una nueva fila para completar un intento iniciado por la misma generación. El mismo `format_id` se conserva durante la transición.
+
+#### Formatos automáticos
+
+BackendAPI solicita automáticamente:
 
 ```text
 quiz
 flashcards
 ```
 
-El endpoint público independiente `/api/v1/adaptations` **no existe**. La adaptación permanece como un caso de uso interno.
+El endpoint público independiente:
 
-La capa API utiliza `app/api/adaptation_execution.py` para mantener separadas las dos etapas:
+```text
+POST /api/v1/adaptations
+```
 
-- `execute_indexing(...)`: ejecuta la indexación síncrona y traduce sus errores a HTTP;
-- `execute_background_generation(...)`: ejecuta la generación después de la respuesta, registra fallos y deja que `FormatGenerationService` persista los intentos fallidos.
+**no existe**.
 
-Esta separación evita mezclar lógica HTTP, lógica de orquestación y lógica de integración externa.
+La adaptación permanece como un caso de uso interno iniciado desde `POST /api/v1/documents`.
 
-> La BackgroundTask no constituye una cola durable. Si el proceso de Backend se reinicia mientras una generación está ejecutándose, esa ejecución puede interrumpirse. La recuperación explícita mediante regeneración corresponde a una tarjeta posterior de Sprint 3.
-
+---
 ### Contexto pedagógico recibido desde Frontend
 
 `POST /api/v1/documents` recibe mediante `multipart/form-data`:
@@ -132,16 +186,28 @@ validación
 → almacenamiento
 → indexación RAG
 → INDEXED
-```
-
-Después:
-
-```text
-programar generación en background
+→ persistencia de Quiz/Flashcards en processing
+→ registrar BackgroundTask
 → responder al Frontend
 ```
 
-Por tanto, una respuesta exitosa significa que el documento ya fue almacenado e indexado, **no que Quiz y Flashcards hayan terminado de generarse**.
+La generación mediante Agentes ocurre después:
+
+```text
+background
+→ POST /api/v1/generate
+→ actualizar mismos format_id
+→ success | failed | no_results
+```
+
+Una respuesta exitosa significa:
+
+- el documento fue almacenado;
+- el documento fue indexado;
+- Quiz y Flashcards fueron registrados como intentos activos;
+- la generación LLM puede continuar en segundo plano.
+
+No significa que los formatos ya estén terminados.
 
 Ejemplo:
 
@@ -154,13 +220,13 @@ Ejemplo:
 }
 ```
 
-Para un documento nuevo la respuesta es normalmente:
+Para un documento nuevo:
 
 ```text
 HTTP 201 Created
 ```
 
-Para un contenido previamente registrado:
+Para contenido previamente registrado:
 
 ```text
 HTTP 200 OK
@@ -174,8 +240,9 @@ con:
 }
 ```
 
-Un contenido duplicado reutiliza el mismo `document_id` y no vuelve a almacenar el archivo original en OCI. Si el documento ya está `INDEXED`, la orquestación evita una reindexación innecesaria y puede programar un nuevo intento de generación, conservando el historial de formatos.
+Un contenido duplicado reutiliza el mismo `document_id` y no vuelve a almacenar el archivo original en OCI.
 
+---
 ### Integración HTTP BackendAPI → RAG
 
 La integración de indexación se mantiene desacoplada mediante:
@@ -295,54 +362,78 @@ sin modificar código de aplicación.
 
 ### Modelo de generación de formatos
 
-BackendAPI trabaja públicamente con dos formatos:
+BackendAPI trabaja públicamente con:
 
 ```text
 quiz
 flashcards
 ```
 
-`generate_default_formats()` solicita ambos automáticamente.
+`FormatGenerationService` divide el lifecycle en dos operaciones.
 
-`FormatGenerationService`:
+#### `prepare_generation(...)`
 
-- valida que el documento exista;
-- exige que el documento esté `INDEXED`;
-- construye el contexto pedagógico;
-- invoca `AgentsPort`;
-- valida que el `document_id` retornado coincida con el solicitado;
-- valida que Agentes retorne exactamente los formatos solicitados;
-- rechaza formatos duplicados;
-- convierte cada resultado válido en `GeneratedFormat`;
-- persiste cada generación manteniendo historial;
-- conserva los chunks utilizados como evidencia;
-- registra intentos `FAILED` por cada formato solicitado cuando falla la integración con Agentes;
-- registra intentos `FAILED` por cada formato solicitado cuando la respuesta de Agentes incumple el contrato;
-- mantiene separado el estado del documento del estado de generación.
+Responsabilidades:
+
+- validar que el documento exista;
+- exigir que esté `INDEXED`;
+- validar el contexto pedagógico;
+- crear un intento por formato;
+- asignar un `format_id`;
+- persistir cada intento como `processing`.
+
+#### `complete_generation(...)`
+
+Responsabilidades:
+
+- recibir intentos previamente creados;
+- exigir que estén en `processing`;
+- validar que pertenezcan al mismo documento y contexto;
+- construir la solicitud hacia Agentes;
+- invocar `AgentsPort`;
+- validar `document_id`;
+- validar exactamente los formatos solicitados;
+- rechazar resultados duplicados;
+- actualizar cada intento sobre el mismo `format_id`;
+- conservar chunks utilizados como evidencia;
+- terminar en `success`, `failed` o `no_results`.
 
 Estados soportados por formato:
 
 ```text
+processing
 success
 failed
 no_results
 ```
 
-Un error de comunicación con Agentes se traduce internamente mediante `FormatGenerationIntegrationError`.
+#### Fallos de integración
 
-Cuando la llamada a Agentes falla antes de obtener resultados válidos, BackendAPI persiste un intento fallido por cada formato solicitado:
+Si Agentes falla por conexión, HTTP o timeout:
 
 ```text
-quiz        → failed
-flashcards  → failed
+processing
+    ↓
+failed
 ```
 
-Del mismo modo, si Agentes responde pero incumple el contrato esperado —por ejemplo, retorna otro `document_id` o un conjunto incompleto de formatos— se persisten intentos `FAILED` antes de producir `FormatGenerationContractError`.
+para todos los intentos del lote.
 
-Estos fallos **no modifican `DocumentStatus.INDEXED`**, porque la indexación ya terminó correctamente. El fallo pertenece al ciclo de vida de los formatos, no al ciclo de vida del documento.
+#### Fallos de contrato
 
-En el flujo de carga actual, los errores posteriores de generación ocurren en background y **no pueden convertir en `502` una respuesta de `POST /documents` que ya fue enviada**.
+Si Agentes devuelve:
 
+- otro `document_id`;
+- formatos incompletos;
+- formatos duplicados;
+- estados incompatibles;
+- contenido inválido;
+
+BackendAPI marca los intentos en `failed` y produce `FormatGenerationContractError`.
+
+Estos fallos **no modifican `DocumentStatus.INDEXED`**.
+
+---
 ### Contrato BackendAPI → Agentes
 
 Solicitud HTTP esperada:
@@ -507,31 +598,13 @@ Los `chunks_used` quedan persistidos junto con cada generación para mantener tr
 
 ### Consulta pública de formatos generados
 
-Los contenidos educativos se consultan únicamente mediante:
+Frontend consulta:
 
 ```text
 GET /api/v1/documents/{document_id}/formats
 ```
 
-La consulta se implementa mediante:
-
-```text
-GeneratedFormatQueryService
-    ↓
-DocumentRepositoryPort
-GeneratedFormatRepositoryPort
-```
-
-El servicio:
-
-- valida que el `document_id` exista;
-- consulta el historial persistido en `generated_formats`;
-- selecciona un único resultado vigente por tipo;
-- conserva la generación exitosa más reciente cuando existe;
-- evita que un reintento posterior fallido o sin resultados oculte contenido válido previo;
-- calcula el estado agregado consumido por Frontend.
-
-Estados globales:
+Estados agregados:
 
 ```text
 pending
@@ -545,80 +618,44 @@ Interpretación:
 
 | Estado | Significado |
 |---|---|
-| `pending` | No existe historial de generación y el documento no está indexándose ni se encuentra en un estado fallido. Esto incluye un documento `INDEXED` cuya generación en background aún no ha persistido un resultado. |
-| `processing` | El documento se encuentra actualmente en estado `INDEXING`. |
-| `ready` | Quiz y Flashcards disponen de una generación exitosa. |
-| `partial` | Existe al menos un formato exitoso, pero no todos. |
-| `error` | No existe ningún formato exitoso en el historial seleccionado, o el documento se encuentra en un estado fallido sin resultados. |
+| `pending` | El documento existe pero todavía no hay intentos persistidos para exponer. |
+| `processing` | Existe al menos un intento vigente en `processing`, o el documento aún está indexándose sin historial de formatos. |
+| `ready` | Quiz y Flashcards vigentes están en `success`. |
+| `partial` | No hay intentos activos y existe al menos un formato exitoso, pero no todos. |
+| `error` | No hay intentos activos ni formatos exitosos vigentes. |
 
-Estados por formato:
+#### Durante generación
 
-```text
-success
-failed
-no_results
-```
-
-Criterio de selección por tipo:
-
-```text
-si existe al menos una generación exitosa
-→ se expone la exitosa más reciente
-
-si nunca existió una generación exitosa
-→ se expone el intento más reciente
-```
-
-Esto permite conservar contenido válido aunque un reintento posterior falle.
-
-`DocumentStatus.INDEXED` significa únicamente que la indexación terminó correctamente. **No significa que la generación continúe en proceso ni que los formatos estén listos.**
-
-Cuando un documento está indexándose y todavía no existe historial de formatos:
+Ejemplo:
 
 ```json
 {
   "document_id": "doc_123",
   "status": "processing",
-  "formats": null
-}
-```
-
-Cuando un documento ya está `INDEXED` pero todavía no existe ningún intento de generación persistido:
-
-```json
-{
-  "document_id": "doc_123",
-  "status": "pending",
-  "formats": null
-}
-```
-
-BackendAPI no persiste todavía un estado independiente `generation_in_progress`. Por eso, durante esta primera tarjeta de Sprint 3, el estado `processing` continúa reservado para la indexación activa. La granularidad de estados de generación pertenece a la siguiente tarjeta de Sprint 3.
-
-Si la indexación finaliza correctamente pero la integración con Agentes falla o supera su timeout, BackendAPI conserva el documento como `INDEXED`, persiste ambos intentos como `FAILED` y la consulta devuelve:
-
-```json
-{
-  "document_id": "doc_123",
-  "status": "error",
   "formats": {
     "quiz": {
-      "format_id": "fmt_quiz_failed",
-      "status": "failed",
+      "format_id": "fmt_quiz_1",
+      "status": "processing",
       "content": null,
-      "error_message": "Agentes no pudo generar los formatos del documento doc_123."
+      "error_message": null
     },
     "flashcards": {
-      "format_id": "fmt_flashcards_failed",
-      "status": "failed",
+      "format_id": "fmt_flashcards_1",
+      "status": "processing",
       "content": null,
-      "error_message": "Agentes no pudo generar los formatos del documento doc_123."
+      "error_message": null
     }
   }
 }
 ```
 
-Cuando ambos formatos están disponibles:
+Frontend debe continuar haciendo polling mientras:
+
+```text
+status = processing
+```
+
+#### Después de éxito
 
 ```json
 {
@@ -628,44 +665,76 @@ Cuando ambos formatos están disponibles:
     "quiz": {
       "format_id": "fmt_quiz_1",
       "status": "success",
-      "content": {
-        "title": "Quiz",
-        "instructions": "Seleccione la respuesta correcta.",
-        "questions": [
-          {
-            "question_id": "q1",
-            "question": "Pregunta",
-            "options": [
-              "Opción A",
-              "Opción B"
-            ],
-            "correct_answer": "Opción A",
-            "explanation": "Explicación"
-          }
-        ]
-      },
+      "content": {},
       "error_message": null
     },
     "flashcards": {
       "format_id": "fmt_flashcards_1",
       "status": "success",
-      "content": {
-        "title": "Flashcards",
-        "instructions": "Revise cada tarjeta.",
-        "cards": [
-          {
-            "card_id": "card_1",
-            "front": "Concepto",
-            "back": "Explicación"
-          }
-        ]
-      },
+      "content": {},
       "error_message": null
     }
   }
 }
 ```
 
+#### Después de fallo total
+
+```json
+{
+  "document_id": "doc_123",
+  "status": "error",
+  "formats": {
+    "quiz": {
+      "format_id": "fmt_quiz_1",
+      "status": "failed",
+      "content": null,
+      "error_message": "Agentes no pudo generar los formatos del documento doc_123."
+    },
+    "flashcards": {
+      "format_id": "fmt_flashcards_1",
+      "status": "failed",
+      "content": null,
+      "error_message": "Agentes no pudo generar los formatos del documento doc_123."
+    }
+  }
+}
+```
+
+`DocumentStatus.INDEXED` sigue significando únicamente:
+
+```text
+la indexación RAG terminó correctamente
+```
+
+No representa el estado de generación.
+
+---
+
+#### Selección del formato vigente
+
+`GeneratedFormatQueryService` selecciona un resultado vigente por tipo.
+
+Regla actual:
+
+```text
+si existe un intento processing
+→ se expone el processing más reciente
+
+si no existe processing y existe un success histórico
+→ se expone el success más reciente
+
+si nunca existió success
+→ se expone el intento terminal más reciente
+```
+
+Esto permite:
+
+- hacer visible una generación activa;
+- conservar contenido válido previo cuando un reintento posterior ya terminó fallando;
+- mantener separado el historial de intentos del contenido vigente.
+
+---
 ### Persistencia
 
 SQLite contiene tres estructuras principales:
@@ -692,11 +761,12 @@ SQLiteGeneratedFormatRepositoryAdapter
 
 El repositorio permite:
 
-- persistir mediante `create()`;
+- persistir nuevos intentos mediante `create()`;
+- actualizar intentos existentes mediante `update()`;
 - recuperar mediante `find_by_id(format_id)`;
 - recuperar historial mediante `find_by_document_id(document_id)`;
 - conservar múltiples generaciones del mismo tipo;
-- persistir resultados exitosos, fallidos o sin resultados;
+- persistir intentos `processing` y resultados `success`, `failed` o `no_results`;
 - reconstruir contenido, contexto pedagógico y evidencias.
 
 `generated_formats` conserva:
@@ -715,6 +785,12 @@ learning_objective
 error_message
 created_at
 updated_at
+```
+
+Un intento conserva el mismo `format_id` durante la transición:
+
+```text
+processing → success | failed | no_results
 ```
 
 Una generación exitosa persiste:
@@ -751,9 +827,11 @@ generated_formats.document_id
 Errores explícitos:
 
 - `GeneratedFormatAlreadyExistsError`
+- `GeneratedFormatNotFoundError`
 - `GeneratedFormatDocumentNotFoundError`
 - `GeneratedFormatRepositoryError`
 
+La inicialización de SQLite incluye una migración idempotente para bases anteriores cuyo `CHECK` de `generated_formats.status` no incluía `processing`. La migración conserva formatos existentes, relaciones con `format_evaluations`, recrea los índices y valida integridad referencial mediante `foreign_key_check`.
 ### Modelo de evaluación preparado
 
 La integración HTTP efectiva con Data/IA **no forma parte del pipeline obligatorio actual**, pero BackendAPI dispone del modelo necesario para incorporarla sin rediseñar generación ni persistencia.
@@ -875,57 +953,52 @@ BackendAPI
    └─ original → OCI Object Storage
    │
    ▼
-AdaptationOrchestrationService
+ensure_document_indexed()
    │
-   └─ ensure_document_indexed()
-          ↓
-      RAGIntegrationService
-          ├─ recupera original desde OCI
-          └─ POST /api/v1/index
-                 ↓
-              INDEXED
-                 ↓
-      programar generación en background
-                 ↓
+   ▼
+POST /api/v1/index
+   │
+   ▼
+INDEXED
+   │
+   ▼
+prepare_default_formats()
+   ├─ quiz = processing
+   └─ flashcards = processing
+   │
+   ▼
+registrar BackgroundTask
+   │
+   ▼
 Respuesta de carga
-   ├─ document_id
-   ├─ filename
-   ├─ status = indexed
-   └─ duplicate
-                 │
-                 └──────────── background ────────────┐
-                                                     ↓
-                                         generate_default_formats()
-                                                     ↓
-                                         FormatGenerationService
-                                                     ↓
-                                         POST /api/v1/generate
-                                             ├─ Quiz
-                                             └─ Flashcards
-                                                     ↓
-                                   GeneratedFormat + chunks_used → SQLite
+   │
+   └──────────── background ─────────────┐
+                                         ▼
+                         complete_default_generation()
+                                         │
+                                         ▼
+                            POST /api/v1/generate
+                              ├─ Quiz
+                              └─ Flashcards
+                                         │
+                                         ▼
+                       mismos format_id → estado terminal
 ```
 
-Cuando Frontend necesita mostrar el material generado:
+Frontend consulta:
 
 ```text
-Frontend
-   │
-   │ GET /api/v1/documents/{document_id}/formats
-   │
-   ▼
-GeneratedFormatQueryService
-   │
-   ▼
-SQLite
-   │
-   ▼
-Quiz + Flashcards
+GET /api/v1/documents/{document_id}/formats
 ```
 
-### Flujo de estados del documento
+y hace polling mientras:
 
-Durante una carga nueva:
+```text
+status = processing
+```
+
+---
+### Flujo de estados del documento
 
 ```text
 RECEIVED
@@ -941,7 +1014,7 @@ INDEXING
 INDEXED
 ```
 
-Estados de fallo disponibles:
+Estados de fallo:
 
 ```text
 VALIDATION_FAILED
@@ -949,35 +1022,29 @@ STORAGE_FAILED
 INDEXING_FAILED
 ```
 
-`INDEXED` expresa exclusivamente que la indexación del documento finalizó correctamente.
+La generación no agrega estados a `DocumentStatus`.
 
-No debe interpretarse como:
-
-```text
-generación en progreso
-formatos disponibles
-adaptación completada sin errores
-```
-
-La generación de formatos tiene estados propios y no se mezcla con `DocumentStatus`.
-
-Por ello es válido que un documento permanezca:
+Es válido tener:
 
 ```text
 DocumentStatus = INDEXED
 ```
 
-mientras sus formatos se encuentren, por ejemplo, en:
+mientras:
+
+```text
+quiz        = processing
+flashcards  = processing
+```
+
+o:
 
 ```text
 quiz        = failed
 flashcards  = failed
 ```
 
-En ese caso, `GET /documents/{document_id}/formats` expone el estado agregado `error` sin alterar el estado correcto de indexación del documento.
-
 ---
-
 ## Endpoints públicos actuales
 
 ### Salud
@@ -1011,7 +1078,7 @@ Formatos de archivo soportados:
 .txt
 ```
 
-Flujo síncrono ejecutado por una solicitud:
+Flujo ejecutado antes de responder:
 
 ```text
 validar
@@ -1019,7 +1086,8 @@ validar
 → almacenar en OCI
 → indexar
 → alcanzar INDEXED
-→ programar generación en background
+→ persistir Quiz y Flashcards en processing
+→ registrar BackgroundTask
 → responder metadata del documento
 ```
 
@@ -1029,7 +1097,8 @@ Después de responder al cliente:
 background task
 → solicitar Quiz + Flashcards a Agentes
 → validar resultados
-→ persistir GeneratedFormat
+→ actualizar los mismos format_id
+→ success | failed | no_results
 ```
 
 Ejemplo con `curl`:
@@ -1087,7 +1156,6 @@ Errores principales de la etapa síncrona:
 | `502` | Fallo de OCI, recuperación del original o indexación RAG |
 
 > El endpoint es síncrono hasta completar la indexación. Los errores de generación que ocurren después no modifican la respuesta ya enviada; su resultado se consulta mediante `/formats`.
-
 ### Listar documentos
 
 ```http
@@ -1217,11 +1285,7 @@ La adaptación educativa es una operación interna iniciada desde `POST /api/v1/
 
 ## Manejo de errores del flujo integrado
 
-La API traduce explícitamente los errores de la etapa que todavía forma parte de la solicitud HTTP.
-
 ### Durante almacenamiento e indexación
-
-Casos relevantes:
 
 ```text
 DocumentNotFoundError
@@ -1237,94 +1301,38 @@ RAGIntegrationError
     → 502
 ```
 
-El fallo ocurre antes de programar la generación, por lo que el `POST /documents` puede fallar.
+### Preparación de generación
 
-### Durante generación en background
+El registro de intentos `processing` ocurre antes de responder.
+
+Un fallo de persistencia en esta etapa impide programar una generación que Frontend no pueda observar correctamente.
+
+### Generación en background
 
 Casos relevantes:
 
 ```text
-FormatGenerationDocumentNotFoundError
-DocumentNotReadyForGenerationError
+FormatGenerationAttemptStateError
 FormatGenerationIntegrationError
 FormatGenerationContractError
+GeneratedFormatRepositoryError
 ```
 
-Estos errores ya no se convierten en una respuesta HTTP del `POST /documents`, porque la respuesta fue enviada después de la indexación.
+`execute_background_generation()` registra explícitamente el error.
 
-`execute_background_generation()`:
-
-1. ejecuta `generate_default_formats()`;
-2. permite que `FormatGenerationService` persista los intentos fallidos cuando corresponde;
-3. registra el error en logs;
-4. evita que una excepción de background cambie la respuesta ya enviada al cliente.
-
-### Fallos atómicos informados válidamente por Agentes
-
-Si Agentes responde correctamente a nivel de integración pero un formato retorna:
+Cuando Agentes falla normalmente por timeout, conexión, error HTTP o contrato:
 
 ```text
-failed
-no_results
+processing → failed
 ```
 
-BackendAPI persiste ese resultado como parte del historial.
-
-Estos resultados no se convierten automáticamente en un error HTTP del documento. El estado final de los formatos se consulta mediante:
+El documento permanece:
 
 ```text
-GET /api/v1/documents/{document_id}/formats
-```
-
-Por ello, un documento puede permanecer `INDEXED` aunque uno de sus formatos tenga resultado `failed` o `no_results`.
-
-### Fallo de integración o contrato después de indexar
-
-Si el documento ya quedó `INDEXED` pero ocurre uno de estos casos:
-
-```text
-AgentsError
-FormatGenerationContractError
-```
-
-`FormatGenerationService` persiste un intento `FAILED` por cada formato solicitado.
-
-El flujo observable actual queda:
-
-```text
-indexación
-    ↓
 INDEXED
-    ↓
-POST /documents responde 201/200
-    │
-    └── generación background
-            ↓
-       falla integración,
-       timeout o contrato
-            ↓
-       quiz = FAILED
-       flashcards = FAILED
 ```
-
-Posteriormente:
-
-```text
-GET /documents/{document_id}
-→ status = indexed
-```
-
-```text
-GET /documents/{document_id}/formats
-→ status = error
-```
-
-De esta forma, `INDEXED` conserva su significado correcto y el fallo posterior queda representado por el historial de `GeneratedFormat`.
-
-El endpoint explícito de regeneración no forma parte todavía de esta tarjeta y corresponde a una implementación posterior de Sprint 3.
 
 ---
-
 ## Stack
 
 | Componente | Tecnología |
@@ -1587,6 +1595,7 @@ Ejecutar desde `backend/`:
 ```bash
 python -m ruff check .
 python -m pytest -q
+git diff --check
 ```
 
 Última validación local de esta tarjeta de Sprint 3:
@@ -1627,7 +1636,7 @@ La suite cubre, entre otros:
 - respuestas incompatibles de Agentes;
 - contenido canónico inválido;
 - inicialización de servicios en el lifespan;
-- separación de `ensure_document_indexed()` y `generate_default_formats()`;
+- separación de `ensure_document_indexed()`, `prepare_default_formats()` y `complete_default_generation()`;
 - indexación síncrona desde `POST /documents`;
 - generación automática de Quiz y Flashcards como tarea en segundo plano;
 - persistencia SQLite de los resultados recibidos vía HTTP;
@@ -1635,17 +1644,21 @@ La suite cubre, entre otros:
 - contexto pedagógico de generación;
 - persistencia y reconstrucción de `chunks_used`;
 - historial de generaciones;
-- persistencia de generaciones fallidas;
+- persistencia de intentos `processing` antes de llamar a Agentes;
+- actualización del mismo `format_id` a un estado terminal;
 - persistencia de intentos `FAILED` ante errores de integración con Agentes;
 - persistencia de intentos `FAILED` ante incumplimientos del contrato de Agentes;
+- migración SQLite del `CHECK` de estados sin pérdida de formatos ni evaluaciones;
 - semántica de `INDEXED` separada del estado de generación;
-- `INDEXING` como único estado de documento que produce actualmente `formats.status = processing` sin historial;
+- `INDEXING` sin historial como `formats.status = processing`;
+- intentos de generación activos como `formats.status = processing`;
 - `INDEXED` sin intentos persistidos como `formats.status = pending`;
 - rechazo de `format_id` duplicado;
 - rechazo de referencias a documentos inexistentes;
 - consulta pública de formatos;
 - estados `pending`, `processing`, `ready`, `partial` y `error`;
-- conservación de éxito previo frente a reintento fallido;
+- prioridad de un intento `processing` sobre un éxito histórico mientras está activo;
+- conservación de éxito previo frente a reintento fallido una vez termina el reintento;
 - contrato de detalle de documento;
 - separación entre listado, detalle y formatos;
 - ausencia de `/api/v1/adaptations` como endpoint público;
@@ -1653,88 +1666,41 @@ La suite cubre, entre otros:
 - disponibilidad posterior de Quiz y Flashcards mediante `/formats`.
 
 ---
+## Validación E2E de Sprint 3
 
-## Validación funcional de la separación indexación / generación
+La separación entre indexación y generación y el lifecycle de estados fueron validados funcionalmente en local.
 
-La tarjeta de Sprint 3 **“Separar indexación RAG síncrona y generación con tiempo controlado”** fue validada funcionalmente en local.
-
-### 1. Validación aislada de RAG
-
-Se ejecutó directamente:
+### Configuración de la prueba
 
 ```text
-POST http://127.0.0.1:8001/api/v1/index
+BackendAPI:
+http://127.0.0.1:8000
+
+RAG:
+http://127.0.0.1:8001
+
+Mock de generación lenta:
+http://127.0.0.1:8002
+
+AGENTS_TIMEOUT_SECONDS=15
 ```
 
-con un archivo TXT de prueba.
+El mock demoró más que el timeout configurado para permitir observar `processing` antes del fallo controlado.
 
-Resultado:
+### 1. POST responde sin esperar la generación
 
-```http
-HTTP/1.1 200 OK
+Documento probado:
+
+```text
+doc_8d770ba4ddda4359836159c74cc4875c
 ```
+
+Respuesta:
 
 ```json
 {
-  "document_id": "doc_rag_test_sprint3",
-  "status": "indexed"
-}
-```
-
-Tiempo observado:
-
-```text
-~0.34 s
-```
-
-Esto confirmó que el servicio de indexación estaba operativo antes de probar el comportamiento asíncrono del Backend.
-
-### 2. Generación lenta con timeout controlado
-
-Para aislar la responsabilidad de Backend, la generación se dirigió temporalmente a un mock HTTP que demoraba 10 segundos en responder:
-
-```text
-RAG_BASE_URL=http://127.0.0.1:8001
-RAG_TIMEOUT_SECONDS=30
-
-AGENTS_BASE_URL=http://127.0.0.1:8002
-AGENTS_TIMEOUT_SECONDS=2
-```
-
-El flujo probado fue:
-
-```text
-POST /api/v1/documents
-    ↓
-SQLite + OCI
-    ↓
-RAG /index real
-    ↓
-INDEXED
-    ↓
-programar generación background
-    ↓
-HTTP 201
-         │
-         └── POST /api/v1/generate
-                  ↓
-            mock demora 10 s
-                  ↓
-        Backend corta a los 2 s
-                  ↓
-       persistencia de FAILED
-```
-
-Respuesta observada de `POST /documents`:
-
-```http
-HTTP/1.1 201 Created
-```
-
-```json
-{
-  "document_id": "doc_0621bc23b79f4c948f25c0c53a7bd25f",
-  "filename": "e2e_async_timeout.txt",
+  "document_id": "doc_8d770ba4ddda4359836159c74cc4875c",
+  "filename": "e2e_processing_20261006202146.txt",
   "status": "indexed",
   "duplicate": false
 }
@@ -1743,17 +1709,85 @@ HTTP/1.1 201 Created
 Tiempo observado:
 
 ```text
-TOTAL_TIME=0.277318s
+TOTAL_TIME=0.3694516 s
 ```
 
-El POST respondió mucho antes del timeout de generación y mucho antes de los 10 segundos del mock, demostrando que `/generate` ya no bloquea la solicitud de carga.
+Esto demuestra que el POST no quedó bloqueado por la generación lenta.
 
-### 3. Estado del documento después del timeout
+### 2. Estado observable durante la generación
 
-Posteriormente:
+Consulta inmediata:
 
 ```text
-GET /api/v1/documents/doc_0621bc23b79f4c948f25c0c53a7bd25f
+GET /api/v1/documents/doc_8d770ba4ddda4359836159c74cc4875c/formats
+```
+
+Resultado:
+
+```json
+{
+  "document_id": "doc_8d770ba4ddda4359836159c74cc4875c",
+  "status": "processing",
+  "formats": {
+    "quiz": {
+      "format_id": "fmt_2ab0368d1a84415bb262e5815a26ff5e",
+      "status": "processing",
+      "content": null,
+      "error_message": null
+    },
+    "flashcards": {
+      "format_id": "fmt_cd3ec83036354918a2903526381d89f8",
+      "status": "processing",
+      "content": null,
+      "error_message": null
+    }
+  }
+}
+```
+
+### 3. Timeout controlado
+
+Después del timeout:
+
+```json
+{
+  "status": "error",
+  "formats": {
+    "quiz": {
+      "format_id": "fmt_2ab0368d1a84415bb262e5815a26ff5e",
+      "status": "failed",
+      "content": null
+    },
+    "flashcards": {
+      "format_id": "fmt_cd3ec83036354918a2903526381d89f8",
+      "status": "failed",
+      "content": null
+    }
+  }
+}
+```
+
+Se comprobó:
+
+```text
+QUIZ MISMO ID: True
+FLASHCARDS MISMO ID: True
+```
+
+Por tanto:
+
+```text
+processing → failed
+```
+
+ocurre actualizando exactamente la misma generación persistida.
+
+### 4. Estado del documento después del fallo
+
+La consulta:
+
+```text
+GET /api/v1/documents/doc_8d770ba4ddda4359836159c74cc4875c
 ```
 
 mantuvo:
@@ -1764,114 +1798,58 @@ mantuvo:
 }
 ```
 
-### 4. Estado de formatos después del timeout
-
-La consulta:
-
-```text
-GET /api/v1/documents/doc_0621bc23b79f4c948f25c0c53a7bd25f/formats
-```
-
-retornó:
-
-```json
-{
-  "document_id": "doc_0621bc23b79f4c948f25c0c53a7bd25f",
-  "status": "error",
-  "formats": {
-    "quiz": {
-      "status": "failed",
-      "content": null
-    },
-    "flashcards": {
-      "status": "failed",
-      "content": null
-    }
-  }
-}
-```
-
-Ambos formatos conservaron además su `format_id` y un `error_message` explícito.
+### Conclusión E2E
 
 La prueba confirma:
 
 ```text
-indexación síncrona                     ✅
-POST responde después de INDEXED       ✅
-generación desacoplada                  ✅
-timeout independiente de Agentes        ✅
-fallo de generación no produce 502      ✅
-documento permanece INDEXED             ✅
-fallos quedan persistidos por formato   ✅
+indexación síncrona                         ✅
+POST responde después de INDEXED           ✅
+processing se persiste antes de responder  ✅
+Frontend puede observar processing         ✅
+generación no bloquea POST                  ✅
+timeout de Agentes es independiente         ✅
+processing termina en failed               ✅
+mismo format_id se conserva                ✅
+documento permanece INDEXED                ✅
 ```
 
-También se comprobó previamente el comportamiento complementario: si RAG falla durante la etapa síncrona, `POST /documents` responde `502` y el documento queda en `INDEXING_FAILED`. Esto confirma que la separación entre ambas etapas es efectiva.
-
 ---
-
 ## Semántica del flujo actual para Frontend
 
-El contrato actual separa explícitamente **estado del documento** de **estado del material generado**.
-
-### Durante la carga
-
-Frontend ejecuta:
+Frontend debe separar:
 
 ```text
-POST /api/v1/documents
+GET /documents/{id}
+→ estado del documento / indexación
 ```
 
-Backend completa antes de responder:
+de:
 
 ```text
-persistencia
-→ almacenamiento
-→ indexación
-→ INDEXED
+GET /documents/{id}/formats
+→ estado de generación
 ```
 
-Después programa:
+Flujo recomendado:
 
 ```text
-Quiz + Flashcards
-→ persistencia de formatos
+POST /documents
+    ↓
+indexed
+    ↓
+GET /formats
+    ↓
+processing
+    ↓
+polling
+    ↓
+ready | partial | error
 ```
 
-Frontend recibe la metadata del documento una vez terminada la indexación, sin esperar a la generación.
-
-### Al mostrar material educativo
-
-Frontend ejecuta:
-
-```text
-GET /api/v1/documents/{document_id}/formats
-```
-
-Ese endpoint es la fuente de verdad para:
-
-- disponibilidad de Quiz;
-- disponibilidad de Flashcards;
-- contenido generado;
-- estado global de formatos;
-- errores atómicos de generación;
-- fallos de integración de generación persistidos como `FAILED`.
-
-### Estado durante la generación
-
-En esta primera tarjeta de Sprint 3 **todavía no se agregó un estado persistido `processing` específico de generación**.
-
-Por ello, después de que el documento alcanza `INDEXED` y antes de que exista historial de formatos, `/formats` puede retornar:
-
-```text
-status = pending
-```
-
-La granularidad de estados reales para Frontend corresponde a la tarjeta posterior **“Envío de estados a Frontend”**.
-
-No se debe ampliar artificialmente `DocumentStatus` con estados de Quiz o Flashcards, porque documento y generación mantienen ciclos de vida distintos.
+No se requiere un endpoint adicional de estado.
 
 ---
-
 ## Data/IA y pendientes complementarios
 
 ### Integración Data/IA
@@ -1900,30 +1878,67 @@ estimated_time
 
 ya forman parte del contrato de detalle, pero actualmente permanecen en `null` mientras no exista una fuente real que los calcule.
 
-### Estados de generación
+### Limitación conocida: BackgroundTasks no es una cola durable
 
-La separación indexación/generación ya está implementada, pero el modelado de estados detallados de ejecución de Quiz y Flashcards corresponde a una tarjeta posterior.
-
-La evolución debe mantener esta separación:
+La implementación actual utiliza:
 
 ```text
-DocumentStatus
-→ ciclo de vida del documento e indexación
-
-GeneratedFormat / estado agregado de formatos
-→ ciclo de vida del contenido pedagógico
+FastAPI BackgroundTasks
 ```
 
+Esto desacopla la latencia de generación del `POST /documents`, pero **no ofrece durabilidad ante reinicios del proceso**.
+
+En condiciones normales:
+
+```text
+timeout
+error HTTP
+error de conexión
+error de contrato
+```
+
+los intentos `processing` son convertidos a `failed`.
+
+Sin embargo, si el proceso de Backend termina abruptamente mientras existe una generación activa, una `BackgroundTask` puede interrumpirse antes de alcanzar un estado terminal.
+
+Por ello, la implementación actual **no debe interpretarse como garantía absoluta ante crash o reinicio de proceso**.
+
+Opciones futuras:
+
+- recuperación de intentos `processing` obsoletos;
+- reconciliación al iniciar Backend;
+- cola durable de trabajos;
+- worker externo.
+
+No es necesario mezclar esta mejora con el alcance actual mientras el equipo no defina explícitamente el mecanismo de recuperación.
+
+---
 ### Regeneración
 
 El endpoint explícito para regenerar formatos todavía no forma parte del contrato público actual. Su implementación debe reutilizar `FormatGenerationService`, conservar el contexto pedagógico y evitar reindexaciones innecesarias.
+
+### Learning metadata
+
+Pendiente incorporar una estructura a nivel de adaptación/documento:
+
+```text
+learning_metadata
+├── key_concepts
+├── prerequisites
+└── estimated_time_minutes
+```
+
+No debe confundirse con el campo histórico `estimated_time` de metadata de documento.
+
+### Persistencia de contenido educativo en OCI
+
+Pendiente definir y persistir JSON estructurado de resultados educativos en OCI.
 
 ### Persistencia alternativa
 
 SQLite es el motor actual de desarrollo. Un motor adicional puede incorporarse mediante nuevos adapters sin modificar los casos de uso.
 
 ---
-
 ## Lineamientos de desarrollo
 
 - Modularizar el código en componentes y funciones con una única responsabilidad clara.
@@ -1954,42 +1969,33 @@ Frontend
 POST /api/v1/documents
    ↓
 BackendAPI
-   ├── validación
-   ├── SHA-256 / deduplicación
+   ├── validar
+   ├── SHA-256
    ├── SQLite
-   └── OCI Object Storage
+   └── OCI
    ↓
-AdaptationOrchestrationService
-   ↓
-ensure_document_indexed()
-   ↓
-RAGIntegrationService
-   ↓
-POST /api/v1/index
+RAG /index
    ↓
 INDEXED
    ↓
-programar BackgroundTask
+Quiz processing
+Flashcards processing
    ↓
-Respuesta de metadata al Frontend
+POST responde
    │
-   └────────────── background ──────────────┐
-                                            ↓
-                              generate_default_formats()
-                                            ↓
-                              FormatGenerationService
-                                            ↓
-                              POST /api/v1/generate
-                                            ↓
-                                  Quiz + Flashcards
-                                            ↓
-                                         SQLite
+   └──────── background ────────┐
+                                ↓
+                         Agentes /generate
+                                ↓
+             mismos format_id → estado terminal
+                                ↓
+                   success | failed | no_results
 
 Frontend
    ↓
-GET /api/v1/documents/{document_id}/formats
+GET /api/v1/documents/{id}/formats
    ↓
-Quiz + Flashcards persistidos
+pending | processing | ready | partial | error
 ```
 
-El objetivo arquitectónico se mantiene: **Frontend conoce BackendAPI; BackendAPI orquesta el producto; RAG/Agentes resuelve recuperación y generación; Data/IA permanece desacoplado para evaluación.**
+El objetivo arquitectónico se mantiene: **Frontend conoce BackendAPI; BackendAPI orquesta; RAG/Agentes resuelve recuperación y generación; Data/IA permanece desacoplado para evaluación.**

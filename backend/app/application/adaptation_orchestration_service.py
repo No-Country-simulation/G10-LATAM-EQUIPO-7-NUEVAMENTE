@@ -25,14 +25,15 @@ class AdaptationDocumentStateError(Exception):
 class AdaptationOrchestrationService:
     """Coordina indexación y generación de formatos educativos.
 
-    BackendAPI separa explícitamente dos etapas del flujo:
+    BackendAPI separa explícitamente tres responsabilidades:
 
-    1. indexación síncrona del documento;
-    2. generación de formatos, ejecutable posteriormente en segundo plano.
+    1. garantizar que el documento quede indexado;
+    2. registrar los intentos de generación en ``processing``;
+    3. completar esos intentos posteriormente mediante Agentes.
 
-    Esta separación permite que ``POST /documents`` confirme al cliente
-    que el documento quedó correctamente indexado sin mantener abierta
-    la petición HTTP mientras Agentes genera Quiz y Flashcards.
+    De esta forma ``POST /documents`` puede responder cuando el
+    documento ya está indexado y los formatos fueron registrados como
+    trabajo activo, sin esperar a que termine la generación mediante LLM.
 
     El servicio no implementa acceso directo a OCI, RAG, Agentes ni
     persistencia. Estas responsabilidades permanecen delegadas a los
@@ -70,23 +71,7 @@ class AdaptationOrchestrationService:
         self,
         document_id: str,
     ) -> None:
-        """Garantiza que un documento esté disponible en RAG.
-
-        Un documento almacenado se indexa de forma síncrona. Una
-        indexación previamente fallida puede reintentarse. Si el
-        documento ya se encuentra indexado no se repite el trabajo.
-
-        Args:
-            document_id: Identificador canónico del documento.
-
-        Raises:
-            DocumentNotFoundError:
-                Si el documento no existe.
-            AdaptationDocumentStateError:
-                Si el estado actual no permite iniciar la indexación.
-            RAGIntegrationError:
-                Si RAG no puede completar la indexación.
-        """
+        """Garantiza que un documento esté disponible en RAG."""
         document = self._document_service.get_document(
             document_id
         )
@@ -115,7 +100,7 @@ class AdaptationOrchestrationService:
             "la indexación para adaptación."
         )
 
-    async def generate_default_formats(
+    def prepare_default_formats(
         self,
         *,
         document_id: str,
@@ -124,39 +109,42 @@ class AdaptationOrchestrationService:
         detail_level: str,
         learning_objective: str | None = None,
     ) -> list[GeneratedFormat]:
-        """Genera Quiz y Flashcards para un documento indexado.
+        """Registra Quiz y Flashcards como intentos ``processing``.
 
-        Esta operación está diseñada para ejecutarse después de la
-        indexación y puede ser programada como tarea en segundo plano.
-
-        Args:
-            document_id: Identificador canónico del documento.
-            profile: Perfil educativo del destinatario.
-            niche: Área temática o contexto de aplicación.
-            detail_level: Nivel de detalle requerido.
-            learning_objective: Objetivo de aprendizaje opcional.
+        Esta etapa ocurre después de confirmar la indexación y antes
+        de responder a Frontend.
 
         Returns:
-            Formatos generados y persistidos.
-
-        Raises:
-            FormatGenerationDocumentNotFoundError:
-                Si el documento no existe.
-            DocumentNotReadyForGenerationError:
-                Si el documento no está indexado.
-            FormatGenerationIntegrationError:
-                Si falla la integración con Agentes.
-            FormatGenerationContractError:
-                Si Agentes incumple el contrato de generación.
+            Intentos persistidos que deberán completarse posteriormente.
         """
-        return await (
+        return (
             self._format_generation_service
-            .generate_formats(
+            .prepare_generation(
                 document_id=document_id,
                 formats=self._DEFAULT_FORMATS,
                 profile=profile,
                 niche=niche,
                 detail_level=detail_level,
                 learning_objective=learning_objective,
+            )
+        )
+
+    async def complete_default_generation(
+        self,
+        *,
+        attempts: tuple[
+            GeneratedFormat,
+            ...
+        ],
+    ) -> list[GeneratedFormat]:
+        """Completa un lote previamente registrado como ``processing``.
+
+        Esta operación está diseñada para ejecutarse en segundo plano.
+        Los mismos ``format_id`` pasan a un estado terminal.
+        """
+        return await (
+            self._format_generation_service
+            .complete_generation(
+                attempts=attempts
             )
         )

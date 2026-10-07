@@ -16,7 +16,12 @@ from app.application.document_service import (
 from app.domain.document import Document
 from app.domain.enums import (
     DocumentStatus,
+    GeneratedFormatStatus,
     GeneratedFormatType,
+)
+from app.domain.generated_format import (
+    GeneratedFormat,
+    GenerationContext,
 )
 from tests.fakes import FakeDocumentRepository
 
@@ -37,14 +42,18 @@ class SpyRAGIntegrationService:
 
 
 class SpyFormatGenerationService:
-    """Registra las solicitudes de generación recibidas."""
+    """Registra preparación y finalización de generaciones."""
 
     def __init__(self) -> None:
-        self.requests: list[
+        self.preparation_requests: list[
             dict[str, object]
         ] = []
 
-    async def generate_formats(
+        self.completion_requests: list[
+            tuple[str, ...]
+        ] = []
+
+    def prepare_generation(
         self,
         *,
         document_id: str,
@@ -56,8 +65,9 @@ class SpyFormatGenerationService:
         niche: str,
         detail_level: str,
         learning_objective: str | None = None,
-    ) -> list:
-        self.requests.append(
+    ) -> list[GeneratedFormat]:
+        """Simula el registro previo de intentos processing."""
+        self.preparation_requests.append(
             {
                 "document_id": document_id,
                 "formats": formats,
@@ -68,7 +78,49 @@ class SpyFormatGenerationService:
             }
         )
 
-        return []
+        generation_context = GenerationContext(
+            profile=profile,
+            niche=niche,
+            detail_level=detail_level,
+            learning_objective=learning_objective,
+        )
+
+        return [
+            GeneratedFormat(
+                format_id=(
+                    f"fmt_{format_type.value}"
+                ),
+                document_id=document_id,
+                format_type=format_type,
+                status=(
+                    GeneratedFormatStatus.PROCESSING
+                ),
+                generation_context=(
+                    generation_context
+                ),
+            )
+            for format_type in formats
+        ]
+
+    async def complete_generation(
+        self,
+        *,
+        attempts: tuple[
+            GeneratedFormat,
+            ...
+        ],
+    ) -> list[GeneratedFormat]:
+        """Registra el lote recibido para completar."""
+        self.completion_requests.append(
+            tuple(
+                attempt.format_id
+                for attempt in attempts
+            )
+        )
+
+        return list(
+            attempts
+        )
 
 
 def build_document(
@@ -158,7 +210,12 @@ def test_stored_document_is_indexed_without_generation() -> None:
     ]
 
     assert (
-        generation_service.requests
+        generation_service.preparation_requests
+        == []
+    )
+
+    assert (
+        generation_service.completion_requests
         == []
     )
 
@@ -184,7 +241,12 @@ def test_indexing_failed_document_retries_indexing() -> None:
     ]
 
     assert (
-        generation_service.requests
+        generation_service.preparation_requests
+        == []
+    )
+
+    assert (
+        generation_service.completion_requests
         == []
     )
 
@@ -208,7 +270,12 @@ def test_indexed_document_skips_indexing() -> None:
     assert rag_service.document_ids == []
 
     assert (
-        generation_service.requests
+        generation_service.preparation_requests
+        == []
+    )
+
+    assert (
+        generation_service.completion_requests
         == []
     )
 
@@ -252,7 +319,12 @@ def test_document_in_invalid_state_cannot_be_indexed(
     assert rag_service.document_ids == []
 
     assert (
-        generation_service.requests
+        generation_service.preparation_requests
+        == []
+    )
+
+    assert (
+        generation_service.completion_requests
         == []
     )
 
@@ -284,8 +356,8 @@ def test_unknown_document_is_rejected_during_indexing() -> None:
         )
 
 
-def test_default_formats_are_generated_separately() -> None:
-    """Genera Quiz y Flashcards sin ejecutar indexación."""
+def test_default_formats_are_prepared_separately() -> None:
+    """Registra Quiz y Flashcards sin ejecutar indexación ni Agentes."""
     (
         service,
         rag_service,
@@ -294,8 +366,8 @@ def test_default_formats_are_generated_separately() -> None:
         DocumentStatus.INDEXED
     )
 
-    asyncio.run(
-        service.generate_default_formats(
+    attempts = (
+        service.prepare_default_formats(
             document_id="doc_123",
             profile="intermediate",
             niche="general",
@@ -309,11 +381,17 @@ def test_default_formats_are_generated_separately() -> None:
     assert rag_service.document_ids == []
 
     assert len(
-        generation_service.requests
+        generation_service.preparation_requests
     ) == 1
 
+    assert (
+        generation_service.completion_requests
+        == []
+    )
+
     request = (
-        generation_service.requests[0]
+        generation_service
+        .preparation_requests[0]
     )
 
     assert (
@@ -348,9 +426,17 @@ def test_default_formats_are_generated_separately() -> None:
         )
     )
 
+    assert len(attempts) == 2
 
-def test_default_generation_accepts_optional_learning_objective() -> None:
-    """Permite generar formatos sin objetivo de aprendizaje."""
+    assert all(
+        attempt.status
+        == GeneratedFormatStatus.PROCESSING
+        for attempt in attempts
+    )
+
+
+def test_default_generation_completes_prepared_attempts() -> None:
+    """Completa exactamente los intentos preparados previamente."""
     (
         service,
         rag_service,
@@ -359,8 +445,8 @@ def test_default_generation_accepts_optional_learning_objective() -> None:
         DocumentStatus.INDEXED
     )
 
-    asyncio.run(
-        service.generate_default_formats(
+    attempts = (
+        service.prepare_default_formats(
             document_id="doc_123",
             profile="beginner",
             niche="backend",
@@ -368,17 +454,33 @@ def test_default_generation_accepts_optional_learning_objective() -> None:
         )
     )
 
+    asyncio.run(
+        service.complete_default_generation(
+            attempts=tuple(
+                attempts
+            )
+        )
+    )
+
     assert rag_service.document_ids == []
 
     assert len(
-        generation_service.requests
+        generation_service.preparation_requests
     ) == 1
 
-    request = (
-        generation_service.requests[0]
+    assert (
+        generation_service
+        .preparation_requests[0]
+        ["learning_objective"]
+        is None
     )
 
     assert (
-        request["learning_objective"]
-        is None
+        generation_service.completion_requests
+        == [
+            (
+                "fmt_quiz",
+                "fmt_flashcards",
+            )
+        ]
     )

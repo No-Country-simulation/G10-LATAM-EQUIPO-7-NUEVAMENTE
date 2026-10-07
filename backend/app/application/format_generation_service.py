@@ -1,5 +1,6 @@
 """Casos de uso para generación y persistencia de formatos educativos."""
 
+from datetime import UTC, datetime
 from uuid import uuid4
 
 from app.domain.enums import (
@@ -42,22 +43,34 @@ class FormatGenerationIntegrationError(Exception):
     """No fue posible completar la generación mediante Agentes."""
 
 
+class FormatGenerationAttemptStateError(Exception):
+    """El intento persistido no puede continuar su generación."""
+
+
 class FormatGenerationService:
-    """Orquesta la generación y persistencia de Quiz y Flashcards.
+    """Gestiona el ciclo de vida de intentos de generación.
 
-    BackendAPI mantiene el control del flujo de negocio. Este servicio:
+    El caso de uso se divide explícitamente en dos etapas:
 
-    1. valida que el documento exista y esté indexado;
-    2. construye el contexto pedagógico de generación;
-    3. solicita a Agentes uno o más formatos;
-    4. valida que la respuesta corresponda a la solicitud;
-    5. convierte cada resultado en una entidad GeneratedFormat;
-    6. persiste cada generación conservando su evidencia;
-    7. registra intentos fallidos cuando Agentes o su contrato fallan.
+    1. ``prepare_generation`` registra los formatos solicitados en
+       ``PROCESSING`` antes de iniciar la llamada a Agentes.
+    2. ``complete_generation`` ejecuta Agentes y actualiza esos mismos
+       intentos a ``SUCCESS``, ``FAILED`` o ``NO_RESULTS``.
 
-    El servicio no implementa prompts, retrieval, acceso al Vector Store,
-    generación mediante LLM ni evaluación de calidad.
+    De esta forma Frontend puede observar ``processing`` mientras la
+    generación ocurre en segundo plano y cada intento conserva un único
+    ``format_id`` durante todo su ciclo de vida.
+
+    El servicio no implementa prompts, retrieval, Vector Store ni LLM.
     """
+
+    _TERMINAL_STATUSES = frozenset(
+        {
+            GeneratedFormatStatus.SUCCESS,
+            GeneratedFormatStatus.FAILED,
+            GeneratedFormatStatus.NO_RESULTS,
+        }
+    )
 
     def __init__(
         self,
@@ -72,7 +85,7 @@ class FormatGenerationService:
         )
         self._agents = agents
 
-    async def generate_formats(
+    def prepare_generation(
         self,
         *,
         document_id: str,
@@ -85,28 +98,26 @@ class FormatGenerationService:
         detail_level: str,
         learning_objective: str | None = None,
     ) -> list[GeneratedFormat]:
-        """Genera y persiste formatos educativos para un documento.
+        """Registra intentos ``PROCESSING`` antes de llamar a Agentes.
 
         Args:
-            document_id: Identificador canónico generado por BackendAPI.
-            formats: Formatos solicitados. Sprint 2 admite Quiz y Flashcards.
-            profile: Perfil del destinatario.
-            niche: Contexto o dominio de aplicación.
-            detail_level: Nivel de detalle solicitado.
+            document_id: Identificador canónico del documento.
+            formats: Formatos que deben generarse.
+            profile: Perfil educativo del destinatario.
+            niche: Dominio o contexto temático.
+            detail_level: Nivel de detalle esperado.
             learning_objective: Objetivo de aprendizaje opcional.
 
         Returns:
-            Generaciones persistidas, una por cada resultado de Agentes.
+            Intentos persistidos en estado ``PROCESSING``.
 
         Raises:
             FormatGenerationDocumentNotFoundError:
-                Si document_id no existe.
+                Si el documento no existe.
             DocumentNotReadyForGenerationError:
                 Si el documento todavía no está indexado.
-            FormatGenerationContractError:
-                Si la respuesta de Agentes no coincide con la solicitud.
-            FormatGenerationIntegrationError:
-                Si falla la comunicación o procesamiento en Agentes.
+            ValueError:
+                Si no se solicitan formatos o existen duplicados.
         """
         self._validate_requested_formats(
             formats
@@ -141,9 +152,79 @@ class FormatGenerationService:
             learning_objective=learning_objective,
         )
 
+        attempts = [
+            GeneratedFormat(
+                format_id=f"fmt_{uuid4().hex}",
+                document_id=document_id,
+                format_type=format_type,
+                status=(
+                    GeneratedFormatStatus.PROCESSING
+                ),
+                generation_context=(
+                    generation_context
+                ),
+                content=None,
+                chunks_used=(),
+                error_message=None,
+            )
+            for format_type in formats
+        ]
+
+        return [
+            self._generated_format_repository.create(
+                attempt
+            )
+            for attempt in attempts
+        ]
+
+    async def complete_generation(
+        self,
+        *,
+        attempts: tuple[
+            GeneratedFormat,
+            ...
+        ],
+    ) -> list[GeneratedFormat]:
+        """Completa intentos previamente persistidos como ``PROCESSING``.
+
+        Agentes se invoca una única vez con todos los formatos del lote.
+        Los resultados actualizan los mismos ``format_id`` registrados
+        antes de responder a Frontend.
+
+        Args:
+            attempts: Intentos previamente creados en ``PROCESSING``.
+
+        Returns:
+            Intentos actualizados a estados terminales.
+
+        Raises:
+            FormatGenerationAttemptStateError:
+                Si los intentos no forman un lote válido en processing.
+            FormatGenerationIntegrationError:
+                Si falla la comunicación con Agentes.
+            FormatGenerationContractError:
+                Si Agentes devuelve una respuesta incompatible.
+        """
+        self._validate_processing_attempts(
+            attempts
+        )
+
+        document_id = (
+            attempts[0].document_id
+        )
+
+        generation_context = (
+            attempts[0].generation_context
+        )
+
+        requested_formats = tuple(
+            attempt.format_type
+            for attempt in attempts
+        )
+
         request = AgentGenerationInput(
             document_id=document_id,
-            formats=formats,
+            formats=requested_formats,
             generation_context=(
                 generation_context
             ),
@@ -162,12 +243,8 @@ class FormatGenerationService:
                 f"del documento {document_id}."
             )
 
-            self._persist_failed_generation_attempts(
-                document_id=document_id,
-                formats=formats,
-                generation_context=(
-                    generation_context
-                ),
+            self._mark_attempts_failed(
+                attempts=attempts,
                 error_message=error_message,
             )
 
@@ -184,75 +261,100 @@ class FormatGenerationService:
             )
 
         except FormatGenerationContractError as exc:
-            self._persist_failed_generation_attempts(
-                document_id=document_id,
-                formats=formats,
-                generation_context=(
-                    generation_context
-                ),
+            self._mark_attempts_failed(
+                attempts=attempts,
                 error_message=str(exc),
             )
 
             raise
 
-        generated_formats = [
-            self._build_generated_format(
-                document_id=document_id,
-                generation_context=(
-                    generation_context
-                ),
-                agent_result=agent_result,
-            )
+        results_by_type = {
+            agent_result.format_type: agent_result
             for agent_result
             in result.results
+        }
+
+        completed_attempts = [
+            self._build_completed_attempt(
+                attempt=attempt,
+                agent_result=(
+                    results_by_type[
+                        attempt.format_type
+                    ]
+                ),
+            )
+            for attempt in attempts
         ]
 
         return [
-            self._generated_format_repository.create(
-                generated_format
+            self._generated_format_repository.update(
+                completed_attempt
             )
-            for generated_format
-            in generated_formats
+            for completed_attempt
+            in completed_attempts
         ]
 
-    def _persist_failed_generation_attempts(
+    def _mark_attempts_failed(
         self,
         *,
-        document_id: str,
-        formats: tuple[
-            GeneratedFormatType,
+        attempts: tuple[
+            GeneratedFormat,
             ...
         ],
-        generation_context: GenerationContext,
         error_message: str,
-    ) -> None:
-        """Registra un fallo por cada formato solicitado.
+    ) -> list[GeneratedFormat]:
+        """Actualiza a ``FAILED`` los intentos del lote actual."""
+        now = datetime.now(UTC)
 
-        La indexación del documento puede haber finalizado correctamente
-        aunque la generación falle. Por eso el fallo pertenece al historial
-        de formatos y no al estado del documento.
-        """
-        for format_type in formats:
-            failed_generation = GeneratedFormat(
-                format_id=(
-                    f"fmt_{uuid4().hex}"
-                ),
-                document_id=document_id,
-                format_type=format_type,
-                status=(
-                    GeneratedFormatStatus.FAILED
-                ),
+        failed_attempts = [
+            GeneratedFormat(
+                format_id=attempt.format_id,
+                document_id=attempt.document_id,
+                format_type=attempt.format_type,
+                status=GeneratedFormatStatus.FAILED,
                 generation_context=(
-                    generation_context
+                    attempt.generation_context
                 ),
                 content=None,
                 chunks_used=(),
                 error_message=error_message,
+                created_at=attempt.created_at,
+                updated_at=now,
             )
+            for attempt in attempts
+        ]
 
-            self._generated_format_repository.create(
-                failed_generation
+        return [
+            self._generated_format_repository.update(
+                failed_attempt
             )
+            for failed_attempt
+            in failed_attempts
+        ]
+
+    @staticmethod
+    def _build_completed_attempt(
+        *,
+        attempt: GeneratedFormat,
+        agent_result: AgentGeneratedFormatResult,
+    ) -> GeneratedFormat:
+        """Aplica el resultado de Agentes sobre un intento existente."""
+        return GeneratedFormat(
+            format_id=attempt.format_id,
+            document_id=attempt.document_id,
+            format_type=attempt.format_type,
+            status=agent_result.status,
+            generation_context=(
+                attempt.generation_context
+            ),
+            content=agent_result.content,
+            chunks_used=agent_result.chunks_used,
+            error_message=(
+                agent_result.error_message
+            ),
+            created_at=attempt.created_at,
+            updated_at=datetime.now(UTC),
+        )
 
     @staticmethod
     def _validate_requested_formats(
@@ -273,12 +375,76 @@ class FormatGenerationService:
             )
 
     @staticmethod
+    def _validate_processing_attempts(
+        attempts: tuple[
+            GeneratedFormat,
+            ...
+        ],
+    ) -> None:
+        """Valida el lote persistido que será enviado a Agentes."""
+        if not attempts:
+            raise FormatGenerationAttemptStateError(
+                "Debe existir al menos un intento processing."
+            )
+
+        document_ids = {
+            attempt.document_id
+            for attempt in attempts
+        }
+
+        if len(document_ids) != 1:
+            raise FormatGenerationAttemptStateError(
+                "Todos los intentos deben pertenecer "
+                "al mismo documento."
+            )
+
+        format_types = [
+            attempt.format_type
+            for attempt in attempts
+        ]
+
+        if (
+            len(format_types)
+            != len(set(format_types))
+        ):
+            raise FormatGenerationAttemptStateError(
+                "El lote contiene formatos duplicados."
+            )
+
+        contexts = {
+            attempt.generation_context
+            for attempt in attempts
+        }
+
+        if len(contexts) != 1:
+            raise FormatGenerationAttemptStateError(
+                "Todos los intentos deben compartir "
+                "el mismo contexto pedagógico."
+            )
+
+        invalid_attempts = [
+            attempt.format_id
+            for attempt in attempts
+            if (
+                attempt.status
+                != GeneratedFormatStatus.PROCESSING
+            )
+        ]
+
+        if invalid_attempts:
+            raise FormatGenerationAttemptStateError(
+                "Solo pueden completarse intentos "
+                "en estado processing."
+            )
+
+    @classmethod
     def _validate_agent_result(
+        cls,
         *,
         request: AgentGenerationInput,
         result: AgentGenerationResult,
     ) -> None:
-        """Verifica identidad y completitud de la respuesta de Agentes."""
+        """Verifica identidad, completitud y estados de Agentes."""
         if (
             result.document_id
             != request.document_id
@@ -310,25 +476,17 @@ class FormatGenerationService:
                 "no coinciden con los solicitados."
             )
 
-    @staticmethod
-    def _build_generated_format(
-        *,
-        document_id: str,
-        generation_context: GenerationContext,
-        agent_result: AgentGeneratedFormatResult,
-    ) -> GeneratedFormat:
-        """Convierte un resultado atómico de Agentes al dominio."""
-        return GeneratedFormat(
-            format_id=f"fmt_{uuid4().hex}",
-            document_id=document_id,
-            format_type=agent_result.format_type,
-            status=agent_result.status,
-            generation_context=(
-                generation_context
-            ),
-            content=agent_result.content,
-            chunks_used=agent_result.chunks_used,
-            error_message=(
-                agent_result.error_message
-            ),
-        )
+        invalid_statuses = [
+            item.format_type.value
+            for item in result.results
+            if (
+                item.status
+                not in cls._TERMINAL_STATUSES
+            )
+        ]
+
+        if invalid_statuses:
+            raise FormatGenerationContractError(
+                "Agentes devolvió estados no terminales "
+                "para los formatos solicitados."
+            )

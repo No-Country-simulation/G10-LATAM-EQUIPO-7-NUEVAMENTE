@@ -1,6 +1,7 @@
 ﻿"""Dobles de prueba compartidos por BackendAPI."""
 
 from copy import deepcopy
+from datetime import UTC, datetime
 from pathlib import Path
 from uuid import uuid4
 
@@ -238,15 +239,17 @@ class FailingRAGPort:
 
 
 class FakeAdaptationOrchestrationService:
-    """Simula indexación y generación para las pruebas HTTP.
+    """Simula el flujo de adaptación para pruebas HTTP.
 
-    El fake conserva la separación establecida en Sprint 3:
+    El fake reproduce el contrato establecido para Sprint 3:
 
-    - ``ensure_document_indexed`` representa la etapa síncrona;
-    - ``generate_default_formats`` representa la generación que el
-      endpoint programa como tarea en segundo plano.
+    1. ``ensure_document_indexed`` representa la indexación síncrona;
+    2. ``prepare_default_formats`` registra Quiz y Flashcards como
+       intentos ``processing``;
+    3. ``complete_default_generation`` actualiza esos mismos intentos
+       a ``success``.
 
-    No ejecuta llamadas HTTP reales hacia RAG ni Agentes.
+    No ejecuta integraciones HTTP reales hacia RAG ni Agentes.
     """
 
     def __init__(
@@ -262,8 +265,12 @@ class FakeAdaptationOrchestrationService:
 
         self.indexing_requests: list[str] = []
 
-        self.generation_requests: list[
+        self.preparation_requests: list[
             dict[str, object]
+        ] = []
+
+        self.completion_requests: list[
+            tuple[str, ...]
         ] = []
 
     async def ensure_document_indexed(
@@ -306,7 +313,7 @@ class FakeAdaptationOrchestrationService:
             f"en estado inesperado: {document.status.value}."
         )
 
-    async def generate_default_formats(
+    def prepare_default_formats(
         self,
         *,
         document_id: str,
@@ -315,8 +322,8 @@ class FakeAdaptationOrchestrationService:
         detail_level: str,
         learning_objective: str | None = None,
     ) -> list[GeneratedFormat]:
-        """Simula la generación exitosa de Quiz y Flashcards."""
-        self.generation_requests.append(
+        """Persiste Quiz y Flashcards como intentos processing."""
+        self.preparation_requests.append(
             {
                 "document_id": document_id,
                 "profile": profile,
@@ -337,45 +344,91 @@ class FakeAdaptationOrchestrationService:
             != DocumentStatus.INDEXED
         ):
             raise RuntimeError(
-                "El fake de generación recibió un documento "
+                "El fake de preparación recibió un documento "
                 "que no está indexado: "
                 f"{document.status.value}."
             )
 
-        context = GenerationContext(
+        generation_context = GenerationContext(
             profile=profile,
             niche=niche,
             detail_level=detail_level,
             learning_objective=learning_objective,
         )
 
-        evidence = (
-            ChunkEvidence(
-                chunk_id=f"{document_id}_chunk_1",
-                document_id=document_id,
-                rank=1,
-                score=0.95,
-                text=(
-                    "Contenido recuperado para "
-                    "la adaptación educativa."
-                ),
-            ),
-        )
-
-        generated_formats = [
+        attempts = [
             GeneratedFormat(
                 format_id=(
                     f"fmt_{uuid4().hex}"
                 ),
                 document_id=document_id,
-                format_type=(
-                    GeneratedFormatType.QUIZ
-                ),
+                format_type=format_type,
                 status=(
-                    GeneratedFormatStatus.SUCCESS
+                    GeneratedFormatStatus.PROCESSING
                 ),
-                generation_context=context,
-                content=QuizContent(
+                generation_context=(
+                    generation_context
+                ),
+                content=None,
+                chunks_used=(),
+                error_message=None,
+            )
+            for format_type in (
+                GeneratedFormatType.QUIZ,
+                GeneratedFormatType.FLASHCARDS,
+            )
+        ]
+
+        return [
+            self._generated_format_repository.create(
+                attempt
+            )
+            for attempt in attempts
+        ]
+
+    async def complete_default_generation(
+        self,
+        *,
+        attempts: tuple[
+            GeneratedFormat,
+            ...
+        ],
+    ) -> list[GeneratedFormat]:
+        """Actualiza los mismos intentos processing a success."""
+        self.completion_requests.append(
+            tuple(
+                attempt.format_id
+                for attempt in attempts
+            )
+        )
+
+        completed_formats: list[
+            GeneratedFormat
+        ] = []
+
+        for attempt in attempts:
+            evidence = (
+                ChunkEvidence(
+                    chunk_id=(
+                        f"{attempt.document_id}_chunk_1"
+                    ),
+                    document_id=(
+                        attempt.document_id
+                    ),
+                    rank=1,
+                    score=0.95,
+                    text=(
+                        "Contenido recuperado para "
+                        "la adaptación educativa."
+                    ),
+                ),
+            )
+
+            if (
+                attempt.format_type
+                == GeneratedFormatType.QUIZ
+            ):
+                content = QuizContent(
                     title="Quiz de prueba",
                     instructions=(
                         "Seleccione la respuesta correcta."
@@ -386,8 +439,7 @@ class FakeAdaptationOrchestrationService:
                                 f"q_{uuid4().hex[:8]}"
                             ),
                             question=(
-                                "¿Cuál es el concepto "
-                                "principal?"
+                                "¿Cuál es el concepto principal?"
                             ),
                             options=(
                                 "Respuesta correcta",
@@ -397,27 +449,15 @@ class FakeAdaptationOrchestrationService:
                                 "Respuesta correcta"
                             ),
                             explanation=(
-                                "Explicación basada en "
-                                "el documento."
+                                "Explicación basada "
+                                "en el documento."
                             ),
                         ),
                     ),
-                ),
-                chunks_used=evidence,
-            ),
-            GeneratedFormat(
-                format_id=(
-                    f"fmt_{uuid4().hex}"
-                ),
-                document_id=document_id,
-                format_type=(
-                    GeneratedFormatType.FLASHCARDS
-                ),
-                status=(
-                    GeneratedFormatStatus.SUCCESS
-                ),
-                generation_context=context,
-                content=FlashcardsContent(
+                )
+
+            else:
+                content = FlashcardsContent(
                     title="Flashcards de prueba",
                     instructions=(
                         "Revise cada tarjeta."
@@ -434,15 +474,31 @@ class FakeAdaptationOrchestrationService:
                             ),
                         ),
                     ),
-                ),
-                chunks_used=evidence,
-            ),
-        ]
+                )
 
-        return [
-            self._generated_format_repository.create(
-                generated_format
+            completed_format = GeneratedFormat(
+                format_id=attempt.format_id,
+                document_id=attempt.document_id,
+                format_type=attempt.format_type,
+                status=(
+                    GeneratedFormatStatus.SUCCESS
+                ),
+                generation_context=(
+                    attempt.generation_context
+                ),
+                content=content,
+                chunks_used=evidence,
+                error_message=None,
+                created_at=attempt.created_at,
+                updated_at=datetime.now(
+                    UTC
+                ),
             )
-            for generated_format
-            in generated_formats
-        ]
+
+            completed_formats.append(
+                self._generated_format_repository.update(
+                    completed_format
+                )
+            )
+
+        return completed_formats

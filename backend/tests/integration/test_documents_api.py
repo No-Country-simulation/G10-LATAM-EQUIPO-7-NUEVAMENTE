@@ -41,7 +41,7 @@ def test_upload_valid_document(
     filename: str,
     content_type: str,
 ) -> None:
-    """Almacena e indexa el documento y programa su generación."""
+    """Almacena, indexa y genera formatos en etapas separadas."""
     file_content = b"contenido de prueba"
 
     response = client.post(
@@ -68,20 +68,22 @@ def test_upload_valid_document(
     assert body["duplicate"] is False
     assert "formats" not in body
 
+    document_id = body["document_id"]
+
     assert (
         fake_adaptation_orchestration_service
         .indexing_requests
         == [
-            body["document_id"]
+            document_id
         ]
     )
 
     assert (
         fake_adaptation_orchestration_service
-        .generation_requests
+        .preparation_requests
         == [
             {
-                "document_id": body["document_id"],
+                "document_id": document_id,
                 "profile": "intermediate",
                 "niche": "backend",
                 "detail_level": "detailed",
@@ -93,9 +95,23 @@ def test_upload_valid_document(
         ]
     )
 
+    assert len(
+        fake_adaptation_orchestration_service
+        .completion_requests
+    ) == 1
+
+    completed_format_ids = (
+        fake_adaptation_orchestration_service
+        .completion_requests[0]
+    )
+
+    assert len(
+        completed_format_ids
+    ) == 2
+
     formats_response = client.get(
         f"{api_prefix}/documents/"
-        f"{body['document_id']}/formats"
+        f"{document_id}/formats"
     )
 
     assert (
@@ -131,6 +147,22 @@ def test_upload_valid_document(
         == "success"
     )
 
+    returned_format_ids = {
+        formats_body["formats"][
+            "quiz"
+        ]["format_id"],
+        formats_body["formats"][
+            "flashcards"
+        ]["format_id"],
+    }
+
+    assert (
+        returned_format_ids
+        == set(
+            completed_format_ids
+        )
+    )
+
     stored_files = list(
         temporary_upload_directory.iterdir()
     )
@@ -146,7 +178,7 @@ def test_upload_valid_document(
     ).suffix.lower()
 
     expected_object_name = (
-        f"documents/{body['document_id']}/"
+        f"documents/{document_id}/"
         f"original{extension}"
     )
 
@@ -295,7 +327,13 @@ def test_upload_returns_502_when_object_storage_fails(
 
     assert (
         fake_adaptation_orchestration_service
-        .generation_requests
+        .preparation_requests
+        == []
+    )
+
+    assert (
+        fake_adaptation_orchestration_service
+        .completion_requests
         == []
     )
 
@@ -371,7 +409,7 @@ def test_duplicate_document_reuses_document_id(
 
     assert len(
         fake_adaptation_orchestration_service
-        .generation_requests
+        .preparation_requests
     ) == 2
 
     assert all(
@@ -380,7 +418,22 @@ def test_duplicate_document_reuses_document_id(
         for request
         in (
             fake_adaptation_orchestration_service
-            .generation_requests
+            .preparation_requests
+        )
+    )
+
+    assert len(
+        fake_adaptation_orchestration_service
+        .completion_requests
+    ) == 2
+
+    assert all(
+        len(completed_format_ids)
+        == 2
+        for completed_format_ids
+        in (
+            fake_adaptation_orchestration_service
+            .completion_requests
         )
     )
 
@@ -552,6 +605,16 @@ def test_get_registered_document(
             document_id
         ]
     )
+
+    assert len(
+        fake_adaptation_orchestration_service
+        .preparation_requests
+    ) == 1
+
+    assert len(
+        fake_adaptation_orchestration_service
+        .completion_requests
+    ) == 1
 
     response = client.get(
         f"{api_prefix}/documents/{document_id}"

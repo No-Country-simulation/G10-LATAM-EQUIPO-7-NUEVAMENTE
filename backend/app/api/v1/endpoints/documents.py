@@ -19,6 +19,7 @@ from fastapi import (
 from app.api.adaptation_execution import (
     execute_background_generation,
     execute_indexing,
+    prepare_background_generation,
 )
 from app.api.dependencies import (
     get_adaptation_orchestration_service,
@@ -352,14 +353,29 @@ async def upload_document(
         )
     )
 
+    generation_attempts = (
+        prepare_background_generation(
+            orchestration_service=(
+                orchestration_service
+            ),
+            document_id=(
+                current_document.document_id
+            ),
+            profile=profile,
+            niche=niche,
+            detail_level=detail_level,
+            learning_objective=(
+                learning_objective
+            ),
+        )
+    )
+
     background_tasks.add_task(
         execute_background_generation,
-        orchestration_service=orchestration_service,
-        document_id=current_document.document_id,
-        profile=profile,
-        niche=niche,
-        detail_level=detail_level,
-        learning_objective=learning_objective,
+        orchestration_service=(
+            orchestration_service
+        ),
+        attempts=generation_attempts,
     )
 
     if not registration.created:

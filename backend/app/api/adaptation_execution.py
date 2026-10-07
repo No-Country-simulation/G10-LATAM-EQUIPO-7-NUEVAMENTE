@@ -16,12 +16,19 @@ from app.application.document_service import (
 )
 from app.application.format_generation_service import (
     DocumentNotReadyForGenerationError,
+    FormatGenerationAttemptStateError,
     FormatGenerationContractError,
     FormatGenerationDocumentNotFoundError,
     FormatGenerationIntegrationError,
 )
 from app.application.rag_integration_service import (
     RAGIntegrationError,
+)
+from app.domain.generated_format import (
+    GeneratedFormat,
+)
+from app.ports.generated_format_repository_port import (
+    GeneratedFormatRepositoryError,
 )
 
 logger = logging.getLogger(__name__)
@@ -32,20 +39,7 @@ async def execute_indexing(
     orchestration_service: AdaptationOrchestrationService,
     document_id: str,
 ) -> None:
-    """Ejecuta la indexación síncrona y traduce errores a HTTP.
-
-    La indexación forma parte del contrato de ``POST /documents``:
-    el endpoint solo responde correctamente cuando el documento queda
-    disponible en RAG.
-
-    Args:
-        orchestration_service: Orquestador de adaptación configurado.
-        document_id: Documento que debe quedar indexado.
-
-    Raises:
-        HTTPException: Traducción HTTP de errores de aplicación,
-            almacenamiento o integración RAG.
-    """
+    """Ejecuta la indexación síncrona y traduce errores a HTTP."""
     try:
         await (
             orchestration_service
@@ -80,7 +74,7 @@ async def execute_indexing(
         ) from exc
 
 
-async def execute_background_generation(
+def prepare_background_generation(
     *,
     orchestration_service: AdaptationOrchestrationService,
     document_id: str,
@@ -88,20 +82,21 @@ async def execute_background_generation(
     niche: str,
     detail_level: str,
     learning_objective: str | None = None,
-) -> None:
-    """Ejecuta generación pedagógica después de responder al cliente.
+) -> tuple[
+    GeneratedFormat,
+    ...
+]:
+    """Registra intentos ``processing`` antes de responder al cliente.
 
-    Los fallos de Agentes no pueden modificar una respuesta HTTP que ya
-    fue enviada. FormatGenerationService conserva los intentos fallidos
-    cuando Agentes falla, supera su timeout o incumple el contrato.
-
-    Cualquier error se registra explícitamente para observabilidad y no
-    se propaga hacia la respuesta de ``POST /documents``.
+    Raises:
+        HTTPException:
+            Si el documento no puede iniciar generación o falla la
+            persistencia de los intentos.
     """
     try:
-        await (
+        attempts = (
             orchestration_service
-            .generate_default_formats(
+            .prepare_default_formats(
                 document_id=document_id,
                 profile=profile,
                 niche=niche,
@@ -110,12 +105,70 @@ async def execute_background_generation(
             )
         )
 
+    except FormatGenerationDocumentNotFoundError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=str(exc),
+        ) from exc
+
+    except DocumentNotReadyForGenerationError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail=str(exc),
+        ) from exc
+
+    except GeneratedFormatRepositoryError as exc:
+        raise HTTPException(
+            status_code=(
+                status.HTTP_500_INTERNAL_SERVER_ERROR
+            ),
+            detail=(
+                "El documento fue indexado, pero no fue posible "
+                "registrar la generación de formatos."
+            ),
+        ) from exc
+
+    return tuple(
+        attempts
+    )
+
+
+async def execute_background_generation(
+    *,
+    orchestration_service: AdaptationOrchestrationService,
+    attempts: tuple[
+        GeneratedFormat,
+        ...
+    ],
+) -> None:
+    """Completa intentos de generación después de responder al cliente.
+
+    Los fallos de Agentes no pueden modificar una respuesta HTTP que ya
+    fue enviada. ``FormatGenerationService`` convierte los intentos
+    ``processing`` a ``failed`` cuando Agentes falla, supera su timeout
+    o incumple el contrato.
+
+    Cualquier error se registra explícitamente para observabilidad.
+    """
+    document_id = (
+        attempts[0].document_id
+        if attempts
+        else "desconocido"
+    )
+
+    try:
+        await (
+            orchestration_service
+            .complete_default_generation(
+                attempts=attempts
+            )
+        )
+
     except (
-        DocumentNotFoundError,
-        FormatGenerationDocumentNotFoundError,
-        DocumentNotReadyForGenerationError,
+        FormatGenerationAttemptStateError,
         FormatGenerationIntegrationError,
         FormatGenerationContractError,
+        GeneratedFormatRepositoryError,
     ):
         logger.exception(
             "La generación en segundo plano falló "
