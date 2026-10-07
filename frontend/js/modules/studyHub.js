@@ -6,7 +6,7 @@
  */
 
 import { state } from '../state.js';
-import { apiClient } from '../api/apiClient.js';
+import { apiClient, ApiError } from '../api/apiClient.js';
 import { flashcards } from './flashcards.js';
 import { quiz } from './quiz.js';
 import { videoGuide } from './videoGuide.js';
@@ -121,9 +121,20 @@ export const studyHub = {
 
       btn.appendChild(label);
     } else if (globalStatus === 'ready') {
-      btn.style.display = 'none';
+      btn.style.display = 'inline-flex';
       btn.disabled = false;
       btn.className = 'btn-refresh-formats';
+      btn.title = 'Haz clic para regenerar los formatos pedagógicos a demanda.';
+
+      const icon = document.createElement('span');
+      icon.textContent = '↻';
+
+      const label = document.createElement('span');
+      label.style.marginLeft = '0.35rem';
+      label.textContent = 'Regenerar Formatos';
+
+      btn.appendChild(icon);
+      btn.appendChild(label);
     } else {
       btn.style.display = 'none';
       btn.disabled = false;
@@ -217,8 +228,12 @@ export const studyHub = {
   },
 
   /**
-   * Dispara la regeneración real de formatos educativos (POST /documents/{id}/formats/regenerate)
-   * Si el estado es 'partial', regenera únicamente los formatos fallidos (Auditoria.md Sec 5: S2 y Sec 6: S1, S7).
+   * Dispara la regeneración real de formatos educativos (POST /documents/{id}/formats/regenerate).
+   * La regeneración NO debe entenderse como una funcionalidad limitada a escenarios 'partial'
+   * ni exclusivamente a formatos fallidos: Backend permite solicitar uno o varios formatos y Front
+   * decide cuáles enviar según el flujo y la acción del usuario.
+   * Que actualmente en 'partial' el botón general reintente los formatos fallidos se mantiene como
+   * comportamiento de UX, pero no como restricción del contrato (PR #62).
    * @param {Array<string>|null} explicitFormats - Formatos específicos a regenerar (ej. ['quiz'])
    */
   async triggerRegeneration(explicitFormats = null) {
@@ -239,7 +254,7 @@ export const studyHub = {
     if (Array.isArray(explicitFormats) && explicitFormats.length > 0) {
       formatsToRegenerate = explicitFormats;
     } else if (globalStatus === 'partial') {
-      // Auditoria.md Sec 5: P2 / S2 -> En partial, enviar ÚNICAMENTE formatos fallidos
+      // Comportamiento de conveniencia UX: reintentar formatos que presentaron fallo
       if (currentFormats.quiz?.status === 'failed' || currentFormats.quiz?.status === 'no_results') {
         formatsToRegenerate.push('quiz');
       }
@@ -259,12 +274,20 @@ export const studyHub = {
     try {
       const response = await apiClient.regenerateFormats(doc.id, formatsToRegenerate);
 
-      // Auditoria.md Sec 6: S2 -> Mergear nuevos intentos devueltos (202 Accepted) y arrancar polling
+      // Mergear nuevos intentos canónicos devueltos por Backend (202 Accepted) y arrancar polling.
+      // El format_id es canónico de Backend y obligatorio por contrato; no se genera localmente (PR #62).
       const updatedFormats = { ...currentFormats };
       formatsToRegenerate.forEach(fmt => {
+        const attempt = response?.formats?.[fmt];
+        if (!attempt?.format_id) {
+          throw new ApiError(200, {
+            code: 'API_CONTRACT_ERROR',
+            message: `El backend no devolvió el identificador canónico 'format_id' para el formato '${fmt}'.`
+          });
+        }
         updatedFormats[fmt] = {
-          format_id: response?.formats?.[fmt]?.format_id || updatedFormats[fmt]?.format_id || `fmt_retry_${Date.now()}`,
-          status: 'processing',
+          format_id: attempt.format_id,
+          status: attempt.status || 'processing',
           content: null,
           error_message: null
         };

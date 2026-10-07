@@ -404,6 +404,26 @@ export const apiClient = {
         throw new ApiError(response.status, json);
       }
 
+      // Validación estricta del contrato 202 Accepted de regeneración (PR #62 / Backend #61)
+      if (!json || typeof json !== 'object' || !json.document_id || !json.formats || typeof json.formats !== 'object') {
+        throw new ApiError(200, {
+          code: 'API_CONTRACT_ERROR',
+          message: 'La respuesta de regeneración no cumple con la estructura esperada ({ document_id, status, formats }).'
+        });
+      }
+
+      // El identificador format_id es canónico de Backend y forma parte obligatoria del contrato.
+      // Una respuesta sin format_id para los formatos solicitados se trata como incumplimiento (API_CONTRACT_ERROR).
+      for (const fmt of formats) {
+        const attempt = json.formats[fmt];
+        if (!attempt || typeof attempt !== 'object' || !attempt.format_id || typeof attempt.format_id !== 'string') {
+          throw new ApiError(200, {
+            code: 'API_CONTRACT_ERROR',
+            message: `El backend no devolvió el identificador canónico 'format_id' para el formato '${fmt}' en la respuesta de regeneración.`
+          });
+        }
+      }
+
       state.set({ isBackendConnected: true, lastConnectionCheck: Date.now() });
       return json;
     } catch (err) {

@@ -266,6 +266,37 @@ export const quiz = {
           this.renderCurrentQuestion();
         });
         feedbackBox.appendChild(nextBtn);
+      } else {
+        const finishedActions = document.createElement('div');
+        finishedActions.className = 'btn-next-question';
+        finishedActions.style.display = 'flex';
+        finishedActions.style.gap = '0.5rem';
+        finishedActions.style.marginTop = '0.75rem';
+        finishedActions.style.alignSelf = 'flex-end';
+
+        const restartBtn = document.createElement('button');
+        restartBtn.type = 'button';
+        restartBtn.className = 'btn-secondary-action';
+        restartBtn.textContent = 'Reiniciar Evaluación';
+        restartBtn.addEventListener('click', () => {
+          this.currentIndex = 0;
+          this.renderCurrentQuestion();
+        });
+
+        const regenBtn = document.createElement('button');
+        regenBtn.type = 'button';
+        regenBtn.className = 'btn-primary-action';
+        regenBtn.innerHTML = '<span>↻ Generar Nuevo Quiz</span>';
+        regenBtn.title = 'Solicita una nueva evaluación con preguntas renovadas al motor pedagógico';
+        regenBtn.addEventListener('click', () => {
+          import('./studyHub.js').then(({ studyHub }) => {
+            studyHub.triggerRegeneration(['quiz']);
+          });
+        });
+
+        finishedActions.appendChild(restartBtn);
+        finishedActions.appendChild(regenBtn);
+        feedbackBox.appendChild(finishedActions);
       }
     }
   }
