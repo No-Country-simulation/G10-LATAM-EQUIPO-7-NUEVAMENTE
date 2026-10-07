@@ -2,7 +2,7 @@
 
 import logging
 
-from fastapi import HTTPException, status
+from fastapi import status
 
 from app.application.adaptation_orchestration_service import (
     AdaptationDocumentStateError,
@@ -25,6 +25,8 @@ from app.application.format_generation_service import (
 from app.application.rag_integration_service import (
     RAGIntegrationError,
 )
+from app.core.error_codes import ErrorCode
+from app.core.http_exceptions import APIHTTPException
 from app.domain.generated_format import (
     GeneratedFormat,
 )
@@ -45,7 +47,7 @@ async def execute_indexing(
     orchestration_service: AdaptationOrchestrationService,
     document_id: str,
 ) -> None:
-    """Ejecuta la indexación síncrona y traduce errores a HTTP."""
+    """Ejecuta la indexación síncrona y traduce errores al contrato HTTP."""
     try:
         await (
             orchestration_service
@@ -55,8 +57,9 @@ async def execute_indexing(
         )
 
     except DocumentNotFoundError as exc:
-        raise HTTPException(
+        raise APIHTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
+            code=ErrorCode.DOCUMENT_NOT_FOUND,
             detail=str(exc),
         ) from exc
 
@@ -65,17 +68,23 @@ async def execute_indexing(
         DocumentNotStoredError,
         DocumentIndexingStateError,
     ) as exc:
-        raise HTTPException(
+        raise APIHTTPException(
             status_code=status.HTTP_409_CONFLICT,
+            code=ErrorCode.DOCUMENT_STATE_CONFLICT,
             detail=str(exc),
         ) from exc
 
-    except (
-        DocumentRetrievalError,
-        RAGIntegrationError,
-    ) as exc:
-        raise HTTPException(
+    except DocumentRetrievalError as exc:
+        raise APIHTTPException(
             status_code=status.HTTP_502_BAD_GATEWAY,
+            code=ErrorCode.DOCUMENT_RETRIEVAL_FAILED,
+            detail=str(exc),
+        ) from exc
+
+    except RAGIntegrationError as exc:
+        raise APIHTTPException(
+            status_code=status.HTTP_502_BAD_GATEWAY,
+            code=ErrorCode.RAG_INDEXING_FAILED,
             detail=str(exc),
         ) from exc
 
@@ -95,7 +104,7 @@ def prepare_background_generation(
     """Registra intentos ``processing`` antes de responder al cliente.
 
     Raises:
-        HTTPException:
+        APIHTTPException:
             Si el documento no puede iniciar generación o falla la
             persistencia de los intentos.
     """
@@ -112,22 +121,25 @@ def prepare_background_generation(
         )
 
     except FormatGenerationDocumentNotFoundError as exc:
-        raise HTTPException(
+        raise APIHTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
+            code=ErrorCode.DOCUMENT_NOT_FOUND,
             detail=str(exc),
         ) from exc
 
     except DocumentNotReadyForGenerationError as exc:
-        raise HTTPException(
+        raise APIHTTPException(
             status_code=status.HTTP_409_CONFLICT,
+            code=ErrorCode.DOCUMENT_NOT_INDEXED,
             detail=str(exc),
         ) from exc
 
     except GeneratedFormatRepositoryError as exc:
-        raise HTTPException(
+        raise APIHTTPException(
             status_code=(
                 status.HTTP_500_INTERNAL_SERVER_ERROR
             ),
+            code=ErrorCode.FORMAT_REGISTRATION_FAILED,
             detail=(
                 "El documento fue indexado, pero no fue posible "
                 "registrar la generación de formatos."

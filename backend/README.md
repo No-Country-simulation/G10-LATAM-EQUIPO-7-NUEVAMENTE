@@ -27,6 +27,7 @@ Actualmente están implementados:
 - `GET /api/v1/documents/{document_id}` para consultar metadata y estado del documento.
 - `GET /api/v1/documents/{document_id}/formats` para consultar Quiz y Flashcards persistidos.
 - `POST /api/v1/documents/{document_id}/formats/regenerate` para iniciar una nueva generación de uno o varios formatos reutilizando el contexto pedagógico persistido.
+- Contrato transversal de errores con `code`, `detail`, `errors[]` y `timestamp`, independiente de los mensajes de UI de Frontend.
 - Admisión de archivos PDF, Markdown (`.md`) y TXT.
 - Validación de extensión y MIME type declarado.
 - Rechazo de archivos vacíos.
@@ -1422,27 +1423,154 @@ La adaptación educativa inicial es una operación interna iniciada desde `POST 
 
 ## Manejo de errores del flujo integrado
 
+BackendAPI expone un contrato transversal de errores para que Frontend pueda
+distinguir la causa funcional sin depender únicamente del HTTP status ni de
+comparar mensajes humanos.
+
+La respuesta estándar es:
+
+```json
+{
+  "code": "RAG_INDEXING_FAILED",
+  "detail": "No fue posible completar la indexación del documento.",
+  "errors": [],
+  "timestamp": "2026-10-07T18:00:00Z"
+}
+```
+
+Responsabilidad de cada campo:
+
+| Campo | Responsabilidad |
+|---|---|
+| HTTP status | Semántica del protocolo (`404`, `409`, `422`, `500`, `502`, etc.). |
+| `code` | Identificador funcional estable consumible por Frontend. |
+| `detail` | Mensaje seguro y legible para el cliente. |
+| `errors[]` | Detalles estructurados, especialmente validaciones por campo. |
+| `timestamp` | Momento en que Backend construyó la respuesta de error. |
+
+Los códigos públicos se centralizan en:
+
+```text
+app/core/error_codes.py
+```
+
+Los errores HTTP controlados utilizan:
+
+```text
+APIHTTPException
+```
+
+definida en:
+
+```text
+app/core/http_exceptions.py
+```
+
+La traducción final al `ErrorResponse` continúa centralizada en:
+
+```text
+app/core/exceptions.py
+```
+
+Frontend no debe depender de nombres de excepciones Python ni comparar el texto
+de `detail` para decidir comportamiento. Debe usar prioritariamente `code`.
+
+### Validaciones `422`
+
+Los errores de Pydantic conservan un código raíz estable y el detalle por campo:
+
+```json
+{
+  "code": "REQUEST_VALIDATION_ERROR",
+  "detail": "Error de validación en la petición.",
+  "errors": [
+    {
+      "code": "value_error",
+      "message": "formats no puede contener valores duplicados.",
+      "field": "formats"
+    }
+  ],
+  "timestamp": "2026-10-07T18:00:00Z"
+}
+```
+
+El `code` raíz identifica la categoría funcional completa. El `code` interno de
+cada elemento de `errors[]` conserva el identificador específico producido por
+la validación.
+
+### Códigos funcionales expuestos
+
+| `code` | HTTP | Caso principal |
+|---|---:|---|
+| `DOCUMENT_FILENAME_REQUIRED` | `400` | El archivo no tiene un nombre válido. |
+| `DOCUMENT_EMPTY` | `400` | El archivo recibido tiene cero bytes. |
+| `DOCUMENT_NOT_FOUND` | `404` | El `document_id` solicitado no existe. |
+| `DOCUMENT_STATE_CONFLICT` | `409` | El documento no permite la transición solicitada. |
+| `DOCUMENT_NOT_INDEXED` | `409` | Se intenta generar/regenerar sin estado `INDEXED`. |
+| `FILE_TOO_LARGE` | `413` | El archivo supera el máximo configurado. |
+| `UNSUPPORTED_FILE_TYPE` | `415` | La extensión no está soportada. |
+| `MIME_TYPE_MISMATCH` | `415` | El MIME type declarado no corresponde al formato admitido. |
+| `REQUEST_VALIDATION_ERROR` | `422` | El request no cumple el schema HTTP. |
+| `DOCUMENT_STORAGE_FAILED` | `502` | Falló el almacenamiento del original en OCI. |
+| `DOCUMENT_RETRIEVAL_FAILED` | `502` | No fue posible recuperar el original desde Object Storage. |
+| `RAG_INDEXING_FAILED` | `502` | Falló la integración/indexación RAG. |
+| `FORMAT_REGISTRATION_FAILED` | `500` | No fue posible registrar los intentos iniciales de generación. |
+| `FORMAT_REGENERATION_IN_PROGRESS` | `409` | Algún formato solicitado ya tiene un intento `processing`. |
+| `FORMAT_CONTEXT_NOT_FOUND` | `409` | No existe contexto pedagógico previo reutilizable. |
+| `FORMAT_CONTEXT_CONFLICT` | `409` | Los formatos solicitados no comparten un contexto reutilizable. |
+| `FORMAT_REGENERATION_REGISTRATION_FAILED` | `500` | No fue posible registrar los nuevos intentos de regeneración. |
+| `PERSISTENCE_ERROR` | `500` | Fallo conocido al acceder a la persistencia. |
+| `INTERNAL_SERVER_ERROR` | `500` | Excepción no controlada. |
+| `HTTP_ERROR` | variable | `HTTPException` de framework/ruta sin una causa funcional clasificada. |
+
+`BAD_REQUEST` permanece disponible en el catálogo para errores `400` genéricos
+que no tengan todavía una causa más específica.
+
 ### Durante almacenamiento e indexación
+
+La traducción diferencia causas que pueden compartir el mismo HTTP status:
 
 ```text
 DocumentNotFoundError
-    → 404
+    → 404 DOCUMENT_NOT_FOUND
 
 AdaptationDocumentStateError
 DocumentNotStoredError
 DocumentIndexingStateError
-    → 409
+    → 409 DOCUMENT_STATE_CONFLICT
 
 DocumentRetrievalError
+    → 502 DOCUMENT_RETRIEVAL_FAILED
+
 RAGIntegrationError
-    → 502
+    → 502 RAG_INDEXING_FAILED
+
+DocumentStorageError
+    → 502 DOCUMENT_STORAGE_FAILED
 ```
+
+De esta forma un fallo RAG ya no necesita interpretarse en Frontend como si
+fuera un fallo de OCI únicamente porque ambos utilicen `502`.
 
 ### Preparación de generación
 
 El registro de intentos `processing` ocurre antes de responder.
 
-Un fallo de persistencia en esta etapa impide programar una generación que Frontend no pueda observar correctamente.
+Casos públicos principales:
+
+```text
+FormatGenerationDocumentNotFoundError
+    → 404 DOCUMENT_NOT_FOUND
+
+DocumentNotReadyForGenerationError
+    → 409 DOCUMENT_NOT_INDEXED
+
+GeneratedFormatRepositoryError
+    → 500 FORMAT_REGISTRATION_FAILED
+```
+
+Un fallo de persistencia en esta etapa impide programar una generación que
+Frontend no pueda observar correctamente.
 
 ### Generación en background
 
@@ -1452,6 +1580,7 @@ Casos relevantes:
 FormatGenerationAttemptStateError
 FormatGenerationIntegrationError
 FormatGenerationContractError
+FormatGenerationRecoveryError
 GeneratedFormatRepositoryError
 ```
 
@@ -1469,25 +1598,65 @@ El documento permanece:
 INDEXED
 ```
 
+Como la respuesta HTTP ya fue enviada, estos errores se observan posteriormente
+mediante `GET /documents/{document_id}/formats` y no mediante un nuevo
+`ErrorResponse`.
+
 ### Regeneración
 
-La preparación de una regeneración traduce los errores de aplicación al contrato HTTP:
+La preparación de una regeneración traduce cada conflicto a un código estable:
 
 ```text
 FormatRegenerationDocumentNotFoundError
-    → 404
+FormatGenerationDocumentNotFoundError
+    → 404 DOCUMENT_NOT_FOUND
 
 FormatRegenerationDocumentStateError
+DocumentNotReadyForGenerationError
+    → 409 DOCUMENT_NOT_INDEXED
+
 FormatRegenerationInProgressError
+    → 409 FORMAT_REGENERATION_IN_PROGRESS
+
 FormatRegenerationContextNotFoundError
+    → 409 FORMAT_CONTEXT_NOT_FOUND
+
 FormatRegenerationContextConflictError
-    → 409
+    → 409 FORMAT_CONTEXT_CONFLICT
 
 GeneratedFormatRepositoryError
-    → 500
+    → 500 FORMAT_REGENERATION_REGISTRATION_FAILED
+
+DocumentRepositoryError
+    → 500 PERSISTENCE_ERROR
 ```
 
-Los errores de validación del body se resuelven mediante Pydantic como `422`.
+Los errores de validación del body se resuelven mediante Pydantic como:
+
+```text
+422 REQUEST_VALIDATION_ERROR
+```
+
+### Fallbacks seguros
+
+Un error HTTP del framework que no tenga una clasificación funcional explícita
+usa:
+
+```text
+HTTP_ERROR
+```
+
+Por ejemplo, una ruta inexistente no se etiqueta falsamente como
+`DOCUMENT_NOT_FOUND`.
+
+Cualquier excepción no controlada utiliza:
+
+```text
+500 INTERNAL_SERVER_ERROR
+```
+
+y el detalle interno se registra en Backend sin exponer stack traces ni nombres
+de excepciones al cliente.
 
 ---
 ## Stack
@@ -1577,9 +1746,11 @@ backend/
 │   │       └── oci_object_storage_adapter.py
 │   └── core/
 │       ├── config.py
+│       ├── error_codes.py
 │       ├── exceptions.py
-│       ├── logging.py
-│       └── hashing.py
+│       ├── hashing.py
+│       ├── http_exceptions.py
+│       └── logging.py
 ├── tests/
 │   ├── conftest.py
 │   ├── fakes.py
@@ -1587,6 +1758,7 @@ backend/
 │   │   ├── test_agents_generation_integration.py
 │   │   ├── test_document_formats_api.py
 │   │   ├── test_documents_api.py
+│   │   ├── test_error_contract.py
 │   │   └── test_format_regeneration_api.py
 │   └── unit/
 │       ├── test_adaptation_orchestration_service.py
@@ -1760,11 +1932,13 @@ python -m pytest -q
 git diff --check
 ```
 
-Última validación automatizada local después de implementar la regeneración:
+Última validación automatizada local después de estandarizar el contrato de errores críticos:
 
 ```text
 Ruff: All checks passed!
+Pytest test_error_contract.py: 20/20 OK
 Pytest: suite completa OK
+git diff --check: OK
 ```
 
 La suite cubre, entre otros:
@@ -1832,6 +2006,13 @@ La suite cubre, entre otros:
 - rechazo de regeneración para documentos no `INDEXED`;
 - validación `422` para listas vacías, formatos duplicados y formatos no soportados;
 - traducción a `500` cuando no es posible registrar los nuevos intentos de regeneración.
+- contrato transversal `code + detail + errors[] + timestamp`;
+- clasificación estable de errores `400`, `404`, `409`, `413`, `415`, `422`, `500` y `502`;
+- diferenciación entre fallo de almacenamiento OCI, recuperación del original e indexación RAG;
+- diferenciación de conflictos de regeneración mediante códigos funcionales;
+- conservación de errores de validación por campo en `errors[]`;
+- fallback `HTTP_ERROR` para errores HTTP no clasificados sin asignar causas funcionales incorrectas;
+- fallback `INTERNAL_SERVER_ERROR` para excepciones no controladas.
 
 ---
 ## Validación E2E de Sprint 3
