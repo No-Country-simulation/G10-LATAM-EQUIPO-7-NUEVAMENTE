@@ -38,6 +38,9 @@ Actualmente están implementados:
 - Eliminación del archivo temporal después del almacenamiento persistente o ante fallos.
 - Identificación de documentos mediante SHA-256.
 - Detección de contenido duplicado mediante SHA-256.
+- La identidad lógica del documento depende del contenido (SHA-256), no del nombre del archivo.
+- Mismo SHA-256 reutiliza el mismo `document_id` y evita una nueva carga del original a OCI.
+- Mismo nombre de archivo con contenido diferente genera un nuevo `document_id` y un objeto OCI independiente, sin sobrescribir el original previo.
 - Generación de `document_id` canónico para documentos nuevos.
 - Persistencia de metadata y estado mediante `DocumentRepositoryPort`.
 - Implementación SQLite mediante `SQLiteDocumentRepositoryAdapter`.
@@ -243,6 +246,34 @@ con:
 ```
 
 Un contenido duplicado reutiliza el mismo `document_id` y no vuelve a almacenar el archivo original en OCI.
+
+#### Identidad, deduplicación y no sobrescritura
+
+BackendAPI no utiliza `original_filename` como identidad del documento. La identidad se determina por la firma SHA-256 calculada sobre el contenido recibido.
+
+Reglas del flujo:
+
+```text
+mismo SHA-256
+→ mismo document_id
+→ duplicate = true
+→ no se vuelve a cargar el original en OCI
+
+SHA-256 diferente
+→ nuevo document_id
+→ duplicate = false
+→ nuevo objeto OCI independiente
+```
+
+Por tanto, subir dos archivos con el mismo nombre no implica sobrescritura. Si sus contenidos son diferentes, cada uno conserva su propio `document_id` y su propio objeto:
+
+```text
+documents/{document_id}/original.ext
+```
+
+Del mismo modo, volver a subir exactamente el mismo contenido —aunque cambie el nombre del archivo— reutiliza el documento ya registrado. La restricción `UNIQUE` sobre `sha256` en SQLite refuerza esta identidad a nivel de persistencia.
+
+Este comportamiento está cubierto por pruebas de integración específicas que verifican tanto la reutilización por SHA como la conservación simultánea de dos documentos con el mismo nombre y contenido diferente.
 
 ---
 ### Integración HTTP BackendAPI → RAG
@@ -848,6 +879,7 @@ Errores explícitos:
 - `GeneratedFormatRepositoryError`
 
 La inicialización de SQLite incluye una migración idempotente para bases anteriores cuyo `CHECK` de `generated_formats.status` no incluía `processing`. La migración conserva formatos existentes, relaciones con `format_evaluations`, recrea los índices y valida integridad referencial mediante `foreign_key_check`.
+
 ### Modelo de evaluación preparado
 
 La integración HTTP efectiva con Data/IA **no forma parte del pipeline obligatorio actual**, pero BackendAPI dispone del modelo necesario para incorporarla sin rediseñar generación ni persistencia.
@@ -1198,6 +1230,7 @@ Errores principales de la etapa síncrona:
 | `502` | Fallo de OCI, recuperación del original o indexación RAG |
 
 > El endpoint es síncrono hasta completar la indexación. Los errores de generación que ocurren después no modifican la respuesta ya enviada; su resultado se consulta mediante `/formats`.
+
 ### Listar documentos
 
 ```http
@@ -1758,6 +1791,7 @@ backend/
 │   │   ├── test_agents_generation_integration.py
 │   │   ├── test_document_formats_api.py
 │   │   ├── test_documents_api.py
+│   │   ├── test_document_overwrite_behavior.py
 │   │   ├── test_error_contract.py
 │   │   └── test_format_regeneration_api.py
 │   └── unit/
@@ -1932,11 +1966,11 @@ python -m pytest -q
 git diff --check
 ```
 
-Última validación automatizada local después de estandarizar el contrato de errores críticos:
+Última validación automatizada local después de validar la semántica de deduplicación y no sobrescritura:
 
 ```text
 Ruff: All checks passed!
-Pytest test_error_contract.py: 20/20 OK
+Pytest test_document_overwrite_behavior.py: 2/2 OK
 Pytest: suite completa OK
 git diff --check: OK
 ```
@@ -1949,6 +1983,9 @@ La suite cubre, entre otros:
 - límite máximo de archivo;
 - staging temporal;
 - SHA-256 y deduplicación;
+- reutilización del mismo `document_id` cuando el SHA-256 coincide;
+- no sobrescritura cuando dos archivos comparten nombre pero tienen contenido diferente;
+- persistencia simultánea de objetos OCI independientes para contenidos con SHA-256 distinto;
 - persistencia de metadata;
 - relación `document_id → oci_object_name`;
 - almacenamiento y recuperación mediante Object Storage;
@@ -2258,13 +2295,13 @@ timeout de Agentes es independiente         ✅
 processing termina en failed               ✅
 mismo format_id se conserva                ✅
 documento permanece INDEXED                ✅
-regeneración responde 202                     ✅
-regeneración crea un nuevo format_id          ✅
-segundo intento activo se rechaza con 409     ✅
-regeneración real termina en success          ✅
-historial previo se conserva                  ✅
-body con formatos duplicados devuelve 422     ✅
-regeneración no reindexa el documento         ✅
+regeneración responde 202                   ✅
+regeneración crea un nuevo format_id        ✅
+segundo intento activo se rechaza con 409   ✅
+regeneración real termina en success        ✅
+historial previo se conserva                ✅
+body con formatos duplicados devuelve 422   ✅
+regeneración no reindexa el documento       ✅
 ```
 
 ---
