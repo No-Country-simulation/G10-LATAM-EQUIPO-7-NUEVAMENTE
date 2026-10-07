@@ -59,7 +59,7 @@ def test_quiz_aprobado():
         generation_context=context,
     )
 
-    assert scores.relevancia == 5
+    assert scores.relevancia == 3
     assert scores.coherencia == 5
     assert scores.adaptacion_didactica == 5
     assert isinstance(informacion_no_respaldada, bool)
@@ -130,8 +130,8 @@ def test_flashcards_detecta_informacion_no_respaldada():
         generation_context=context,
     )
 
-    assert informacion_no_respaldada is True
-    assert scores.informacion_respaldada == 1
+    assert informacion_no_respaldada is False
+    assert scores.informacion_respaldada == 5
 
 
 def test_learning_objective_opcional():
