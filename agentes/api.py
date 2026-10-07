@@ -108,12 +108,10 @@ async def index_document(document_id: str = Form(...), file: UploadFile = File(.
 def generate_formats(payload: GenerateRequest):
     """
     Itera sobre los formatos solicitados, aplica capacidad atómica y devuelve los resultados
-    bajo los contratos estrictos de Data/IA.
+    bajo los contratos estrictos de Data/IA y Backend (Metadata en la raíz).
     """
     respuestas_generadas = []
     
-    # Si existe una query directa (como en los benchmarks), la usamos.
-    # Si no, caemos en el comportamiento por defecto generando contexto a partir de los metadatos.
     if payload.query:
         query_rag = payload.query
     else:
@@ -121,12 +119,28 @@ def generate_formats(payload: GenerateRequest):
         if payload.learning_objective:
             query_rag += f" Objetivo: {payload.learning_objective}"
 
+    # ==========================================
+    # 1. EXTRACCIÓN ÚNICA DE LEARNING METADATA
+    # ==========================================
+    metadata_response = agent.extract_learning_metadata(query=query_rag, document_id=payload.document_id)
+    
+    # Manejo del fallback: si la IA falla extrayendo metadatos, mandamos un default vacío pero no rompemos la API
+    if metadata_response["status"] == "success":
+        learning_metadata = metadata_response["content"]
+    else:
+        learning_metadata = {
+            "key_concepts": [],
+            "prerequisites": [],
+            "estimated_time_minutes": 0
+        }
+
+    # ==========================================
+    # 2. GENERACIÓN PARALELA DE FORMATOS
+    # ==========================================
     for formato in payload.formats:
         
-        # ==========================================
-        # VALIDACIÓN DE FORMATO ATÓMICA
-        # ==========================================
-        if formato not in ["quiz", "flashcards"]:
+        # Validamos los formatos (Añadidos tldr y video_script adelantándonos al merge de Oscar)
+        if formato not in ["quiz", "flashcards", "tldr", "video_script"]:
             respuestas_generadas.append({
                 "format": formato,
                 "status": "failed",
@@ -136,7 +150,6 @@ def generate_formats(payload: GenerateRequest):
             })
             continue 
 
-        # El agente ahora se encargará de devolver la estructura Pydantic exacta y los chunks completos
         resultado_atomico = agent.answer(
             query=query_rag,
             document_id=payload.document_id,
@@ -155,7 +168,11 @@ def generate_formats(payload: GenerateRequest):
             "error_message": resultado_atomico.get("error_message")
         })
 
+    # ==========================================
+    # 3. ENSAMBLAJE FINAL DEL CONTRATO
+    # ==========================================
     return {
         "document_id": payload.document_id,
+        "learning_metadata": learning_metadata,  # ¡Inyectado a nivel raíz!
         "results": respuestas_generadas
     }
