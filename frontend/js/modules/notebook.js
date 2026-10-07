@@ -157,21 +157,49 @@ export const notebook = {
     spread.id = 'viewCoverDynamic';
 
     const meta = doc.metadatos || {};
+    const lm = doc.learning_metadata || {};
+    const tiempoEstudio = typeof lm.estimated_time_minutes === 'number'
+      ? `${lm.estimated_time_minutes} min`
+      : (typeof doc.estimated_time_minutes === 'number' ? `${doc.estimated_time_minutes} min` : (meta.tiempo_estudio || '8 min'));
+
+    const prereqs = Array.isArray(lm.prerequisites) && lm.prerequisites.length > 0
+      ? lm.prerequisites
+      : (Array.isArray(doc.prerequisites) ? doc.prerequisites : []);
+
     spread.innerHTML = `
-      <span class="cover-emboss-badge">${doc.discipline || 'Documentación Corporativa'}</span>
-      <h2 class="cover-doc-title">${doc.title}</h2>
-      <p class="cover-doc-description">${doc.description}</p>
+      <span class="cover-emboss-badge"></span>
+      <h2 class="cover-doc-title"></h2>
+      <p class="cover-doc-description"></p>
       
       <div class="cover-meta-grid">
-        <div class="cover-meta-item">Nivel: <strong>${meta.perfil || 'Operativo'}</strong></div>
-        <div class="cover-meta-item">Tiempo estimado: <strong>${meta.tiempo_estudio || '8 min'}</strong></div>
-        <div class="cover-meta-item">Archivo: <strong>${doc.filename}</strong></div>
+        <div class="cover-meta-item">Nivel: <strong class="meta-level"></strong></div>
+        <div class="cover-meta-item">Tiempo estimado: <strong class="meta-time"></strong></div>
+        <div class="cover-meta-item">Archivo: <strong class="meta-file"></strong></div>
       </div>
 
       <button type="button" class="btn-open-notebook" id="btnOpenDynamicNotebook">
         <span>Abrir Módulo de Capacitación</span>
       </button>
     `;
+
+    spread.querySelector('.cover-emboss-badge').textContent = doc.discipline || 'Documentación Corporativa';
+    spread.querySelector('.cover-doc-title').textContent = doc.title || 'Módulo Corporativo';
+    spread.querySelector('.cover-doc-description').textContent = doc.description || doc.summary || 'Programa formativo interactivo.';
+    spread.querySelector('.meta-level').textContent = meta.perfil || 'Operativo';
+    spread.querySelector('.meta-time').textContent = tiempoEstudio;
+    spread.querySelector('.meta-file').textContent = doc.filename || '';
+
+    if (prereqs.length > 0) {
+      const metaGrid = spread.querySelector('.cover-meta-grid');
+      const prereqsItem = document.createElement('div');
+      prereqsItem.className = 'cover-meta-item';
+      prereqsItem.style.gridColumn = '1 / -1';
+      prereqsItem.textContent = 'Prerrequisitos: ';
+      const strong = document.createElement('strong');
+      strong.textContent = prereqs.join(', ');
+      prereqsItem.appendChild(strong);
+      metaGrid.appendChild(prereqsItem);
+    }
 
     spread.querySelector('#btnOpenDynamicNotebook')?.addEventListener('click', () => {
       this.goToSpread(1);

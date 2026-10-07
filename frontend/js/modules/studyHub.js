@@ -188,6 +188,25 @@ export const studyHub = {
 
           if (globalStatus === 'ready') {
             notifySuccess('Formatos Listos', '¡El Quiz y las Flashcards ya están disponibles para estudiar!');
+
+            // Refrescar metadatos pedagógicos generados por Backend (PR #63)
+            apiClient.getDocumentById(docId).then(docDetail => {
+              if (docDetail?.learning_metadata) {
+                const s = state.get();
+                if (s.currentDocument?.id === docId) {
+                  state.set({
+                    currentDocument: {
+                      ...s.currentDocument,
+                      learning_metadata: docDetail.learning_metadata,
+                      key_concepts: docDetail.learning_metadata.key_concepts || s.currentDocument.key_concepts,
+                      prerequisites: docDetail.learning_metadata.prerequisites || s.currentDocument.prerequisites,
+                      estimated_time_minutes: docDetail.learning_metadata.estimated_time_minutes ?? s.currentDocument.estimated_time_minutes,
+                      summary: docDetail.summary || s.currentDocument.summary
+                    }
+                  });
+                }
+              }
+            }).catch(() => {});
           } else if (globalStatus === 'partial') {
             notifyWarning('Generación Parcial', 'Uno de los formatos se completó, pero el otro presentó un fallo. Puedes regenerarlo.');
           } else if (globalStatus === 'error') {
@@ -467,6 +486,27 @@ export const studyHub = {
 
       if (globalStatus === 'ready') {
         notifySuccess('Formatos Listos', 'Materiales de capacitación disponibles.');
+
+        // Recuperar metadatos pedagógicos del documento si aún no están en memoria (PR #63)
+        if (!doc.learning_metadata && doc.id && !doc.id.startsWith('mock_')) {
+          apiClient.getDocumentById(doc.id).then(docDetail => {
+            if (docDetail?.learning_metadata) {
+              const s = state.get();
+              if (s.currentDocument?.id === doc.id) {
+                state.set({
+                  currentDocument: {
+                    ...s.currentDocument,
+                    learning_metadata: docDetail.learning_metadata,
+                    key_concepts: docDetail.learning_metadata.key_concepts || s.currentDocument.key_concepts,
+                    prerequisites: docDetail.learning_metadata.prerequisites || s.currentDocument.prerequisites,
+                    estimated_time_minutes: docDetail.learning_metadata.estimated_time_minutes ?? s.currentDocument.estimated_time_minutes,
+                    summary: docDetail.summary || s.currentDocument.summary
+                  }
+                });
+              }
+            }
+          }).catch(() => {});
+        }
       } else if (globalStatus === 'processing') {
         this.startPolling(doc.id);
       } else if (globalStatus === 'partial') {
