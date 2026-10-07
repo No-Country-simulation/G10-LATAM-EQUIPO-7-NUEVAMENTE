@@ -17,8 +17,18 @@ export const quiz = {
       optionsList: document.getElementById('quizOptionsList'),
       feedbackBox: document.getElementById('quizFeedbackBox'),
       feedbackBadge: document.getElementById('quizFeedbackBadge'),
-      feedbackText: document.getElementById('quizFeedbackText')
+      feedbackText: document.getElementById('quizFeedbackText'),
+      counterBadge: document.getElementById('quizCounterBadge'),
+      btnRegenQuiz: document.getElementById('btnRegenQuiz')
     };
+
+    if (this.elements.btnRegenQuiz) {
+      this.elements.btnRegenQuiz.addEventListener('click', () => {
+        import('./studyHub.js').then(({ studyHub }) => {
+          studyHub.triggerRegeneration(['quiz']);
+        });
+      });
+    }
   },
 
   render(quizData) {
@@ -47,8 +57,23 @@ export const quiz = {
   },
 
   renderCurrentQuestion() {
-    const { questionText, optionsList, feedbackBox } = this.elements;
+    const { questionText, optionsList, feedbackBox, counterBadge, btnRegenQuiz } = this.elements;
     if (!questionText || !optionsList) return;
+
+    if (btnRegenQuiz) {
+      const isBusy = this.quizMeta?.status === 'processing' || this.quizMeta?.status === 'pending';
+      btnRegenQuiz.disabled = isBusy;
+    }
+
+    if (counterBadge) {
+      if (this.questions.length > 0) {
+        counterBadge.textContent = `Pregunta ${this.currentIndex + 1} de ${this.questions.length}`;
+      } else {
+        counterBadge.textContent = this.quizMeta?.status === 'processing' || this.quizMeta?.status === 'pending'
+          ? 'Generando...'
+          : 'Evaluación Interactiva';
+      }
+    }
 
     if (feedbackBox) feedbackBox.style.display = 'none';
 

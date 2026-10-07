@@ -303,6 +303,43 @@
   color: var(--text-secondary);
 }
 
+.btn-regen-format {
+  background: rgba(245, 158, 11, 0.12);
+  border: 1px solid rgba(254, 240, 138, 0.35);
+  color: #fef08a;
+  font-size: clamp(0.78rem, 1vh, 0.86rem);
+  font-weight: 700;
+  padding: 0.38rem 0.85rem;
+  border-radius: 10px;
+  cursor: pointer;
+  transition: all var(--transition-fast);
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+.btn-regen-format:hover:not(:disabled) {
+  background: rgba(245, 158, 11, 0.28);
+  border-color: rgba(254, 240, 138, 0.65);
+  color: #ffffff;
+  box-shadow: 0 4px 14px rgba(245, 158, 11, 0.25);
+}
+
+.btn-regen-format:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+  border-color: rgba(255, 255, 255, 0.1);
+}
+
+.quiz-header-bar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 0.85rem;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
 /* --------------------------------------------------------------------------
    FORMATO 2: SÍNTESIS / RESUMEN RAG
    -------------------------------------------------------------------------- */

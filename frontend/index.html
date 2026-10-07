@@ -490,12 +490,19 @@
             <span class="card-counter-indicator" id="cardCounter">Tarjeta 1 de 1</span>
             <button type="button" class="control-btn" id="btnFlipCard">Voltear</button>
             <button type="button" class="control-btn" id="btnNextCard">&rarr; Siguiente</button>
+            <button type="button" class="control-btn btn-regen-format" id="btnRegenFlashcards" title="Solicitar un nuevo conjunto de tarjetas de memorización a la IA">↻ Nuevas Tarjetas</button>
           </div>
         </div>
 
         <!-- Formato 2: Quiz de Evaluación de Competencias -->
         <div class="format-view" id="viewFormatQuiz">
           <div class="quiz-container">
+            <div class="quiz-header-bar">
+              <span class="topic-badge-pill" id="quizCounterBadge">Evaluación Interactiva</span>
+              <button type="button" class="btn-regen-format" id="btnRegenQuiz" title="Generar un nuevo cuestionario con preguntas diferentes a la IA">
+                ↻ Cambiar Quiz / Nuevas Preguntas
+              </button>
+            </div>
             <h4 class="quiz-question-title" id="quizQuestionText">Cargando evaluación de competencias...</h4>
             <div class="quiz-options-list" id="quizOptionsList">
               <!-- Generado dinámicamente por quiz.js -->
