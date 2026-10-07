@@ -20,6 +20,9 @@ from app.application.document_service import (
 from app.application.format_generation_service import (
     FormatGenerationService,
 )
+from app.application.format_regeneration_service import (
+    FormatRegenerationService,
+)
 from app.application.generated_format_query_service import (
     GeneratedFormatQueryService,
 )
@@ -137,6 +140,20 @@ async def lifespan(
             )
         )
 
+        format_regeneration_service = (
+            FormatRegenerationService(
+                document_repository=(
+                    document_repository
+                ),
+                generated_format_repository=(
+                    generated_format_repository
+                ),
+                format_generation_service=(
+                    format_generation_service
+                ),
+            )
+        )
+
         adaptation_orchestration_service = (
             AdaptationOrchestrationService(
                 document_service=(
@@ -161,6 +178,10 @@ async def lifespan(
 
         app.state.format_generation_service = (
             format_generation_service
+        )
+
+        app.state.format_regeneration_service = (
+            format_regeneration_service
         )
 
         app.state.object_storage = (
