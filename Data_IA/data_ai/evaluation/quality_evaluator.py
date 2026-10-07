@@ -148,15 +148,17 @@ def _extraer_texto_evaluable(
             )
 
         return " ".join(partes)
+    
     if isinstance(generated_content, TLDRContent):
         partes = [generated_content.title, generated_content.summary]
         partes.extend(generated_content.key_points)
+        partes.append(generated_content.conclusion)
         return " ".join(partes)
 
     if isinstance(generated_content, VideoScriptContent):
         partes = [generated_content.title]
         for scene in generated_content.scenes:
-            partes.extend([scene.visual_description, scene.narration])
+            partes.extend([scene.title, scene.visual_description, scene.narration])
         return " ".join(partes)
 
     return ""
@@ -232,18 +234,18 @@ def evaluate(
             no_respaldadas = [w for w in terminos_generados if w not in terminos_fuente]
             ratio_alucinacion = len(no_respaldadas) / len(terminos_generados)
 
-            if ratio_alucinacion >= RATIO_ALUCINACION_RECHAZO:
-                informacion_no_respaldada = True
-                informacion_respaldada = 5
-            elif ratio_alucinacion <= RATIO_ALUCINACION_EXCELENTE:
-                informacion_no_respaldada = False
-                informacion_respaldada = 5
-            elif ratio_alucinacion <= RATIO_ALUCINACION_BUENO:
-                informacion_no_respaldada = False
-                informacion_respaldada = 4
-            else:
-                informacion_no_respaldada = False
-                informacion_respaldada = 3
+        if ratio_alucinacion >= RATIO_ALUCINACION_RECHAZO:
+            informacion_no_respaldada = True
+            informacion_respaldada = 1   # <-- Corregido: Si no está respaldada, el score es 1
+        elif ratio_alucinacion <= RATIO_ALUCINACION_EXCELENTE:
+            informacion_no_respaldada = False
+            informacion_respaldada = 5
+        elif ratio_alucinacion <= RATIO_ALUCINACION_BUENO:
+            informacion_no_respaldada = False
+            informacion_respaldada = 4
+        else:
+            informacion_no_respaldada = False
+            informacion_respaldada = 3
 
     scores = EvaluationScores(
         relevancia=relevancia,

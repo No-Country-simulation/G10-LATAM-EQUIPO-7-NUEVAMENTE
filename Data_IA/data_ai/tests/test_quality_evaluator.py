@@ -131,7 +131,7 @@ def test_flashcards_detecta_informacion_no_respaldada():
     )
 
     assert informacion_no_respaldada is True
-    assert scores.informacion_respaldada == 5
+    assert scores.informacion_respaldada == 1
 
 
 def test_learning_objective_opcional():
@@ -197,7 +197,8 @@ def test_evaluacion_tldr_aprobado():
     content = TLDRContent(
         title="Resumen de Python",
         summary="Python es una tecnología y lenguaje muy popular.",
-        key_points=["Backend", "Data Science"]
+        key_points=["Backend", "Data Science"],
+        conclusion="Python es una tecnología esencial."
     )
     context = GenerationContext(profile="profesional", niche="tecnología", detail_level="alto")
     chunks = [
@@ -211,16 +212,19 @@ def test_evaluacion_tldr_aprobado():
     
     assert scores.relevancia >= 4
     assert alucinacion is False
+    assert scores.informacion_respaldada >= 4
 
 def test_evaluacion_video_detecta_alucinacion():
     content = VideoScriptContent(
         title="Intro a React",
-        target_duration_minutes=5,
+        estimated_duration_minutes=5,
         scenes=[
             VideoScriptScene(
-                scene_number=1, 
+                scene_id="SCENE-001",
+                title="Escena inicial",
                 visual_description="Logo de React", 
-                narration="React sirve para clonar dinosaurios con ADN cuántico."
+                narration="React sirve para clonar dinosaurios con ADN cuántico.",
+                duration_seconds=30
             )
         ]
     )
@@ -235,3 +239,4 @@ def test_evaluacion_video_detecta_alucinacion():
     scores, alucinacion = evaluate(generated_content=content, chunks_used=chunks, generation_context=context)
     
     assert alucinacion is True
+    assert scores.informacion_respaldada == 1

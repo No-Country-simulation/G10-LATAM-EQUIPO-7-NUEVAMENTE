@@ -181,26 +181,28 @@ class FlashcardsContent(StrictModel):
 ### ============================================================
 ### TL;DR (RESUMEN EJECUTIVO)
 ### ============================================================
-
 class TLDRContent(StrictModel):
     """Contenido generado para el formato de Resumen Ejecutivo (TL;DR)."""
     title: str = Field(..., min_length=1, description="Título del resumen.")
     summary: str = Field(..., min_length=1, description="Cuerpo principal del resumen.")
     key_points: List[str] = Field(default_factory=list, description="Lista de viñetas o puntos clave.")
+    conclusion: str = Field(..., min_length=1, description="Conclusión del resumen ejecutivo.")
 
 ### ============================================================
 ### GUION DE VIDEO
 ### ============================================================
 class VideoScriptScene(StrictModel):
     """Escena individual de un guion de video."""
-    scene_number: int = Field(..., ge=1, description="Número secuencial de la escena.")
+    scene_id: str = Field(..., min_length=1, description="Identificador único de la escena.")
+    title: str = Field(..., min_length=1, description="Título de la escena.")
     visual_description: str = Field(..., min_length=1, description="Descripción visual o de cámara.")
     narration: str = Field(..., min_length=1, description="Texto que leerá el presentador/voz en off.")
+    duration_seconds: int = Field(default=0, ge=0, description="Duración en segundos de la escena.")
 
 class VideoScriptContent(StrictModel):
     """Contenido generado para el formato de Guion de Video."""
     title: str = Field(..., min_length=1, description="Título del video.")
-    target_duration_minutes: int = Field(default=0, description="Duración estimada.")
+    estimated_duration_minutes: int = Field(default=0, ge=0, description="Duración estimada en minutos.")
     scenes: List[VideoScriptScene] = Field(..., min_length=1, description="Lista de escenas.")
 
 # ============================================================
