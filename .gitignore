@@ -18,3 +18,9 @@ __pycache__/
 # Retrieval V2 local benchmark
 .benchmark_chroma_v2/
 .venv-agentes/
+
+# Local Chroma stores used by Retrieval V2 experiments
+.benchmark_chroma_v2*/
+
+# Generated raw batches from Retrieval V2 ablation experiments
+Data_IA/data/evaluation/results/retrieval_v2_ablation/**/retrieval_*.json

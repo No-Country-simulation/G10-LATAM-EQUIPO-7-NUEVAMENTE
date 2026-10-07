@@ -1,0 +1,3 @@
+﻿case_id,document_id,relevant_chunk_ids,relevant_in_vector,relevant_in_bm25,relevant_after_rrf,relevant_in_final_top5,diagnosis
+BE-ES-002-Q03,BE-ES-002,BE-ES-002_CH_005,True,True,True,False,cross_encoder_reranking_failure
+CLD-ES-001-Q05,CLD-ES-001,CLD-ES-001_CH_002,True,True,True,False,cross_encoder_reranking_failure
