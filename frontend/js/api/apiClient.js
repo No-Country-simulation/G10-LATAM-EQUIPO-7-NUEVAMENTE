@@ -5,6 +5,7 @@
  */
 
 import { CONFIG } from '../config.js';
+import { state } from '../state.js';
 
 /**
  * Error personalizado con metadatos HTTP para feedback enriquecido en la UI
@@ -92,14 +93,57 @@ export function mapBackendError(status, detail) {
   };
 }
 
+async function parseResponseBody(response) {
+  try {
+    const text = await response.text();
+    if (!text || !text.trim()) return {};
+    return JSON.parse(text);
+  } catch {
+    return { message: ApiError.getDefaultMessageForStatus(response.status) };
+  }
+}
+
+function wrapFetchError(err, timeoutMessage) {
+  if (err instanceof ApiError) return err;
+
+  if (err && err.name === 'AbortError') {
+    return new ApiError(408, {
+      code: 'TIMEOUT_ERROR',
+      message: timeoutMessage || 'Tiempo de espera agotado al comunicarse con el servidor (Timeout).'
+    });
+  }
+
+  const isNetwork = err instanceof TypeError ||
+    (err && typeof err.message === 'string' && (
+      err.message.toLowerCase().includes('fetch') ||
+      err.message.toLowerCase().includes('network') ||
+      err.message.toLowerCase().includes('failed to fetch') ||
+      err.message.toLowerCase().includes('load failed')
+    ));
+
+  if (isNetwork) {
+    state.set({ isBackendConnected: false, lastConnectionCheck: Date.now() });
+    return new ApiError(0, {
+      code: 'CONNECTION_REFUSED',
+      message: `No se pudo conectar con el Backend (FastAPI). Verifica que esté activo en ${CONFIG.API.DEFAULT_BASE_URL}`
+    });
+  }
+
+  return new ApiError(500, {
+    code: 'CLIENT_ERROR',
+    message: err?.message || 'Error inesperado durante la comunicación con el servidor.'
+  });
+}
+
 export const apiClient = {
   /**
-   * Verifica la disponibilidad del backend
+   * Verifica la disponibilidad del Backend mediante GET /api/v1/health y sincroniza el estado global
+   * @returns {Promise<boolean>}
    */
   async checkHealth() {
     const url = `${CONFIG.API.DEFAULT_BASE_URL}${CONFIG.API.V1_PREFIX}${CONFIG.API.ENDPOINTS.HEALTH}`;
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 2500);
+    const timeoutId = setTimeout(() => controller.abort(), 3000);
 
     try {
       const response = await fetch(url, {
@@ -108,9 +152,16 @@ export const apiClient = {
         signal: controller.signal
       });
       clearTimeout(timeoutId);
-      return response.ok;
+
+      const contentType = response.headers.get('content-type') || '';
+      const isJson = contentType.includes('application/json');
+      const isConnected = response.ok && isJson;
+
+      state.set({ isBackendConnected: isConnected, lastConnectionCheck: Date.now() });
+      return isConnected;
     } catch {
       clearTimeout(timeoutId);
+      state.set({ isBackendConnected: false, lastConnectionCheck: Date.now() });
       return false;
     }
   },
@@ -163,11 +214,13 @@ export const apiClient = {
 
       clearTimeout(timeoutId);
 
-      const json = await response.json().catch(() => ({}));
+      const json = await parseResponseBody(response);
 
       if (!response.ok) {
         throw new ApiError(response.status, json);
       }
+
+      state.set({ isBackendConnected: true, lastConnectionCheck: Date.now() });
 
       return {
         ...json,
@@ -176,19 +229,7 @@ export const apiClient = {
       };
     } catch (err) {
       clearTimeout(timeoutId);
-      if (err.name === 'AbortError') {
-        throw new ApiError(408, {
-          code: 'TIMEOUT_ERROR',
-          message: `Tiempo de espera agotado al procesar el archivo (${Math.round(timeoutMs / 1000)}s Timeout).`
-        });
-      }
-      if (err instanceof TypeError && err.message.toLowerCase().includes('fetch')) {
-        throw new ApiError(0, {
-          code: 'CONNECTION_REFUSED',
-          message: `No se pudo conectar con el Backend (FastAPI). Verifica que esté activo en ${CONFIG.API.DEFAULT_BASE_URL}`
-        });
-      }
-      throw err;
+      throw wrapFetchError(err, `Tiempo de espera agotado al procesar el archivo (${Math.round(timeoutMs / 1000)}s Timeout).`);
     }
   },
 
@@ -211,27 +252,21 @@ export const apiClient = {
 
       clearTimeout(timeoutId);
 
-      const json = await response.json().catch(() => ([]));
+      const json = await parseResponseBody(response);
 
       if (!response.ok) {
         throw new ApiError(response.status, json);
       }
+
+      state.set({ isBackendConnected: true, lastConnectionCheck: Date.now() });
 
       if (Array.isArray(json)) return json;
       if (Array.isArray(json.items)) return json.items;
       if (Array.isArray(json.documents)) return json.documents;
       return [];
     } catch (err) {
-      if (err.name === 'AbortError') {
-        throw new ApiError(408, { message: 'Tiempo de espera agotado al consultar los documentos.' });
-      }
-      if (err instanceof TypeError && err.message.toLowerCase().includes('fetch')) {
-        throw new ApiError(0, {
-          code: 'CONNECTION_REFUSED',
-          message: `No se pudo conectar con el Backend (FastAPI). Verifica que esté activo en ${CONFIG.API.DEFAULT_BASE_URL}`
-        });
-      }
-      throw err;
+      clearTimeout(timeoutId);
+      throw wrapFetchError(err, 'Tiempo de espera agotado al consultar los documentos.');
     }
   },
 
@@ -256,18 +291,17 @@ export const apiClient = {
 
       clearTimeout(timeoutId);
 
-      const json = await response.json().catch(() => ({}));
+      const json = await parseResponseBody(response);
 
       if (!response.ok) {
         throw new ApiError(response.status, json);
       }
 
+      state.set({ isBackendConnected: true, lastConnectionCheck: Date.now() });
       return json;
     } catch (err) {
-      if (err.name === 'AbortError') {
-        throw new ApiError(408, { message: 'Tiempo de espera agotado al consultar el documento.' });
-      }
-      throw err;
+      clearTimeout(timeoutId);
+      throw wrapFetchError(err, 'Tiempo de espera agotado al consultar el documento.');
     }
   },
 
@@ -293,18 +327,17 @@ export const apiClient = {
 
       clearTimeout(timeoutId);
 
-      const json = await response.json().catch(() => ({}));
+      const json = await parseResponseBody(response);
 
       if (!response.ok) {
         throw new ApiError(response.status, json);
       }
 
+      state.set({ isBackendConnected: true, lastConnectionCheck: Date.now() });
       return json;
     } catch (err) {
-      if (err.name === 'AbortError') {
-        throw new ApiError(408, { message: 'Tiempo de espera agotado al consultar los formatos.' });
-      }
-      throw err;
+      clearTimeout(timeoutId);
+      throw wrapFetchError(err, 'Tiempo de espera agotado al consultar los formatos.');
     }
   }
 };

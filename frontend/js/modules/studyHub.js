@@ -1,6 +1,8 @@
 /**
  * studyHub.js
  * Orquestador principal del Centro de Estudio Multi-Formato.
+ * Implementa polling reactivo automático para formatos en estado 'processing'
+ * y manejo de estados reales de backend con opciones de reintento ante fallos.
  */
 
 import { state } from '../state.js';
@@ -10,11 +12,14 @@ import { quiz } from './quiz.js';
 import { videoGuide } from './videoGuide.js';
 import { summary } from './summary.js';
 import { statusDialog } from './statusDialog.js';
-import { notifyError, notifySuccess } from './notifications.js';
+import { notifyError, notifyWarning, notifySuccess } from './notifications.js';
+import { toFriendlyError } from '../utils/friendlyError.js';
 
 export const studyHub = {
   elements: {},
   isFetchingFormats: false,
+  pollingTimer: null,
+  currentPollingDocId: null,
 
   init() {
     this.bindElements();
@@ -52,10 +57,12 @@ export const studyHub = {
 
   setupActions() {
     if (this.elements.btnRefreshFormats) {
-      this.elements.btnRefreshFormats.addEventListener('click', () => {
+      this.elements.btnRefreshFormats.addEventListener('click', async () => {
         const doc = state.get().currentDocument;
-        if (doc) {
-          this.fetchFormatsForCurrentDocument(doc);
+        if (doc && !this.isFetchingFormats) {
+          const currentStatus = state.get().studyHub?.formatsStatus;
+          if (currentStatus === 'processing') return; // En polling activo, no enviar reintentos concurrentes
+          await this.fetchFormatsForCurrentDocument(doc, true);
         }
       });
     }
@@ -75,16 +82,153 @@ export const studyHub = {
     });
   },
 
+  /**
+   * Actualiza el botón de la cabecera del Centro de Estudio según el estado real de los formatos
+   * Renderizado 100% seguro con textContent y nodos del DOM (cero innerHTML con datos dinámicos).
+   */
+  updateHeaderButtonUI(globalStatus) {
+    const btn = this.elements.btnRefreshFormats;
+    if (!btn) return;
+
+    btn.textContent = ''; // Limpieza segura
+
+    if (globalStatus === 'processing' || this.isFetchingFormats) {
+      btn.style.display = 'inline-flex';
+      btn.disabled = true;
+      btn.className = 'btn-refresh-formats is-syncing';
+      btn.title = 'Los formatos se están generando en segundo plano en el servidor...';
+
+      const icon = document.createElement('span');
+      icon.className = 'spin-icon';
+      icon.textContent = '↻';
+
+      const label = document.createElement('span');
+      label.style.marginLeft = '0.35rem';
+      label.textContent = 'Generando formatos...';
+
+      btn.appendChild(icon);
+      btn.appendChild(label);
+    } else if (globalStatus === 'partial' || globalStatus === 'error') {
+      btn.style.display = 'inline-flex';
+      btn.disabled = false;
+      btn.className = 'btn-refresh-formats btn-retry-highlight';
+      btn.title = globalStatus === 'partial'
+        ? 'Uno de los formatos falló. Haz clic para reintentar la sincronización.'
+        : 'La generación de formatos presentó fallos. Haz clic para reintentar.';
+
+      const icon = document.createElement('span');
+      icon.textContent = '↻ ';
+
+      const label = document.createElement('span');
+      label.textContent = 'Reintentar Formatos';
+
+      btn.appendChild(icon);
+      btn.appendChild(label);
+    } else if (globalStatus === 'ready') {
+      btn.style.display = 'none';
+      btn.disabled = false;
+      btn.className = 'btn-refresh-formats';
+    } else {
+      btn.style.display = 'none';
+      btn.disabled = false;
+      btn.className = 'btn-refresh-formats';
+    }
+  },
+
+  /**
+   * Inicia el sondeo (polling) reactivo periódico cada 3.5 segundos mientras los formatos estén en 'processing'
+   */
+  startPolling(docId) {
+    if (this.pollingTimer && this.currentPollingDocId === docId) {
+      return; // Polling ya en curso para este documento
+    }
+
+    this.stopPolling();
+    this.currentPollingDocId = docId;
+
+    this.pollingTimer = setInterval(async () => {
+      const s = state.get();
+      const currentDoc = s.currentDocument;
+
+      // Parada y limpieza si el usuario cambió de documento o navegó fuera del Centro de Estudio
+      if (!currentDoc || currentDoc.id !== docId || s.activeTab !== 'study') {
+        this.stopPolling();
+        return;
+      }
+
+      if (this.isFetchingFormats) return;
+
+      try {
+        const formatsResponse = await apiClient.getDocumentFormats(docId);
+        const resolvedFormats = formatsResponse?.formats || formatsResponse;
+        const globalStatus = formatsResponse?.status || (resolvedFormats ? 'ready' : 'empty');
+
+        state.set({
+          studyHub: {
+            ...state.get().studyHub,
+            formats: resolvedFormats,
+            formatsStatus: globalStatus
+          }
+        });
+
+        // Parada automática cuando Backend resuelve en estado terminal
+        if (globalStatus === 'ready' || globalStatus === 'partial' || globalStatus === 'error') {
+          this.stopPolling();
+
+          if (globalStatus === 'ready') {
+            notifySuccess('Formatos Listos', '¡El Quiz y las Flashcards ya están disponibles para estudiar!');
+          } else if (globalStatus === 'partial') {
+            notifyWarning('Generación Parcial', 'Uno de los formatos se completó, pero el otro presentó un fallo. Puedes reintentarlo.');
+          } else if (globalStatus === 'error') {
+            notifyError('Fallo en Formatos', 'No fue posible generar los formatos pedagógicos.');
+          }
+        }
+      } catch (err) {
+        console.warn('[StudyHub Polling] Inconveniente al consultar formatos:', err.message);
+        if (err.status === 404 || err.status === 400) {
+          this.stopPolling();
+          state.set({
+            studyHub: {
+              ...state.get().studyHub,
+              formatsStatus: 'error'
+            }
+          });
+        }
+      }
+    }, 3500);
+  },
+
+  /**
+   * Detiene el sondeo reactivo y libera el temporizador
+   */
+  stopPolling() {
+    if (this.pollingTimer) {
+      clearInterval(this.pollingTimer);
+      this.pollingTimer = null;
+    }
+    this.currentPollingDocId = null;
+  },
+
   syncWithState(s) {
-    const { currentDocument, studyHub: hubState } = s;
+    const { currentDocument, studyHub: hubState, activeTab } = s;
+
+    // Si el usuario navegó fuera del Centro de Estudio, pausar sondeo para ahorrar recursos
+    if (activeTab !== 'study') {
+      this.stopPolling();
+      return;
+    }
 
     // Si no hay documento seleccionado: estado de bienvenida limpio
     if (!currentDocument) {
+      this.stopPolling();
       if (this.elements.topicBadge) {
         this.elements.topicBadge.textContent = 'BIBLIOTECA';
       }
       if (this.elements.topicTitle) {
-        this.elements.topicTitle.textContent = 'Selecciona o sube un documento en La Biblioteca para comenzar a estudiar';
+        this.elements.topicTitle.textContent = 'Selecciona o carga un documento en la Biblioteca para iniciar la capacitación';
+      }
+      if (this.elements.btnRefreshFormats) {
+        this.elements.btnRefreshFormats.style.display = 'none';
       }
       flashcards.render([]);
       quiz.render(null);
@@ -125,12 +269,17 @@ export const studyHub = {
       }
     });
 
-    // Tarea 7 y 8: Resolver formatos generados por Backend (GET /documents/{id}/formats)
     const backendFormats = hubState.formats || {};
     const globalStatus = hubState.formatsStatus || 'ready';
-    // Actualizar botón de reintento/sincronización de formatos
-    if (this.elements.btnRefreshFormats) {
-      this.elements.btnRefreshFormats.style.display = (globalStatus === 'error' || globalStatus === 'partial') ? 'inline-flex' : 'none';
+
+    // Actualizar botón de Reintentar / Sincronizar
+    this.updateHeaderButtonUI(globalStatus);
+
+    // Gestión del Polling Reactivo según estado global
+    if (globalStatus === 'processing' && currentDocument.id) {
+      this.startPolling(currentDocument.id);
+    } else if (globalStatus !== 'processing') {
+      this.stopPolling();
     }
 
     // Auto-recuperar formatos si no están en memoria aún para el documento activo
@@ -138,20 +287,20 @@ export const studyHub = {
       this.fetchFormatsForCurrentDocument(currentDocument);
     }
 
-    // 1. Flashcards (Tarea 8)
+    // 1. Flashcards: pasar datos reales o estado por formato
     const flashcardsData = backendFormats.flashcards 
       || activeSection?.flashcards 
       || (backendFormats.cards ? backendFormats.cards : null)
       || (globalStatus === 'processing' || globalStatus === 'loading' ? { status: 'processing' } : null)
-      || (globalStatus === 'error' ? { status: 'failed', errorMessage: 'No se pudieron recuperar las Flashcards desde el backend.' } : null);
+      || (globalStatus === 'error' ? { status: 'failed', errorMessage: 'No fue posible generar las Tarjetas de Refuerzo.' } : null);
     flashcards.render(flashcardsData);
 
-    // 2. Quiz (Tarea 8)
+    // 2. Quiz: pasar datos reales o estado por formato
     const quizData = backendFormats.quiz 
       || activeSection?.quiz 
       || (backendFormats.questions ? backendFormats.questions : null)
       || (globalStatus === 'processing' || globalStatus === 'loading' ? { status: 'processing' } : null)
-      || (globalStatus === 'error' ? { status: 'failed', errorMessage: 'No se pudieron recuperar las preguntas del Quiz desde el backend.' } : null);
+      || (globalStatus === 'error' ? { status: 'failed', errorMessage: 'No fue posible generar la Evaluación de Competencias (Quiz).' } : null);
     quiz.render(quizData);
 
     // 3. Tutorial / Video (Extensible)
@@ -169,10 +318,13 @@ export const studyHub = {
 
   /**
    * Consulta GET /documents/{id}/formats al Backend y sincroniza el estado
+   * @param {Object} doc - Documento activo
+   * @param {boolean} isManualRetry - Indica si la petición fue provocada por el usuario
    */
-  async fetchFormatsForCurrentDocument(doc) {
+  async fetchFormatsForCurrentDocument(doc, isManualRetry = false) {
     if (!doc?.id || this.isFetchingFormats) return;
     this.isFetchingFormats = true;
+    this.updateHeaderButtonUI('loading');
 
     try {
       state.set({
@@ -182,9 +334,9 @@ export const studyHub = {
         }
       });
 
-      const formats = await apiClient.getDocumentFormats(doc.id);
-      const resolvedFormats = formats?.formats || formats;
-      const globalStatus = formats?.status || (resolvedFormats ? 'ready' : 'empty');
+      const formatsResponse = await apiClient.getDocumentFormats(doc.id);
+      const resolvedFormats = formatsResponse?.formats || formatsResponse;
+      const globalStatus = formatsResponse?.status || (resolvedFormats ? 'ready' : 'empty');
 
       state.set({
         studyHub: {
@@ -195,7 +347,13 @@ export const studyHub = {
       });
 
       if (globalStatus === 'ready') {
-        notifySuccess('Formatos Sincronizados', 'Se cargaron los materiales pedagógicos desde el Backend.');
+        notifySuccess('Formatos Listos', 'Materiales de capacitación disponibles.');
+      } else if (globalStatus === 'processing') {
+        this.startPolling(doc.id);
+      } else if (globalStatus === 'partial') {
+        notifyWarning('Generación Parcial', 'Uno de los formatos se completó, pero el otro presentó un fallo.');
+      } else if (globalStatus === 'error') {
+        notifyError('Fallo en Formatos', 'No fue posible generar los formatos pedagógicos.');
       }
     } catch (err) {
       console.warn('[StudyHub] Error al consultar formatos desde el backend:', err.message);
@@ -206,17 +364,19 @@ export const studyHub = {
         }
       });
 
+      const friendly = toFriendlyError(err);
       statusDialog.showError({
-        status: err.status || 500,
-        code: err.code || 'FORMATS_FETCH_ERROR',
-        message: err.message || `No fue posible cargar los formatos de estudio para "${doc.title || doc.filename}".`,
-        details: [`Documento ID: ${doc.id}`, err.message],
+        status: friendly.status,
+        code: friendly.code,
+        message: friendly.message,
+        details: [`Documento ID: ${doc.id}`, ...friendly.details],
         filename: doc.filename || doc.title
       });
-
-      notifyError(`Error en Formatos (${err.status || 500})`, err.message);
+      notifyError(friendly.title, friendly.message);
     } finally {
       this.isFetchingFormats = false;
+      const currentGlobalStatus = state.get().studyHub?.formatsStatus || 'ready';
+      this.updateHeaderButtonUI(currentGlobalStatus);
     }
   },
 

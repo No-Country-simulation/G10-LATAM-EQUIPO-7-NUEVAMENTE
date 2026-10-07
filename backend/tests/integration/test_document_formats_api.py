@@ -80,7 +80,7 @@ def persist_indexed_document(
     tmp_path: Path,
     document_id: str,
 ) -> None:
-    """Persiste directamente un documento indexado para pruebas de consulta."""
+    """Persiste directamente un documento indexado para pruebas."""
     repository = SQLiteDocumentRepositoryAdapter(
         build_database(
             tmp_path
@@ -187,7 +187,10 @@ def build_quiz(
         ),
         error_message=(
             None
-            if successful
+            if status in {
+                GeneratedFormatStatus.SUCCESS,
+                GeneratedFormatStatus.PROCESSING,
+            }
             else (
                 "No fue posible generar el Quiz."
             )
@@ -250,7 +253,10 @@ def build_flashcards(
         ),
         error_message=(
             None
-            if successful
+            if status in {
+                GeneratedFormatStatus.SUCCESS,
+                GeneratedFormatStatus.PROCESSING,
+            }
             else (
                 "No fue posible generar Flashcards."
             )
@@ -314,7 +320,7 @@ def test_formats_returns_ready_after_upload(
         FakeAdaptationOrchestrationService
     ),
 ) -> None:
-    """El flujo de carga deja Quiz y Flashcards disponibles."""
+    """La carga prepara y completa Quiz y Flashcards por etapas."""
     document_id = upload_document(
         client=client,
         api_prefix=api_prefix,
@@ -322,8 +328,131 @@ def test_formats_returns_ready_after_upload(
 
     assert (
         fake_adaptation_orchestration_service
-        .requests[0]["document_id"]
+        .indexing_requests
+        == [
+            document_id
+        ]
+    )
+
+    assert len(
+        fake_adaptation_orchestration_service
+        .preparation_requests
+    ) == 1
+
+    preparation_request = (
+        fake_adaptation_orchestration_service
+        .preparation_requests[0]
+    )
+
+    assert (
+        preparation_request["document_id"]
         == document_id
+    )
+
+    assert len(
+        fake_adaptation_orchestration_service
+        .completion_requests
+    ) == 1
+
+    completed_format_ids = (
+        fake_adaptation_orchestration_service
+        .completion_requests[0]
+    )
+
+    assert len(
+        completed_format_ids
+    ) == 2
+
+    response = client.get(
+        f"{api_prefix}/documents/"
+        f"{document_id}/formats"
+    )
+
+    assert response.status_code == 200
+
+    body = response.json()
+
+    assert (
+        body["document_id"]
+        == document_id
+    )
+
+    assert (
+        body["status"]
+        == "ready"
+    )
+
+    assert set(
+        body["formats"]
+    ) == {
+        "quiz",
+        "flashcards",
+    }
+
+    assert (
+        body["formats"]["quiz"]["status"]
+        == "success"
+    )
+
+    assert (
+        body["formats"]["flashcards"]["status"]
+        == "success"
+    )
+
+    returned_format_ids = {
+        body["formats"]["quiz"][
+            "format_id"
+        ],
+        body["formats"]["flashcards"][
+            "format_id"
+        ],
+    }
+
+    assert (
+        returned_format_ids
+        == set(
+            completed_format_ids
+        )
+    )
+
+
+def test_formats_returns_processing_for_active_attempts(
+    client: TestClient,
+    api_prefix: str,
+    tmp_path: Path,
+) -> None:
+    """Expone processing global e individual durante generación."""
+    document_id = (
+        "doc_formats_processing"
+    )
+
+    persist_indexed_document(
+        tmp_path=tmp_path,
+        document_id=document_id,
+    )
+
+    repository = (
+        build_generated_format_repository(
+            tmp_path
+        )
+    )
+
+    repository.create(
+        build_quiz(
+            document_id=document_id,
+            status=(
+                GeneratedFormatStatus.PROCESSING
+            ),
+        )
+    )
+
+    repository.create(
+        build_flashcards(
+            document_id=document_id,
+            status=(
+                GeneratedFormatStatus.PROCESSING
+            ),
+        )
     )
 
     response = client.get(
@@ -339,22 +468,44 @@ def test_formats_returns_ready_after_upload(
         body["document_id"]
         == document_id
     )
-    assert body["status"] == "ready"
 
-    assert set(
-        body["formats"]
-    ) == {
-        "quiz",
-        "flashcards",
-    }
+    assert (
+        body["status"]
+        == "processing"
+    )
 
     assert (
         body["formats"]["quiz"]["status"]
-        == "success"
+        == "processing"
     )
+
     assert (
         body["formats"]["flashcards"]["status"]
-        == "success"
+        == "processing"
+    )
+
+    assert (
+        body["formats"]["quiz"]["content"]
+        is None
+    )
+
+    assert (
+        body["formats"]["flashcards"]["content"]
+        is None
+    )
+
+    assert (
+        body["formats"]["quiz"][
+            "error_message"
+        ]
+        is None
+    )
+
+    assert (
+        body["formats"]["flashcards"][
+            "error_message"
+        ]
+        is None
     )
 
 
@@ -408,8 +559,16 @@ def test_formats_returns_ready_with_canonical_content(
         quiz["format_id"]
         == "fmt_quiz_api"
     )
-    assert quiz["status"] == "success"
-    assert quiz["error_message"] is None
+
+    assert (
+        quiz["status"]
+        == "success"
+    )
+
+    assert (
+        quiz["error_message"]
+        is None
+    )
 
     assert (
         quiz["content"]["title"]
@@ -448,6 +607,7 @@ def test_formats_returns_ready_with_canonical_content(
         flashcards["format_id"]
         == "fmt_flashcards_api"
     )
+
     assert (
         flashcards["status"]
         == "success"
@@ -509,7 +669,10 @@ def test_formats_returns_partial_when_one_format_fails(
 
     body = response.json()
 
-    assert body["status"] == "partial"
+    assert (
+        body["status"]
+        == "partial"
+    )
 
     assert (
         body["formats"]["quiz"]["status"]
@@ -524,10 +687,12 @@ def test_formats_returns_partial_when_one_format_fails(
         failed_flashcards["status"]
         == "failed"
     )
+
     assert (
         failed_flashcards["content"]
         is None
     )
+
     assert (
         failed_flashcards[
             "error_message"
@@ -587,7 +752,10 @@ def test_formats_returns_error_when_no_format_succeeds(
 
     body = response.json()
 
-    assert body["status"] == "error"
+    assert (
+        body["status"]
+        == "error"
+    )
 
     assert (
         body["formats"]["quiz"]["status"]

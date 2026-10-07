@@ -1,0 +1,3 @@
+﻿case_id,document_id,categoria,pregunta,causa_raiz_v1,causa_raiz_v2,evidencia,recomendacion,relevant_chunk_ids,retrieved_chunk_ids,recall_at_3,recall_at_5,precision_at_3,precision_at_5,filter_mode,resolved_vs_v1
+BE-ES-002-Q03,BE-ES-002,Backend,¿Qué comando crea el proyecto mysite dentro de djangotutorial?,,,,,['BE-ES-002_CH_005'],"['BE-ES-002_CH_006', 'BE-ES-002_CH_010', 'BE-ES-002_CH_008', 'BE-ES-002_CH_009', 'BE-ES-002_CH_015']",0.0,0.0,0.0,0.0,document_id,False
+CLD-ES-001-Q05,CLD-ES-001,Cloud / DevOps,Menciona dos formas de describir a Kubernetes según el documento.,,,,,['CLD-ES-001_CH_002'],"['CLD-ES-001_CH_003', 'CLD-ES-001_CH_014', 'CLD-ES-001_CH_005', 'CLD-ES-001_CH_004', 'CLD-ES-001_CH_007']",0.0,0.0,0.0,0.0,document_id,False
