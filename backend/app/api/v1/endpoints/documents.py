@@ -6,6 +6,7 @@ from typing import Annotated
 
 from fastapi import (
     APIRouter,
+    BackgroundTasks,
     Depends,
     File,
     Form,
@@ -16,7 +17,9 @@ from fastapi import (
 )
 
 from app.api.adaptation_execution import (
-    execute_adaptation,
+    execute_background_generation,
+    execute_indexing,
+    prepare_background_generation,
 )
 from app.api.dependencies import (
     get_adaptation_orchestration_service,
@@ -154,19 +157,19 @@ def _to_document_response(
     "",
     response_model=DocumentCreatedResponse,
     status_code=status.HTTP_201_CREATED,
-    summary="Cargar y procesar documento",
+    summary="Cargar e indexar documento",
     description=(
         "Recibe un documento PDF, Markdown o TXT junto con "
         "el contexto pedagógico. Backend valida y almacena "
-        "el archivo, ejecuta la indexación, genera "
-        "automáticamente Quiz y Flashcards y persiste "
-        "los resultados para su posterior consulta."
+        "el archivo, completa la indexación RAG de forma "
+        "síncrona y, una vez indexado, programa la generación "
+        "de Quiz y Flashcards en segundo plano."
     ),
     responses={
         200: {
             "model": DocumentCreatedResponse,
             "description": (
-                "Documento previamente registrado y procesado."
+                "Documento previamente registrado e indexado."
             ),
         },
         400: {
@@ -175,7 +178,7 @@ def _to_document_response(
         409: {
             "description": (
                 "El documento no se encuentra en un estado "
-                "válido para ejecutar el procesamiento."
+                "válido para ejecutar la indexación."
             ),
         },
         413: {
@@ -186,14 +189,15 @@ def _to_document_response(
         },
         502: {
             "description": (
-                "Error durante almacenamiento, indexación "
-                "o generación de formatos."
+                "Error durante almacenamiento o indexación "
+                "del documento."
             ),
         },
     },
 )
 async def upload_document(
     response: Response,
+    background_tasks: BackgroundTasks,
     file: Annotated[
         UploadFile,
         File(
@@ -255,7 +259,11 @@ async def upload_document(
         ),
     ] = None,
 ) -> DocumentCreatedResponse:
-    """Carga el documento y completa su procesamiento interno."""
+    """Carga, almacena e indexa un documento.
+
+    La generación pedagógica se programa como tarea en segundo plano
+    únicamente después de que la indexación RAG finaliza correctamente.
+    """
     _validate_document_type(
         file.filename,
         file.content_type,
@@ -334,19 +342,40 @@ async def upload_document(
             missing_ok=True
         )
 
-    await execute_adaptation(
+    await execute_indexing(
         orchestration_service=orchestration_service,
         document_id=document.document_id,
-        profile=profile,
-        niche=niche,
-        detail_level=detail_level,
-        learning_objective=learning_objective,
     )
 
     current_document = (
         document_service.get_document(
             document.document_id
         )
+    )
+
+    generation_attempts = (
+        prepare_background_generation(
+            orchestration_service=(
+                orchestration_service
+            ),
+            document_id=(
+                current_document.document_id
+            ),
+            profile=profile,
+            niche=niche,
+            detail_level=detail_level,
+            learning_objective=(
+                learning_objective
+            ),
+        )
+    )
+
+    background_tasks.add_task(
+        execute_background_generation,
+        orchestration_service=(
+            orchestration_service
+        ),
+        attempts=generation_attempts,
     )
 
     if not registration.created:

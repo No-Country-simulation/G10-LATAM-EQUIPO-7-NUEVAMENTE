@@ -25,23 +25,24 @@ class AdaptationDocumentStateError(Exception):
 class AdaptationOrchestrationService:
     """Coordina indexación y generación de formatos educativos.
 
-    Este servicio representa el caso de uso completo de adaptación
-    dentro de BackendAPI.
+    BackendAPI separa explícitamente cuatro responsabilidades:
 
-    Sus responsabilidades son:
+    1. garantizar que el documento quede indexado;
+    2. registrar los intentos de generación en ``processing``;
+    3. completar esos intentos posteriormente mediante Agentes;
+    4. cerrar en ``failed`` cualquier intento que continúe activo cuando
+       la ejecución en segundo plano termina con un error.
 
-    1. consultar el estado actual del documento;
-    2. indexarlo cuando todavía está almacenado o requiere reintento;
-    3. evitar una indexación innecesaria cuando ya está indexado;
-    4. solicitar automáticamente Quiz y Flashcards;
-    5. devolver los formatos generados y persistidos.
+    De esta forma ``POST /documents`` puede responder cuando el
+    documento ya está indexado y los formatos fueron registrados como
+    trabajo activo, sin esperar a que termine la generación mediante LLM.
 
-    No implementa acceso directo a OCI, RAG, Agentes ni persistencia.
-    Estas responsabilidades permanecen delegadas a los servicios
-    especializados.
+    El servicio no implementa acceso directo a OCI, RAG, Agentes ni
+    persistencia. Estas responsabilidades permanecen delegadas a los
+    servicios especializados.
     """
 
-    _SPRINT_2_FORMATS = (
+    _DEFAULT_FORMATS = (
         GeneratedFormatType.QUIZ,
         GeneratedFormatType.FLASHCARDS,
     )
@@ -68,46 +69,11 @@ class AdaptationOrchestrationService:
             format_generation_service
         )
 
-    async def adapt_document(
+    async def ensure_document_indexed(
         self,
-        *,
         document_id: str,
-        profile: str,
-        niche: str,
-        detail_level: str,
-        learning_objective: str | None = None,
-    ) -> list[GeneratedFormat]:
-        """Ejecuta el flujo de adaptación de un documento.
-
-        Un documento almacenado se indexa antes de generar contenido.
-        Una indexación previamente fallida puede reintentarse. Un
-        documento ya indexado pasa directamente a generación.
-
-        Sprint 2 genera automáticamente Quiz y Flashcards.
-
-        Args:
-            document_id: Identificador canónico del documento.
-            profile: Perfil educativo del destinatario.
-            niche: Área temática o contexto de aplicación.
-            detail_level: Nivel de detalle requerido.
-            learning_objective: Objetivo de aprendizaje opcional.
-
-        Returns:
-            Formatos generados y persistidos por
-            FormatGenerationService.
-
-        Raises:
-            DocumentNotFoundError:
-                Si el documento no existe.
-            AdaptationDocumentStateError:
-                Si el estado actual no permite iniciar la adaptación.
-            RAGIntegrationError:
-                Si falla la indexación.
-            FormatGenerationIntegrationError:
-                Si falla la integración con Agentes.
-            FormatGenerationContractError:
-                Si Agentes incumple el contrato de generación.
-        """
+    ) -> None:
+        """Garantiza que un documento esté disponible en RAG."""
         document = self._document_service.get_document(
             document_id
         )
@@ -122,25 +88,88 @@ class AdaptationOrchestrationService:
                     document_id
                 )
             )
+            return
 
-        elif (
+        if (
             document.status
-            != DocumentStatus.INDEXED
+            == DocumentStatus.INDEXED
         ):
-            raise AdaptationDocumentStateError(
-                f"El documento {document_id} está en estado "
-                f"{document.status.value} y no puede iniciar "
-                "la adaptación."
-            )
+            return
 
-        return await (
+        raise AdaptationDocumentStateError(
+            f"El documento {document_id} está en estado "
+            f"{document.status.value} y no puede iniciar "
+            "la indexación para adaptación."
+        )
+
+    def prepare_default_formats(
+        self,
+        *,
+        document_id: str,
+        profile: str,
+        niche: str,
+        detail_level: str,
+        learning_objective: str | None = None,
+    ) -> list[GeneratedFormat]:
+        """Registra Quiz y Flashcards como intentos ``processing``.
+
+        Esta etapa ocurre después de confirmar la indexación y antes
+        de responder a Frontend.
+
+        Returns:
+            Intentos persistidos que deberán completarse posteriormente.
+        """
+        return (
             self._format_generation_service
-            .generate_formats(
+            .prepare_generation(
                 document_id=document_id,
-                formats=self._SPRINT_2_FORMATS,
+                formats=self._DEFAULT_FORMATS,
                 profile=profile,
                 niche=niche,
                 detail_level=detail_level,
                 learning_objective=learning_objective,
+            )
+        )
+
+    async def complete_default_generation(
+        self,
+        *,
+        attempts: tuple[
+            GeneratedFormat,
+            ...,
+        ],
+    ) -> list[GeneratedFormat]:
+        """Completa un lote previamente registrado como ``processing``.
+
+        Esta operación está diseñada para ejecutarse en segundo plano.
+        Los mismos ``format_id`` pasan a un estado terminal.
+        """
+        return await (
+            self._format_generation_service
+            .complete_generation(
+                attempts=attempts
+            )
+        )
+
+    def fail_default_generation(
+        self,
+        *,
+        attempts: tuple[
+            GeneratedFormat,
+            ...,
+        ],
+        error_message: str,
+    ) -> list[GeneratedFormat]:
+        """Cierra únicamente intentos que sigan en ``processing``.
+
+        Este método se utiliza como compensación cuando la ejecución en
+        segundo plano termina con un error que no alcanzó a producir un
+        estado terminal para todo el lote.
+        """
+        return (
+            self._format_generation_service
+            .fail_processing_attempts(
+                attempts=attempts,
+                error_message=error_message,
             )
         )
