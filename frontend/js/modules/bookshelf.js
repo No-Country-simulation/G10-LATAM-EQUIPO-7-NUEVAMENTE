@@ -122,7 +122,7 @@ export const bookshelf = {
     if (!subtitle) return;
     if (isLoading) {
       subtitle.setAttribute('data-original-text', subtitle.textContent);
-      subtitle.innerHTML = '<span class="status-dot-pulse" style="display:inline-block; margin-right:6px;"></span> Sincronizando libros con Backend API...';
+      subtitle.innerHTML = '<span class="status-dot-pulse" style="display:inline-block; margin-right:6px;"></span> Sincronizando recursos con el servidor...';
     } else {
       const orig = subtitle.getAttribute('data-original-text');
       if (orig) subtitle.textContent = orig;
@@ -245,8 +245,7 @@ export const bookshelf = {
       emptyContainer.className = 'shelf-empty-state';
       emptyContainer.innerHTML = `
         <div class="empty-shelf-card">
-          <div class="empty-shelf-icon">📚</div>
-          <h4>Tu Biblioteca está Lista</h4>
+          <h4>Tu Catálogo de Capacitaciones está Listo</h4>
           <p>Aún no hay documentos en el servidor. Sube tu primer archivo PDF, Markdown o TXT para comenzar.</p>
           <button type="button" class="btn-primary-action btn-empty-upload" id="btnEmptyUpload">
             <span>+ Subir Mi Primer Documento</span>
@@ -299,7 +298,7 @@ export const bookshelf = {
       btnToggleInteractive.addEventListener('click', (e) => {
         e.preventDefault();
         const isInteractive = document.body.classList.toggle('interactive-mode-active');
-        btnToggleInteractive.innerHTML = isInteractive ? '<span>📋 Modo Lista</span>' : '<span>✦ Modo Interactivo</span>';
+        btnToggleInteractive.innerHTML = isInteractive ? '<span>Modo Lista</span>' : '<span>Modo Interactivo</span>';
         btnToggleInteractive.title = isInteractive ? 'Cambiar a vista de lista' : 'Cambiar a estantería interactiva 3D';
 
         // Asegurarse de navegar a la pestaña de biblioteca
@@ -314,7 +313,7 @@ export const bookshelf = {
         e.preventDefault();
         document.body.classList.remove('interactive-mode-active');
         if (btnToggleInteractive) {
-          btnToggleInteractive.innerHTML = '<span>✦ Modo Interactivo</span>';
+          btnToggleInteractive.innerHTML = '<span>Modo Interactivo</span>';
           btnToggleInteractive.title = 'Cambiar a estantería interactiva 3D';
         }
       });
@@ -486,25 +485,19 @@ export const bookshelf = {
         const emptyDiv = document.createElement('div');
         emptyDiv.className = 'catalog-empty-state';
 
-        const icon = document.createElement('span');
-        icon.style.fontSize = '2.2rem';
-        icon.textContent = '🔍';
-
         const h4 = document.createElement('h4');
         h4.textContent = 'Sin resultados';
 
         const p = document.createElement('p');
         p.textContent = `No se encontraron módulos de capacitación que coincidan con "${this.currentSearchQuery || this.activeCategory}".`;
 
-        emptyDiv.appendChild(icon);
         emptyDiv.appendChild(h4);
         emptyDiv.appendChild(p);
         docListEl.appendChild(emptyDiv);
       } else {
         docListEl.innerHTML = `
           <div class="catalog-empty-state">
-            <span style="font-size: 2.4rem;">📚</span>
-            <h4>Tu Biblioteca está Lista</h4>
+            <h4>Tu Catálogo de Capacitaciones está Listo</h4>
             <p>Aún no hay módulos de capacitación registrados en el servidor.</p>
             <button type="button" class="btn-primary-action btn-catalog-empty-upload" id="btnCatalogEmptyUpload">
               <span>+ Cargar Primer Documento</span>
@@ -625,7 +618,7 @@ export const bookshelf = {
         btnDelete.className = 'btn-delete-doc-item';
         btnDelete.dataset.bookId = book.id || '';
         btnDelete.title = 'Eliminar documento';
-        btnDelete.textContent = '🗑️';
+        btnDelete.textContent = '×';
 
         btnDelete.addEventListener('click', (e) => {
           e.stopPropagation();

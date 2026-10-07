@@ -153,7 +153,7 @@ export const flashcards = {
       btnRetry.className = 'btn-friendly-action btn-retry-flashcards';
       btnRetry.id = 'btnRetryFlashcardsFromCard';
       const retrySpan = document.createElement('span');
-      retrySpan.textContent = '↻ Reintentar Flashcards';
+      retrySpan.textContent = 'Reintentar Flashcards';
       btnRetry.appendChild(retrySpan);
       btnRetry.addEventListener('click', (e) => {
         e.stopPropagation();
@@ -166,7 +166,7 @@ export const flashcards = {
       btnQuiz.className = 'btn-friendly-action btn-switch-flashcards';
       btnQuiz.id = 'btnGoQuizFromCard';
       const quizSpan = document.createElement('span');
-      quizSpan.textContent = '✦ Ir a Evaluación (Quiz)';
+      quizSpan.textContent = 'Ir a Evaluación (Quiz)';
       btnQuiz.appendChild(quizSpan);
       btnQuiz.addEventListener('click', (e) => {
         e.stopPropagation();

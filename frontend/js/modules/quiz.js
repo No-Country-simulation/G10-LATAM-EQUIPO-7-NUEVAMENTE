@@ -63,7 +63,6 @@ export const quiz = {
 
         const iconEl = document.createElement('div');
         iconEl.className = 'friendly-notice-icon';
-        iconEl.textContent = '📋';
 
         const titleEl = document.createElement('h4');
         titleEl.className = 'friendly-notice-title';
@@ -81,7 +80,7 @@ export const quiz = {
         btnRetry.className = 'btn-friendly-action btn-retry-quiz';
         btnRetry.id = 'btnRetryQuizFromNotice';
         const retrySpan = document.createElement('span');
-        retrySpan.textContent = '↻ Reintentar Quiz';
+        retrySpan.textContent = 'Reintentar Quiz';
         btnRetry.appendChild(retrySpan);
         btnRetry.addEventListener('click', () => {
           const btnRefresh = document.getElementById('btnRefreshFormats');
@@ -93,7 +92,7 @@ export const quiz = {
         btnFlash.className = 'btn-friendly-action btn-switch-flashcards';
         btnFlash.id = 'btnGoFlashcardsFromNotice';
         const flashSpan = document.createElement('span');
-        flashSpan.textContent = '✦ Estudiar con Flashcards';
+        flashSpan.textContent = 'Estudiar con Flashcards';
         btnFlash.appendChild(flashSpan);
         btnFlash.addEventListener('click', () => {
           const flashTab = document.querySelector('.format-tab-btn[data-format="flashcards"]');

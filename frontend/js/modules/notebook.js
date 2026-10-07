@@ -78,13 +78,12 @@ export const notebook = {
       this.spreads = [];
       this.elements.spreadsContainer.innerHTML = `
         <div style="display:flex; flex-direction:column; align-items:center; justify-content:center; padding:4rem 2rem; text-align:center; color:var(--text-secondary); width:100%;">
-          <div style="font-size:3rem; margin-bottom:1rem;">📖</div>
-          <h3 style="color:var(--text-main); font-size:1.4rem; margin-bottom:0.5rem;">Cuaderno en Espera</h3>
+          <h3 style="color:var(--text-main); font-size:1.4rem; margin-bottom:0.5rem;">Panel de Lectura en Espera</h3>
           <p style="max-width:500px; font-size:0.95rem; line-height:1.6; margin-bottom:1.5rem;">
-            Aún no has abierto ningún libro. Ve a La Biblioteca para seleccionar uno existente o sube un documento nuevo para generar su cuaderno interactivo.
+            Aún no abriste ningún recurso. Ve al Catálogo de Capacitaciones para seleccionar uno existente o sube un documento nuevo para generar su panel de lectura interactivo.
           </p>
           <button type="button" class="btn-primary-action" id="btnEmptyGoLibrary">
-            <span>Explorar La Biblioteca</span>
+            <span>Explorar el Catálogo de Capacitaciones</span>
           </button>
         </div>
       `;
@@ -93,7 +92,7 @@ export const notebook = {
       });
       if (this.elements.bottomDock) this.elements.bottomDock.innerHTML = '';
       if (this.elements.spreadIndicator) this.elements.spreadIndicator.textContent = 'Sin documento';
-      if (this.elements.guideInstruction) this.elements.guideInstruction.textContent = 'Abre un libro desde la biblioteca.';
+      if (this.elements.guideInstruction) this.elements.guideInstruction.textContent = 'Abre un recurso desde el catálogo.';
       if (this.elements.btnPagePrev) this.elements.btnPagePrev.style.display = 'none';
       if (this.elements.btnPageNext) this.elements.btnPageNext.style.display = 'none';
       if (this.elements.btnIrPortada) this.elements.btnIrPortada.style.display = 'none';
@@ -267,7 +266,7 @@ export const notebook = {
         <span class="badge-pill badge-gold">${doc.sections?.length || 0} Secciones</span>
       </div>
       <p style="color: var(--text-secondary); font-size: 0.92rem;">
-        Haz clic en cualquier sección para saltar directamente a sus páginas de lectura en el cuaderno.
+        Haz clic en cualquier sección para saltar directamente a sus páginas en el panel de lectura.
       </p>
       <div class="index-topics-grid">
         ${topicsHtml}

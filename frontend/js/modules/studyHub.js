@@ -116,13 +116,9 @@ export const studyHub = {
         ? 'Uno de los formatos falló. Haz clic para reintentar la sincronización.'
         : 'La generación de formatos presentó fallos. Haz clic para reintentar.';
 
-      const icon = document.createElement('span');
-      icon.textContent = '↻ ';
-
       const label = document.createElement('span');
       label.textContent = 'Reintentar Formatos';
 
-      btn.appendChild(icon);
       btn.appendChild(label);
     } else if (globalStatus === 'ready') {
       btn.style.display = 'none';
@@ -222,10 +218,10 @@ export const studyHub = {
     if (!currentDocument) {
       this.stopPolling();
       if (this.elements.topicBadge) {
-        this.elements.topicBadge.textContent = 'BIBLIOTECA';
+        this.elements.topicBadge.textContent = 'CATÁLOGO';
       }
       if (this.elements.topicTitle) {
-        this.elements.topicTitle.textContent = 'Selecciona o carga un documento en la Biblioteca para iniciar la capacitación';
+        this.elements.topicTitle.textContent = 'Selecciona o carga un documento en el Catálogo de Capacitaciones para comenzar';
       }
       if (this.elements.btnRefreshFormats) {
         this.elements.btnRefreshFormats.style.display = 'none';

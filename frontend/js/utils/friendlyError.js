@@ -141,7 +141,7 @@ export function toFriendlyError(err) {
       message: 'El documento solicitado no se encuentra en el repositorio del servidor.',
       details: ['Es posible que haya sido removido o que el identificador no sea válido.'],
       isNetwork: false,
-      actionText: 'Ir a Biblioteca'
+      actionText: 'Ir al Catálogo'
     };
   }
 

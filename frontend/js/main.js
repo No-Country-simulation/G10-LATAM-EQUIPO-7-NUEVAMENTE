@@ -75,7 +75,7 @@ function setupSystemStatusBar() {
     if (qualityScoreText) {
       qualityScoreText.textContent = doc
         ? `Capacitación: ${doc.title}`
-        : 'Explorando La Biblioteca';
+        : 'Explorando el Catálogo de Capacitaciones';
     }
   });
 }
