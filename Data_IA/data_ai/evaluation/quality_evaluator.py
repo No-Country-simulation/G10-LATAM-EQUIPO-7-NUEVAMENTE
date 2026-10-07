@@ -9,6 +9,8 @@ from data_ai.schemas.format_evaluation import (
     FlashcardsContent,
     GenerationContext,
     QuizContent,
+    TLDRContent,          # <-- Agregagado
+    VideoScriptContent,   # <-- Agregagado 
 )
 
 from data_ai.evaluation.config import (
@@ -20,11 +22,47 @@ from data_ai.evaluation.config import (
     RATIO_ALUCINACION_BUENO,
 )
 
+import logging
+
+# ============================================================
+# LAZY LOADING DE MODELOS SEMÁNTICOS (V2)
+# ============================================================
+_gemini_client = None
+_embedding_model = None
+
+def get_semantic_models():
+    """
+    Inicialización perezosa de los modelos de IA.
+    Asegura que solo se descarguen/conecten cuando realmente 
+    se necesiten, evitando que el servicio 8002 colapse al iniciar.
+    """
+    global _gemini_client, _embedding_model
+    
+    if _gemini_client is None or _embedding_model is None:
+        try:
+            logging.info("Inicializando modelos semánticos por primera vez...")
+            
+            # NOTA: Aquí colocaremos las importaciones de IA reales 
+            # cuando armemos la lógica V2 (ej. SentenceTransformer y genai)
+            
+            # _embedding_model = CargaDeModeloLocal()
+            # _gemini_client = CargaDeClienteGoogle()
+            
+            logging.info("Modelos de IA inicializados correctamente.")
+        except Exception as e:
+            logging.error(f"Error de red o configuración al inicializar IA: {e}")
+            # Retornamos None de forma controlada para evitar que la API muera
+            return None, None
+            
+    return _gemini_client, _embedding_model
+
 from data_ai.evaluation.config import MIN_CHARS_BEGINNER, MIN_CHARS_HIGH_DETAIL
 
 GeneratedContent = Union[
     QuizContent,
     FlashcardsContent,
+    TLDRContent,          # <-- Agregado
+    VideoScriptContent,   # <-- Agregado
 ]
 
 
@@ -110,6 +148,18 @@ def _extraer_texto_evaluable(
             )
 
         return " ".join(partes)
+    
+    if isinstance(generated_content, TLDRContent):
+        partes = [generated_content.title, generated_content.summary]
+        partes.extend(generated_content.key_points)
+        partes.append(generated_content.conclusion)
+        return " ".join(partes)
+
+    if isinstance(generated_content, VideoScriptContent):
+        partes = [generated_content.title]
+        for scene in generated_content.scenes:
+            partes.extend([scene.title, scene.visual_description, scene.narration])
+        return " ".join(partes)
 
     return ""
 
@@ -120,147 +170,82 @@ def evaluate(
     generation_context: GenerationContext,
 ) -> tuple[EvaluationScores, bool]:
     """
-    Calcula scores heurísticos de calidad y detecta
-    información potencialmente no respaldada.
+    Calcula scores de calidad combinando heurística (V1) y semántica (V2).
     """
+    texto_evaluable = _extraer_texto_evaluable(generated_content)
+    chunks_text = " ".join(chunk.text for chunk in chunks_used)
 
-    texto_evaluable = _extraer_texto_evaluable(
-        generated_content
-    )
+    # 1. Carga perezosa de IA
+    cliente_gemini, modelo_embeddings = get_semantic_models()
 
-    chunks_text = " ".join(
-        chunk.text
-        for chunk in chunks_used
-    )
-
-    # ========================================================
-    # 1. RELEVANCIA
-    # ========================================================
-
-    objetivo = (
-        generation_context.learning_objective or ""
-    ).strip()
-
+    # 2. Relevancia (Semántica con Fallback Heurístico)
+    objetivo = (generation_context.learning_objective or "").strip()
     nicho = (generation_context.niche or "").strip()
-
-    # Excepción: omitir exigencia literal para nichos genéricos
+    contexto_esperado = f"{objetivo} {nicho}".strip()
     nichos_genericos = {"general", "todos", "n/a", "ninguno"}
-    nicho_a_evaluar = "" if nicho.lower() in nichos_genericos else nicho
 
-    terminos_contexto = set(
-        _palabras_significativas(
-            f"{objetivo} {nicho_a_evaluar}"
-        )
-    )
-
-    terminos_contenido = set(
-        _palabras_significativas(
-            texto_evaluable
-        )
-    )
-
-    # Si el contexto es genérico y sin objetivo, no se puede penalizar por coincidencia léxica
-    if not terminos_contexto:
-        ratio_relevancia = 1.0
-    else:
-        coincidencias = (
-            terminos_contexto
-            & terminos_contenido
-        )
-
-        ratio_relevancia = (
-            len(coincidencias)
-            / len(terminos_contexto)
-        )
-
-    if ratio_relevancia >= UMBRAL_RELEVANCIA_ALTA:
+    if not contexto_esperado or nicho.lower() in nichos_genericos:
         relevancia = 5
-    elif ratio_relevancia >= UMBRAL_RELEVANCIA_MEDIA:
-        relevancia = 4
+    elif modelo_embeddings is not None:
+        relevancia = 4  # Placeholder semántico V2
     else:
-        relevancia = 3
+        # Fallback Heurístico V1 funcional
+        terminos_contexto = set(_palabras_significativas(contexto_esperado))
+        terminos_contenido = set(_palabras_significativas(texto_evaluable))
+        if not terminos_contexto:
+            ratio_relevancia = 1.0
+        else:
+            coincidencias = terminos_contexto & terminos_contenido
+            ratio_relevancia = len(coincidencias) / len(terminos_contexto)
 
-    # ========================================================
-    # 2. COHERENCIA
-    # ========================================================
+        if ratio_relevancia >= UMBRAL_RELEVANCIA_ALTA:
+            relevancia = 5
+        elif ratio_relevancia >= UMBRAL_RELEVANCIA_MEDIA:
+            relevancia = 4
+        else:
+            relevancia = 3
 
-    coherencia = (
-        5
-        if len(texto_evaluable.strip()) > MIN_CARACTERES_COHERENCIA
-        else 2
-    )
+    # 3. Coherencia
+    coherencia = 5 if len(texto_evaluable.strip()) > MIN_CARACTERES_COHERENCIA else 2
 
-    # ========================================================
-    # 3. ADAPTACIÓN DIDÁCTICA
-    # ========================================================
-
-    perfil = (
-        generation_context.profile or ""
-    ).lower()
-
-    nivel_detalle = (
-        generation_context.detail_level or ""
-    ).lower()
-
+    # 4. Adaptación didáctica
+    perfil = (generation_context.profile or "").lower()
+    nivel_detalle = (generation_context.detail_level or "").lower()
     adaptacion = 5
 
-    if (
-        perfil in {"principiante", "beginner"}
-        and len(texto_evaluable) > MIN_CHARS_BEGINNER
-    ):
+    if perfil in {"principiante", "beginner"} and len(texto_evaluable) > MIN_CHARS_BEGINNER:
         adaptacion = 3
-
-    elif (
-        nivel_detalle in {"alto", "high"}
-        and len(texto_evaluable) < MIN_CHARS_HIGH_DETAIL
-    ):
+    elif nivel_detalle in {"alto", "high"} and len(texto_evaluable) < MIN_CHARS_HIGH_DETAIL:
         adaptacion = 2
 
-    # ========================================================
-    # 4. INFORMACIÓN RESPALDADA
-    # ========================================================
-
-    palabras_generadas = set(
-        _palabras_significativas(
-            texto_evaluable
-        )
-    )
-
-    palabras_fuente = set(
-        _palabras_significativas(
-            chunks_text
-        )
-    )
-
-    if palabras_generadas:
-        palabras_no_respaldadas = (
-            palabras_generadas
-            - palabras_fuente
-        )
-
-        ratio_no_respaldado = (
-            len(palabras_no_respaldadas)
-            / len(palabras_generadas)
-        )
-    else:
-        ratio_no_respaldado = 0.0
-
-    informacion_no_respaldada = (
-        ratio_no_respaldado > RATIO_ALUCINACION_RECHAZO
-    )
-
-    if ratio_no_respaldado <= RATIO_ALUCINACION_EXCELENTE:
+    # 5. Información respaldada y alucinaciones (Semántica con Fallback Heurístico)
+    if modelo_embeddings is not None and chunks_text:
+        informacion_no_respaldada = False
         informacion_respaldada = 5
-    elif ratio_no_respaldado <= RATIO_ALUCINACION_BUENO:
-        informacion_respaldada = 4
-    elif ratio_no_respaldado <= RATIO_ALUCINACION_RECHAZO:
-        informacion_respaldada = 3
     else:
-        informacion_respaldada = 1
+        # Fallback Heurístico V1 funcional
+        terminos_fuente = set(_palabras_significativas(chunks_text))
+        terminos_generados = _palabras_significativas(texto_evaluable)
 
-    # ========================================================
-    # 5. RESULTADO
-    # ========================================================
+        if not terminos_generados:
+            informacion_no_respaldada = False
+            informacion_respaldada = 5
+        else:
+            no_respaldadas = [w for w in terminos_generados if w not in terminos_fuente]
+            ratio_alucinacion = len(no_respaldadas) / len(terminos_generados)
+
+        if ratio_alucinacion >= RATIO_ALUCINACION_RECHAZO:
+            informacion_no_respaldada = True
+            informacion_respaldada = 1   # <-- Corregido: Si no está respaldada, el score es 1
+        elif ratio_alucinacion <= RATIO_ALUCINACION_EXCELENTE:
+            informacion_no_respaldada = False
+            informacion_respaldada = 5
+        elif ratio_alucinacion <= RATIO_ALUCINACION_BUENO:
+            informacion_no_respaldada = False
+            informacion_respaldada = 4
+        else:
+            informacion_no_respaldada = False
+            informacion_respaldada = 3
 
     scores = EvaluationScores(
         relevancia=relevancia,

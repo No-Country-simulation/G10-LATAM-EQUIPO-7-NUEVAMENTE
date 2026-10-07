@@ -178,6 +178,32 @@ class FlashcardsContent(StrictModel):
 
         return self
 
+### ============================================================
+### TL;DR (RESUMEN EJECUTIVO)
+### ============================================================
+class TLDRContent(StrictModel):
+    """Contenido generado para el formato de Resumen Ejecutivo (TL;DR)."""
+    title: str = Field(..., min_length=1, description="Título del resumen.")
+    summary: str = Field(..., min_length=1, description="Cuerpo principal del resumen.")
+    key_points: List[str] = Field(default_factory=list, description="Lista de viñetas o puntos clave.")
+    conclusion: str = Field(..., min_length=1, description="Conclusión del resumen ejecutivo.")
+
+### ============================================================
+### GUION DE VIDEO
+### ============================================================
+class VideoScriptScene(StrictModel):
+    """Escena individual de un guion de video."""
+    scene_id: str = Field(..., min_length=1, description="Identificador único de la escena.")
+    title: str = Field(..., min_length=1, description="Título de la escena.")
+    visual_description: str = Field(..., min_length=1, description="Descripción visual o de cámara.")
+    narration: str = Field(..., min_length=1, description="Texto que leerá el presentador/voz en off.")
+    duration_seconds: int = Field(default=0, ge=0, description="Duración en segundos de la escena.")
+
+class VideoScriptContent(StrictModel):
+    """Contenido generado para el formato de Guion de Video."""
+    title: str = Field(..., min_length=1, description="Título del video.")
+    estimated_duration_minutes: int = Field(default=0, ge=0, description="Duración estimada en minutos.")
+    scenes: List[VideoScriptScene] = Field(..., min_length=1, description="Lista de escenas.")
 
 # ============================================================
 # CHUNKS UTILIZADOS COMO EVIDENCIA
@@ -327,15 +353,26 @@ class FlashcardsEvaluationRequest(EvaluationRequestBase):
     generated_content: FlashcardsContent
 
 
+class TLDREvaluationRequest(EvaluationRequestBase):
+    """Solicitud de evaluación para TL;DR."""
+    format: Literal["tldr"]
+    generated_content: TLDRContent
+
+class VideoScriptEvaluationRequest(EvaluationRequestBase):
+    """Solicitud de evaluación para Guion de Video."""
+    format: Literal["video_script"]
+    generated_content: VideoScriptContent
+
 EvaluationRequest = Annotated[
     Union[
         QuizEvaluationRequest,
         FlashcardsEvaluationRequest,
+        TLDREvaluationRequest,
+        VideoScriptEvaluationRequest,
     ],
     Field(discriminator="format"),
 ]
-
-
+      
 # ============================================================
 # RESPONSE
 # ============================================================
@@ -385,7 +422,7 @@ class EvaluationResponse(StrictModel):
         min_length=1,
         description="Identificador del documento original.",
     )
-    format: Literal["quiz", "flashcards"] = Field(
+    format: Literal["quiz", "flashcards", "tldr", "video_script"] = Field(
         ...,
         description="Formato educativo evaluado.",
     )
@@ -452,7 +489,6 @@ class EvaluationResponse(StrictModel):
 
         return self
 
-
 __all__ = [
     "ChunkUsed",
     "GenerationContext",
@@ -466,4 +502,9 @@ __all__ = [
     "QuizContent",
     "QuizEvaluationRequest",
     "QuizQuestion",
+    "TLDRContent",
+    "TLDREvaluationRequest",
+    "VideoScriptScene",
+    "VideoScriptContent",
+    "VideoScriptEvaluationRequest",
 ]
