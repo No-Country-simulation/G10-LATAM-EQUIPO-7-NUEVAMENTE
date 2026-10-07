@@ -23,6 +23,7 @@ from app.ports.document_repository_port import (
     DocumentRepositoryPort,
 )
 from app.ports.generated_format_repository_port import (
+    GeneratedFormatRepositoryError,
     GeneratedFormatRepositoryPort,
 )
 
@@ -47,15 +48,22 @@ class FormatGenerationAttemptStateError(Exception):
     """El intento persistido no puede continuar su generación."""
 
 
+class FormatGenerationRecoveryError(Exception):
+    """No fue posible cerrar todos los intentos processing pendientes."""
+
+
 class FormatGenerationService:
     """Gestiona el ciclo de vida de intentos de generación.
 
-    El caso de uso se divide explícitamente en dos etapas:
+    El caso de uso se divide explícitamente en tres responsabilidades:
 
     1. ``prepare_generation`` registra los formatos solicitados en
        ``PROCESSING`` antes de iniciar la llamada a Agentes.
     2. ``complete_generation`` ejecuta Agentes y actualiza esos mismos
        intentos a ``SUCCESS``, ``FAILED`` o ``NO_RESULTS``.
+    3. ``fail_processing_attempts`` actúa como cierre de contingencia y
+       convierte únicamente los intentos que sigan persistidos en
+       ``PROCESSING`` a ``FAILED``.
 
     De esta forma Frontend puede observar ``processing`` mientras la
     generación ocurre en segundo plano y cada intento conserva un único
@@ -91,7 +99,7 @@ class FormatGenerationService:
         document_id: str,
         formats: tuple[
             GeneratedFormatType,
-            ...
+            ...,
         ],
         profile: str,
         niche: str,
@@ -182,7 +190,7 @@ class FormatGenerationService:
         *,
         attempts: tuple[
             GeneratedFormat,
-            ...
+            ...,
         ],
     ) -> list[GeneratedFormat]:
         """Completa intentos previamente persistidos como ``PROCESSING``.
@@ -204,6 +212,9 @@ class FormatGenerationService:
                 Si falla la comunicación con Agentes.
             FormatGenerationContractError:
                 Si Agentes devuelve una respuesta incompatible.
+            FormatGenerationRecoveryError:
+                Si no es posible persistir el cierre a ``FAILED`` después
+                de un error conocido de Agentes o de contrato.
         """
         self._validate_processing_attempts(
             attempts
@@ -243,7 +254,7 @@ class FormatGenerationService:
                 f"del documento {document_id}."
             )
 
-            self._mark_attempts_failed(
+            self.fail_processing_attempts(
                 attempts=attempts,
                 error_message=error_message,
             )
@@ -261,7 +272,7 @@ class FormatGenerationService:
             )
 
         except FormatGenerationContractError as exc:
-            self._mark_attempts_failed(
+            self.fail_processing_attempts(
                 attempts=attempts,
                 error_message=str(exc),
             )
@@ -294,43 +305,141 @@ class FormatGenerationService:
             in completed_attempts
         ]
 
-    def _mark_attempts_failed(
+    def fail_processing_attempts(
         self,
         *,
         attempts: tuple[
             GeneratedFormat,
-            ...
+            ...,
         ],
         error_message: str,
     ) -> list[GeneratedFormat]:
-        """Actualiza a ``FAILED`` los intentos del lote actual."""
+        """Cierra en ``FAILED`` solo intentos aún activos.
+
+        Antes de actualizar cada ``format_id`` se consulta nuevamente su
+        estado persistido. De esta forma un cierre de contingencia no
+        sobrescribe un ``SUCCESS``, ``FAILED`` o ``NO_RESULTS`` que ya haya
+        sido persistido antes de producirse otro error en el lote.
+
+        Args:
+            attempts: Intentos originales del lote de generación.
+            error_message: Mensaje seguro que se persistirá en los intentos
+                que todavía estén en ``PROCESSING``.
+
+        Returns:
+            Intentos que fueron efectivamente actualizados a ``FAILED``.
+
+        Raises:
+            ValueError:
+                Si ``error_message`` está vacío.
+            FormatGenerationRecoveryError:
+                Si algún intento no puede consultarse o actualizarse por
+                un error del repositorio, o si un ``format_id`` esperado ya
+                no existe.
+        """
+        if not error_message.strip():
+            raise ValueError(
+                "error_message no puede estar vacío."
+            )
+
+        failed_attempts: list[
+            GeneratedFormat
+        ] = []
+
+        unresolved_ids: list[str] = []
+        first_repository_error: (
+            GeneratedFormatRepositoryError | None
+        ) = None
+
         now = datetime.now(UTC)
 
-        failed_attempts = [
-            GeneratedFormat(
-                format_id=attempt.format_id,
-                document_id=attempt.document_id,
-                format_type=attempt.format_type,
-                status=GeneratedFormatStatus.FAILED,
-                generation_context=(
-                    attempt.generation_context
-                ),
-                content=None,
-                chunks_used=(),
-                error_message=error_message,
-                created_at=attempt.created_at,
-                updated_at=now,
-            )
-            for attempt in attempts
-        ]
+        for attempt in attempts:
+            try:
+                current_attempt = (
+                    self._generated_format_repository
+                    .find_by_id(
+                        attempt.format_id
+                    )
+                )
 
-        return [
-            self._generated_format_repository.update(
-                failed_attempt
+                if current_attempt is None:
+                    unresolved_ids.append(
+                        attempt.format_id
+                    )
+                    continue
+
+                if (
+                    current_attempt.status
+                    != GeneratedFormatStatus.PROCESSING
+                ):
+                    continue
+
+                failed_attempt = (
+                    self._build_failed_attempt(
+                        attempt=current_attempt,
+                        error_message=error_message,
+                        updated_at=now,
+                    )
+                )
+
+                failed_attempts.append(
+                    self._generated_format_repository
+                    .update(
+                        failed_attempt
+                    )
+                )
+
+            except GeneratedFormatRepositoryError as exc:
+                unresolved_ids.append(
+                    attempt.format_id
+                )
+
+                if first_repository_error is None:
+                    first_repository_error = exc
+
+        if unresolved_ids:
+            unique_ids = sorted(
+                set(unresolved_ids)
             )
-            for failed_attempt
-            in failed_attempts
-        ]
+
+            recovery_error = (
+                FormatGenerationRecoveryError(
+                    "No fue posible cerrar todos los intentos "
+                    "de generación que podían seguir en processing. "
+                    "format_id pendientes: "
+                    f"{', '.join(unique_ids)}."
+                )
+            )
+
+            if first_repository_error is not None:
+                raise recovery_error from first_repository_error
+
+            raise recovery_error
+
+        return failed_attempts
+
+    @staticmethod
+    def _build_failed_attempt(
+        *,
+        attempt: GeneratedFormat,
+        error_message: str,
+        updated_at: datetime,
+    ) -> GeneratedFormat:
+        """Construye la transición de un intento activo a ``FAILED``."""
+        return GeneratedFormat(
+            format_id=attempt.format_id,
+            document_id=attempt.document_id,
+            format_type=attempt.format_type,
+            status=GeneratedFormatStatus.FAILED,
+            generation_context=(
+                attempt.generation_context
+            ),
+            content=None,
+            chunks_used=(),
+            error_message=error_message,
+            created_at=attempt.created_at,
+            updated_at=updated_at,
+        )
 
     @staticmethod
     def _build_completed_attempt(
@@ -360,7 +469,7 @@ class FormatGenerationService:
     def _validate_requested_formats(
         formats: tuple[
             GeneratedFormatType,
-            ...
+            ...,
         ],
     ) -> None:
         """Valida que la solicitud contenga formatos únicos."""
@@ -378,7 +487,7 @@ class FormatGenerationService:
     def _validate_processing_attempts(
         attempts: tuple[
             GeneratedFormat,
-            ...
+            ...,
         ],
     ) -> None:
         """Valida el lote persistido que será enviado a Agentes."""

@@ -20,6 +20,7 @@ from app.application.format_generation_service import (
     FormatGenerationContractError,
     FormatGenerationDocumentNotFoundError,
     FormatGenerationIntegrationError,
+    FormatGenerationRecoveryError,
 )
 from app.application.rag_integration_service import (
     RAGIntegrationError,
@@ -32,6 +33,11 @@ from app.ports.generated_format_repository_port import (
 )
 
 logger = logging.getLogger(__name__)
+
+_BACKGROUND_FAILURE_MESSAGE = (
+    "La generación terminó con un error interno antes de completar "
+    "todos los formatos."
+)
 
 
 async def execute_indexing(
@@ -84,7 +90,7 @@ def prepare_background_generation(
     learning_objective: str | None = None,
 ) -> tuple[
     GeneratedFormat,
-    ...
+    ...,
 ]:
     """Registra intentos ``processing`` antes de responder al cliente.
 
@@ -138,17 +144,18 @@ async def execute_background_generation(
     orchestration_service: AdaptationOrchestrationService,
     attempts: tuple[
         GeneratedFormat,
-        ...
+        ...,
     ],
 ) -> None:
     """Completa intentos de generación después de responder al cliente.
 
-    Los fallos de Agentes no pueden modificar una respuesta HTTP que ya
-    fue enviada. ``FormatGenerationService`` convierte los intentos
-    ``processing`` a ``failed`` cuando Agentes falla, supera su timeout
-    o incumple el contrato.
+    Los errores conocidos de Agentes y contrato se resuelven dentro de la
+    capa de aplicación. Si aparece cualquier otro error, se ejecuta una
+    compensación adicional que consulta el estado persistido y convierte
+    únicamente los intentos que sigan en ``processing`` a ``failed``.
 
-    Cualquier error se registra explícitamente para observabilidad.
+    Como la respuesta HTTP ya fue enviada, los errores se registran para
+    observabilidad y no se propagan al cliente.
     """
     document_id = (
         attempts[0].document_id
@@ -168,8 +175,15 @@ async def execute_background_generation(
         FormatGenerationAttemptStateError,
         FormatGenerationIntegrationError,
         FormatGenerationContractError,
+        FormatGenerationRecoveryError,
         GeneratedFormatRepositoryError,
     ):
+        _fail_remaining_processing_attempts(
+            orchestration_service=orchestration_service,
+            attempts=attempts,
+            document_id=document_id,
+        )
+
         logger.exception(
             "La generación en segundo plano falló "
             "para el documento %s.",
@@ -177,8 +191,41 @@ async def execute_background_generation(
         )
 
     except Exception:
+        _fail_remaining_processing_attempts(
+            orchestration_service=orchestration_service,
+            attempts=attempts,
+            document_id=document_id,
+        )
+
         logger.exception(
             "Error inesperado durante la generación "
             "en segundo plano del documento %s.",
+            document_id,
+        )
+
+
+def _fail_remaining_processing_attempts(
+    *,
+    orchestration_service: AdaptationOrchestrationService,
+    attempts: tuple[
+        GeneratedFormat,
+        ...,
+    ],
+    document_id: str,
+) -> None:
+    """Ejecuta el cierre de contingencia sin ocultar un segundo fallo."""
+    try:
+        orchestration_service.fail_default_generation(
+            attempts=attempts,
+            error_message=(
+                _BACKGROUND_FAILURE_MESSAGE
+            ),
+        )
+
+    except Exception:
+        logger.exception(
+            "No fue posible cerrar todos los intentos "
+            "processing del documento %s después de "
+            "un error de background.",
             document_id,
         )

@@ -25,11 +25,13 @@ class AdaptationDocumentStateError(Exception):
 class AdaptationOrchestrationService:
     """Coordina indexación y generación de formatos educativos.
 
-    BackendAPI separa explícitamente tres responsabilidades:
+    BackendAPI separa explícitamente cuatro responsabilidades:
 
     1. garantizar que el documento quede indexado;
     2. registrar los intentos de generación en ``processing``;
-    3. completar esos intentos posteriormente mediante Agentes.
+    3. completar esos intentos posteriormente mediante Agentes;
+    4. cerrar en ``failed`` cualquier intento que continúe activo cuando
+       la ejecución en segundo plano termina con un error.
 
     De esta forma ``POST /documents`` puede responder cuando el
     documento ya está indexado y los formatos fueron registrados como
@@ -134,7 +136,7 @@ class AdaptationOrchestrationService:
         *,
         attempts: tuple[
             GeneratedFormat,
-            ...
+            ...,
         ],
     ) -> list[GeneratedFormat]:
         """Completa un lote previamente registrado como ``processing``.
@@ -146,5 +148,28 @@ class AdaptationOrchestrationService:
             self._format_generation_service
             .complete_generation(
                 attempts=attempts
+            )
+        )
+
+    def fail_default_generation(
+        self,
+        *,
+        attempts: tuple[
+            GeneratedFormat,
+            ...,
+        ],
+        error_message: str,
+    ) -> list[GeneratedFormat]:
+        """Cierra únicamente intentos que sigan en ``processing``.
+
+        Este método se utiliza como compensación cuando la ejecución en
+        segundo plano termina con un error que no alcanzó a producir un
+        estado terminal para todo el lote.
+        """
+        return (
+            self._format_generation_service
+            .fail_processing_attempts(
+                attempts=attempts,
+                error_message=error_message,
             )
         )
