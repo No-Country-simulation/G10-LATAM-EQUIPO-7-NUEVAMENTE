@@ -2,7 +2,7 @@
 
 Backend de **NuevaMente**, desarrollado con **FastAPI**, **Pydantic v2**, **SQLite** y **OCI Object Storage**.
 
-BackendAPI actúa como **orquestador del producto**: recibe las solicitudes del Frontend, administra la metadata y el ciclo de vida de los documentos, persiste los archivos originales, coordina la indexación con RAG/Agentes, solicita la generación de material educativo y conserva los resultados para su consulta posterior.
+BackendAPI actúa como **orquestador del producto**: recibe las solicitudes del Frontend, administra la metadata técnica y pedagógica y el ciclo de vida de los documentos, persiste los archivos originales, coordina la indexación con RAG/Agentes, solicita la generación de material educativo y conserva los resultados para su consulta posterior.
 
 BackendAPI **no implementa internamente** extracción de texto, limpieza, chunking, embeddings, Vector Store, retrieval semántico, prompts ni generación mediante LLM. Tampoco ejecuta directamente la evaluación de calidad de Data/IA. Estas responsabilidades permanecen desacopladas mediante Ports y Adapters.
 
@@ -24,7 +24,7 @@ Actualmente están implementados:
 - Endpoint de salud.
 - `POST /api/v1/documents` como entrada pública para cargar, almacenar e indexar un documento y programar su generación pedagógica inicial.
 - `GET /api/v1/documents` para listar documentos disponibles en la biblioteca.
-- `GET /api/v1/documents/{document_id}` para consultar metadata y estado del documento.
+- `GET /api/v1/documents/{document_id}` para consultar metadata técnica, metadata pedagógica y estado del documento.
 - `GET /api/v1/documents/{document_id}/formats` para consultar Quiz y Flashcards persistidos.
 - `POST /api/v1/documents/{document_id}/formats/regenerate` para iniciar una nueva generación de uno o varios formatos reutilizando el contexto pedagógico persistido.
 - Contrato transversal de errores con `code`, `detail`, `errors[]` y `timestamp`, independiente de los mensajes de UI de Frontend.
@@ -42,12 +42,15 @@ Actualmente están implementados:
 - Mismo SHA-256 reutiliza el mismo `document_id` y evita una nueva carga del original a OCI.
 - Mismo nombre de archivo con contenido diferente genera un nuevo `document_id` y un objeto OCI independiente, sin sobrescribir el original previo.
 - Generación de `document_id` canónico para documentos nuevos.
-- Persistencia de metadata y estado mediante `DocumentRepositoryPort`.
+- Persistencia de metadata técnica, metadata pedagógica y estado mediante `DocumentRepositoryPort`.
 - Implementación SQLite mediante `SQLiteDocumentRepositoryAdapter`.
 - Persistencia del archivo original en OCI mediante `ObjectStoragePort`.
 - Implementación OCI mediante `OCIObjectStorageAdapter`.
 - Convención de objetos OCI: `documents/{document_id}/original.ext`.
 - Persistencia de `oci_object_name`.
+- Recepción de `learning_metadata` desde Agentes a nivel raíz del contrato de generación.
+- Persistencia de `learning_metadata` una sola vez a nivel de documento mediante `learning_metadata_json`.
+- Exposición de `learning_metadata` mediante `GET /api/v1/documents/{document_id}`.
 - Recuperación interna: `document_id → metadata → oci_object_name → bytes`.
 - Representación del documento recuperado mediante `RetrievedDocument`.
 - Compensación cuando OCI finaliza correctamente pero falla la actualización final en BD.
@@ -66,15 +69,13 @@ En Sprint 3, el orquestador separa tres responsabilidades:
 
 ```text
 ensure_document_indexed()
-        ↓
+↓
 indexación RAG síncrona
-
 prepare_default_formats()
-        ↓
+↓
 registro persistente de Quiz y Flashcards en processing
-
 complete_default_generation()
-        ↓
+↓
 generación real en segundo plano
 ```
 
@@ -118,9 +119,10 @@ La tarea:
 
 1. recibe los intentos persistidos en `processing`;
 2. invoca `POST /api/v1/generate` en Agentes;
-3. valida el contrato recibido;
-4. actualiza los mismos `format_id`;
-5. termina cada intento en uno de estos estados:
+3. valida el contrato recibido, incluyendo `learning_metadata`;
+4. persiste `learning_metadata` una sola vez a nivel del documento;
+5. actualiza los mismos `format_id`;
+6. termina cada intento en uno de estos estados:
 
 ```text
 success
@@ -136,7 +138,7 @@ processing
 success | failed | no_results
 ```
 
-No se crea una nueva fila para completar un intento iniciado por la misma generación. El mismo `format_id` se conserva durante la transición.
+No se crea una nueva fila para completar un intento iniciado por la misma generación. El mismo `format_id` se conserva durante la transición. La metadata pedagógica no se duplica por formato.
 
 #### Formatos automáticos
 
@@ -158,17 +160,24 @@ POST /api/v1/adaptations
 La adaptación permanece como un caso de uso interno iniciado desde `POST /api/v1/documents`.
 
 ---
+
 ### Contexto pedagógico recibido desde Frontend
 
 `POST /api/v1/documents` recibe mediante `multipart/form-data`:
 
-| Campo | Tipo | Obligatorio | Valores / descripción |
-|---|---|---:|---|
-| `file` | archivo | Sí | PDF, Markdown o TXT |
-| `profile` | string | Sí | `beginner`, `intermediate`, `advanced` |
-| `niche` | string | Sí | `general`, `backend`, `health`, `legal`, `business`, `humanities` |
-| `detail_level` | string | Sí | Texto no vacío |
-| `learning_objective` | string | No | Objetivo específico de aprendizaje |
+\| Campo | Tipo | Obligatorio | Valores / descripción |
+
+\|---|---|---:|---|
+
+\| `file` | archivo | Sí | PDF, Markdown o TXT |
+
+\| `profile` | string | Sí | `beginner`, `intermediate`, `advanced` |
+
+\| `niche` | string | Sí | `general`, `backend`, `health`, `legal`, `business`, `humanities` |
+
+\| `detail_level` | string | Sí | Texto no vacío |
+
+\| `learning_objective` | string | No | Objetivo específico de aprendizaje |
 
 Frontend **no envía**:
 
@@ -201,6 +210,7 @@ La generación mediante Agentes ocurre después:
 ```text
 background
 → POST /api/v1/generate
+→ validar y persistir learning_metadata
 → actualizar mismos format_id
 → success | failed | no_results
 ```
@@ -218,10 +228,10 @@ Ejemplo:
 
 ```json
 {
-  "document_id": "doc_123",
-  "filename": "manual.pdf",
-  "status": "indexed",
-  "duplicate": false
+"document_id": "doc_123",
+"filename": "manual.pdf",
+"status": "indexed",
+"duplicate": false
 }
 ```
 
@@ -241,7 +251,7 @@ con:
 
 ```json
 {
-  "duplicate": true
+"duplicate": true
 }
 ```
 
@@ -258,7 +268,6 @@ mismo SHA-256
 → mismo document_id
 → duplicate = true
 → no se vuelve a cargar el original en OCI
-
 SHA-256 diferente
 → nuevo document_id
 → duplicate = false
@@ -276,17 +285,18 @@ Del mismo modo, volver a subir exactamente el mismo contenido —aunque cambie e
 Este comportamiento está cubierto por pruebas de integración específicas que verifican tanto la reutilización por SHA como la conservación simultánea de dos documentos con el mismo nombre y contenido diferente.
 
 ---
+
 ### Integración HTTP BackendAPI → RAG
 
 La integración de indexación se mantiene desacoplada mediante:
 
 ```text
 RAGIntegrationService
-        ↓
+↓
 RAGPort
-        ↑
+↑
 HTTPRAGAdapter
-        ↓
+↓
 POST /api/v1/index
 ```
 
@@ -302,8 +312,8 @@ Respuesta externa esperada:
 
 ```json
 {
-  "document_id": "doc_123",
-  "status": "indexed"
+"document_id": "doc_123",
+"status": "indexed"
 }
 ```
 
@@ -313,9 +323,9 @@ Estados de indexación:
 
 ```text
 STORED
-  ↓
+↓
 INDEXING
-  ↓
+↓
 INDEXED
 ```
 
@@ -323,7 +333,7 @@ Ante un fallo durante la indexación:
 
 ```text
 INDEXING
-  ↓
+↓
 INDEXING_FAILED
 ```
 
@@ -363,6 +373,8 @@ BackendAPI mantiene un contrato interno independiente del transporte HTTP.
 - traducir `AgentGenerationInput` al contrato HTTP de Agentes;
 - invocar `POST /api/v1/generate`;
 - validar la estructura de la respuesta;
+- recibir `learning_metadata` una sola vez a nivel raíz;
+- convertir `learning_metadata` al value object `LearningMetadata`;
 - convertir Quiz y Flashcards al dominio canónico de BackendAPI;
 - convertir `sources_used` en `ChunkEvidence`;
 - conservar `error_message`;
@@ -425,11 +437,15 @@ Responsabilidades:
 - construir la solicitud hacia Agentes;
 - invocar `AgentsPort`;
 - validar `document_id`;
+- validar `learning_metadata`;
 - validar exactamente los formatos solicitados;
 - rechazar resultados duplicados;
+- persistir `learning_metadata` a nivel del documento;
 - actualizar cada intento sobre el mismo `format_id`;
 - conservar chunks utilizados como evidencia;
 - terminar en `success`, `failed` o `no_results`.
+
+Si la persistencia de `learning_metadata` falla, BackendAPI cierra los intentos que continúen en `processing` como `failed` y registra `FormatGenerationMetadataPersistenceError`.
 
 #### `FormatRegenerationService`
 
@@ -471,6 +487,7 @@ para todos los intentos del lote.
 Si Agentes devuelve:
 
 - otro `document_id`;
+- `learning_metadata` incompatible;
 - formatos incompletos;
 - formatos duplicados;
 - estados incompatibles;
@@ -480,7 +497,6 @@ BackendAPI marca los intentos en `failed` y produce `FormatGenerationContractErr
 
 Estos fallos **no modifican `DocumentStatus.INDEXED`**.
 
----
 ### Contrato BackendAPI → Agentes
 
 Solicitud HTTP esperada:
@@ -506,6 +522,17 @@ Respuesta esperada:
 ```json
 {
   "document_id": "doc_123",
+  "learning_metadata": {
+    "key_concepts": [
+      "RAG",
+      "Embeddings",
+      "Vector Store"
+    ],
+    "prerequisites": [
+      "Fundamentos de Python"
+    ],
+    "estimated_time_minutes": 18
+  },
   "results": [
     {
       "format": "quiz",
@@ -524,6 +551,8 @@ Respuesta esperada:
   ]
 }
 ```
+
+`learning_metadata` pertenece al documento/adaptación y aparece una sola vez, al mismo nivel que `document_id` y `results`. No se duplica dentro de Quiz, Flashcards u otros formatos.
 
 El contrato HTTP utiliza:
 
@@ -549,6 +578,45 @@ ChunkEvidence
 chunks_used
 ```
 
+#### Contrato canónico de `learning_metadata`
+
+BackendAPI representa los metadatos pedagógicos mediante el value object:
+
+```text
+LearningMetadata
+├── key_concepts
+├── prerequisites
+└── estimated_time_minutes
+```
+
+Reglas:
+
+- `key_concepts` y `prerequisites` se representan como colecciones de textos no vacíos;
+- `estimated_time_minutes` es un entero mayor o igual a cero;
+- el objeto pertenece al documento/adaptación y no a un formato particular;
+- BackendAPI lo recibe desde Agentes, lo valida, lo convierte a dominio y lo persiste en `documents`;
+- durante la generación inicial puede permanecer en `null` hasta que exista una respuesta válida de Agentes;
+- el fallback de Agentes puede producir listas vacías y `estimated_time_minutes = 0` sin romper el flujo.
+
+El tiempo de estudio canónico se expone exclusivamente como:
+
+```text
+learning_metadata.estimated_time_minutes
+```
+
+#### Semántica del tiempo de estudio y los timeouts técnicos
+
+`learning_metadata.estimated_time_minutes` representa **tiempo estimado de estudio o lectura para el estudiante**. No controla la duración de una petición HTTP, no determina cuánto espera Frontend por Backend y no configura cuánto espera Backend por RAG o Agentes.
+
+Los tiempos de espera técnicos permanecen separados mediante configuración específica:
+
+```text
+RAG_TIMEOUT_SECONDS
+AGENTS_TIMEOUT_SECONDS
+```
+
+Frontend mantiene igualmente sus propios timeouts de transporte. Estos valores pertenecen a la comunicación entre servicios y no tienen relación con `learning_metadata.estimated_time_minutes`.
+
 ### Contratos canónicos de contenido
 
 Agentes debe devolver contenido usando estructuras canónicas acordadas entre Backend, Frontend y Data/IA.
@@ -557,20 +625,20 @@ Agentes debe devolver contenido usando estructuras canónicas acordadas entre Ba
 
 ```json
 {
-  "title": "Título del quiz",
-  "instructions": "Instrucciones",
-  "questions": [
-    {
-      "question_id": "q1",
-      "question": "Pregunta",
-      "options": [
-        "Opción A",
-        "Opción B"
-      ],
-      "correct_answer": "Opción A",
-      "explanation": "Explicación"
-    }
-  ]
+"title": "Título del quiz",
+"instructions": "Instrucciones",
+"questions": [
+{
+"question_id": "q1",
+"question": "Pregunta",
+"options": [
+"Opción A",
+"Opción B"
+],
+"correct_answer": "Opción A",
+"explanation": "Explicación"
+}
+]
 }
 ```
 
@@ -587,15 +655,15 @@ Reglas principales:
 
 ```json
 {
-  "title": "Título",
-  "instructions": "Instrucciones",
-  "cards": [
-    {
-      "card_id": "card_1",
-      "front": "Concepto",
-      "back": "Explicación"
-    }
-  ]
+"title": "Título",
+"instructions": "Instrucciones",
+"cards": [
+{
+"card_id": "card_1",
+"front": "Concepto",
+"back": "Explicación"
+}
+]
 }
 ```
 
@@ -612,11 +680,11 @@ Agentes devuelve las evidencias utilizadas durante retrieval:
 
 ```json
 {
-  "chunk_id": "chunk_1",
-  "document_id": "doc_123",
-  "rank": 1,
-  "score": 0.93,
-  "text": "Texto del chunk utilizado como evidencia."
+"chunk_id": "chunk_1",
+"document_id": "doc_123",
+"rank": 1,
+"score": 0.93,
+"text": "Texto del chunk utilizado como evidencia."
 }
 ```
 
@@ -634,11 +702,10 @@ La frontera se mantiene:
 
 ```text
 BackendAPI
-    → orquestación y persistencia de negocio
-
+→ orquestación y persistencia de negocio
 Agentes/RAG
-    → extracción, chunking, embeddings, retrieval,
-      Vector Store y generación
+→ extracción, chunking, embeddings, retrieval,
+Vector Store y generación
 ```
 
 Los `chunks_used` quedan persistidos junto con cada generación para mantener trazabilidad y permitir evaluación posterior aun si cambia el Vector Store.
@@ -663,13 +730,19 @@ error
 
 Interpretación:
 
-| Estado | Significado |
-|---|---|
-| `pending` | El documento existe pero todavía no hay intentos persistidos para exponer. |
-| `processing` | Existe al menos un intento vigente en `processing`, o el documento aún está indexándose sin historial de formatos. |
-| `ready` | Quiz y Flashcards vigentes están en `success`. |
-| `partial` | No hay intentos activos y existe al menos un formato exitoso, pero no todos. |
-| `error` | No hay intentos activos ni formatos exitosos vigentes. |
+\| Estado | Significado |
+
+\|---|---|
+
+\| `pending` | El documento existe pero todavía no hay intentos persistidos para exponer. |
+
+\| `processing` | Existe al menos un intento vigente en `processing`, o el documento aún está indexándose sin historial de formatos. |
+
+\| `ready` | Quiz y Flashcards vigentes están en `success`. |
+
+\| `partial` | No hay intentos activos y existe al menos un formato exitoso, pero no todos. |
+
+\| `error` | No hay intentos activos ni formatos exitosos vigentes. |
 
 #### Durante generación
 
@@ -677,22 +750,22 @@ Ejemplo:
 
 ```json
 {
-  "document_id": "doc_123",
-  "status": "processing",
-  "formats": {
-    "quiz": {
-      "format_id": "fmt_quiz_1",
-      "status": "processing",
-      "content": null,
-      "error_message": null
-    },
-    "flashcards": {
-      "format_id": "fmt_flashcards_1",
-      "status": "processing",
-      "content": null,
-      "error_message": null
-    }
-  }
+"document_id": "doc_123",
+"status": "processing",
+"formats": {
+"quiz": {
+"format_id": "fmt_quiz_1",
+"status": "processing",
+"content": null,
+"error_message": null
+},
+"flashcards": {
+"format_id": "fmt_flashcards_1",
+"status": "processing",
+"content": null,
+"error_message": null
+}
+}
 }
 ```
 
@@ -706,22 +779,22 @@ status = processing
 
 ```json
 {
-  "document_id": "doc_123",
-  "status": "ready",
-  "formats": {
-    "quiz": {
-      "format_id": "fmt_quiz_1",
-      "status": "success",
-      "content": {},
-      "error_message": null
-    },
-    "flashcards": {
-      "format_id": "fmt_flashcards_1",
-      "status": "success",
-      "content": {},
-      "error_message": null
-    }
-  }
+"document_id": "doc_123",
+"status": "ready",
+"formats": {
+"quiz": {
+"format_id": "fmt_quiz_1",
+"status": "success",
+"content": {},
+"error_message": null
+},
+"flashcards": {
+"format_id": "fmt_flashcards_1",
+"status": "success",
+"content": {},
+"error_message": null
+}
+}
 }
 ```
 
@@ -729,22 +802,22 @@ status = processing
 
 ```json
 {
-  "document_id": "doc_123",
-  "status": "error",
-  "formats": {
-    "quiz": {
-      "format_id": "fmt_quiz_1",
-      "status": "failed",
-      "content": null,
-      "error_message": "Agentes no pudo generar los formatos del documento doc_123."
-    },
-    "flashcards": {
-      "format_id": "fmt_flashcards_1",
-      "status": "failed",
-      "content": null,
-      "error_message": "Agentes no pudo generar los formatos del documento doc_123."
-    }
-  }
+"document_id": "doc_123",
+"status": "error",
+"formats": {
+"quiz": {
+"format_id": "fmt_quiz_1",
+"status": "failed",
+"content": null,
+"error_message": "Agentes no pudo generar los formatos del documento doc_123."
+},
+"flashcards": {
+"format_id": "fmt_flashcards_1",
+"status": "failed",
+"content": null,
+"error_message": "Agentes no pudo generar los formatos del documento doc_123."
+}
+}
 }
 ```
 
@@ -767,10 +840,8 @@ Regla actual:
 ```text
 si existe un intento processing
 → se expone el processing más reciente
-
 si no existe processing y existe un success histórico
 → se expone el success más reciente
-
 si nunca existió success
 → se expone el intento terminal más reciente
 ```
@@ -782,27 +853,47 @@ Esto permite:
 - mantener separado el historial de intentos del contenido vigente.
 
 ---
+
 ### Persistencia
 
 SQLite contiene tres estructuras principales:
 
 ```text
 documents
-    1
-    │
-    N
+1
+│
+N
 generated_formats
-    1
-    │
-    N
+1
+│
+N
 format_evaluations
 ```
+
+La tabla `documents` conserva la metadata técnica del archivo y la metadata pedagógica vigente:
+
+```text
+document_id
+original_filename
+sha256
+content_type
+size_bytes
+status
+oci_object_name
+learning_metadata_json
+created_at
+updated_at
+```
+
+`learning_metadata_json` serializa el value object `LearningMetadata` completo.
+
+La inicialización de SQLite agrega la columna mediante una migración idempotente cuando una base creada previamente aún no la contiene. Los documentos existentes se conservan y reciben `learning_metadata_json = NULL`.
 
 La persistencia de formatos se implementa mediante:
 
 ```text
 GeneratedFormatRepositoryPort
-    ↑
+↑
 SQLiteGeneratedFormatRepositoryAdapter
 ```
 
@@ -859,9 +950,9 @@ por lo que se conserva historial:
 
 ```text
 document
-    ├── quiz generación 1
-    ├── quiz generación 2
-    └── flashcards generación 1
+├── quiz generación 1
+├── quiz generación 2
+└── flashcards generación 1
 ```
 
 Integridad referencial:
@@ -878,7 +969,7 @@ Errores explícitos:
 - `GeneratedFormatDocumentNotFoundError`
 - `GeneratedFormatRepositoryError`
 
-La inicialización de SQLite incluye una migración idempotente para bases anteriores cuyo `CHECK` de `generated_formats.status` no incluía `processing`. La migración conserva formatos existentes, relaciones con `format_evaluations`, recrea los índices y valida integridad referencial mediante `foreign_key_check`.
+La inicialización de SQLite incluye dos migraciones idempotentes relevantes: una agrega `learning_metadata_json` a `documents` cuando la columna no existe y otra actualiza bases anteriores cuyo `CHECK` de `generated_formats.status` no incluía `processing`. Ambas conservan los datos existentes; la migración de formatos mantiene además las relaciones con `format_evaluations`, recrea los índices y valida integridad referencial mediante `foreign_key_check`.
 
 ### Modelo de evaluación preparado
 
@@ -931,34 +1022,42 @@ BackendAPI mantiene separación por responsabilidades:
 
 ```text
 API
- ↓
+↓
 Application
- ↓
+↓
 Ports
- ↑
+↑
 Infrastructure implementa los Ports
 ```
 
-| Capa | Responsabilidad |
-|---|---|
-| `api/` | Endpoints HTTP, dependencias FastAPI y traducción de errores de aplicación a HTTP |
-| `schemas/` | Contratos externos de entrada y salida |
-| `domain/` | Entidades, estados, contenido canónico y reglas de dominio |
-| `application/` | Casos de uso y orquestación |
-| `ports/` | Contratos hacia persistencia e integraciones externas |
-| `infrastructure/` | Adapters e implementaciones concretas |
-| `core/` | Configuración, logging, excepciones y utilidades |
+\| Capa | Responsabilidad |
+
+\|---|---|
+
+\| `api/` | Endpoints HTTP, dependencias FastAPI y traducción de errores de aplicación a HTTP |
+
+\| `schemas/` | Contratos externos de entrada y salida |
+
+\| `domain/` | Entidades, estados, contenido canónico y reglas de dominio |
+
+\| `application/` | Casos de uso y orquestación |
+
+\| `ports/` | Contratos hacia persistencia e integraciones externas |
+
+\| `infrastructure/` | Adapters e implementaciones concretas |
+
+\| `core/` | Configuración, logging, excepciones y utilidades |
 
 ### Fronteras del sistema
 
 ```text
 Frontend
-    ↓
+↓
 BackendAPI
-    ├── SQLite
-    ├── OCI Object Storage
-    ├── RAG / Agentes
-    └── Data/IA (preparado, no obligatorio en el pipeline actual)
+├── SQLite
+├── OCI Object Storage
+├── RAG / Agentes
+└── Data/IA (preparado, no obligatorio en el pipeline actual)
 ```
 
 BackendAPI es el único punto de entrada del Frontend hacia los servicios de negocio e IA.
@@ -982,55 +1081,55 @@ Data/IA:
 
 ```text
 Frontend
-   │
-   │ POST /api/v1/documents
-   │
-   ├─ file
-   ├─ profile
-   ├─ niche
-   ├─ detail_level
-   └─ learning_objective?
-   │
-   ▼
+│
+│ POST /api/v1/documents
+│
+├─ file
+├─ profile
+├─ niche
+├─ detail_level
+└─ learning_objective?
+│
+▼
 BackendAPI
-   │
-   ├─ validación HTTP
-   ├─ staging temporal
-   ├─ SHA-256 / deduplicación
-   ├─ metadata → SQLite
-   └─ original → OCI Object Storage
-   │
-   ▼
+│
+├─ validación HTTP
+├─ staging temporal
+├─ SHA-256 / deduplicación
+├─ metadata → SQLite
+└─ original → OCI Object Storage
+│
+▼
 ensure_document_indexed()
-   │
-   ▼
+│
+▼
 POST /api/v1/index
-   │
-   ▼
+│
+▼
 INDEXED
-   │
-   ▼
+│
+▼
 prepare_default_formats()
-   ├─ quiz = processing
-   └─ flashcards = processing
-   │
-   ▼
+├─ quiz = processing
+└─ flashcards = processing
+│
+▼
 registrar BackgroundTask
-   │
-   ▼
+│
+▼
 Respuesta de carga
-   │
-   └──────────── background ─────────────┐
-                                         ▼
-                         complete_default_generation()
-                                         │
-                                         ▼
-                            POST /api/v1/generate
-                              ├─ Quiz
-                              └─ Flashcards
-                                         │
-                                         ▼
-                       mismos format_id → estado terminal
+│
+└──────────── background ─────────────┐
+▼
+complete_default_generation()
+│
+▼
+POST /api/v1/generate
+├─ Quiz
+└─ Flashcards
+│
+▼
+mismos format_id → estado terminal
 ```
 
 Frontend consulta:
@@ -1049,42 +1148,43 @@ La regeneración reutiliza el mismo pipeline de generación:
 
 ```text
 POST /api/v1/documents/{document_id}/formats/regenerate
-        ↓
+↓
 FormatRegenerationService
-        ↓
+↓
 validar INDEXED + ausencia de processing en formatos solicitados
-        ↓
+↓
 reutilizar GenerationContext persistido
-        ↓
+↓
 nuevos format_id = processing
-        ↓
+↓
 202 Accepted
-        │
-        └──────────── background ─────────────┐
-                                              ↓
-                                   Agentes /generate
-                                              ↓
-                         mismos nuevos format_id
-                                              ↓
-                              success | failed | no_results
+│
+└──────────── background ─────────────┐
+↓
+Agentes /generate
+↓
+mismos nuevos format_id
+↓
+success | failed | no_results
 ```
 
 Frontend continúa consultando el mismo `GET /formats`; no existe un endpoint adicional de estado para la regeneración.
 
 ---
+
 ### Flujo de estados del documento
 
 ```text
 RECEIVED
-   ↓
+↓
 VALIDATED
-   ↓
+↓
 STORING
-   ↓
+↓
 STORED
-   ↓
+↓
 INDEXING
-   ↓
+↓
 INDEXED
 ```
 
@@ -1107,18 +1207,19 @@ DocumentStatus = INDEXED
 mientras:
 
 ```text
-quiz        = processing
-flashcards  = processing
+quiz        = processing
+flashcards  = processing
 ```
 
 o:
 
 ```text
-quiz        = failed
-flashcards  = failed
+quiz        = failed
+flashcards  = failed
 ```
 
 ---
+
 ## Endpoints públicos actuales
 
 ### Salud
@@ -1137,11 +1238,11 @@ Content-Type: multipart/form-data
 Campos:
 
 ```text
-file                 requerido
-profile              requerido
-niche                requerido
-detail_level         requerido
-learning_objective   opcional
+file                 requerido
+profile              requerido
+niche                requerido
+detail_level         requerido
+learning_objective   opcional
 ```
 
 Formatos de archivo soportados:
@@ -1178,12 +1279,12 @@ background task
 Ejemplo con `curl`:
 
 ```bash
-curl -X POST "http://127.0.0.1:8000/api/v1/documents" \
-  -F "file=@manual.txt;type=text/plain" \
-  -F "profile=intermediate" \
-  -F "niche=backend" \
-  -F "detail_level=detailed" \
-  -F "learning_objective=Comprender los conceptos principales"
+curl -X POST "http://127.0.0.1:8000/api/v1/documents" \\
+-F "file=@manual.txt;type=text/plain" \\
+-F "profile=intermediate" \\
+-F "niche=backend" \\
+-F "detail_level=detailed" \\
+-F "learning_objective=Comprender los conceptos principales"
 ```
 
 Respuesta de documento nuevo:
@@ -1194,10 +1295,10 @@ HTTP/1.1 201 Created
 
 ```json
 {
-  "document_id": "doc_123",
-  "filename": "manual.txt",
-  "status": "indexed",
-  "duplicate": false
+"document_id": "doc_123",
+"filename": "manual.txt",
+"status": "indexed",
+"duplicate": false
 }
 ```
 
@@ -1209,10 +1310,10 @@ HTTP/1.1 200 OK
 
 ```json
 {
-  "document_id": "doc_123",
-  "filename": "manual.txt",
-  "status": "indexed",
-  "duplicate": true
+"document_id": "doc_123",
+"filename": "manual.txt",
+"status": "indexed",
+"duplicate": true
 }
 ```
 
@@ -1220,14 +1321,21 @@ La respuesta **no contiene `formats`**. Frontend debe usar el endpoint de consul
 
 Errores principales de la etapa síncrona:
 
-| HTTP | Caso |
-|---:|---|
-| `400` | Documento vacío o inválido |
-| `409` | Estado del documento incompatible con la indexación |
-| `413` | Archivo supera el tamaño máximo permitido |
-| `415` | Extensión o MIME type no soportado |
-| `422` | Faltan parámetros obligatorios o el contexto pedagógico es inválido |
-| `502` | Fallo de OCI, recuperación del original o indexación RAG |
+\| HTTP | Caso |
+
+\|---:|---|
+
+\| `400` | Documento vacío o inválido |
+
+\| `409` | Estado del documento incompatible con la indexación |
+
+\| `413` | Archivo supera el tamaño máximo permitido |
+
+\| `415` | Extensión o MIME type no soportado |
+
+\| `422` | Faltan parámetros obligatorios o el contexto pedagógico es inválido |
+
+\| `502` | Fallo de OCI, recuperación del original o indexación RAG |
 
 > El endpoint es síncrono hasta completar la indexación. Los errores de generación que ocurren después no modifican la respuesta ya enviada; su resultado se consulta mediante `/formats`.
 
@@ -1241,17 +1349,17 @@ Ejemplo:
 
 ```json
 {
-  "documents": [
-    {
-      "document_id": "doc_123",
-      "filename": "manual.pdf",
-      "status": "indexed",
-      "content_type": "application/pdf",
-      "size_bytes": 1024,
-      "created_at": "2026-10-01T12:00:00Z",
-      "updated_at": "2026-10-01T12:05:00Z"
-    }
-  ]
+"documents": [
+{
+"document_id": "doc_123",
+"filename": "manual.pdf",
+"status": "indexed",
+"content_type": "application/pdf",
+"size_bytes": 1024,
+"created_at": "2026-10-01T12:00:00Z",
+"updated_at": "2026-10-01T12:05:00Z"
+}
+]
 }
 ```
 
@@ -1276,19 +1384,25 @@ Ejemplo:
   "updated_at": "2026-10-01T12:05:00Z",
   "title": null,
   "summary": null,
-  "estimated_time": null
+  "learning_metadata": {
+    "key_concepts": [
+      "RAG",
+      "Embeddings",
+      "Vector Store"
+    ],
+    "prerequisites": [
+      "Fundamentos de Python"
+    ],
+    "estimated_time_minutes": 18
+  }
 }
 ```
 
-Los campos:
+`learning_metadata` puede permanecer en `null` mientras la generación en segundo plano todavía no haya producido una respuesta válida de Agentes.
 
-```text
-title
-summary
-estimated_time
-```
+Los campos opcionales `title` y `summary` continúan preparados para metadata enriquecida adicional y actualmente pueden permanecer en `null`.
 
-están preparados para metadata enriquecida futura y actualmente pueden permanecer en `null`.
+El tiempo pedagógico no se expone mediante un campo paralelo en la raíz. La única fuente de verdad es `learning_metadata.estimated_time_minutes`.
 
 `formats_status` no forma parte de este contrato. La fuente de verdad para disponibilidad y estado de Quiz y Flashcards es `/formats`.
 
@@ -1302,47 +1416,47 @@ Ejemplo con formatos disponibles:
 
 ```json
 {
-  "document_id": "doc_123",
-  "status": "ready",
-  "formats": {
-    "quiz": {
-      "format_id": "fmt_quiz_1",
-      "status": "success",
-      "content": {
-        "title": "Quiz",
-        "instructions": "Seleccione la respuesta correcta.",
-        "questions": [
-          {
-            "question_id": "q1",
-            "question": "Pregunta",
-            "options": [
-              "Opción A",
-              "Opción B"
-            ],
-            "correct_answer": "Opción A",
-            "explanation": "Explicación"
-          }
-        ]
-      },
-      "error_message": null
-    },
-    "flashcards": {
-      "format_id": "fmt_flashcards_1",
-      "status": "success",
-      "content": {
-        "title": "Flashcards",
-        "instructions": "Revise cada tarjeta.",
-        "cards": [
-          {
-            "card_id": "card_1",
-            "front": "Concepto",
-            "back": "Explicación"
-          }
-        ]
-      },
-      "error_message": null
-    }
-  }
+"document_id": "doc_123",
+"status": "ready",
+"formats": {
+"quiz": {
+"format_id": "fmt_quiz_1",
+"status": "success",
+"content": {
+"title": "Quiz",
+"instructions": "Seleccione la respuesta correcta.",
+"questions": [
+{
+"question_id": "q1",
+"question": "Pregunta",
+"options": [
+"Opción A",
+"Opción B"
+],
+"correct_answer": "Opción A",
+"explanation": "Explicación"
+}
+]
+},
+"error_message": null
+},
+"flashcards": {
+"format_id": "fmt_flashcards_1",
+"status": "success",
+"content": {
+"title": "Flashcards",
+"instructions": "Revise cada tarjeta.",
+"cards": [
+{
+"card_id": "card_1",
+"front": "Concepto",
+"back": "Explicación"
+}
+]
+},
+"error_message": null
+}
+}
 }
 ```
 
@@ -1359,9 +1473,9 @@ Solicitud para un solo formato:
 
 ```json
 {
-  "formats": [
-    "quiz"
-  ]
+"formats": [
+"quiz"
+]
 }
 ```
 
@@ -1369,10 +1483,10 @@ Solicitud para varios formatos:
 
 ```json
 {
-  "formats": [
-    "quiz",
-    "flashcards"
-  ]
+"formats": [
+"quiz",
+"flashcards"
+]
 }
 ```
 
@@ -1404,14 +1518,14 @@ HTTP/1.1 202 Accepted
 
 ```json
 {
-  "document_id": "doc_123",
-  "status": "processing",
-  "formats": {
-    "quiz": {
-      "format_id": "fmt_quiz_2",
-      "status": "processing"
-    }
-  }
+"document_id": "doc_123",
+"status": "processing",
+"formats": {
+"quiz": {
+"format_id": "fmt_quiz_2",
+"status": "processing"
+}
+}
 }
 ```
 
@@ -1421,7 +1535,7 @@ Después del `202`, la generación continúa en segundo plano mediante el mismo 
 
 ```text
 processing
-    ↓
+↓
 success | failed | no_results
 ```
 
@@ -1433,12 +1547,17 @@ GET /api/v1/documents/{document_id}/formats
 
 Errores principales:
 
-| HTTP | Caso |
-|---:|---|
-| `404` | `document_id` inexistente |
-| `409` | Documento no `INDEXED`, formato solicitado en `processing` o ausencia/conflicto de contexto previo reutilizable |
-| `422` | `formats` vacío, duplicado o con un formato no soportado |
-| `500` | No fue posible registrar los nuevos intentos |
+\| HTTP | Caso |
+
+\|---:|---|
+
+\| `404` | `document_id` inexistente |
+
+\| `409` | Documento no `INDEXED`, formato solicitado en `processing` o ausencia/conflicto de contexto previo reutilizable |
+
+\| `422` | `formats` vacío, duplicado o con un formato no soportado |
+
+\| `500` | No fue posible registrar los nuevos intentos |
 
 La regeneración no vuelve a almacenar el archivo original en OCI y no ejecuta una nueva indexación RAG.
 
@@ -1457,29 +1576,37 @@ La adaptación educativa inicial es una operación interna iniciada desde `POST 
 ## Manejo de errores del flujo integrado
 
 BackendAPI expone un contrato transversal de errores para que Frontend pueda
+
 distinguir la causa funcional sin depender únicamente del HTTP status ni de
+
 comparar mensajes humanos.
 
 La respuesta estándar es:
 
 ```json
 {
-  "code": "RAG_INDEXING_FAILED",
-  "detail": "No fue posible completar la indexación del documento.",
-  "errors": [],
-  "timestamp": "2026-10-07T18:00:00Z"
+"code": "RAG_INDEXING_FAILED",
+"detail": "No fue posible completar la indexación del documento.",
+"errors": [],
+"timestamp": "2026-10-07T18:00:00Z"
 }
 ```
 
 Responsabilidad de cada campo:
 
-| Campo | Responsabilidad |
-|---|---|
-| HTTP status | Semántica del protocolo (`404`, `409`, `422`, `500`, `502`, etc.). |
-| `code` | Identificador funcional estable consumible por Frontend. |
-| `detail` | Mensaje seguro y legible para el cliente. |
-| `errors[]` | Detalles estructurados, especialmente validaciones por campo. |
-| `timestamp` | Momento en que Backend construyó la respuesta de error. |
+\| Campo | Responsabilidad |
+
+\|---|---|
+
+\| HTTP status | Semántica del protocolo (`404`, `409`, `422`, `500`, `502`, etc.). |
+
+\| `code` | Identificador funcional estable consumible por Frontend. |
+
+\| `detail` | Mensaje seguro y legible para el cliente. |
+
+\| `errors[]` | Detalles estructurados, especialmente validaciones por campo. |
+
+\| `timestamp` | Momento en que Backend construyó la respuesta de error. |
 
 Los códigos públicos se centralizan en:
 
@@ -1506,6 +1633,7 @@ app/core/exceptions.py
 ```
 
 Frontend no debe depender de nombres de excepciones Python ni comparar el texto
+
 de `detail` para decidir comportamiento. Debe usar prioritariamente `code`.
 
 ### Validaciones `422`
@@ -1514,49 +1642,73 @@ Los errores de Pydantic conservan un código raíz estable y el detalle por camp
 
 ```json
 {
-  "code": "REQUEST_VALIDATION_ERROR",
-  "detail": "Error de validación en la petición.",
-  "errors": [
-    {
-      "code": "value_error",
-      "message": "formats no puede contener valores duplicados.",
-      "field": "formats"
-    }
-  ],
-  "timestamp": "2026-10-07T18:00:00Z"
+"code": "REQUEST_VALIDATION_ERROR",
+"detail": "Error de validación en la petición.",
+"errors": [
+{
+"code": "value_error",
+"message": "formats no puede contener valores duplicados.",
+"field": "formats"
+}
+],
+"timestamp": "2026-10-07T18:00:00Z"
 }
 ```
 
 El `code` raíz identifica la categoría funcional completa. El `code` interno de
+
 cada elemento de `errors[]` conserva el identificador específico producido por
+
 la validación.
 
 ### Códigos funcionales expuestos
 
-| `code` | HTTP | Caso principal |
-|---|---:|---|
-| `DOCUMENT_FILENAME_REQUIRED` | `400` | El archivo no tiene un nombre válido. |
-| `DOCUMENT_EMPTY` | `400` | El archivo recibido tiene cero bytes. |
-| `DOCUMENT_NOT_FOUND` | `404` | El `document_id` solicitado no existe. |
-| `DOCUMENT_STATE_CONFLICT` | `409` | El documento no permite la transición solicitada. |
-| `DOCUMENT_NOT_INDEXED` | `409` | Se intenta generar/regenerar sin estado `INDEXED`. |
-| `FILE_TOO_LARGE` | `413` | El archivo supera el máximo configurado. |
-| `UNSUPPORTED_FILE_TYPE` | `415` | La extensión no está soportada. |
-| `MIME_TYPE_MISMATCH` | `415` | El MIME type declarado no corresponde al formato admitido. |
-| `REQUEST_VALIDATION_ERROR` | `422` | El request no cumple el schema HTTP. |
-| `DOCUMENT_STORAGE_FAILED` | `502` | Falló el almacenamiento del original en OCI. |
-| `DOCUMENT_RETRIEVAL_FAILED` | `502` | No fue posible recuperar el original desde Object Storage. |
-| `RAG_INDEXING_FAILED` | `502` | Falló la integración/indexación RAG. |
-| `FORMAT_REGISTRATION_FAILED` | `500` | No fue posible registrar los intentos iniciales de generación. |
-| `FORMAT_REGENERATION_IN_PROGRESS` | `409` | Algún formato solicitado ya tiene un intento `processing`. |
-| `FORMAT_CONTEXT_NOT_FOUND` | `409` | No existe contexto pedagógico previo reutilizable. |
-| `FORMAT_CONTEXT_CONFLICT` | `409` | Los formatos solicitados no comparten un contexto reutilizable. |
-| `FORMAT_REGENERATION_REGISTRATION_FAILED` | `500` | No fue posible registrar los nuevos intentos de regeneración. |
-| `PERSISTENCE_ERROR` | `500` | Fallo conocido al acceder a la persistencia. |
-| `INTERNAL_SERVER_ERROR` | `500` | Excepción no controlada. |
-| `HTTP_ERROR` | variable | `HTTPException` de framework/ruta sin una causa funcional clasificada. |
+\| `code` | HTTP | Caso principal |
+
+\|---|---:|---|
+
+\| `DOCUMENT_FILENAME_REQUIRED` | `400` | El archivo no tiene un nombre válido. |
+
+\| `DOCUMENT_EMPTY` | `400` | El archivo recibido tiene cero bytes. |
+
+\| `DOCUMENT_NOT_FOUND` | `404` | El `document_id` solicitado no existe. |
+
+\| `DOCUMENT_STATE_CONFLICT` | `409` | El documento no permite la transición solicitada. |
+
+\| `DOCUMENT_NOT_INDEXED` | `409` | Se intenta generar/regenerar sin estado `INDEXED`. |
+
+\| `FILE_TOO_LARGE` | `413` | El archivo supera el máximo configurado. |
+
+\| `UNSUPPORTED_FILE_TYPE` | `415` | La extensión no está soportada. |
+
+\| `MIME_TYPE_MISMATCH` | `415` | El MIME type declarado no corresponde al formato admitido. |
+
+\| `REQUEST_VALIDATION_ERROR` | `422` | El request no cumple el schema HTTP. |
+
+\| `DOCUMENT_STORAGE_FAILED` | `502` | Falló el almacenamiento del original en OCI. |
+
+\| `DOCUMENT_RETRIEVAL_FAILED` | `502` | No fue posible recuperar el original desde Object Storage. |
+
+\| `RAG_INDEXING_FAILED` | `502` | Falló la integración/indexación RAG. |
+
+\| `FORMAT_REGISTRATION_FAILED` | `500` | No fue posible registrar los intentos iniciales de generación. |
+
+\| `FORMAT_REGENERATION_IN_PROGRESS` | `409` | Algún formato solicitado ya tiene un intento `processing`. |
+
+\| `FORMAT_CONTEXT_NOT_FOUND` | `409` | No existe contexto pedagógico previo reutilizable. |
+
+\| `FORMAT_CONTEXT_CONFLICT` | `409` | Los formatos solicitados no comparten un contexto reutilizable. |
+
+\| `FORMAT_REGENERATION_REGISTRATION_FAILED` | `500` | No fue posible registrar los nuevos intentos de regeneración. |
+
+\| `PERSISTENCE_ERROR` | `500` | Fallo conocido al acceder a la persistencia. |
+
+\| `INTERNAL_SERVER_ERROR` | `500` | Excepción no controlada. |
+
+\| `HTTP_ERROR` | variable | `HTTPException` de framework/ruta sin una causa funcional clasificada. |
 
 `BAD_REQUEST` permanece disponible en el catálogo para errores `400` genéricos
+
 que no tengan todavía una causa más específica.
 
 ### Durante almacenamiento e indexación
@@ -1565,24 +1717,21 @@ La traducción diferencia causas que pueden compartir el mismo HTTP status:
 
 ```text
 DocumentNotFoundError
-    → 404 DOCUMENT_NOT_FOUND
-
+→ 404 DOCUMENT_NOT_FOUND
 AdaptationDocumentStateError
 DocumentNotStoredError
 DocumentIndexingStateError
-    → 409 DOCUMENT_STATE_CONFLICT
-
+→ 409 DOCUMENT_STATE_CONFLICT
 DocumentRetrievalError
-    → 502 DOCUMENT_RETRIEVAL_FAILED
-
+→ 502 DOCUMENT_RETRIEVAL_FAILED
 RAGIntegrationError
-    → 502 RAG_INDEXING_FAILED
-
+→ 502 RAG_INDEXING_FAILED
 DocumentStorageError
-    → 502 DOCUMENT_STORAGE_FAILED
+→ 502 DOCUMENT_STORAGE_FAILED
 ```
 
 De esta forma un fallo RAG ya no necesita interpretarse en Frontend como si
+
 fuera un fallo de OCI únicamente porque ambos utilicen `502`.
 
 ### Preparación de generación
@@ -1593,16 +1742,15 @@ Casos públicos principales:
 
 ```text
 FormatGenerationDocumentNotFoundError
-    → 404 DOCUMENT_NOT_FOUND
-
+→ 404 DOCUMENT_NOT_FOUND
 DocumentNotReadyForGenerationError
-    → 409 DOCUMENT_NOT_INDEXED
-
+→ 409 DOCUMENT_NOT_INDEXED
 GeneratedFormatRepositoryError
-    → 500 FORMAT_REGISTRATION_FAILED
+→ 500 FORMAT_REGISTRATION_FAILED
 ```
 
 Un fallo de persistencia en esta etapa impide programar una generación que
+
 Frontend no pueda observar correctamente.
 
 ### Generación en background
@@ -1613,13 +1761,15 @@ Casos relevantes:
 FormatGenerationAttemptStateError
 FormatGenerationIntegrationError
 FormatGenerationContractError
+FormatGenerationDocumentNotFoundError
+FormatGenerationMetadataPersistenceError
 FormatGenerationRecoveryError
 GeneratedFormatRepositoryError
 ```
 
 `execute_background_generation()` registra explícitamente el error.
 
-Cuando Agentes falla normalmente por timeout, conexión, error HTTP o contrato:
+Cuando Agentes falla por timeout, conexión, error HTTP o contrato, o cuando BackendAPI no puede persistir los metadatos pedagógicos recibidos:
 
 ```text
 processing → failed
@@ -1632,7 +1782,9 @@ INDEXED
 ```
 
 Como la respuesta HTTP ya fue enviada, estos errores se observan posteriormente
+
 mediante `GET /documents/{document_id}/formats` y no mediante un nuevo
+
 `ErrorResponse`.
 
 ### Regeneración
@@ -1642,26 +1794,20 @@ La preparación de una regeneración traduce cada conflicto a un código estable
 ```text
 FormatRegenerationDocumentNotFoundError
 FormatGenerationDocumentNotFoundError
-    → 404 DOCUMENT_NOT_FOUND
-
+→ 404 DOCUMENT_NOT_FOUND
 FormatRegenerationDocumentStateError
 DocumentNotReadyForGenerationError
-    → 409 DOCUMENT_NOT_INDEXED
-
+→ 409 DOCUMENT_NOT_INDEXED
 FormatRegenerationInProgressError
-    → 409 FORMAT_REGENERATION_IN_PROGRESS
-
+→ 409 FORMAT_REGENERATION_IN_PROGRESS
 FormatRegenerationContextNotFoundError
-    → 409 FORMAT_CONTEXT_NOT_FOUND
-
+→ 409 FORMAT_CONTEXT_NOT_FOUND
 FormatRegenerationContextConflictError
-    → 409 FORMAT_CONTEXT_CONFLICT
-
+→ 409 FORMAT_CONTEXT_CONFLICT
 GeneratedFormatRepositoryError
-    → 500 FORMAT_REGENERATION_REGISTRATION_FAILED
-
+→ 500 FORMAT_REGENERATION_REGISTRATION_FAILED
 DocumentRepositoryError
-    → 500 PERSISTENCE_ERROR
+→ 500 PERSISTENCE_ERROR
 ```
 
 Los errores de validación del body se resuelven mediante Pydantic como:
@@ -1673,6 +1819,7 @@ Los errores de validación del body se resuelven mediante Pydantic como:
 ### Fallbacks seguros
 
 Un error HTTP del framework que no tenga una clasificación funcional explícita
+
 usa:
 
 ```text
@@ -1680,6 +1827,7 @@ HTTP_ERROR
 ```
 
 Por ejemplo, una ruta inexistente no se etiqueta falsamente como
+
 `DOCUMENT_NOT_FOUND`.
 
 Cualquier excepción no controlada utiliza:
@@ -1689,27 +1837,44 @@ Cualquier excepción no controlada utiliza:
 ```
 
 y el detalle interno se registra en Backend sin exponer stack traces ni nombres
+
 de excepciones al cliente.
 
 ---
+
 ## Stack
 
-| Componente | Tecnología |
-|---|---|
-| API | FastAPI |
-| Servidor | Uvicorn |
-| Validación | Pydantic v2 |
-| Configuración | Pydantic Settings |
-| Uploads | python-multipart |
-| Cliente HTTP interno | httpx |
-| Staging temporal | Sistema de archivos local |
-| Persistencia de negocio | SQLite |
-| Persistencia futura posible | PostgreSQL / Supabase mediante nuevos adapters |
-| Object Storage | OCI Object Storage |
-| SDK Cloud | OCI Python SDK |
-| RAG / Vector Store externo | Servicio Agentes/RAG |
-| Testing | pytest / httpx |
-| Calidad | Ruff |
+\| Componente | Tecnología |
+
+\|---|---|
+
+\| API | FastAPI |
+
+\| Servidor | Uvicorn |
+
+\| Validación | Pydantic v2 |
+
+\| Configuración | Pydantic Settings |
+
+\| Uploads | python-multipart |
+
+\| Cliente HTTP interno | httpx |
+
+\| Staging temporal | Sistema de archivos local |
+
+\| Persistencia de negocio | SQLite |
+
+\| Persistencia futura posible | PostgreSQL / Supabase mediante nuevos adapters |
+
+\| Object Storage | OCI Object Storage |
+
+\| SDK Cloud | OCI Python SDK |
+
+\| RAG / Vector Store externo | Servicio Agentes/RAG |
+
+\| Testing | pytest / httpx |
+
+\| Calidad | Ruff |
 
 Python soportado:
 
@@ -1745,6 +1910,7 @@ backend/
 │   │   ├── enums.py
 │   │   ├── generated_content.py
 │   │   ├── generated_format.py
+│   │   ├── learning_metadata.py
 │   │   └── format_evaluation.py
 │   ├── application/
 │   │   ├── adaptation_orchestration_service.py
@@ -1793,7 +1959,8 @@ backend/
 │   │   ├── test_documents_api.py
 │   │   ├── test_document_overwrite_behavior.py
 │   │   ├── test_error_contract.py
-│   │   └── test_format_regeneration_api.py
+│   │   ├── test_format_regeneration_api.py
+│   │   └── test_learning_metadata_api.py
 │   └── unit/
 │       ├── test_adaptation_orchestration_service.py
 │       ├── test_application_wiring.py
@@ -1813,6 +1980,8 @@ backend/
 │       ├── test_hashing.py
 │       ├── test_http_agents_adapter.py
 │       ├── test_http_rag_adapter.py
+│       ├── test_learning_metadata.py
+│       ├── test_learning_metadata_migration.py
 │       ├── test_local_temporary_storage_adapter.py
 │       ├── test_oci_object_storage_adapter.py
 │       ├── test_persistence_models.py
@@ -1829,8 +1998,6 @@ backend/
 
 El scaffolding anterior de `Process` fue eliminado porque no representaba un caso de uso persistido ni era necesario para el flujo real.
 
----
-
 ## Configuración local
 
 Crear `.env` a partir de `.env.example`.
@@ -1844,36 +2011,28 @@ DESCRIPTION="Backend API de NuevaMente para gestión de documentos y adaptación
 VERSION="0.1.0"
 ENVIRONMENT=local
 DEBUG=true
-
 # --- API ---
 API_V1_PREFIX=/api/v1
-
 # --- Servidor ---
 HOST=0.0.0.0
 PORT=8000
-
 # --- CORS ---
 BACKEND_CORS_ORIGINS=http://localhost:3000,http://127.0.0.1:3000,http://localhost:5500,http://127.0.0.1:5500
-
 # --- Documentos / almacenamiento temporal ---
 MAX_UPLOAD_SIZE_MB=10
 UPLOAD_DIR=storage/uploads
-
 # --- Base de datos ---
 DATABASE_URL=sqlite:///storage/nuevamente.db
-
 # --- OCI Object Storage ---
 OCI_NAMESPACE=
 OCI_BUCKET_NAME=
 OCI_REGION=
-OCI_CONFIG_FILE=~/.oci/config
+OCI_CONFIG_FILE=\~/.oci/config
 OCI_CONFIG_PROFILE=DEFAULT
-
 # --- RAG ---
 RAG_BASE_URL=http://localhost:8001
 RAG_INDEX_PATH=/api/v1/index
 RAG_TIMEOUT_SECONDS=30
-
 # --- Agentes ---
 AGENTS_BASE_URL=http://localhost:8001
 AGENTS_GENERATE_PATH=/api/v1/generate
@@ -1966,14 +2125,15 @@ python -m pytest -q
 git diff --check
 ```
 
-Última validación automatizada local después de validar la semántica de deduplicación y no sobrescritura:
+Validación requerida antes de integrar cambios:
 
 ```text
-Ruff: All checks passed!
-Pytest test_document_overwrite_behavior.py: 2/2 OK
-Pytest: suite completa OK
-git diff --check: OK
+python -m ruff check .
+python -m pytest -q
+git diff --check
 ```
+
+La suite debe completarse sin errores antes de publicar el contrato actualizado.
 
 La suite cubre, entre otros:
 
@@ -1986,7 +2146,14 @@ La suite cubre, entre otros:
 - reutilización del mismo `document_id` cuando el SHA-256 coincide;
 - no sobrescritura cuando dos archivos comparten nombre pero tienen contenido diferente;
 - persistencia simultánea de objetos OCI independientes para contenidos con SHA-256 distinto;
-- persistencia de metadata;
+- persistencia de metadata técnica;
+- contrato `learning_metadata` recibido desde Agentes a nivel raíz;
+- validación de `key_concepts`, `prerequisites` y `estimated_time_minutes`;
+- conversión HTTP → dominio mediante `LearningMetadata`;
+- persistencia y reconstrucción de `learning_metadata_json`;
+- migración SQLite idempotente para bases sin `learning_metadata_json`;
+- exposición de `learning_metadata` mediante `GET /documents/{document_id}`;
+- conservación de `learning_metadata = null` antes de disponer de una respuesta válida de Agentes;
 - relación `document_id → oci_object_name`;
 - almacenamiento y recuperación mediante Object Storage;
 - compensación ante inconsistencia OCI/BD;
@@ -2052,6 +2219,7 @@ La suite cubre, entre otros:
 - fallback `INTERNAL_SERVER_ERROR` para excepciones no controladas.
 
 ---
+
 ## Validación E2E de Sprint 3
 
 La separación entre indexación y generación y el lifecycle de estados fueron validados funcionalmente en local.
@@ -2061,13 +2229,10 @@ La separación entre indexación y generación y el lifecycle de estados fueron 
 ```text
 BackendAPI:
 http://127.0.0.1:8000
-
 RAG:
 http://127.0.0.1:8001
-
 Mock de generación lenta:
 http://127.0.0.1:8002
-
 AGENTS_TIMEOUT_SECONDS=15
 ```
 
@@ -2085,10 +2250,10 @@ Respuesta:
 
 ```json
 {
-  "document_id": "doc_8d770ba4ddda4359836159c74cc4875c",
-  "filename": "e2e_processing_20261006202146.txt",
-  "status": "indexed",
-  "duplicate": false
+"document_id": "doc_8d770ba4ddda4359836159c74cc4875c",
+"filename": "e2e_processing_20261006202146.txt",
+"status": "indexed",
+"duplicate": false
 }
 ```
 
@@ -2112,22 +2277,22 @@ Resultado:
 
 ```json
 {
-  "document_id": "doc_8d770ba4ddda4359836159c74cc4875c",
-  "status": "processing",
-  "formats": {
-    "quiz": {
-      "format_id": "fmt_2ab0368d1a84415bb262e5815a26ff5e",
-      "status": "processing",
-      "content": null,
-      "error_message": null
-    },
-    "flashcards": {
-      "format_id": "fmt_cd3ec83036354918a2903526381d89f8",
-      "status": "processing",
-      "content": null,
-      "error_message": null
-    }
-  }
+"document_id": "doc_8d770ba4ddda4359836159c74cc4875c",
+"status": "processing",
+"formats": {
+"quiz": {
+"format_id": "fmt_2ab0368d1a84415bb262e5815a26ff5e",
+"status": "processing",
+"content": null,
+"error_message": null
+},
+"flashcards": {
+"format_id": "fmt_cd3ec83036354918a2903526381d89f8",
+"status": "processing",
+"content": null,
+"error_message": null
+}
+}
 }
 ```
 
@@ -2137,19 +2302,19 @@ Después del timeout:
 
 ```json
 {
-  "status": "error",
-  "formats": {
-    "quiz": {
-      "format_id": "fmt_2ab0368d1a84415bb262e5815a26ff5e",
-      "status": "failed",
-      "content": null
-    },
-    "flashcards": {
-      "format_id": "fmt_cd3ec83036354918a2903526381d89f8",
-      "status": "failed",
-      "content": null
-    }
-  }
+"status": "error",
+"formats": {
+"quiz": {
+"format_id": "fmt_2ab0368d1a84415bb262e5815a26ff5e",
+"status": "failed",
+"content": null
+},
+"flashcards": {
+"format_id": "fmt_cd3ec83036354918a2903526381d89f8",
+"status": "failed",
+"content": null
+}
+}
 }
 ```
 
@@ -2180,7 +2345,7 @@ mantuvo:
 
 ```json
 {
-  "status": "indexed"
+"status": "indexed"
 }
 ```
 
@@ -2207,9 +2372,9 @@ Se solicitó únicamente:
 
 ```json
 {
-  "formats": [
-    "quiz"
-  ]
+"formats": [
+"quiz"
+]
 }
 ```
 
@@ -2224,14 +2389,14 @@ con un nuevo intento:
 
 ```json
 {
-  "document_id": "doc_0621bc23b79f4c948f25c0c53a7bd25f",
-  "status": "processing",
-  "formats": {
-    "quiz": {
-      "format_id": "fmt_908088188f9f417fa6e3353b1239e7f7",
-      "status": "processing"
-    }
-  }
+"document_id": "doc_0621bc23b79f4c948f25c0c53a7bd25f",
+"status": "processing",
+"formats": {
+"quiz": {
+"format_id": "fmt_908088188f9f417fa6e3353b1239e7f7",
+"status": "processing"
+}
+}
 }
 ```
 
@@ -2268,10 +2433,10 @@ También se comprobó la validación de duplicados:
 
 ```json
 {
-  "formats": [
-    "quiz",
-    "quiz"
-  ]
+"formats": [
+"quiz",
+"quiz"
+]
 }
 ```
 
@@ -2286,25 +2451,26 @@ HTTP 422 Unprocessable Entity
 La prueba confirma:
 
 ```text
-indexación síncrona                         ✅
-POST responde después de INDEXED           ✅
-processing se persiste antes de responder  ✅
-Frontend puede observar processing         ✅
-generación no bloquea POST                  ✅
-timeout de Agentes es independiente         ✅
-processing termina en failed               ✅
-mismo format_id se conserva                ✅
-documento permanece INDEXED                ✅
-regeneración responde 202                   ✅
-regeneración crea un nuevo format_id        ✅
-segundo intento activo se rechaza con 409   ✅
-regeneración real termina en success        ✅
-historial previo se conserva                ✅
-body con formatos duplicados devuelve 422   ✅
-regeneración no reindexa el documento       ✅
+indexación síncrona                         ✅
+POST responde después de INDEXED           ✅
+processing se persiste antes de responder  ✅
+Frontend puede observar processing         ✅
+generación no bloquea POST                  ✅
+timeout de Agentes es independiente         ✅
+processing termina en failed               ✅
+mismo format_id se conserva                ✅
+documento permanece INDEXED                ✅
+regeneración responde 202                   ✅
+regeneración crea un nuevo format_id        ✅
+segundo intento activo se rechaza con 409   ✅
+regeneración real termina en success        ✅
+historial previo se conserva                ✅
+body con formatos duplicados devuelve 422   ✅
+regeneración no reindexa el documento       ✅
 ```
 
 ---
+
 ## Semántica del flujo actual para Frontend
 
 Frontend debe separar:
@@ -2312,6 +2478,7 @@ Frontend debe separar:
 ```text
 GET /documents/{id}
 → estado del documento / indexación
+→ learning_metadata cuando esté disponible
 ```
 
 de:
@@ -2325,15 +2492,15 @@ Flujo recomendado para la generación inicial:
 
 ```text
 POST /documents
-    ↓
+↓
 indexed
-    ↓
+↓
 GET /formats
-    ↓
+↓
 processing
-    ↓
+↓
 polling
-    ↓
+↓
 ready | partial | error
 ```
 
@@ -2341,13 +2508,13 @@ Cuando Frontend necesite regenerar uno o varios formatos:
 
 ```text
 POST /documents/{id}/formats/regenerate
-    ↓
+↓
 202 processing
-    ↓
+↓
 GET /documents/{id}/formats
-    ↓
+↓
 polling
-    ↓
+↓
 ready | partial | error
 ```
 
@@ -2356,6 +2523,7 @@ Si alguno de los formatos solicitados ya posee un intento `processing`, Backend 
 No se requiere un endpoint adicional de estado.
 
 ---
+
 ## Data/IA y pendientes complementarios
 
 ### Integración Data/IA
@@ -2374,15 +2542,16 @@ Su conexión al pipeline no es obligatoria para completar esta primera tarjeta d
 
 ### Metadata enriquecida
 
-Los campos:
+Los campos opcionales:
 
 ```text
 title
 summary
-estimated_time
 ```
 
-ya forman parte del contrato de detalle, pero actualmente permanecen en `null` mientras no exista una fuente real que los calcule.
+forman parte del contrato de detalle y actualmente pueden permanecer en `null` mientras no exista una fuente real que los calcule.
+
+La metadata pedagógica acordada con Agentes ya está implementada mediante `learning_metadata`. El tiempo estimado de estudio se expone únicamente como `learning_metadata.estimated_time_minutes`.
 
 ### Limitación conocida: BackgroundTasks no es una cola durable
 
@@ -2421,9 +2590,10 @@ No es necesario mezclar esta mejora con el alcance actual mientras el equipo no 
 La misma limitación aplica a las regeneraciones, ya que reutilizan `FastAPI BackgroundTasks`.
 
 ---
+
 ### Learning metadata
 
-Pendiente incorporar una estructura a nivel de adaptación/documento:
+La estructura pedagógica ya está implementada a nivel de adaptación/documento:
 
 ```text
 learning_metadata
@@ -2432,7 +2602,27 @@ learning_metadata
 └── estimated_time_minutes
 ```
 
-No debe confundirse con el campo histórico `estimated_time` de metadata de documento.
+Flujo actual:
+
+```text
+Agentes /generate
+    ↓
+learning_metadata en la raíz
+    ↓
+HTTPAgentsAdapter
+    ↓
+LearningMetadata
+    ↓
+Document.learning_metadata
+    ↓
+documents.learning_metadata_json
+    ↓
+GET /api/v1/documents/{document_id}
+```
+
+Agentes genera los metadatos; BackendAPI los recibe, valida, persiste y expone. No se duplican dentro de los formatos individuales.
+
+`estimated_time_minutes` representa minutos estimados de estudio; no es un timeout técnico ni controla esperas entre servicios.
 
 ### Persistencia de contenido educativo en OCI
 
@@ -2443,6 +2633,7 @@ Pendiente definir y persistir JSON estructurado de resultados educativos en OCI.
 SQLite es el motor actual de desarrollo. Un motor adicional puede incorporarse mediante nuevos adapters sin modificar los casos de uso.
 
 ---
+
 ## Lineamientos de desarrollo
 
 - Modularizar el código en componentes y funciones con una única responsabilidad clara.
@@ -2491,9 +2682,17 @@ POST responde
                                 ↓
                          Agentes /generate
                                 ↓
+             learning_metadata → documento
+                                ↓
              mismos format_id → estado terminal
                                 ↓
                    success | failed | no_results
+
+Frontend
+   ↓
+GET /api/v1/documents/{id}
+   ↓
+estado / learning_metadata
 
 Frontend
    ↓
@@ -2518,6 +2717,8 @@ BackendAPI
    └──────── background ────────┐
                                 ↓
                          Agentes /generate
+                                ↓
+             learning_metadata → documento
                                 ↓
              mismos nuevos format_id → estado terminal
 

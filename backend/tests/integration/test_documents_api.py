@@ -638,7 +638,8 @@ def test_get_registered_document(
 
     assert body["title"] is None
     assert body["summary"] is None
-    assert body["estimated_time"] is None
+    assert body["learning_metadata"] is None
+    assert "estimated_time" not in body
 
     assert "formats_status" not in body
     assert "formats" not in body

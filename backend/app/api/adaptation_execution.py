@@ -20,6 +20,7 @@ from app.application.format_generation_service import (
     FormatGenerationContractError,
     FormatGenerationDocumentNotFoundError,
     FormatGenerationIntegrationError,
+    FormatGenerationMetadataPersistenceError,
     FormatGenerationRecoveryError,
 )
 from app.application.rag_integration_service import (
@@ -161,10 +162,11 @@ async def execute_background_generation(
 ) -> None:
     """Completa intentos de generación después de responder al cliente.
 
-    Los errores conocidos de Agentes y contrato se resuelven dentro de la
-    capa de aplicación. Si aparece cualquier otro error, se ejecuta una
-    compensación adicional que consulta el estado persistido y convierte
-    únicamente los intentos que sigan en ``processing`` a ``failed``.
+    Los errores conocidos de Agentes, contrato y persistencia se resuelven
+    dentro de la capa de aplicación. Si aparece cualquier otro error, se
+    ejecuta una compensación adicional que consulta el estado persistido y
+    convierte únicamente los intentos que sigan en ``processing`` a
+    ``failed``.
 
     Como la respuesta HTTP ya fue enviada, los errores se registran para
     observabilidad y no se propagan al cliente.
@@ -187,6 +189,8 @@ async def execute_background_generation(
         FormatGenerationAttemptStateError,
         FormatGenerationIntegrationError,
         FormatGenerationContractError,
+        FormatGenerationDocumentNotFoundError,
+        FormatGenerationMetadataPersistenceError,
         FormatGenerationRecoveryError,
         GeneratedFormatRepositoryError,
     ):

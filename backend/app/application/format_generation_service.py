@@ -12,6 +12,7 @@ from app.domain.generated_format import (
     GeneratedFormat,
     GenerationContext,
 )
+from app.domain.learning_metadata import LearningMetadata
 from app.ports.agents_port import (
     AgentGeneratedFormatResult,
     AgentGenerationInput,
@@ -20,6 +21,7 @@ from app.ports.agents_port import (
     AgentsPort,
 )
 from app.ports.document_repository_port import (
+    DocumentRepositoryError,
     DocumentRepositoryPort,
 )
 from app.ports.generated_format_repository_port import (
@@ -44,6 +46,10 @@ class FormatGenerationIntegrationError(Exception):
     """No fue posible completar la generación mediante Agentes."""
 
 
+class FormatGenerationMetadataPersistenceError(Exception):
+    """No fue posible persistir la metadata pedagógica recibida."""
+
+
 class FormatGenerationAttemptStateError(Exception):
     """El intento persistido no puede continuar su generación."""
 
@@ -55,13 +61,14 @@ class FormatGenerationRecoveryError(Exception):
 class FormatGenerationService:
     """Gestiona el ciclo de vida de intentos de generación.
 
-    El caso de uso se divide explícitamente en tres responsabilidades:
+    El caso de uso se divide explícitamente en cuatro responsabilidades:
 
     1. ``prepare_generation`` registra los formatos solicitados en
        ``PROCESSING`` antes de iniciar la llamada a Agentes.
-    2. ``complete_generation`` ejecuta Agentes y actualiza esos mismos
-       intentos a ``SUCCESS``, ``FAILED`` o ``NO_RESULTS``.
-    3. ``fail_processing_attempts`` actúa como cierre de contingencia y
+    2. ``complete_generation`` ejecuta Agentes y valida la respuesta.
+    3. Los metadatos pedagógicos de la adaptación se persisten una sola
+       vez a nivel de documento antes de cerrar los formatos.
+    4. ``fail_processing_attempts`` actúa como cierre de contingencia y
        convierte únicamente los intentos que sigan persistidos en
        ``PROCESSING`` a ``FAILED``.
 
@@ -196,8 +203,8 @@ class FormatGenerationService:
         """Completa intentos previamente persistidos como ``PROCESSING``.
 
         Agentes se invoca una única vez con todos los formatos del lote.
-        Los resultados actualizan los mismos ``format_id`` registrados
-        antes de responder a Frontend.
+        La metadata pedagógica retornada se persiste una sola vez a nivel
+        del documento y los resultados actualizan los mismos ``format_id``.
 
         Args:
             attempts: Intentos previamente creados en ``PROCESSING``.
@@ -212,6 +219,8 @@ class FormatGenerationService:
                 Si falla la comunicación con Agentes.
             FormatGenerationContractError:
                 Si Agentes devuelve una respuesta incompatible.
+            FormatGenerationDocumentNotFoundError:
+                Si el documento desaparece antes de persistir metadata.
             FormatGenerationRecoveryError:
                 Si no es posible persistir el cierre a ``FAILED`` después
                 de un error conocido de Agentes o de contrato.
@@ -278,6 +287,33 @@ class FormatGenerationService:
             )
 
             raise
+
+        try:
+            self._persist_learning_metadata(
+                document_id=document_id,
+                learning_metadata=(
+                    result.learning_metadata
+                ),
+            )
+        except (
+            DocumentRepositoryError,
+            FormatGenerationDocumentNotFoundError,
+        ) as exc:
+            error_message = (
+                "No fue posible persistir los metadatos "
+                f"pedagógicos del documento {document_id}."
+            )
+
+            self.fail_processing_attempts(
+                attempts=attempts,
+                error_message=error_message,
+            )
+
+            raise (
+                FormatGenerationMetadataPersistenceError(
+                    error_message
+                )
+            ) from exc
 
         results_by_type = {
             agent_result.format_type: agent_result
@@ -417,6 +453,34 @@ class FormatGenerationService:
             raise recovery_error
 
         return failed_attempts
+
+    def _persist_learning_metadata(
+        self,
+        *,
+        document_id: str,
+        learning_metadata: LearningMetadata,
+    ) -> None:
+        """Persiste metadata pedagógica una sola vez a nivel de documento."""
+        document = (
+            self._document_repository.find_by_id(
+                document_id
+            )
+        )
+
+        if document is None:
+            raise (
+                FormatGenerationDocumentNotFoundError(
+                    f"No existe el documento {document_id}."
+                )
+            )
+
+        document.assign_learning_metadata(
+            learning_metadata
+        )
+
+        self._document_repository.update(
+            document
+        )
 
     @staticmethod
     def _build_failed_attempt(
@@ -561,6 +625,15 @@ class FormatGenerationService:
             raise FormatGenerationContractError(
                 "Agentes devolvió un document_id diferente "
                 "al solicitado."
+            )
+
+        if not isinstance(
+            result.learning_metadata,
+            LearningMetadata,
+        ):
+            raise FormatGenerationContractError(
+                "Agentes devolvió learning_metadata "
+                "con un contrato inválido."
             )
 
         returned_formats = tuple(

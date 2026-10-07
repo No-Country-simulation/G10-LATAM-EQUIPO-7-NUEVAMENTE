@@ -14,6 +14,7 @@ CREATE TABLE IF NOT EXISTS documents (
     size_bytes INTEGER NOT NULL,
     status TEXT NOT NULL,
     oci_object_name TEXT,
+    learning_metadata_json TEXT,
     created_at TEXT NOT NULL,
     updated_at TEXT NOT NULL
 );
@@ -251,6 +252,10 @@ class SQLiteDatabase:
                 connection
             )
 
+            self._ensure_documents_schema(
+                connection
+            )
+
             connection.execute(
                 _FORMAT_EVALUATIONS_TABLE_SQL
             )
@@ -261,6 +266,29 @@ class SQLiteDatabase:
                 connection.execute(
                     statement
                 )
+
+    @staticmethod
+    def _ensure_documents_schema(
+        connection: sqlite3.Connection,
+    ) -> None:
+        """Añade metadata pedagógica a bases creadas antes de Sprint 3."""
+        columns = {
+            row["name"]
+            for row in connection.execute(
+                "PRAGMA table_info(documents)"
+            ).fetchall()
+        }
+
+        if (
+            "learning_metadata_json"
+            not in columns
+        ):
+            connection.execute(
+                """
+                ALTER TABLE documents
+                ADD COLUMN learning_metadata_json TEXT
+                """
+            )
 
     @staticmethod
     def _ensure_generated_formats_schema(
