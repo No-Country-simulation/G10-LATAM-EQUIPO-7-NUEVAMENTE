@@ -4,7 +4,7 @@ Backend de **NuevaMente**, desarrollado con **FastAPI**, **Pydantic v2**, **SQLi
 
 BackendAPI actúa como **orquestador del producto**: recibe las solicitudes del Frontend, administra la metadata técnica y pedagógica y el ciclo de vida de los documentos, persiste los archivos originales, coordina la indexación con RAG/Agentes, solicita la generación de material educativo, conserva los resultados para su consulta posterior y mantiene en OCI un paquete JSON con el contenido educativo vigente.
 
-BackendAPI **no implementa internamente** extracción de texto, limpieza, chunking, embeddings, Vector Store, retrieval semántico, prompts ni generación mediante LLM. Tampoco ejecuta directamente la evaluación de calidad de Data/IA. Estas responsabilidades permanecen desacopladas mediante Ports y Adapters.
+BackendAPI **no implementa internamente** extracción de texto, limpieza, chunking, embeddings, Vector Store, retrieval semántico, prompts, generación mediante LLM ni cálculo de métricas de calidad. Estas responsabilidades permanecen desacopladas mediante Ports y Adapters. BackendAPI orquesta la evaluación de formatos exitosos mediante el servicio externo Data/IA y persiste sus resultados históricos.
 
 El frontend se encuentra en [`../frontend`](../frontend).
 
@@ -54,6 +54,10 @@ Actualmente están implementados:
 - Reconstrucción del paquete desde el estado canónico persistido de BackendAPI, sin guardar directamente la respuesta bruta de Agentes.
 - El paquete OCI incluye `document_id`, `learning_metadata` y los formatos educativos vigentes.
 - `chunks_used`, `GenerationContext` y la evaluación de Data/IA no forman parte del paquete OCI actual.
+- Integración HTTP BackendAPI → Data/IA mediante `DataIAPort` y `HTTPDataIAAdapter`.
+- Evaluación automática de cada `GeneratedFormat` exitoso después de la generación.
+- Persistencia histórica de evaluaciones mediante `FormatEvaluationRepositoryPort` y SQLite.
+- Un fallo de Data/IA no degrada un formato ya generado con `success` ni impide conservar el snapshot educativo.
 - Recepción de `learning_metadata` desde Agentes a nivel raíz del contrato de generación.
 - Persistencia de `learning_metadata` una sola vez a nivel de documento mediante `learning_metadata_json`.
 - Exposición de `learning_metadata` mediante `GET /api/v1/documents/{document_id}`.
@@ -1102,17 +1106,46 @@ Content-Type: application/json
 
 La ruta `generated/content.json` funciona como snapshot actual y puede reemplazarse para el mismo `document_id` después de una generación o regeneración. Esto no modifica la regla de no sobrescritura de archivos originales: `original.ext` continúa siendo inmutable para la identidad lógica del documento y SQLite conserva el historial completo de generaciones.
 
-### Modelo de evaluación preparado
+### Integración BackendAPI → Data/IA
 
-La integración HTTP efectiva con Data/IA **no forma parte del pipeline obligatorio actual**, pero BackendAPI dispone del modelo necesario para incorporarla sin rediseñar generación ni persistencia.
-
-Se encuentran preparados:
+La evaluación de calidad está integrada mediante:
 
 ```text
-DataIAPort
 FormatEvaluationService
-FormatEvaluationRepositoryPort
-SQLiteFormatEvaluationRepositoryAdapter
+↓
+DataIAPort
+↑
+HTTPDataIAAdapter
+↓
+POST /evaluate
+```
+
+Data/IA recibe únicamente contenido **ya generado exitosamente**. No genera Quiz ni Flashcards y no controla el estado de generación.
+
+Contrato enviado:
+
+```json
+{
+  "document_id": "doc_123",
+  "format": "quiz",
+  "generated_content": {},
+  "generation_context": {
+    "profile": "intermediate",
+    "niche": "backend",
+    "detail_level": "detailed",
+    "learning_objective": "Comprender arquitectura."
+  },
+  "chunks_used": []
+}
+```
+
+El adapter traduce:
+
+```text
+relevancia               → relevance
+coherencia                → coherence
+adaptacion_didactica      → didactic_adaptation
+informacion_respaldada    → content_support
 ```
 
 Una evaluación pertenece a una generación concreta:
@@ -1121,29 +1154,33 @@ Una evaluación pertenece a una generación concreta:
 GeneratedFormat 1 → N FormatEvaluation
 ```
 
-Las evaluaciones anteriores no se sobrescriben y se conserva historial.
+SQLite conserva el historial en `format_evaluations`.
 
-Campos preparados:
-
-```text
-estado
-relevancia
-coherencia
-adaptación didáctica
-información respaldada
-información no respaldada
-observaciones
-evaluator_version
-rubric_version
-```
-
-Estados acordados:
+Estados:
 
 ```text
 aprobado
 requiere_revision
 rechazado
 ```
+
+Política de resiliencia:
+
+```text
+Agentes genera success
+↓
+Data/IA evalúa
+↓
+si responde:
+    persistir FormatEvaluation
+
+si falla:
+    registrar el error
+    conservar GeneratedFormat = success
+    continuar el flujo
+```
+
+Un fallo de Data/IA no invalida contenido que Agentes ya generó correctamente.
 
 ---
 
@@ -1188,7 +1225,7 @@ BackendAPI
 ├── SQLite
 ├── OCI Object Storage
 ├── RAG / Agentes
-└── Data/IA (preparado, no obligatorio en el pipeline actual)
+└── Data/IA
 ```
 
 BackendAPI es el único punto de entrada del Frontend hacia los servicios de negocio e IA.
@@ -1202,11 +1239,14 @@ RAG/Agentes:
 
 Data/IA:
 
-- está desacoplado mediante un Port;
-- puede evaluar calidad del contenido generado;
+- está desacoplado mediante `DataIAPort`;
+- se consume mediante `HTTPDataIAAdapter`;
+- evalúa calidad de contenido ya generado exitosamente;
+- recibe contenido, contexto de generación y `chunks_used`;
 - no administra documentos;
 - no genera material educativo;
-- todavía no forma parte obligatoria del flujo integrado actual.
+- no cambia el estado de un `GeneratedFormat`;
+- sus resultados se persisten históricamente en SQLite.
 
 ### Flujo público actual
 
@@ -1262,6 +1302,12 @@ POST /api/v1/generate
 ▼
 mismos format_id → estado terminal
 │
+├─ success → FormatEvaluationService
+│             ↓
+│          Data/IA /evaluate
+│             ↓
+│          format_evaluations
+│
 ▼
 GeneratedPackageStorageService
 │
@@ -1306,6 +1352,10 @@ Agentes /generate
 mismos nuevos format_id
 ↓
 success | failed | no_results
+↓
+success → Data/IA /evaluate
+↓
+persistir evaluación histórica cuando esté disponible
 ↓
 reconstruir snapshot terminal vigente
 ↓
@@ -1418,6 +1468,9 @@ background task
 → validar resultados
 → actualizar los mismos format_id
 → success | failed | no_results
+→ evaluar con Data/IA únicamente los success
+→ persistir evaluaciones disponibles
+→ actualizar snapshot educativo OCI
 ```
 
 Ejemplo con `curl`:
@@ -2160,7 +2213,8 @@ backend/
 │   ├── infrastructure/
 │   │   ├── integrations/
 │   │   │   ├── http_rag_adapter.py
-│   │   │   └── http_agents_adapter.py
+│   │   │   ├── http_agents_adapter.py
+│   │   │   └── http_data_ia_adapter.py
 │   │   ├── persistence/
 │   │   │   ├── database.py
 │   │   │   ├── models.py
@@ -2212,6 +2266,7 @@ backend/
 │       ├── test_generated_package_storage_service.py
 │       ├── test_hashing.py
 │       ├── test_http_agents_adapter.py
+│       ├── test_http_data_ia_adapter.py
 │       ├── test_http_rag_adapter.py
 │       ├── test_learning_metadata.py
 │       ├── test_learning_metadata_migration.py
@@ -2270,6 +2325,10 @@ RAG_TIMEOUT_SECONDS=30
 AGENTS_BASE_URL=http://localhost:8001
 AGENTS_GENERATE_PATH=/api/v1/generate
 AGENTS_TIMEOUT_SECONDS=60
+# --- Data/IA ---
+DATA_IA_BASE_URL=http://localhost:8002
+DATA_IA_EVALUATE_PATH=/evaluate
+DATA_IA_TIMEOUT_SECONDS=60
 ```
 
 En despliegues Docker pueden utilizarse nombres internos de servicio, por ejemplo:
@@ -2277,9 +2336,10 @@ En despliegues Docker pueden utilizarse nombres internos de servicio, por ejempl
 ```env
 RAG_BASE_URL=http://agents:8001
 AGENTS_BASE_URL=http://agents:8001
+DATA_IA_BASE_URL=http://data-ia:8002
 ```
 
-RAG y generación mantienen configuraciones independientes aunque actualmente puedan residir en el mismo servicio.
+RAG, generación y evaluación mantienen configuraciones independientes. La configuración concreta del despliegue pertenece a Infraestructura.
 
 Nunca versionar credenciales, claves privadas ni `.env` con datos sensibles.
 
@@ -2345,6 +2405,38 @@ http://127.0.0.1:8001/docs
 ```
 
 El módulo actual de Agentes contiene integración con Gemini y requiere la configuración correspondiente para ejercer generación real. Una prueba exclusivamente de indexación puede requerir igualmente que las variables de entorno de Agentes estén presentes durante el import del módulo.
+
+---
+
+### Data/IA para pruebas integradas
+
+Data/IA puede ejecutarse localmente en el puerto `8002`.
+
+Desde `Data_IA/`:
+
+```bash
+python -m uvicorn data_ai.api.app:app --host 127.0.0.1 --port 8002
+```
+
+Health check:
+
+```bash
+curl http://127.0.0.1:8002/health
+```
+
+Respuesta esperada:
+
+```json
+{
+  "status": "ok"
+}
+```
+
+BackendAPI utiliza por defecto:
+
+```text
+http://localhost:8002/evaluate
+```
 
 ---
 
@@ -2456,6 +2548,13 @@ La suite cubre, entre otros:
 - selección del `success` más reciente por formato para el snapshot OCI;
 - preservación del éxito previo cuando una regeneración posterior falla;
 - actualización de Quiz conservando las Flashcards vigentes y viceversa;
+- integración HTTP real BackendAPI → Data/IA mediante `HTTPDataIAAdapter`;
+- serialización del request de evaluación;
+- traducción de scores Data/IA al dominio BackendAPI;
+- timeouts, errores HTTP y respuestas incompatibles de Data/IA;
+- persistencia histórica de `FormatEvaluation`;
+- evaluación automática después de una generación exitosa;
+- conservación de `GeneratedFormat.success` cuando Data/IA falla;
 - escritura directa de bytes mediante `ObjectStoragePort.upload_bytes(...)`;
 - ruta canónica `documents/{document_id}/generated/content.json`;
 - codificación UTF-8 y `Content-Type: application/json`;
@@ -2865,6 +2964,75 @@ Esta validación confirma que BackendAPI actúa como frontera pública de descar
 
 ---
 
+### 8. Conexión real BackendAPI → Data/IA
+
+Primero se validó un Quiz ya generado:
+
+```text
+format_id:
+fmt_05f5c9bb8dfc41039699e5bfebc3e398
+
+status:
+aprobado
+
+relevance: 5
+coherence: 5
+didactic_adaptation: 5
+content_support: 4
+unsupported_information: False
+
+evaluator_version: 1.0.0
+rubric_version: 1.0.0
+```
+
+Resultado:
+
+```text
+Data/IA respondió                      ✅
+Contrato HTTP convertido a dominio    ✅
+Evaluación persistida en SQLite       ✅
+
+E2E BACKEND -> DATA IA: OK
+```
+
+Después se validó el pipeline automático mediante una regeneración real de Quiz:
+
+```text
+format_id:
+fmt_2a6208575f3a4040962b523ecf8ae651
+
+processing → success
+```
+
+La generación exitosa disparó Data/IA y creó:
+
+```text
+evaluation_id:
+eval_a710e8178d5a4e1b83c76fbd9a17e9ca
+
+format_id:
+fmt_2a6208575f3a4040962b523ecf8ae651
+
+status:
+aprobado
+```
+
+Validación:
+
+```text
+Nuevo format_id generado                  ✅
+Generación terminó en success             ✅
+Data/IA ejecutada después de generar      ✅
+Evaluación asociada al nuevo format_id     ✅
+Evaluación persistida en SQLite            ✅
+
+E2E GENERACIÓN -> DATA IA: OK
+```
+
+Esto confirma que `evaluate` evalúa un artefacto previamente generado y no forma parte de la generación del contenido.
+
+---
+
 ## Semántica del flujo actual para Frontend
 
 Frontend debe separar:
@@ -2935,17 +3103,35 @@ No se requiere un endpoint adicional de estado.
 
 ### Integración Data/IA
 
-El modelo interno está preparado mediante:
+La integración BackendAPI ↔ Data/IA está implementada.
+
+Componentes:
 
 ```text
 DataIAPort
+HTTPDataIAAdapter
 FormatEvaluationService
 FormatEvaluationRepositoryPort
+SQLiteFormatEvaluationRepositoryAdapter
 ```
 
-La integración HTTP concreta todavía debe cablearse mediante un adapter cuando se implemente la conexión efectiva BackendAPI ↔ Data/IA.
+Flujo:
 
-Su conexión al pipeline no es obligatoria para completar esta primera tarjeta de Sprint 3.
+```text
+GeneratedFormat success
+↓
+FormatEvaluationService
+↓
+POST Data/IA /evaluate
+↓
+FormatEvaluation
+↓
+format_evaluations
+```
+
+La evaluación es best-effort respecto de la generación: un fallo de Data/IA se registra, pero no invalida contenido que Agentes ya generó correctamente.
+
+El paquete `generated/content.json` continúa excluyendo las evaluaciones. SQLite es actualmente la fuente de verdad de `FormatEvaluation`; incluirlas en OCI requiere una decisión de contrato independiente.
 
 ### Metadata enriquecida
 
@@ -3138,6 +3324,10 @@ POST responde
                                 ↓
                    success | failed | no_results
                                 ↓
+              success → Data/IA /evaluate
+                                ↓
+                 persistir evaluación
+                                ↓
               reconstruir snapshot educativo
                                 ↓
  documents/{document_id}/generated/content.json
@@ -3192,6 +3382,10 @@ BackendAPI
                                 ↓
              mismos nuevos format_id → estado terminal
                                 ↓
+              success → Data/IA /evaluate
+                                ↓
+                 persistir evaluación
+                                ↓
                reconstruir snapshot vigente
                                 ↓
                   actualizar JSON en OCI
@@ -3203,4 +3397,4 @@ GET /api/v1/documents/{id}/formats
 polling hasta ready | partial | error
 ```
 
-El objetivo arquitectónico se mantiene: **Frontend conoce BackendAPI; BackendAPI orquesta; RAG/Agentes resuelve recuperación y generación; Data/IA permanece desacoplado para evaluación.**
+El objetivo arquitectónico se mantiene: **Frontend conoce BackendAPI; BackendAPI orquesta; RAG/Agentes resuelve recuperación y generación; Data/IA evalúa calidad de contenido ya generado mediante un contrato desacoplado.**
