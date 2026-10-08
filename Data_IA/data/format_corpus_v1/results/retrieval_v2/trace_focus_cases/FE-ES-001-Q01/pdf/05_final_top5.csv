@@ -1,0 +1,65 @@
+﻿rank,chunk_id,document_id,vector_rank,bm25_rank,score,rrf_score,cross_score,matched_keywords,chunk_evidence_coverage,cumulative_matched_keywords,cumulative_evidence_coverage,threshold_reached,text
+1,FE-ES-001_1_1,FE-ES-001,1,6,,0.031544957774465976,6.626121997833252,lenguaje de marcado,0.5,lenguaje de marcado,0.5,True,"HTML!
+¿Qué es HTML?
+HTML (HyperText Markup Language, por sus siglas en inglés) es un lenguaje de marcado que indica a los
+navegadores web cómo estructurar las páginas web que visita. Puede ser tan complicado o tan simple como el
+desarrollador web quiera que sea. HTML consiste en una serie de elementos , que utiliza para encerrar, envolver
+o marcar diferentes partes del contenido para que aparezca o actúe de cierta manera. Las etiquetas pueden
+convertir el contenido en un hipervínculo para conectarse a otra página, poner palabras en cursiva, etc. Por
+ejemplo, considere la siguiente línea de texto:
+ Mi gato es muy gruñón
+Si quisiéramos que el texto se mantuviera solo, podríamos especificar que es un párrafo encerrándolo en un
+elemento de párrafo ( <p> ):
+<p>
+ Mi gato es muy gruñón"
+2,FE-ES-001_9_2,FE-ES-001,7,1,,0.03131881575727918,5.3403191566467285,,0.0,lenguaje de marcado,0.5,True,"recientemente, el doctype es un artefacto histórico que debe incluirse para que todo lo demás funcione
+correctamente. <!DOCTYPE html> es la cadena más corta de caracteres que cuenta como un tipo de documento
+válido. ¡Eso es todo lo que necesitas saber!
+<!DOCTYPE html> : El tipo de documento. Cuando HTML era joven (1991-1992), los doctype estaban destinados
+a actuar como enlaces a un conjunto de reglas que la página HTML tenía que seguir para ser considerada un
+buen HTML. Los doctypes solían parecerse a algo como esto:
+<!DOCTYPE html>
+Más recientemente, el doctype es un artefacto histórico que debe incluirse para que todo lo demás funcione
+correctamente. <!DOCTYPE html> es la cadena más corta de caracteres que cuenta como un tipo de documento
+válido. ¡Eso es todo lo que necesitas saber!
+<!DOCTYPE html>"
+3,FE-ES-001_9_1,FE-ES-001,3,2,,0.03200204813108039,3.4666714668273926,,0.0,lenguaje de marcado,0.5,True,"HTML . Por ejemplo, esto se romperá:
+ Un enlace a mi ejemplo.
+En su lugar, debe hacer lo siguiente:
+ Un enlace a mi ejemplo.
+Anatomía de un documento HTML
+Los elementos HTML individualmente no son muy útiles por sí solos. A continuación, examinemos cómo se
+combinan los elementos para formar una página HTML completa:
+  Mi página de prueba
+ Esta es mi página
+Aquí tenemos:
+- <!DOCTYPE html> : El tipo de documento. Cuando HTML era joven (1991-1992), los doctype estaban
+destinados a actuar como enlaces a un conjunto de reglas que la página HTML tenía que seguir para ser
+considerada un buen HTML. Los doctypes solían parecerse a algo como esto: html <!DOCTYPE html PUBLIC
+""-//W3C//DTD XHTML 1.0 Transitional//EN"" ""http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd""> Más
+recientemente, el doctype es un artefacto histórico que debe incluirse para que todo lo demás funcione"
+4,FE-ES-001_11_0,FE-ES-001,11,3,,0.029957522915269395,1.050216794013977,,0.0,lenguaje de marcado,0.5,True,"<title></title> : El elemento <title> . Esto establece el título de la página, que es el título que aparece en la pestaña
+del navegador en la que se carga la página. El título de la página también se utiliza para describir la página
+cuando está en marcadores.
+<title></title>
+<title>
+- <body></body> : El elemento <body> . Contiene todo el contenido que se muestra en la página, incluidos texto,
+imágenes, vídeos, juegos, pistas de audio reproducibles o cualquier otra cosa.
+<body></body> : El elemento <body> . Contiene todo el contenido que se muestra en la página, incluidos texto,
+imágenes, vídeos, juegos, pistas de audio reproducibles o cualquier otra cosa.
+<body></body>
+<body>
+Aprendizaje activo: añadir algunas funciones a un documento HTML
+Si quieres experimentar con escribir algo de HTML en tu ordenador local, puedes:
+- Copie el ejemplo de página HTML listado anteriormente."
+5,FE-ES-001_10_0,FE-ES-001,2,7,,0.031054405392392875,0.04398912191390991,,0.0,lenguaje de marcado,0.5,True,"- <html></html> : El elemento <html> . Este elemento envuelve todo el contenido de la página. A veces se le
+conoce como el elemento raíz.
+<html></html> : El elemento <html> . Este elemento envuelve todo el contenido de la página. A veces se le
+conoce como el elemento raíz.
+<html></html>
+<html>
+- <head></head> : El elemento <head> . Este elemento actúa como un contenedor para todo lo que desea incluir
+en la página HTML, que no es el contenido que la página mostrará a los espectadores. Esto incluye palabras clave
+y una descripción de la página que aparecería en los resultados de búsqueda, CSS para dar estilo al contenido,
+declaraciones de conjuntos de caracteres y más. Aprenderás más sobre esto en el próximo artículo de la serie.
+<head></head> : El elemento <head> . Este elemento actúa como un contenedor para todo lo que desea incluir"

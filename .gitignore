@@ -28,3 +28,18 @@ Data_IA/data/evaluation/results/retrieval_v2_ablation/**/retrieval_*.json
 .format_corpus_chroma_md/
 .format_corpus_chroma_pdf/
 .format_corpus_chroma_txt/
+
+# Controlled format diagnostic Chroma indexes
+.format_diagnostic_chroma_md/
+.format_diagnostic_chroma_txt/
+.format_diagnostic_chroma_pdf/
+
+# Controlled format Retrieval V2 local Chroma indexes
+.format_corpus_chroma_v2_md/
+.format_corpus_chroma_v2_txt/
+.format_corpus_chroma_v2_pdf/
+
+# Controlled format Retrieval V2 trace indexes
+.format_trace_v2_md/
+.format_trace_v2_txt/
+.format_trace_v2_pdf/

@@ -1,0 +1,59 @@
+﻿rank,chunk_id,document_id,vector_rank,bm25_rank,score,rrf_score,cross_score,matched_keywords,chunk_evidence_coverage,cumulative_matched_keywords,cumulative_evidence_coverage,threshold_reached,text
+1,CLD-ES-001_2_0,CLD-ES-001,5,10,,0.02967032967032967,4.473263740539551,,0.0,,0.0,False,"Los usuarios pueden escribir sus propios controladores, como por ejemplo un planificador o scheduler ,
+usando sus propias
+APIs desde una herramienta de línea de comandos .
+Este diseño ha permitido que otros sistemas sean construidos sobre Kubernetes.
+Lo que Kubernetes no es
+Kubernetes no es una Plataforma como Servicio (PaaS) convencional. Ya que
+Kubernetes opera a nivel del contenedor y no a nivel del hardware, ofrece
+algunas características que las PaaS también ofrecen, como deployments,
+escalado, balanceo de carga, registros y monitoreo. Dicho esto, Kubernetes
+no es monolítico y las soluciones que se ofrecen de forma predeterminada
+son opcionales e intercambiables.
+Kubernetes ofrece los elementos esenciales para construir una plataforma
+para desarrolladores, preservando la elección del usuario y la flexibilidad
+en las partes más importantes.
+Entonces, podemos decir que Kubernetes:"
+2,CLD-ES-001_2_1,CLD-ES-001,3,7,,0.030798389007344232,4.168834686279297,,0.0,,0.0,False,"para desarrolladores, preservando la elección del usuario y la flexibilidad
+en las partes más importantes.
+Entonces, podemos decir que Kubernetes:
+- No limita el tipo de aplicaciones que soporta. Kubernetes busca dar soporte a un número diverso de cargas de
+trabajo, que incluyen aplicaciones con y sin estado así como aplicaciones que procesan datos. Si la aplicación
+puede correr en un contenedor, debería correr bien en Kubernetes.
+- No hace deployment de código fuente ni compila tu aplicación. Los flujos de integración, entrega y deployment
+continuo (CI/CD) vienen determinados por la cultura y preferencia organizacional y sus requerimientos técnicos.
+- No provee servicios en capa de aplicación como middleware (por ejemplo, buses de mensaje), frameworks de
+procesamiento de datos (como Spark), bases de datos (como MySQL), caches o sistemas de almacenamiento"
+3,CLD-ES-001_4_1,CLD-ES-001,4,6,,0.030776515151515152,3.8347527980804443,,0.0,,0.0,False,"de forma dinámica, y no como una aplicación monolítica que opera en una sola máquina de gran capacidad
+- Aislamiento de recursos :
+Hace el rendimiento de la aplicación más predecible
+- Utilización de recursos :
+Permite mayor eficiencia y densidad
+¿Qué significa Kubernetes? ¿Qué significa K8S?
+El nombre Kubernetes proviene del griego y significa timonel o piloto . Es la raíz de gobernador y de cibernética .
+K8s es una abrevación que se obtiene al reemplazar las ocho letras ""ubernete"" con el número 8.
+¿Qué sigue?
+- ¿Estás listo para empezar ?
+- Para saber más, visita el resto de la documentación de Kubernetes .
+Comentarios
+¿Fue útil esta página?
+Gracias por la retroalimentacion. Si tienes una pregunta específica y respondible sobre cómo usar Kubernetes,
+hazla en Stack Overflow .
+Abre un issue en el Repositorio de GitHub si deseas reportar un problema o sugerir una mejora ."
+4,CLD-ES-001_2_3,CLD-ES-001,2,1,,0.03252247488101534,3.4622721672058105,contenedores,0.333333,contenedores,0.333333,False,"Además, Kubernetes no es un mero sistema de orquestación . De hecho, Kubernetes elimina la necesidad de
+orquestar. Orquestación se define como la ejecución de un flujo de trabajo definido: haz A, luego B y entonces C.
+Kubernetes está compuesto de un conjunto de procesos de control independientes y combinables entre si que
+llevan el estado actual hacia el estado deseado. No debería importar demasiado como llegar de A a C. No se
+requiere control centralizado y, como resultado, el sistema es más fácil de usar, más poderoso, robusto, resiliente
+y extensible.
+¿Por qué usar contenedores?
+¿Te preguntas las razones para usar contenedores?"
+5,CLD-ES-001_2_2,CLD-ES-001,8,4,,0.030330882352941176,2.7038345336914062,,0.0,contenedores,0.333333,False,"procesamiento de datos (como Spark), bases de datos (como MySQL), caches o sistemas de almacenamiento
+(como Ceph). Es posible correr estas aplicaciones en Kubernetes, o acceder a ellos desde una aplicación usando
+un mecanismo portable como el Open Service Broker.
+- No dictamina las soluciones de registros, monitoreo o alerta que se deben usar. Hay algunas integraciones que
+se ofrecen como prueba de concepto, y existen mecanismos para recolectar y exportar métricas.
+- No provee ni obliga a usar un sistema o lenguaje de configuración (como jsonnet ) sino que ofrece una API
+declarativa que puede ser usada con cualquier forma de especificación declarativa
+- No provee ni adopta un sistema exhaustivo de mantenimiento, administración o corrección automática de errores
+Además, Kubernetes no es un mero sistema de orquestación . De hecho, Kubernetes elimina la necesidad de"

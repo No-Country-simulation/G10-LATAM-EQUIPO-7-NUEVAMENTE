@@ -1,0 +1,89 @@
+{
+  "experiment_name": "NuevaMente Controlled Format Retrieval v2",
+  "experiment_version": "v2",
+  "generated_at_utc": "2026-10-08T06:22:58.110364+00:00",
+  "baseline": {
+    "name": "Controlled Format Retrieval v1",
+    "retrieval": "vector_only"
+  },
+  "corpus": {
+    "name": "format_corpus_v1",
+    "documents": 10,
+    "formats": [
+      "md",
+      "txt",
+      "pdf"
+    ],
+    "separate_indexes": true
+  },
+  "query_policy": {
+    "source": "ground_truth_v2.pregunta",
+    "cases": 50,
+    "metadata_filter": "document_id"
+  },
+  "retrieval_v2": {
+    "vector_search": true,
+    "bm25": true,
+    "rrf": true,
+    "rrf_k": 60,
+    "vector_weight": 0.5,
+    "bm25_weight": 0.5,
+    "candidate_overfetch_factor": 3,
+    "candidate_k": 15,
+    "cross_encoder": true,
+    "cross_encoder_model": "cross-encoder/ms-marco-MiniLM-L-6-v2",
+    "top_k": 5
+  },
+  "evaluation": {
+    "primary_metric": "evidence_hit",
+    "evidence_hit_threshold": 0.5,
+    "supporting_metrics": [
+      "evidence_coverage",
+      "reference_token_recall"
+    ]
+  },
+  "results": {
+    "md": {
+      "cases": 50,
+      "evidence_hits": 49,
+      "evidence_hit_rate": 0.98,
+      "mean_evidence_coverage": 0.867667,
+      "mean_reference_token_recall": 0.989316
+    },
+    "txt": {
+      "cases": 50,
+      "evidence_hits": 48,
+      "evidence_hit_rate": 0.96,
+      "mean_evidence_coverage": 0.853667,
+      "mean_reference_token_recall": 0.959142
+    },
+    "pdf": {
+      "cases": 50,
+      "evidence_hits": 49,
+      "evidence_hit_rate": 0.98,
+      "mean_evidence_coverage": 0.867667,
+      "mean_reference_token_recall": 0.977616
+    }
+  },
+  "v1_vs_v2": {
+    "improved_hit_rows": 0,
+    "regressed_hit_rows": 0,
+    "improved_hit_cases": [],
+    "regressed_hit_cases": []
+  },
+  "hashes_sha256": {
+    "ground_truth_v2.csv": "8cd975bc8b295d4a106470be55a65cfc10d3c25a61606c1f65855d713d95b515",
+    "chunks_v1.csv": "309167963f1d5255374f3cb71b5533cfdcd97f02c7fd9650a0387c18903190c0",
+    "format_corpus_manifest.csv": "409ff38e39c0cdc84b9481d3c6756c6b3e1c37218b311a3c5799e8fbc4b32b34",
+    "retrieval_v1_md.csv": "8defc7fba60a21df42c405ffb813424213ebc892715acaa031c0b2906bfd97f8",
+    "retrieval_v1_txt.csv": "56f180882bb2ca5fa32914bbba7b1e37e147623eae01f1879855a8d297bfa9f8",
+    "retrieval_v1_pdf.csv": "695f19cb9b1ea4901d911fafe364587acb9d919e07159bf43cfef829b40c64a7"
+  },
+  "guardrails": [
+    "No sobrescribir Controlled Format v1.",
+    "No modificar ground_truth_v2.csv.",
+    "No modificar chunks_v1.csv.",
+    "No versionar índices Chroma locales.",
+    "No concluir mejora solo por casos foco; revisar las 150 comparaciones formato/caso."
+  ]
+}
