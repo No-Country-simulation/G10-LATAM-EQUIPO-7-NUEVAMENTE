@@ -13,6 +13,17 @@ from .rag.vector_store import VectorStore
 from .agent_v1 import AgentV1
 from .rag.extractor import extract_document  # Importamos el extractor original
 
+from .generated_schemas import (
+    LearningMetadata,
+    CardItem,
+    FlashcardsContent,
+    QuizItem,
+    QuizContent,
+    TLDRContent,
+    VideoScene,
+    VideoScriptContent,
+)
+
 # Inicializamos las dependencias centrales del RAG
 embedding_service = MultilingualEmbedding()
 vector_store = VectorStore(embedding_service=embedding_service)

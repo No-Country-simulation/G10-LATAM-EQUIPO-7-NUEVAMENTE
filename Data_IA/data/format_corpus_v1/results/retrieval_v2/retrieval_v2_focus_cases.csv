@@ -1,0 +1,10 @@
+case_id,document_id,category,format,query,v1_evidence_hit,v2_evidence_hit,v1_evidence_coverage,v2_evidence_coverage,delta_evidence_coverage,v1_reference_token_recall,v2_reference_token_recall,delta_reference_token_recall,change
+FE-ES-001-Q01,FE-ES-001,Frontend,md,¿Qué es HTML según el documento?,True,True,0.5,0.5,0.0,1.0,1.0,0.0,unchanged_hit_coverage
+FE-ES-001-Q05,FE-ES-001,Frontend,md,¿Qué puede hacer una etiqueta HTML con el contenido?,True,True,0.8,0.8,0.0,1.0,1.0,0.0,unchanged_hit_coverage
+CLD-ES-001-Q05,CLD-ES-001,Cloud / DevOps,md,Menciona dos formas de describir a Kubernetes según el documento.,False,False,0.333333,0.333333,0.0,0.557692,0.557692,0.0,unchanged_hit_coverage
+FE-ES-001-Q01,FE-ES-001,Frontend,txt,¿Qué es HTML según el documento?,False,False,0.0,0.0,0.0,0.411765,0.411765,0.0,unchanged_hit_coverage
+FE-ES-001-Q05,FE-ES-001,Frontend,txt,¿Qué puede hacer una etiqueta HTML con el contenido?,True,True,0.6,0.6,0.0,0.988235,0.988235,0.0,unchanged_hit_coverage
+CLD-ES-001-Q05,CLD-ES-001,Cloud / DevOps,txt,Menciona dos formas de describir a Kubernetes según el documento.,False,False,0.333333,0.333333,0.0,0.5,0.5,0.0,unchanged_hit_coverage
+FE-ES-001-Q01,FE-ES-001,Frontend,pdf,¿Qué es HTML según el documento?,True,True,0.5,0.5,0.0,1.0,0.988235,-0.011765,unchanged_hit_coverage
+FE-ES-001-Q05,FE-ES-001,Frontend,pdf,¿Qué puede hacer una etiqueta HTML con el contenido?,True,True,0.8,0.8,0.0,0.988235,0.988235,0.0,unchanged_hit_coverage
+CLD-ES-001-Q05,CLD-ES-001,Cloud / DevOps,pdf,Menciona dos formas de describir a Kubernetes según el documento.,False,False,0.333333,0.333333,0.0,0.615385,0.615385,0.0,unchanged_hit_coverage
