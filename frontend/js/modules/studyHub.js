@@ -45,6 +45,7 @@ export const studyHub = {
       topicBadge: document.getElementById('studyTopicBadge'),
       topicTitle: document.getElementById('studyTopicTitle'),
       btnRefreshFormats: document.getElementById('btnRefreshFormats'),
+      btnDownloadStudyDoc: document.getElementById('btnDownloadStudyDoc'),
       formatTabs: document.querySelectorAll('.format-tab-btn'),
       formatViews: {
         flashcards: document.getElementById('viewFormatFlashcards'),
@@ -63,6 +64,23 @@ export const studyHub = {
           const currentStatus = state.get().studyHub?.formatsStatus;
           if (currentStatus === 'processing' || currentStatus === 'pending') return; // En polling activo, no enviar reintentos concurrentes
           await this.triggerRegeneration();
+        }
+      });
+    }
+
+    if (this.elements.btnDownloadStudyDoc) {
+      this.elements.btnDownloadStudyDoc.addEventListener('click', async () => {
+        const doc = state.get().currentDocument;
+        if (!doc?.id) return;
+        try {
+          this.elements.btnDownloadStudyDoc.disabled = true;
+          notifySuccess('Iniciando Descarga', 'Recuperando archivo original desde el servidor...');
+          await apiClient.downloadDocument(doc.id, doc.filename || doc.title || 'documento_original');
+        } catch (err) {
+          const friendly = toFriendlyError(err);
+          notifyError(friendly.title, friendly.message);
+        } finally {
+          this.elements.btnDownloadStudyDoc.disabled = false;
         }
       });
     }
@@ -187,7 +205,7 @@ export const studyHub = {
           this.stopPolling();
 
           if (globalStatus === 'ready') {
-            notifySuccess('Formatos Listos', '¡El Quiz y las Flashcards ya están disponibles para estudiar!');
+            notifySuccess('Formatos Listos', '¡Todos los formatos de capacitación (Quiz, Flashcards, TLDR y Guion de Video) están listos para estudiar!');
 
             // Refrescar metadatos pedagógicos generados por Backend (PR #63)
             apiClient.getDocumentById(docId).then(docDetail => {
@@ -280,11 +298,17 @@ export const studyHub = {
       if (currentFormats.flashcards?.status === 'failed' || currentFormats.flashcards?.status === 'no_results') {
         formatsToRegenerate.push('flashcards');
       }
+      if (currentFormats.tldr?.status === 'failed' || currentFormats.tldr?.status === 'no_results') {
+        formatsToRegenerate.push('tldr');
+      }
+      if (currentFormats.video_script?.status === 'failed' || currentFormats.video_script?.status === 'no_results') {
+        formatsToRegenerate.push('video_script');
+      }
       if (formatsToRegenerate.length === 0) {
-        formatsToRegenerate = ['quiz', 'flashcards'];
+        formatsToRegenerate = ['quiz', 'flashcards', 'tldr', 'video_script'];
       }
     } else {
-      formatsToRegenerate = ['quiz', 'flashcards'];
+      formatsToRegenerate = ['quiz', 'flashcards', 'tldr', 'video_script'];
     }
 
     this.isFetchingFormats = true;
@@ -368,6 +392,9 @@ export const studyHub = {
       if (this.elements.btnRefreshFormats) {
         this.elements.btnRefreshFormats.style.display = 'none';
       }
+      if (this.elements.btnDownloadStudyDoc) {
+        this.elements.btnDownloadStudyDoc.style.display = 'none';
+      }
       flashcards.render([]);
       quiz.render(null);
       videoGuide.render(null);
@@ -383,6 +410,11 @@ export const studyHub = {
     }
     if (this.elements.topicTitle) {
       this.elements.topicTitle.textContent = activeSection?.title || currentDocument.title;
+    }
+
+    // Mostrar u ocultar botón de descarga de documento original
+    if (this.elements.btnDownloadStudyDoc) {
+      this.elements.btnDownloadStudyDoc.style.display = currentDocument?.id ? 'inline-flex' : 'none';
     }
 
     // Actualizar Pestañas y Vistas
@@ -441,16 +473,21 @@ export const studyHub = {
       || (globalStatus === 'error' ? { status: 'failed', errorMessage: 'No fue posible generar la Evaluación de Competencias (Quiz).' } : null);
     quiz.render(quizData);
 
-    // 3. Tutorial / Video (Extensible)
-    const videoData = backendFormats.tutorial 
+    // 3. Guion de Video (PR #71: 'video_script')
+    const videoData = backendFormats.video_script 
       || backendFormats.video 
-      || activeSection?.video;
+      || activeSection?.video
+      || (globalStatus === 'processing' || globalStatus === 'pending' || globalStatus === 'loading' ? { status: globalStatus === 'pending' ? 'pending' : 'processing' } : null)
+      || (globalStatus === 'error' ? { status: 'failed', errorMessage: 'No fue posible generar el Guion Formativo.' } : null);
     videoGuide.render(videoData);
 
-    // 4. Síntesis / Resumen (Extensible)
-    const summaryData = backendFormats.summary 
+    // 4. Síntesis Ejecutiva / TLDR (PR #71: 'tldr')
+    const summaryData = backendFormats.tldr 
       || backendFormats.sintesis 
-      || activeSection?.sintesis;
+      || backendFormats.summary 
+      || activeSection?.sintesis
+      || (globalStatus === 'processing' || globalStatus === 'pending' || globalStatus === 'loading' ? { status: globalStatus === 'pending' ? 'pending' : 'processing' } : null)
+      || (globalStatus === 'error' ? { status: 'failed', errorMessage: 'No fue posible generar la Síntesis Ejecutiva.' } : null);
     summary.render(summaryData);
   },
 

@@ -767,3 +767,77 @@
   background: var(--accent-gold);
   color: #000000;
 }
+
+/* --------------------------------------------------------------------------
+   ESTILOS ADICIONALES PARA GUION DE VIDEO POR ESCENAS (PR #71)
+   -------------------------------------------------------------------------- */
+.video-scenes-wrapper {
+  display: flex;
+  flex-direction: column;
+  gap: 0.85rem;
+  max-height: 440px;
+  overflow-y: auto;
+  padding-right: 0.35rem;
+}
+
+.video-scene-card {
+  background: rgba(15, 23, 42, 0.65);
+  border: 1px solid var(--border-ui);
+  border-radius: 12px;
+  padding: 0.85rem 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  transition: border-color var(--transition-fast);
+}
+
+.video-scene-card:hover {
+  border-color: rgba(245, 158, 11, 0.45);
+}
+
+.scene-card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.scene-card-title {
+  font-size: 0.92rem;
+  font-weight: 700;
+  color: var(--accent-cyan);
+}
+
+.scene-card-duration {
+  font-size: 0.72rem;
+  padding: 0.15rem 0.5rem;
+  background: rgba(6, 182, 212, 0.15);
+  border: 1px solid rgba(6, 182, 212, 0.3);
+  border-radius: 6px;
+  color: var(--accent-cyan);
+  font-weight: 600;
+}
+
+.scene-card-field {
+  font-size: 0.85rem;
+  line-height: 1.45;
+  color: var(--text-secondary);
+}
+
+.scene-field-label {
+  font-weight: 600;
+  color: var(--text-muted);
+  font-size: 0.76rem;
+  text-transform: uppercase;
+  margin-bottom: 0.2rem;
+  display: block;
+}
+
+.scene-narration-box {
+  background: rgba(2, 6, 23, 0.5);
+  border-left: 3px solid var(--accent-gold);
+  border-radius: 0 8px 8px 0;
+  padding: 0.45rem 0.7rem;
+  color: var(--text-main);
+  font-style: italic;
+  font-size: 0.86rem;
+}
