@@ -6,7 +6,7 @@
  */
 
 import { state } from '../state.js';
-import { apiClient } from '../api/apiClient.js';
+import { apiClient, ApiError } from '../api/apiClient.js';
 import { flashcards } from './flashcards.js';
 import { quiz } from './quiz.js';
 import { videoGuide } from './videoGuide.js';
@@ -45,6 +45,7 @@ export const studyHub = {
       topicBadge: document.getElementById('studyTopicBadge'),
       topicTitle: document.getElementById('studyTopicTitle'),
       btnRefreshFormats: document.getElementById('btnRefreshFormats'),
+      btnDownloadStudyDoc: document.getElementById('btnDownloadStudyDoc'),
       formatTabs: document.querySelectorAll('.format-tab-btn'),
       formatViews: {
         flashcards: document.getElementById('viewFormatFlashcards'),
@@ -61,8 +62,25 @@ export const studyHub = {
         const doc = state.get().currentDocument;
         if (doc && !this.isFetchingFormats) {
           const currentStatus = state.get().studyHub?.formatsStatus;
-          if (currentStatus === 'processing') return; // En polling activo, no enviar reintentos concurrentes
-          await this.fetchFormatsForCurrentDocument(doc, true);
+          if (currentStatus === 'processing' || currentStatus === 'pending') return; // En polling activo, no enviar reintentos concurrentes
+          await this.triggerRegeneration();
+        }
+      });
+    }
+
+    if (this.elements.btnDownloadStudyDoc) {
+      this.elements.btnDownloadStudyDoc.addEventListener('click', async () => {
+        const doc = state.get().currentDocument;
+        if (!doc?.id) return;
+        try {
+          this.elements.btnDownloadStudyDoc.disabled = true;
+          notifySuccess('Iniciando Descarga', 'Recuperando archivo original desde el servidor...');
+          await apiClient.downloadDocument(doc.id, doc.filename || doc.title || 'documento_original');
+        } catch (err) {
+          const friendly = toFriendlyError(err);
+          notifyError(friendly.title, friendly.message);
+        } finally {
+          this.elements.btnDownloadStudyDoc.disabled = false;
         }
       });
     }
@@ -92,7 +110,7 @@ export const studyHub = {
 
     btn.textContent = ''; // Limpieza segura
 
-    if (globalStatus === 'processing' || this.isFetchingFormats) {
+    if (globalStatus === 'processing' || globalStatus === 'pending' || this.isFetchingFormats) {
       btn.style.display = 'inline-flex';
       btn.disabled = true;
       btn.className = 'btn-refresh-formats is-syncing';
@@ -104,7 +122,7 @@ export const studyHub = {
 
       const label = document.createElement('span');
       label.style.marginLeft = '0.35rem';
-      label.textContent = 'Generando formatos...';
+      label.textContent = globalStatus === 'pending' ? 'Generación pendiente...' : 'Generando formatos...';
 
       btn.appendChild(icon);
       btn.appendChild(label);
@@ -113,21 +131,28 @@ export const studyHub = {
       btn.disabled = false;
       btn.className = 'btn-refresh-formats btn-retry-highlight';
       btn.title = globalStatus === 'partial'
-        ? 'Uno de los formatos falló. Haz clic para reintentar la sincronización.'
-        : 'La generación de formatos presentó fallos. Haz clic para reintentar.';
-
-      const icon = document.createElement('span');
-      icon.textContent = '↻ ';
+        ? 'Uno de los formatos falló. Haz clic para regenerar solo el formato que presentó fallo.'
+        : 'La generación de formatos presentó fallos. Haz clic para reintentar la regeneración.';
 
       const label = document.createElement('span');
       label.textContent = 'Reintentar Formatos';
 
-      btn.appendChild(icon);
       btn.appendChild(label);
     } else if (globalStatus === 'ready') {
-      btn.style.display = 'none';
+      btn.style.display = 'inline-flex';
       btn.disabled = false;
       btn.className = 'btn-refresh-formats';
+      btn.title = 'Haz clic para regenerar todos los módulos de capacitación a demanda.';
+
+      const icon = document.createElement('span');
+      icon.textContent = '↻';
+
+      const label = document.createElement('span');
+      label.style.marginLeft = '0.35rem';
+      label.textContent = 'Regenerar Módulos';
+
+      btn.appendChild(icon);
+      btn.appendChild(label);
     } else {
       btn.style.display = 'none';
       btn.disabled = false;
@@ -136,7 +161,8 @@ export const studyHub = {
   },
 
   /**
-   * Inicia el sondeo (polling) reactivo periódico cada 3.5 segundos mientras los formatos estén en 'processing'
+   * Inicia el sondeo (polling) reactivo periódico cada 3.5 segundos mientras los formatos estén en 'processing'/'pending'
+   * Controla errores consecutivos para evitar peticiones infinitas ante caída de servidor (Auditoria.md Sec 5: S3).
    */
   startPolling(docId) {
     if (this.pollingTimer && this.currentPollingDocId === docId) {
@@ -145,6 +171,7 @@ export const studyHub = {
 
     this.stopPolling();
     this.currentPollingDocId = docId;
+    this.consecutivePollingErrors = 0;
 
     this.pollingTimer = setInterval(async () => {
       const s = state.get();
@@ -160,6 +187,8 @@ export const studyHub = {
 
       try {
         const formatsResponse = await apiClient.getDocumentFormats(docId);
+        this.consecutivePollingErrors = 0; // Reset ante éxito
+
         const resolvedFormats = formatsResponse?.formats || formatsResponse;
         const globalStatus = formatsResponse?.status || (resolvedFormats ? 'ready' : 'empty');
 
@@ -176,16 +205,38 @@ export const studyHub = {
           this.stopPolling();
 
           if (globalStatus === 'ready') {
-            notifySuccess('Formatos Listos', '¡El Quiz y las Flashcards ya están disponibles para estudiar!');
+            notifySuccess('Formatos Listos', '¡Los formatos pedagógicos ya están disponibles para estudiar!');
+
+            // Refrescar metadatos pedagógicos generados por Backend (PR #63)
+            apiClient.getDocumentById(docId).then(docDetail => {
+              if (docDetail?.learning_metadata) {
+                const s = state.get();
+                if (s.currentDocument?.id === docId) {
+                  state.set({
+                    currentDocument: {
+                      ...s.currentDocument,
+                      learning_metadata: docDetail.learning_metadata,
+                      key_concepts: docDetail.learning_metadata.key_concepts || s.currentDocument.key_concepts,
+                      prerequisites: docDetail.learning_metadata.prerequisites || s.currentDocument.prerequisites,
+                      estimated_time_minutes: docDetail.learning_metadata.estimated_time_minutes ?? s.currentDocument.estimated_time_minutes,
+                      summary: docDetail.summary || s.currentDocument.summary
+                    }
+                  });
+                }
+              }
+            }).catch(() => {});
           } else if (globalStatus === 'partial') {
-            notifyWarning('Generación Parcial', 'Uno de los formatos se completó, pero el otro presentó un fallo. Puedes reintentarlo.');
+            notifyWarning('Generación Parcial', 'Uno de los formatos se completó, pero el otro presentó un fallo. Puedes regenerarlo.');
           } else if (globalStatus === 'error') {
             notifyError('Fallo en Formatos', 'No fue posible generar los formatos pedagógicos.');
           }
         }
       } catch (err) {
-        console.warn('[StudyHub Polling] Inconveniente al consultar formatos:', err.message);
-        if (err.status === 404 || err.status === 400) {
+        this.consecutivePollingErrors = (this.consecutivePollingErrors || 0) + 1;
+        console.warn(`[StudyHub Polling] Inconveniente al consultar formatos (${this.consecutivePollingErrors}/3):`, err.message);
+
+        // Detener sondeo ante 404, 400 o 3 fallos consecutivos de red/servidor (Auditoria.md Sec 5: S3)
+        if (err.status === 404 || err.status === 400 || this.consecutivePollingErrors >= 3) {
           this.stopPolling();
           state.set({
             studyHub: {
@@ -193,6 +244,9 @@ export const studyHub = {
               formatsStatus: 'error'
             }
           });
+          if (this.consecutivePollingErrors >= 3) {
+            notifyWarning('Sondeo Pausado', 'No fue posible actualizar el estado tras varios intentos. Puedes reintentar cuando el servidor esté accesible.');
+          }
         }
       }
     }, 3500);
@@ -207,6 +261,107 @@ export const studyHub = {
       this.pollingTimer = null;
     }
     this.currentPollingDocId = null;
+    this.consecutivePollingErrors = 0;
+  },
+
+  /**
+   * Dispara la regeneración real de formatos educativos (POST /documents/{id}/formats/regenerate).
+   * La regeneración NO debe entenderse como una funcionalidad limitada a escenarios 'partial'
+   * ni exclusivamente a formatos fallidos: Backend permite solicitar uno o varios formatos y Front
+   * decide cuáles enviar según el flujo y la acción del usuario.
+   * Que actualmente en 'partial' el botón general reintente los formatos fallidos se mantiene como
+   * comportamiento de UX, pero no como restricción del contrato (PR #62).
+   * @param {Array<string>|null} explicitFormats - Formatos específicos a regenerar (ej. ['quiz'])
+   */
+  async triggerRegeneration(explicitFormats = null) {
+    const doc = state.get().currentDocument;
+    if (!doc?.id || this.isFetchingFormats) return;
+
+    const hubState = state.get().studyHub || {};
+    const currentFormats = hubState.formats || {};
+    const globalStatus = hubState.formatsStatus;
+
+    if (globalStatus === 'processing') {
+      notifyWarning('Generación en Curso', 'Los formatos ya se están procesando en segundo plano.');
+      return;
+    }
+
+    let formatsToRegenerate = [];
+
+    if (Array.isArray(explicitFormats) && explicitFormats.length > 0) {
+      formatsToRegenerate = explicitFormats;
+    } else if (globalStatus === 'partial') {
+      // Comportamiento de conveniencia UX: reintentar formatos que presentaron fallo
+      ['quiz', 'flashcards', 'tldr', 'video_script'].forEach(fmt => {
+        if (currentFormats[fmt]?.status === 'failed' || currentFormats[fmt]?.status === 'no_results') {
+          formatsToRegenerate.push(fmt);
+        }
+      });
+      if (formatsToRegenerate.length === 0) {
+        formatsToRegenerate = ['quiz', 'flashcards', 'tldr', 'video_script'];
+      }
+    } else {
+      formatsToRegenerate = ['quiz', 'flashcards', 'tldr', 'video_script'];
+    }
+
+    this.isFetchingFormats = true;
+    this.updateHeaderButtonUI('processing');
+
+    try {
+      const response = await apiClient.regenerateFormats(doc.id, formatsToRegenerate);
+
+      // Mergear nuevos intentos canónicos devueltos por Backend (202 Accepted) y arrancar polling.
+      // El format_id es canónico de Backend y obligatorio por contrato; no se genera localmente (PR #62).
+      const updatedFormats = { ...currentFormats };
+      formatsToRegenerate.forEach(fmt => {
+        const attempt = response?.formats?.[fmt];
+        if (!attempt?.format_id) {
+          throw new ApiError(200, {
+            code: 'API_CONTRACT_ERROR',
+            message: `El backend no devolvió el identificador canónico 'format_id' para el formato '${fmt}'.`
+          });
+        }
+        updatedFormats[fmt] = {
+          format_id: attempt.format_id,
+          status: attempt.status || 'processing',
+          content: null,
+          error_message: null
+        };
+      });
+
+      state.set({
+        studyHub: {
+          ...state.get().studyHub,
+          formats: updatedFormats,
+          formatsStatus: 'processing'
+        }
+      });
+
+      notifySuccess('Regeneración Solicitada', `Se inició un nuevo intento para: ${formatsToRegenerate.join(', ')}.`);
+      this.startPolling(doc.id);
+    } catch (err) {
+      console.warn('[StudyHub] Error al solicitar regeneración:', err);
+      const friendly = toFriendlyError(err);
+
+      // Auditoria.md Sec 6: S4 -> Si 409 FORMAT_REGENERATION_IN_PROGRESS, continuar polling
+      if (err.status === 409 && (err.code === 'FORMAT_REGENERATION_IN_PROGRESS' || friendly.code === 'FORMAT_REGENERATION_IN_PROGRESS')) {
+        notifyWarning(friendly.title, friendly.message);
+        this.startPolling(doc.id);
+      } else {
+        statusDialog.showError({
+          status: friendly.status,
+          code: friendly.code,
+          message: friendly.message,
+          details: err.details || [`Documento ID: ${doc.id}`, friendly.message],
+          filename: doc.filename || doc.title
+        });
+        notifyError(friendly.title, friendly.message);
+      }
+    } finally {
+      this.isFetchingFormats = false;
+      const currentGlobalStatus = state.get().studyHub?.formatsStatus || 'ready';
+      this.updateHeaderButtonUI(currentGlobalStatus);
+    }
   },
 
   syncWithState(s) {
@@ -222,13 +377,16 @@ export const studyHub = {
     if (!currentDocument) {
       this.stopPolling();
       if (this.elements.topicBadge) {
-        this.elements.topicBadge.textContent = 'BIBLIOTECA';
+        this.elements.topicBadge.textContent = 'CATÁLOGO';
       }
       if (this.elements.topicTitle) {
-        this.elements.topicTitle.textContent = 'Selecciona o carga un documento en la Biblioteca para iniciar la capacitación';
+        this.elements.topicTitle.textContent = 'Selecciona o carga un documento en el Catálogo de Capacitaciones para comenzar';
       }
       if (this.elements.btnRefreshFormats) {
         this.elements.btnRefreshFormats.style.display = 'none';
+      }
+      if (this.elements.btnDownloadStudyDoc) {
+        this.elements.btnDownloadStudyDoc.style.display = 'none';
       }
       flashcards.render([]);
       quiz.render(null);
@@ -245,6 +403,11 @@ export const studyHub = {
     }
     if (this.elements.topicTitle) {
       this.elements.topicTitle.textContent = activeSection?.title || currentDocument.title;
+    }
+
+    // Mostrar u ocultar botón de descarga de documento original
+    if (this.elements.btnDownloadStudyDoc) {
+      this.elements.btnDownloadStudyDoc.style.display = currentDocument?.id ? 'inline-flex' : 'none';
     }
 
     // Actualizar Pestañas y Vistas
@@ -275,10 +438,10 @@ export const studyHub = {
     // Actualizar botón de Reintentar / Sincronizar
     this.updateHeaderButtonUI(globalStatus);
 
-    // Gestión del Polling Reactivo según estado global
-    if (globalStatus === 'processing' && currentDocument.id) {
+    // Gestión del Polling Reactivo según estado global (incluye pending, Auditoria.md Sec 5: S4)
+    if ((globalStatus === 'processing' || globalStatus === 'pending') && currentDocument.id) {
       this.startPolling(currentDocument.id);
-    } else if (globalStatus !== 'processing') {
+    } else if (globalStatus !== 'processing' && globalStatus !== 'pending') {
       this.stopPolling();
     }
 
@@ -291,7 +454,7 @@ export const studyHub = {
     const flashcardsData = backendFormats.flashcards 
       || activeSection?.flashcards 
       || (backendFormats.cards ? backendFormats.cards : null)
-      || (globalStatus === 'processing' || globalStatus === 'loading' ? { status: 'processing' } : null)
+      || (globalStatus === 'processing' || globalStatus === 'pending' || globalStatus === 'loading' ? { status: globalStatus === 'pending' ? 'pending' : 'processing' } : null)
       || (globalStatus === 'error' ? { status: 'failed', errorMessage: 'No fue posible generar las Tarjetas de Refuerzo.' } : null);
     flashcards.render(flashcardsData);
 
@@ -299,20 +462,26 @@ export const studyHub = {
     const quizData = backendFormats.quiz 
       || activeSection?.quiz 
       || (backendFormats.questions ? backendFormats.questions : null)
-      || (globalStatus === 'processing' || globalStatus === 'loading' ? { status: 'processing' } : null)
+      || (globalStatus === 'processing' || globalStatus === 'pending' || globalStatus === 'loading' ? { status: globalStatus === 'pending' ? 'pending' : 'processing' } : null)
       || (globalStatus === 'error' ? { status: 'failed', errorMessage: 'No fue posible generar la Evaluación de Competencias (Quiz).' } : null);
     quiz.render(quizData);
 
-    // 3. Tutorial / Video (Extensible)
-    const videoData = backendFormats.tutorial 
+    // 3. Guion Audiovisual Formativo (Video Script)
+    const videoData = backendFormats.video_script
+      || backendFormats.tutorial 
       || backendFormats.video 
-      || activeSection?.video;
+      || activeSection?.video
+      || (globalStatus === 'processing' || globalStatus === 'pending' || globalStatus === 'loading' ? { status: globalStatus === 'pending' ? 'pending' : 'processing' } : null)
+      || (globalStatus === 'error' ? { status: 'failed', errorMessage: 'No fue posible generar el Guion Audiovisual Formativo.' } : null);
     videoGuide.render(videoData);
 
-    // 4. Síntesis / Resumen (Extensible)
-    const summaryData = backendFormats.summary 
+    // 4. Síntesis Ejecutiva (TLDR)
+    const summaryData = backendFormats.tldr
+      || backendFormats.summary 
       || backendFormats.sintesis 
-      || activeSection?.sintesis;
+      || activeSection?.sintesis
+      || (globalStatus === 'processing' || globalStatus === 'pending' || globalStatus === 'loading' ? { status: globalStatus === 'pending' ? 'pending' : 'processing' } : null)
+      || (globalStatus === 'error' ? { status: 'failed', errorMessage: 'No fue posible generar la Síntesis Ejecutiva.' } : null);
     summary.render(summaryData);
   },
 
@@ -348,6 +517,27 @@ export const studyHub = {
 
       if (globalStatus === 'ready') {
         notifySuccess('Formatos Listos', 'Materiales de capacitación disponibles.');
+
+        // Recuperar metadatos pedagógicos del documento si aún no están en memoria (PR #63)
+        if (!doc.learning_metadata && doc.id && !doc.id.startsWith('mock_')) {
+          apiClient.getDocumentById(doc.id).then(docDetail => {
+            if (docDetail?.learning_metadata) {
+              const s = state.get();
+              if (s.currentDocument?.id === doc.id) {
+                state.set({
+                  currentDocument: {
+                    ...s.currentDocument,
+                    learning_metadata: docDetail.learning_metadata,
+                    key_concepts: docDetail.learning_metadata.key_concepts || s.currentDocument.key_concepts,
+                    prerequisites: docDetail.learning_metadata.prerequisites || s.currentDocument.prerequisites,
+                    estimated_time_minutes: docDetail.learning_metadata.estimated_time_minutes ?? s.currentDocument.estimated_time_minutes,
+                    summary: docDetail.summary || s.currentDocument.summary
+                  }
+                });
+              }
+            }
+          }).catch(() => {});
+        }
       } else if (globalStatus === 'processing') {
         this.startPolling(doc.id);
       } else if (globalStatus === 'partial') {

@@ -1,4 +1,4 @@
-﻿"""Punto de entrada de la aplicación FastAPI."""
+"""Punto de entrada de la aplicación FastAPI."""
 
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
@@ -17,6 +17,9 @@ from app.application.adaptation_orchestration_service import (
 from app.application.document_service import (
     DocumentService,
 )
+from app.application.format_evaluation_service import (
+    FormatEvaluationService,
+)
 from app.application.format_generation_service import (
     FormatGenerationService,
 )
@@ -25,6 +28,9 @@ from app.application.format_regeneration_service import (
 )
 from app.application.generated_format_query_service import (
     GeneratedFormatQueryService,
+)
+from app.application.generated_package_storage_service import (
+    GeneratedPackageStorageService,
 )
 from app.application.rag_integration_service import (
     RAGIntegrationService,
@@ -37,11 +43,15 @@ from app.core.logging import setup_logging
 from app.infrastructure.integrations.http_agents_adapter import (
     HTTPAgentsAdapter,
 )
+from app.infrastructure.integrations.http_data_ia_adapter import (
+    HTTPDataIAAdapter,
+)
 from app.infrastructure.integrations.http_rag_adapter import (
     HTTPRAGAdapter,
 )
 from app.infrastructure.persistence.repository_factory import (
     create_document_repository,
+    create_format_evaluation_repository,
     create_generated_format_repository,
 )
 from app.infrastructure.storage.oci_object_storage_adapter import (
@@ -65,6 +75,12 @@ async def lifespan(
 
     generated_format_repository = (
         create_generated_format_repository(
+            settings.DATABASE_URL
+        )
+    )
+
+    format_evaluation_repository = (
+        create_format_evaluation_repository(
             settings.DATABASE_URL
         )
     )
@@ -94,6 +110,20 @@ async def lifespan(
         )
     )
 
+    generated_package_storage_service = (
+        GeneratedPackageStorageService(
+            document_repository=(
+                document_repository
+            ),
+            generated_format_repository=(
+                generated_format_repository
+            ),
+            object_storage=(
+                object_storage
+            ),
+        )
+    )
+
     async with (
         httpx.AsyncClient(
             base_url=settings.RAG_BASE_URL,
@@ -103,6 +133,10 @@ async def lifespan(
             base_url=settings.AGENTS_BASE_URL,
             timeout=settings.AGENTS_TIMEOUT_SECONDS,
         ) as agents_http_client,
+        httpx.AsyncClient(
+            base_url=settings.DATA_IA_BASE_URL,
+            timeout=settings.DATA_IA_TIMEOUT_SECONDS,
+        ) as data_ia_http_client,
     ):
         rag_adapter = HTTPRAGAdapter(
             client=rag_http_client,
@@ -113,6 +147,13 @@ async def lifespan(
             client=agents_http_client,
             generate_path=(
                 settings.AGENTS_GENERATE_PATH
+            ),
+        )
+
+        data_ia_adapter = HTTPDataIAAdapter(
+            client=data_ia_http_client,
+            evaluate_path=(
+                settings.DATA_IA_EVALUATE_PATH
             ),
         )
 
@@ -137,6 +178,18 @@ async def lifespan(
                     generated_format_repository
                 ),
                 agents=agents_adapter,
+            )
+        )
+
+        format_evaluation_service = (
+            FormatEvaluationService(
+                generated_format_repository=(
+                    generated_format_repository
+                ),
+                evaluation_repository=(
+                    format_evaluation_repository
+                ),
+                data_ia=data_ia_adapter,
             )
         )
 
@@ -165,6 +218,12 @@ async def lifespan(
                 format_generation_service=(
                     format_generation_service
                 ),
+                generated_package_storage_service=(
+                    generated_package_storage_service
+                ),
+                format_evaluation_service=(
+                    format_evaluation_service
+                ),
             )
         )
 
@@ -176,8 +235,16 @@ async def lifespan(
             generated_format_query_service
         )
 
+        app.state.generated_package_storage_service = (
+            generated_package_storage_service
+        )
+
         app.state.format_generation_service = (
             format_generation_service
+        )
+
+        app.state.format_evaluation_service = (
+            format_evaluation_service
         )
 
         app.state.format_regeneration_service = (
@@ -237,6 +304,9 @@ def create_app() -> FastAPI:
         allow_credentials=True,
         allow_methods=["*"],
         allow_headers=["*"],
+        expose_headers=[
+            "Content-Disposition",
+        ],
     )
 
     register_exception_handlers(

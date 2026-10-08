@@ -20,7 +20,11 @@ from app.application.format_generation_service import (
     FormatGenerationContractError,
     FormatGenerationDocumentNotFoundError,
     FormatGenerationIntegrationError,
+    FormatGenerationMetadataPersistenceError,
     FormatGenerationRecoveryError,
+)
+from app.application.generated_package_storage_service import (
+    GeneratedPackageError,
 )
 from app.application.rag_integration_service import (
     RAGIntegrationError,
@@ -159,15 +163,20 @@ async def execute_background_generation(
         ...,
     ],
 ) -> None:
-    """Completa intentos de generación después de responder al cliente.
+    """Completa generación y persistencia OCI después de responder al cliente.
 
-    Los errores conocidos de Agentes y contrato se resuelven dentro de la
-    capa de aplicación. Si aparece cualquier otro error, se ejecuta una
-    compensación adicional que consulta el estado persistido y convierte
-    únicamente los intentos que sigan en ``processing`` a ``failed``.
+    Los errores conocidos de Agentes, contrato, persistencia SQLite y
+    persistencia del paquete educativo en Object Storage se registran para
+    observabilidad. Si el fallo aparece antes de cerrar algún intento, la
+    compensación convierte únicamente los intentos que sigan en
+    ``processing`` a ``failed``.
 
-    Como la respuesta HTTP ya fue enviada, los errores se registran para
-    observabilidad y no se propagan al cliente.
+    Un fallo posterior al cierre de formatos, por ejemplo al escribir el JSON
+    en OCI, no degrada artificialmente un formato que ya quedó generado con
+    éxito en SQLite.
+
+    Como la respuesta HTTP ya fue enviada, los errores no se propagan al
+    cliente de la solicitud original.
     """
     document_id = (
         attempts[0].document_id
@@ -187,8 +196,11 @@ async def execute_background_generation(
         FormatGenerationAttemptStateError,
         FormatGenerationIntegrationError,
         FormatGenerationContractError,
+        FormatGenerationDocumentNotFoundError,
+        FormatGenerationMetadataPersistenceError,
         FormatGenerationRecoveryError,
         GeneratedFormatRepositoryError,
+        GeneratedPackageError,
     ):
         _fail_remaining_processing_attempts(
             orchestration_service=orchestration_service,
@@ -197,8 +209,8 @@ async def execute_background_generation(
         )
 
         logger.exception(
-            "La generación en segundo plano falló "
-            "para el documento %s.",
+            "La generación o persistencia del paquete "
+            "en segundo plano falló para el documento %s.",
             document_id,
         )
 

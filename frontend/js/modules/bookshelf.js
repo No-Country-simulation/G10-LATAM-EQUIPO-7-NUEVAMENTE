@@ -8,7 +8,7 @@ import { getRandomSpineColor } from '../config.js';
 import { apiClient } from '../api/apiClient.js';
 import { router } from './router.js';
 import { statusDialog } from './statusDialog.js';
-import { notifyError, notifyWarning } from './notifications.js';
+import { notifyError, notifyWarning, notifySuccess } from './notifications.js';
 import { toFriendlyError } from '../utils/friendlyError.js';
 
 export const bookshelf = {
@@ -70,14 +70,21 @@ export const bookshelf = {
             status: doc.status || 'stored',
             metadatos: {
               document_id: docId,
-              tiempo_estudio: typeof doc.estimated_time_minutes === 'number'
-                ? `${doc.estimated_time_minutes} min`
-                : (doc.estimated_time || '8 min'),
+              tiempo_estudio: typeof doc.learning_metadata?.estimated_time_minutes === 'number'
+                ? `${doc.learning_metadata.estimated_time_minutes} min`
+                : (typeof doc.estimated_time_minutes === 'number'
+                  ? `${doc.estimated_time_minutes} min`
+                  : (doc.estimated_time || '8 min')),
               perfil: doc.target_profile || doc.profile || 'intermediate',
               formato: ext
             },
-            key_concepts: Array.isArray(doc.key_concepts) ? doc.key_concepts : [],
-            prerequisites: Array.isArray(doc.prerequisites) ? doc.prerequisites : [],
+            learning_metadata: doc.learning_metadata || null,
+            key_concepts: Array.isArray(doc.learning_metadata?.key_concepts)
+              ? doc.learning_metadata.key_concepts
+              : (Array.isArray(doc.key_concepts) ? doc.key_concepts : []),
+            prerequisites: Array.isArray(doc.learning_metadata?.prerequisites)
+              ? doc.learning_metadata.prerequisites
+              : (Array.isArray(doc.prerequisites) ? doc.prerequisites : []),
             sections: doc.sections || [
               {
                 id: `sec_${docId}`,
@@ -122,7 +129,7 @@ export const bookshelf = {
     if (!subtitle) return;
     if (isLoading) {
       subtitle.setAttribute('data-original-text', subtitle.textContent);
-      subtitle.innerHTML = '<span class="status-dot-pulse" style="display:inline-block; margin-right:6px;"></span> Sincronizando libros con Backend API...';
+      subtitle.innerHTML = '<span class="status-dot-pulse" style="display:inline-block; margin-right:6px;"></span> Sincronizando recursos con el servidor...';
     } else {
       const orig = subtitle.getAttribute('data-original-text');
       if (orig) subtitle.textContent = orig;
@@ -146,6 +153,7 @@ export const bookshelf = {
       openBookOverlay: document.getElementById('openBookOverlay'),
       btnCloseOverlay: document.getElementById('btnCloseNotebookOverlay'),
       btnStartStudying: document.getElementById('btnStartStudying'),
+      btnDownloadOriginalDoc: document.getElementById('btnDownloadOriginalDoc'),
 
       // Campos de la Hoja Izquierda
       openedBadge: document.getElementById('openedDocBadge'),
@@ -245,8 +253,7 @@ export const bookshelf = {
       emptyContainer.className = 'shelf-empty-state';
       emptyContainer.innerHTML = `
         <div class="empty-shelf-card">
-          <div class="empty-shelf-icon">📚</div>
-          <h4>Tu Biblioteca está Lista</h4>
+          <h4>Tu Catálogo de Capacitaciones está Listo</h4>
           <p>Aún no hay documentos en el servidor. Sube tu primer archivo PDF, Markdown o TXT para comenzar.</p>
           <button type="button" class="btn-primary-action btn-empty-upload" id="btnEmptyUpload">
             <span>+ Subir Mi Primer Documento</span>
@@ -299,7 +306,7 @@ export const bookshelf = {
       btnToggleInteractive.addEventListener('click', (e) => {
         e.preventDefault();
         const isInteractive = document.body.classList.toggle('interactive-mode-active');
-        btnToggleInteractive.innerHTML = isInteractive ? '<span>📋 Modo Lista</span>' : '<span>✦ Modo Interactivo</span>';
+        btnToggleInteractive.innerHTML = isInteractive ? '<span>Modo Lista</span>' : '<span>Modo Interactivo</span>';
         btnToggleInteractive.title = isInteractive ? 'Cambiar a vista de lista' : 'Cambiar a estantería interactiva 3D';
 
         // Asegurarse de navegar a la pestaña de biblioteca
@@ -314,7 +321,7 @@ export const bookshelf = {
         e.preventDefault();
         document.body.classList.remove('interactive-mode-active');
         if (btnToggleInteractive) {
-          btnToggleInteractive.innerHTML = '<span>✦ Modo Interactivo</span>';
+          btnToggleInteractive.innerHTML = '<span>Modo Interactivo</span>';
           btnToggleInteractive.title = 'Cambiar a estantería interactiva 3D';
         }
       });
@@ -486,25 +493,19 @@ export const bookshelf = {
         const emptyDiv = document.createElement('div');
         emptyDiv.className = 'catalog-empty-state';
 
-        const icon = document.createElement('span');
-        icon.style.fontSize = '2.2rem';
-        icon.textContent = '🔍';
-
         const h4 = document.createElement('h4');
         h4.textContent = 'Sin resultados';
 
         const p = document.createElement('p');
         p.textContent = `No se encontraron módulos de capacitación que coincidan con "${this.currentSearchQuery || this.activeCategory}".`;
 
-        emptyDiv.appendChild(icon);
         emptyDiv.appendChild(h4);
         emptyDiv.appendChild(p);
         docListEl.appendChild(emptyDiv);
       } else {
         docListEl.innerHTML = `
           <div class="catalog-empty-state">
-            <span style="font-size: 2.4rem;">📚</span>
-            <h4>Tu Biblioteca está Lista</h4>
+            <h4>Tu Catálogo de Capacitaciones está Listo</h4>
             <p>Aún no hay módulos de capacitación registrados en el servidor.</p>
             <button type="button" class="btn-primary-action btn-catalog-empty-upload" id="btnCatalogEmptyUpload">
               <span>+ Cargar Primer Documento</span>
@@ -625,7 +626,7 @@ export const bookshelf = {
         btnDelete.className = 'btn-delete-doc-item';
         btnDelete.dataset.bookId = book.id || '';
         btnDelete.title = 'Eliminar documento';
-        btnDelete.textContent = '🗑️';
+        btnDelete.textContent = '×';
 
         btnDelete.addEventListener('click', (e) => {
           e.stopPropagation();
@@ -814,21 +815,33 @@ export const bookshelf = {
             if (openedTitle) openedTitle.textContent = docDetail.filename;
           }
 
-          // Enriquecimiento con metadatos pedagógicos del documento (Sprint 3)
-          if (typeof docDetail.estimated_time_minutes === 'number') {
-            const timeStr = `${docDetail.estimated_time_minutes} min`;
+          // Enriquecimiento con metadatos pedagógicos del documento (Sprint 3 / PR #63)
+          const lm = docDetail.learning_metadata || {};
+          book.learning_metadata = docDetail.learning_metadata || book.learning_metadata || null;
+
+          const estimatedMinutes = typeof lm.estimated_time_minutes === 'number'
+            ? lm.estimated_time_minutes
+            : (typeof docDetail.estimated_time_minutes === 'number' ? docDetail.estimated_time_minutes : null);
+
+          if (estimatedMinutes !== null) {
+            const timeStr = `${estimatedMinutes} min`;
             if (openedTime) openedTime.textContent = timeStr;
             if (book.metadatos) book.metadatos.tiempo_estudio = timeStr;
+            book.estimated_time_minutes = estimatedMinutes;
           }
 
-          if (Array.isArray(docDetail.key_concepts) && docDetail.key_concepts.length > 0) {
-            book.key_concepts = docDetail.key_concepts;
+          const concepts = (Array.isArray(lm.key_concepts) && lm.key_concepts.length > 0)
+            ? lm.key_concepts
+            : (Array.isArray(docDetail.key_concepts) ? docDetail.key_concepts : []);
+
+          if (concepts.length > 0) {
+            book.key_concepts = concepts;
             if (book.sections && book.sections[0]) {
-              book.sections[0].key_concepts = docDetail.key_concepts;
+              book.sections[0].key_concepts = concepts;
             }
             if (openedChips) {
-              openedChips.innerHTML = '';
-              docDetail.key_concepts.forEach(c => {
+              openedChips.textContent = '';
+              concepts.forEach(c => {
                 const chip = document.createElement('span');
                 chip.className = 'concept-chip';
                 chip.textContent = typeof c === 'string' ? c : String(c ?? '');
@@ -837,8 +850,26 @@ export const bookshelf = {
             }
           }
 
-          if (Array.isArray(docDetail.prerequisites) && docDetail.prerequisites.length > 0) {
-            book.prerequisites = docDetail.prerequisites;
+          const prereqs = (Array.isArray(lm.prerequisites) && lm.prerequisites.length > 0)
+            ? lm.prerequisites
+            : (Array.isArray(docDetail.prerequisites) ? docDetail.prerequisites : []);
+
+          const prereqsContainer = document.getElementById('openedDocPrereqsContainer');
+          const prereqsList = document.getElementById('openedDocPrereqsList');
+
+          if (prereqs.length > 0) {
+            book.prerequisites = prereqs;
+            if (prereqsContainer && prereqsList) {
+              prereqsContainer.style.display = 'block';
+              prereqsList.textContent = '';
+              prereqs.forEach(p => {
+                const li = document.createElement('li');
+                li.textContent = typeof p === 'string' ? p : String(p ?? '');
+                prereqsList.appendChild(li);
+              });
+            }
+          } else if (prereqsContainer) {
+            prereqsContainer.style.display = 'none';
           }
 
           if (docDetail.summary && openedSummary) {
@@ -868,7 +899,7 @@ export const bookshelf = {
   },
 
   setupModalEvents() {
-    const { openBookOverlay, btnCloseOverlay, btnStartStudying, studyChoiceCards } = this.elements;
+    const { openBookOverlay, btnCloseOverlay, btnStartStudying, btnDownloadOriginalDoc, studyChoiceCards } = this.elements;
 
     if (btnCloseOverlay) {
       btnCloseOverlay.addEventListener('click', () => this.closeBookModal());
@@ -877,6 +908,23 @@ export const bookshelf = {
     if (openBookOverlay) {
       openBookOverlay.addEventListener('click', (e) => {
         if (e.target === openBookOverlay) this.closeBookModal();
+      });
+    }
+
+    if (btnDownloadOriginalDoc) {
+      btnDownloadOriginalDoc.addEventListener('click', async () => {
+        const book = this.currentSelectedBook;
+        if (!book?.id) return;
+        try {
+          btnDownloadOriginalDoc.disabled = true;
+          notifySuccess('Iniciando Descarga', 'Recuperando archivo original desde el servidor...');
+          await apiClient.downloadDocument(book.id, book.filename || book.title || 'documento_original');
+        } catch (err) {
+          const friendly = toFriendlyError(err);
+          notifyError(friendly.title, friendly.message);
+        } finally {
+          btnDownloadOriginalDoc.disabled = false;
+        }
       });
     }
 

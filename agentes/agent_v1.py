@@ -30,9 +30,9 @@ class AgentV1:
     def __init__(self, vector_store):
         self.retriever = RetrieverService(vector_store)
 
-    def extract_learning_metadata(self, query: str, document_id: str, top_k: int = 5) -> dict:
+    def extract_learning_metadata(self, query: str, document_id: str, niche: str = "", top_k: int = 5) -> dict:
         """
-        Llamada exclusiva (Llamada 1) para extraer los metadatos pedagógicos a nivel raíz.
+        Llamada exclusiva (Llamada 1) adaptada al nicho para extraer metadatos pedagógicos a nivel raíz.
         """
         try:
             resultados = self.retriever.retrieve(query=query, top_k=top_k, metadata_filters={"document_id": document_id})
@@ -43,10 +43,11 @@ class AgentV1:
             contexto_unificado = "\n\n".join([res.text for res in resultados])
 
             prompt_metadata = f"""
-            Analiza el siguiente contexto y extrae OBLIGATORIAMENTE los metadatos pedagógicos solicitados:
-            1. "key_concepts": Lista exacta de 3 a 5 conceptos técnicos o ideas principales.
-            2. "prerequisites": Lista de 1 a 3 conocimientos previos recomendados (dedúcelos si es un tema avanzado).
-            3. "estimated_time_minutes": Calcula el tiempo estimado de estudio (en minutos enteros) basándote en la longitud.
+            Analiza el siguiente contexto enfocado estrictamente en el nicho temático: '{niche}'.
+            Extrae OBLIGATORIAMENTE los metadatos pedagógicos adaptados a este nicho:
+            1. "key_concepts": Lista exacta de 3 a 5 conceptos técnicos o ideas principales específicos de {niche}.
+            2. "prerequisites": Lista de 1 a 3 conocimientos previos recomendados para este dominio.
+            3. "estimated_time_minutes": Calcula el tiempo estimado de estudio (en minutos enteros).
 
             CONTEXTO RECUPERADO:
             {contexto_unificado}

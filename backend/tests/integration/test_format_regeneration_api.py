@@ -541,7 +541,7 @@ def test_regenerate_returns_409_without_previous_context(
         },
         {
             "formats": [
-                "video_script"
+                "podcast"
             ]
         },
     ],
@@ -554,7 +554,7 @@ def test_regenerate_returns_422_for_invalid_formats(
         list[str],
     ],
 ) -> None:
-    """Valida vacío, duplicados y formatos no soportados."""
+    """Valida vacío, duplicados y formatos realmente no soportados."""
     response = client.post(
         f"{api_prefix}/documents/"
         "doc_validation/formats/regenerate",

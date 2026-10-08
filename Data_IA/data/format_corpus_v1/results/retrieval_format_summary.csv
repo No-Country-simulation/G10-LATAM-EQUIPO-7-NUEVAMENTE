@@ -1,0 +1,4 @@
+format,cases,successful_queries,evidence_hits,evidence_hit_rate,mean_evidence_coverage,mean_reference_token_recall,top_k,evidence_hit_threshold
+md,50,50,49,0.98,0.867667,0.989316,5,0.5
+txt,50,50,48,0.96,0.853667,0.959142,5,0.5
+pdf,50,50,49,0.98,0.867667,0.978146,5,0.5

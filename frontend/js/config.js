@@ -80,10 +80,12 @@ export const CONFIG = {
       DOCUMENTS: '/documents',
       UPLOAD_FILE: '/documents',
       DOCUMENT_DETAILS: (id) => `/documents/${id}`,
-      DOCUMENT_FORMATS: (id) => `/documents/${id}/formats`
+      DOCUMENT_DOWNLOAD: (id) => `/documents/${id}/download`,
+      DOCUMENT_FORMATS: (id) => `/documents/${id}/formats`,
+      DOCUMENT_REGENERATE: (id) => `/documents/${id}/formats/regenerate`
     },
     TIMEOUT_MS: resolveTimeoutMs(),
-    PROCESSING_TIMEOUT_MS: 120000, // 120s para procesamiento síncrono RAG + LLM en Sprint 2 (POST /documents)
+    PROCESSING_TIMEOUT_MS: 120000, // Timeout para almacenamiento OCI e indexación RAG síncrona (POST /documents)
     ADAPTATIONS_TIMEOUT_MS: 120000 // Compatibilidad retroactiva
   },
 

@@ -122,6 +122,41 @@ class SpyFormatGenerationService:
             attempts
         )
 
+    def fail_processing_attempts(
+        self,
+        *,
+        attempts: tuple[
+            GeneratedFormat,
+            ...
+        ],
+        error_message: str,
+    ) -> list[GeneratedFormat]:
+        """Simula el cierre de contingencia."""
+        return []
+
+
+class SpyGeneratedPackageStorageService:
+    """Registra los documentos cuyo paquete debe persistirse."""
+
+    def __init__(self) -> None:
+        self.document_ids: list[
+            str
+        ] = []
+
+    def persist_current_package(
+        self,
+        document_id: str,
+    ) -> str:
+        """Registra la persistencia solicitada."""
+        self.document_ids.append(
+            document_id
+        )
+
+        return (
+            f"documents/{document_id}/"
+            "generated/content.json"
+        )
+
 
 def build_document(
     status: DocumentStatus,
@@ -150,6 +185,7 @@ def build_service(
     AdaptationOrchestrationService,
     SpyRAGIntegrationService,
     SpyFormatGenerationService,
+    SpyGeneratedPackageStorageService,
 ]:
     """Construye el orquestador con colaboradores controlados."""
     repository = FakeDocumentRepository()
@@ -172,12 +208,19 @@ def build_service(
         SpyFormatGenerationService()
     )
 
+    package_storage_service = (
+        SpyGeneratedPackageStorageService()
+    )
+
     orchestration_service = (
         AdaptationOrchestrationService(
             document_service=document_service,
             rag_integration_service=rag_service,
             format_generation_service=(
                 generation_service
+            ),
+            generated_package_storage_service=(
+                package_storage_service
             ),
         )
     )
@@ -186,6 +229,7 @@ def build_service(
         orchestration_service,
         rag_service,
         generation_service,
+        package_storage_service,
     )
 
 
@@ -195,6 +239,7 @@ def test_stored_document_is_indexed_without_generation() -> None:
         service,
         rag_service,
         generation_service,
+        package_storage_service,
     ) = build_service(
         DocumentStatus.STORED
     )
@@ -219,6 +264,11 @@ def test_stored_document_is_indexed_without_generation() -> None:
         == []
     )
 
+    assert (
+        package_storage_service.document_ids
+        == []
+    )
+
 
 def test_indexing_failed_document_retries_indexing() -> None:
     """Reintenta RAG después de una indexación fallida."""
@@ -226,6 +276,7 @@ def test_indexing_failed_document_retries_indexing() -> None:
         service,
         rag_service,
         generation_service,
+        package_storage_service,
     ) = build_service(
         DocumentStatus.INDEXING_FAILED
     )
@@ -250,6 +301,11 @@ def test_indexing_failed_document_retries_indexing() -> None:
         == []
     )
 
+    assert (
+        package_storage_service.document_ids
+        == []
+    )
+
 
 def test_indexed_document_skips_indexing() -> None:
     """No reindexa un documento ya disponible en RAG."""
@@ -257,6 +313,7 @@ def test_indexed_document_skips_indexing() -> None:
         service,
         rag_service,
         generation_service,
+        package_storage_service,
     ) = build_service(
         DocumentStatus.INDEXED
     )
@@ -276,6 +333,11 @@ def test_indexed_document_skips_indexing() -> None:
 
     assert (
         generation_service.completion_requests
+        == []
+    )
+
+    assert (
+        package_storage_service.document_ids
         == []
     )
 
@@ -299,6 +361,7 @@ def test_document_in_invalid_state_cannot_be_indexed(
         service,
         rag_service,
         generation_service,
+        package_storage_service,
     ) = build_service(
         status
     )
@@ -328,6 +391,11 @@ def test_document_in_invalid_state_cannot_be_indexed(
         == []
     )
 
+    assert (
+        package_storage_service.document_ids
+        == []
+    )
+
 
 def test_unknown_document_is_rejected_during_indexing() -> None:
     """Propaga el error si el documento a indexar no existe."""
@@ -343,6 +411,9 @@ def test_unknown_document_is_rejected_during_indexing() -> None:
         format_generation_service=(
             SpyFormatGenerationService()
         ),
+        generated_package_storage_service=(
+            SpyGeneratedPackageStorageService()
+        ),
     )
 
     with pytest.raises(
@@ -357,11 +428,12 @@ def test_unknown_document_is_rejected_during_indexing() -> None:
 
 
 def test_default_formats_are_prepared_separately() -> None:
-    """Registra Quiz y Flashcards sin ejecutar indexación ni Agentes."""
+    """Registra los cuatro formatos sin ejecutar indexación ni Agentes."""
     (
         service,
         rag_service,
         generation_service,
+        package_storage_service,
     ) = build_service(
         DocumentStatus.INDEXED
     )
@@ -389,6 +461,11 @@ def test_default_formats_are_prepared_separately() -> None:
         == []
     )
 
+    assert (
+        package_storage_service.document_ids
+        == []
+    )
+
     request = (
         generation_service
         .preparation_requests[0]
@@ -402,6 +479,8 @@ def test_default_formats_are_prepared_separately() -> None:
     assert request["formats"] == (
         GeneratedFormatType.QUIZ,
         GeneratedFormatType.FLASHCARDS,
+        GeneratedFormatType.TLDR,
+        GeneratedFormatType.VIDEO_SCRIPT,
     )
 
     assert (
@@ -426,7 +505,7 @@ def test_default_formats_are_prepared_separately() -> None:
         )
     )
 
-    assert len(attempts) == 2
+    assert len(attempts) == 4
 
     assert all(
         attempt.status
@@ -435,12 +514,13 @@ def test_default_formats_are_prepared_separately() -> None:
     )
 
 
-def test_default_generation_completes_prepared_attempts() -> None:
-    """Completa exactamente los intentos preparados previamente."""
+def test_default_generation_persists_package_after_completion() -> None:
+    """Completa el lote y luego solicita persistir el paquete OCI."""
     (
         service,
         rag_service,
         generation_service,
+        package_storage_service,
     ) = build_service(
         DocumentStatus.INDEXED
     )
@@ -481,6 +561,15 @@ def test_default_generation_completes_prepared_attempts() -> None:
             (
                 "fmt_quiz",
                 "fmt_flashcards",
+                "fmt_tldr",
+                "fmt_video_script",
             )
+        ]
+    )
+
+    assert (
+        package_storage_service.document_ids
+        == [
+            "doc_123"
         ]
     )

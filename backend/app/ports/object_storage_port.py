@@ -35,6 +35,26 @@ class ObjectStoragePort(Protocol):
         """
         ...
 
+    def upload_bytes(
+        self,
+        *,
+        content: bytes,
+        object_name: str,
+        content_type: str | None = None,
+    ) -> None:
+        """Almacena contenido binario sin crear un archivo temporal.
+
+        Args:
+            content: Bytes que deben persistirse.
+            object_name: Identificador lógico del objeto.
+            content_type: MIME type del contenido, cuando esté disponible.
+
+        Raises:
+            ObjectStorageError: Si el proveedor no permite almacenar
+                el objeto.
+        """
+        ...
+
     def download_file(
         self,
         object_name: str,

@@ -1,0 +1,6 @@
+category,cases,md_evidence_hit_rate,md_mean_evidence_coverage,md_mean_reference_token_recall,txt_evidence_hit_rate,txt_mean_evidence_coverage,txt_mean_reference_token_recall,pdf_evidence_hit_rate,pdf_mean_evidence_coverage,pdf_mean_reference_token_recall
+Backend,10,1.0,0.925,0.990813,1.0,0.925,0.905712,1.0,0.925,0.930367
+Cloud / DevOps,10,0.9,0.9,0.955769,0.9,0.9,0.95,0.9,0.9,0.961538
+Data Science,10,1.0,0.916667,1.0,1.0,0.916667,1.0,1.0,0.916667,1.0
+Frontend,10,1.0,0.896667,1.0,0.9,0.826667,0.94,1.0,0.896667,0.998823
+IA,10,1.0,0.7,1.0,1.0,0.7,1.0,1.0,0.7,1.0

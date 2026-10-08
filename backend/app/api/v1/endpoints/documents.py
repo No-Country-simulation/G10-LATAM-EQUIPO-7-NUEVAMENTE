@@ -3,6 +3,7 @@
 from collections.abc import AsyncIterator
 from pathlib import Path
 from typing import Annotated
+from urllib.parse import quote
 
 from fastapi import (
     APIRouter,
@@ -32,6 +33,8 @@ from app.application.adaptation_orchestration_service import (
 )
 from app.application.document_service import (
     DocumentNotFoundError,
+    DocumentNotStoredError,
+    DocumentRetrievalError,
     DocumentService,
     DocumentStorageError,
 )
@@ -63,6 +66,7 @@ from app.schemas.document import (
     DocumentCreatedResponse,
     DocumentListResponse,
     DocumentResponse,
+    LearningMetadataResponse,
 )
 from app.schemas.generated_format import (
     DocumentFormatsResponse,
@@ -152,6 +156,15 @@ def _to_document_response(
     document: Document,
 ) -> DocumentResponse:
     """Convierte la entidad de dominio al contrato HTTP público."""
+    learning_metadata = (
+        LearningMetadataResponse.from_domain(
+            document.learning_metadata
+        )
+        if document.learning_metadata
+        is not None
+        else None
+    )
+
     return DocumentResponse(
         document_id=document.document_id,
         filename=document.original_filename,
@@ -160,6 +173,45 @@ def _to_document_response(
         size_bytes=document.size_bytes,
         created_at=document.created_at,
         updated_at=document.updated_at,
+        learning_metadata=learning_metadata,
+    )
+
+
+def _build_download_content_disposition(
+    filename: str,
+) -> str:
+    """Construye Content-Disposition seguro conservando nombres UTF-8."""
+    normalized_filename = (
+        filename.replace("\\", "/")
+        .split("/")[-1]
+        .replace("\r", "")
+        .replace("\n", "")
+    )
+
+    if not normalized_filename:
+        normalized_filename = "documento"
+
+    ascii_fallback = (
+        normalized_filename.encode(
+            "ascii",
+            errors="ignore",
+        )
+        .decode("ascii")
+        .replace('"', "")
+        .strip()
+    )
+
+    if not ascii_fallback:
+        ascii_fallback = "documento"
+
+    encoded_filename = quote(
+        normalized_filename,
+        safe="",
+    )
+
+    return (
+        f'attachment; filename="{ascii_fallback}"; '
+        f"filename*=UTF-8''{encoded_filename}"
     )
 
 
@@ -172,8 +224,9 @@ def _to_document_response(
         "Recibe un documento PDF, Markdown o TXT junto con "
         "el contexto pedagógico. Backend valida y almacena "
         "el archivo, completa la indexación RAG de forma "
-        "síncrona y, una vez indexado, programa la generación "
-        "de Quiz y Flashcards en segundo plano."
+        "síncrona y, una vez indexado, programa en segundo "
+        "plano la generación de Quiz, Flashcards, TLDR y "
+        "Video Script."
     ),
     responses={
         200: {
@@ -465,8 +518,9 @@ async def list_documents(
     status_code=status.HTTP_200_OK,
     summary="Consultar formatos generados",
     description=(
-        "Retorna Quiz y Flashcards persistidos para "
-        "un documento junto con su estado agregado."
+        "Retorna los formatos educativos persistidos para "
+        "un documento —Quiz, Flashcards, TLDR y Video Script— "
+        "junto con su estado agregado."
     ),
     responses={
         404: {
@@ -543,13 +597,114 @@ async def get_document_formats(
 
 
 @router.get(
+    "/{document_id}/download",
+    status_code=status.HTTP_200_OK,
+    summary="Descargar documento original",
+    description=(
+        "Recupera desde OCI Object Storage el archivo original "
+        "asociado al document_id y lo entrega como descarga HTTP."
+    ),
+    responses={
+        404: {
+            "description": "Documento no encontrado.",
+        },
+        409: {
+            "description": (
+                "El documento existe, pero no tiene un objeto "
+                "original almacenado asociado."
+            ),
+        },
+        500: {
+            "description": "Error al consultar persistencia.",
+        },
+        502: {
+            "description": (
+                "No fue posible recuperar el archivo original "
+                "desde Object Storage."
+            ),
+        },
+    },
+)
+async def download_document(
+    document_id: str,
+    document_service: Annotated[
+        DocumentService,
+        Depends(get_document_service),
+    ],
+    object_storage: Annotated[
+        ObjectStoragePort,
+        Depends(get_object_storage),
+    ],
+) -> Response:
+    """Descarga el archivo original persistido para un documento."""
+    try:
+        retrieved_document = (
+            document_service.retrieve_document(
+                document_id=document_id,
+                object_storage=object_storage,
+            )
+        )
+
+    except DocumentNotFoundError as exc:
+        raise APIHTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            code=ErrorCode.DOCUMENT_NOT_FOUND,
+            detail=str(exc),
+        ) from exc
+
+    except DocumentNotStoredError as exc:
+        raise APIHTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            code=ErrorCode.DOCUMENT_STATE_CONFLICT,
+            detail=str(exc),
+        ) from exc
+
+    except DocumentRetrievalError as exc:
+        raise APIHTTPException(
+            status_code=status.HTTP_502_BAD_GATEWAY,
+            code=ErrorCode.DOCUMENT_RETRIEVAL_FAILED,
+            detail=(
+                "No fue posible recuperar el archivo original "
+                "desde OCI Object Storage."
+            ),
+        ) from exc
+
+    except DocumentRepositoryError as exc:
+        raise APIHTTPException(
+            status_code=(
+                status.HTTP_500_INTERNAL_SERVER_ERROR
+            ),
+            code=ErrorCode.PERSISTENCE_ERROR,
+            detail=(
+                "No fue posible consultar la persistencia "
+                "del documento."
+            ),
+        ) from exc
+
+    return Response(
+        content=retrieved_document.content,
+        media_type=(
+            retrieved_document.content_type
+            or "application/octet-stream"
+        ),
+        headers={
+            "Content-Disposition": (
+                _build_download_content_disposition(
+                    retrieved_document.filename
+                )
+            ),
+        },
+    )
+
+
+@router.get(
     "/{document_id}",
     response_model=DocumentResponse,
     status_code=status.HTTP_200_OK,
     summary="Consultar documento",
     description=(
-        "Consulta la metadata y el estado actual de "
-        "un documento mediante su document_id."
+        "Consulta la metadata, el estado y los metadatos "
+        "pedagógicos actuales de un documento mediante su document_id."
     ),
     responses={
         404: {
