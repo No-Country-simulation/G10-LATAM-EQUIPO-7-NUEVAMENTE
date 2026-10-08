@@ -48,3 +48,10 @@ Data_IA/data/evaluation/results/retrieval_v2_ablation/**/retrieval_*.json
 .multiformat_e2e_chroma_md/
 .multiformat_e2e_chroma_txt/
 .multiformat_e2e_chroma_pdf/
+Data_IA/data/format_corpus_v1/results/multiformat_end_to_end/md/
+Data_IA/data/format_corpus_v1/results/multiformat_end_to_end/txt/
+Data_IA/data/format_corpus_v1/results/multiformat_end_to_end/pdf/
+Data_IA/data/format_corpus_v1/results/multiformat_end_to_end/end_to_end_results.csv
+Data_IA/data/format_corpus_v1/results/multiformat_end_to_end/generated_format_summary.csv
+Data_IA/data/format_corpus_v1/results/multiformat_end_to_end/run_manifest.json
+Data_IA/data/format_corpus_v1/results/multiformat_end_to_end/source_pipeline_summary.csv
