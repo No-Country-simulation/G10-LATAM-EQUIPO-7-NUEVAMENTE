@@ -70,14 +70,21 @@ export const bookshelf = {
             status: doc.status || 'stored',
             metadatos: {
               document_id: docId,
-              tiempo_estudio: typeof doc.estimated_time_minutes === 'number'
-                ? `${doc.estimated_time_minutes} min`
-                : (doc.estimated_time || '8 min'),
+              tiempo_estudio: typeof doc.learning_metadata?.estimated_time_minutes === 'number'
+                ? `${doc.learning_metadata.estimated_time_minutes} min`
+                : (typeof doc.estimated_time_minutes === 'number'
+                  ? `${doc.estimated_time_minutes} min`
+                  : (doc.estimated_time || '8 min')),
               perfil: doc.target_profile || doc.profile || 'intermediate',
               formato: ext
             },
-            key_concepts: Array.isArray(doc.key_concepts) ? doc.key_concepts : [],
-            prerequisites: Array.isArray(doc.prerequisites) ? doc.prerequisites : [],
+            learning_metadata: doc.learning_metadata || null,
+            key_concepts: Array.isArray(doc.learning_metadata?.key_concepts)
+              ? doc.learning_metadata.key_concepts
+              : (Array.isArray(doc.key_concepts) ? doc.key_concepts : []),
+            prerequisites: Array.isArray(doc.learning_metadata?.prerequisites)
+              ? doc.learning_metadata.prerequisites
+              : (Array.isArray(doc.prerequisites) ? doc.prerequisites : []),
             sections: doc.sections || [
               {
                 id: `sec_${docId}`,
@@ -807,21 +814,33 @@ export const bookshelf = {
             if (openedTitle) openedTitle.textContent = docDetail.filename;
           }
 
-          // Enriquecimiento con metadatos pedagógicos del documento (Sprint 3)
-          if (typeof docDetail.estimated_time_minutes === 'number') {
-            const timeStr = `${docDetail.estimated_time_minutes} min`;
+          // Enriquecimiento con metadatos pedagógicos del documento (Sprint 3 / PR #63)
+          const lm = docDetail.learning_metadata || {};
+          book.learning_metadata = docDetail.learning_metadata || book.learning_metadata || null;
+
+          const estimatedMinutes = typeof lm.estimated_time_minutes === 'number'
+            ? lm.estimated_time_minutes
+            : (typeof docDetail.estimated_time_minutes === 'number' ? docDetail.estimated_time_minutes : null);
+
+          if (estimatedMinutes !== null) {
+            const timeStr = `${estimatedMinutes} min`;
             if (openedTime) openedTime.textContent = timeStr;
             if (book.metadatos) book.metadatos.tiempo_estudio = timeStr;
+            book.estimated_time_minutes = estimatedMinutes;
           }
 
-          if (Array.isArray(docDetail.key_concepts) && docDetail.key_concepts.length > 0) {
-            book.key_concepts = docDetail.key_concepts;
+          const concepts = (Array.isArray(lm.key_concepts) && lm.key_concepts.length > 0)
+            ? lm.key_concepts
+            : (Array.isArray(docDetail.key_concepts) ? docDetail.key_concepts : []);
+
+          if (concepts.length > 0) {
+            book.key_concepts = concepts;
             if (book.sections && book.sections[0]) {
-              book.sections[0].key_concepts = docDetail.key_concepts;
+              book.sections[0].key_concepts = concepts;
             }
             if (openedChips) {
-              openedChips.innerHTML = '';
-              docDetail.key_concepts.forEach(c => {
+              openedChips.textContent = '';
+              concepts.forEach(c => {
                 const chip = document.createElement('span');
                 chip.className = 'concept-chip';
                 chip.textContent = typeof c === 'string' ? c : String(c ?? '');
@@ -830,8 +849,26 @@ export const bookshelf = {
             }
           }
 
-          if (Array.isArray(docDetail.prerequisites) && docDetail.prerequisites.length > 0) {
-            book.prerequisites = docDetail.prerequisites;
+          const prereqs = (Array.isArray(lm.prerequisites) && lm.prerequisites.length > 0)
+            ? lm.prerequisites
+            : (Array.isArray(docDetail.prerequisites) ? docDetail.prerequisites : []);
+
+          const prereqsContainer = document.getElementById('openedDocPrereqsContainer');
+          const prereqsList = document.getElementById('openedDocPrereqsList');
+
+          if (prereqs.length > 0) {
+            book.prerequisites = prereqs;
+            if (prereqsContainer && prereqsList) {
+              prereqsContainer.style.display = 'block';
+              prereqsList.textContent = '';
+              prereqs.forEach(p => {
+                const li = document.createElement('li');
+                li.textContent = typeof p === 'string' ? p : String(p ?? '');
+                prereqsList.appendChild(li);
+              });
+            }
+          } else if (prereqsContainer) {
+            prereqsContainer.style.display = 'none';
           }
 
           if (docDetail.summary && openedSummary) {

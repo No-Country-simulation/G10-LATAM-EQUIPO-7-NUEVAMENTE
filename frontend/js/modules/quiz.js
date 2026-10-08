@@ -75,7 +75,10 @@ export const quiz = {
       }
     }
 
-    if (feedbackBox) feedbackBox.style.display = 'none';
+    if (feedbackBox) {
+      feedbackBox.style.display = 'none';
+      feedbackBox.querySelectorAll('.btn-next-question, .quiz-finished-actions').forEach(el => el.remove());
+    }
 
     if (this.questions.length === 0) {
       if (this.quizMeta?.status === 'failed') {
@@ -276,8 +279,7 @@ export const quiz = {
     if (feedbackBox) {
       feedbackBox.style.display = 'flex';
 
-      const existingNextBtn = feedbackBox.querySelector('.btn-next-question');
-      if (existingNextBtn) existingNextBtn.remove();
+      feedbackBox.querySelectorAll('.btn-next-question, .quiz-finished-actions').forEach(el => el.remove());
 
       if (this.currentIndex < this.questions.length - 1) {
         const nextBtn = document.createElement('button');
@@ -293,7 +295,7 @@ export const quiz = {
         feedbackBox.appendChild(nextBtn);
       } else {
         const finishedActions = document.createElement('div');
-        finishedActions.className = 'btn-next-question';
+        finishedActions.className = 'quiz-finished-actions';
         finishedActions.style.display = 'flex';
         finishedActions.style.gap = '0.5rem';
         finishedActions.style.marginTop = '0.75rem';
