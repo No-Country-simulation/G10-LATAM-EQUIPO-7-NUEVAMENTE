@@ -153,7 +153,6 @@ export const bookshelf = {
       openBookOverlay: document.getElementById('openBookOverlay'),
       btnCloseOverlay: document.getElementById('btnCloseNotebookOverlay'),
       btnStartStudying: document.getElementById('btnStartStudying'),
-      btnDownloadOriginalDoc: document.getElementById('btnDownloadOriginalDoc'),
 
       // Campos de la Hoja Izquierda
       openedBadge: document.getElementById('openedDocBadge'),
@@ -899,7 +898,7 @@ export const bookshelf = {
   },
 
   setupModalEvents() {
-    const { openBookOverlay, btnCloseOverlay, btnStartStudying, btnDownloadOriginalDoc, studyChoiceCards } = this.elements;
+    const { openBookOverlay, btnCloseOverlay, btnStartStudying, studyChoiceCards } = this.elements;
 
     if (btnCloseOverlay) {
       btnCloseOverlay.addEventListener('click', () => this.closeBookModal());
@@ -908,23 +907,6 @@ export const bookshelf = {
     if (openBookOverlay) {
       openBookOverlay.addEventListener('click', (e) => {
         if (e.target === openBookOverlay) this.closeBookModal();
-      });
-    }
-
-    if (btnDownloadOriginalDoc) {
-      btnDownloadOriginalDoc.addEventListener('click', async () => {
-        const book = this.currentSelectedBook;
-        if (!book?.id) return;
-        try {
-          btnDownloadOriginalDoc.disabled = true;
-          notifySuccess('Iniciando Descarga', 'Recuperando archivo original desde el servidor...');
-          await apiClient.downloadDocument(book.id, book.filename || book.title || 'documento_original');
-        } catch (err) {
-          const friendly = toFriendlyError(err);
-          notifyError(friendly.title, friendly.message);
-        } finally {
-          btnDownloadOriginalDoc.disabled = false;
-        }
       });
     }
 
