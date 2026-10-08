@@ -56,31 +56,39 @@ def test_v11_normaliza_acentos_en_respaldo():
     assert scores.informacion_respaldada >= 4
 
 
-def test_v11_contexto_generacion_no_cuenta_como_alucinacion():
+def test_v11_learning_objective_no_cuenta_como_evidencia_factual():
     content = TLDRContent(
-        title="Resumen para estudiantes de frontend",
+        title="Resumen de Kubernetes",
         summary=(
-            "HTML define elementos para estudiantes "
-            "de desarrollo frontend."
+            "Kubernetes permite orquestar microservicios "
+            "en clusters distribuidos."
         ),
-        key_points=["HTML define elementos."],
-        conclusion="HTML es útil para frontend.",
+        key_points=[
+            "Kubernetes administra clusters distribuidos."
+        ],
+        conclusion=(
+            "Kubernetes es una plataforma clave "
+            "para microservicios."
+        ),
     )
 
     scores, unsupported = evaluate(
         generated_content=content,
         chunks_used=_chunk(
-            "HTML define elementos."
+            "Docker permite empaquetar aplicaciones "
+            "en contenedores."
         ),
         generation_context=_context(
-            profile="estudiantes",
-            niche="frontend",
-            learning_objective="desarrollo frontend",
+            profile="student",
+            niche="devops",
+            learning_objective=(
+                "Comprender Kubernetes y microservicios"
+            ),
         ),
     )
 
-    assert unsupported is False
-    assert scores.informacion_respaldada >= 4
+    assert unsupported is True
+    assert scores.informacion_respaldada == 1
 
 
 def test_v11_tldr_titulo_no_se_evalua_como_hecho():

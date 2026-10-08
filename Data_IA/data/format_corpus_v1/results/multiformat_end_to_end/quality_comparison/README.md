@@ -7,10 +7,16 @@ No modifica el evaluator de producción y no llama a Gemini.
 
 - normaliza acentos;
 - aplica singularización básica conservadora;
-- acepta términos procedentes de `generation_context`;
+- evalúa una variante donde términos procedentes de `generation_context`
+  pueden aceptarse durante el chequeo de respaldo;
 - excluye vocabulario estructural/presentacional;
 - para `video_script`, evalúa respaldo factual sobre `narration`;
 - para `tldr`, excluye el título del chequeo factual.
+
+> Nota: el uso de `generation_context` como fuente permitida para
+> `informacion_respaldada` fue una estrategia experimental y no forma parte
+> del Quality Evaluator V1.1 final. En la implementación final, el respaldo
+> factual se evalúa exclusivamente contra `chunks_used`.
 
 ## Resultados
 

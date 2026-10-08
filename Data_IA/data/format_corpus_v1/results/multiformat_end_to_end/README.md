@@ -92,12 +92,15 @@ rubric and hallucination thresholds unchanged.
 Changes:
 
 - Unicode/accent normalization for lexical comparison;
-- explicit generation-context vocabulary is allowed during support checks;
+- factual support is evaluated exclusively against `chunks_used`;
 - TL;DR titles are excluded from factual-support scoring;
 - Video Script factual support is evaluated from narration rather than
   presentation/visual instructions;
 - naive handcrafted singularization was intentionally not promoted to
   production.
+
+`generation_context` remains available for relevance and didactic-adaptation
+evaluation, but it is not treated as factual evidence.
 
 Evaluator version:
 

@@ -3,7 +3,7 @@
 Evaluator V1.1:
 - normalización léxica Unicode/acentos;
 - separación entre contenido factual y contenido de presentación;
-- términos explícitos de generation_context permitidos en el chequeo de respaldo;
+- respaldo factual basado exclusivamente en `chunks_used`;
 - mantiene sin cambios los umbrales y la rúbrica de decisión.
 """
 
@@ -238,26 +238,6 @@ def _extraer_texto_factual(
     return ""
 
 
-def _extraer_texto_contexto(
-    generation_context: GenerationContext,
-) -> str:
-    """
-    Devuelve vocabulario explícitamente solicitado por el usuario/sistema.
-
-    Estos términos pueden aparecer legítimamente en la generación aunque
-    no estén literalmente en los chunks y, por sí solos, no deben contarse
-    como información no respaldada.
-    """
-    partes = [
-        generation_context.profile or "",
-        generation_context.niche or "",
-        generation_context.detail_level or "",
-        generation_context.learning_objective or "",
-    ]
-
-    return " ".join(partes)
-
-
 def evaluate(
     generated_content: GeneratedContent,
     chunks_used: List[ChunkUsed],
@@ -381,18 +361,6 @@ def evaluate(
                 chunks_text
             )
         )
-        terminos_contexto_permitidos = set(
-            _palabras_significativas(
-                _extraer_texto_contexto(
-                    generation_context
-                )
-            )
-        )
-
-        terminos_permitidos = (
-            terminos_fuente
-            | terminos_contexto_permitidos
-        )
 
         terminos_generados = (
             _palabras_significativas(
@@ -408,7 +376,7 @@ def evaluate(
                 palabra
                 for palabra in terminos_generados
                 if palabra
-                not in terminos_permitidos
+                not in terminos_fuente
             ]
             ratio_alucinacion = (
                 len(no_respaldadas)

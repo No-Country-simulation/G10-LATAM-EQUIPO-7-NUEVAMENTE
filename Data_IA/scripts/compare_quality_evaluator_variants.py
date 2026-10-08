@@ -1,3 +1,15 @@
+"""
+Comparador experimental de variantes del Quality Evaluator.
+
+IMPORTANTE:
+Algunas variantes evaluadas en este script permiten vocabulario de
+`generation_context` durante el chequeo de respaldo factual.
+
+Esa estrategia fue experimental y NO forma parte del Quality Evaluator
+V1.1 final. En producción, `informacion_respaldada` utiliza exclusivamente
+`chunks_used` como fuente de evidencia factual.
+"""
+
 from __future__ import annotations
 
 import argparse
@@ -488,10 +500,21 @@ def build_readme(rows: list[dict[str, Any]]) -> str:
         "",
         "- normaliza acentos;",
         "- aplica singularización básica conservadora;",
-        "- acepta términos procedentes de `generation_context`;",
+        (
+            "- evalúa experimentalmente una variante donde términos de "
+            "`generation_context` pueden aceptarse durante el chequeo "
+            "de respaldo;"
+        ),
         "- excluye vocabulario estructural/presentacional;",
         "- para `video_script`, evalúa respaldo factual sobre `narration`;",
         "- para `tldr`, excluye el título del chequeo factual.",
+        "",
+        (
+            "> Nota: esta estrategia fue experimental y no forma parte del "
+            "Quality Evaluator V1.1 final. En producción, "
+            "`informacion_respaldada` se evalúa exclusivamente contra "
+            "`chunks_used`."
+        ),
         "",
         "## Resultados",
         "",
