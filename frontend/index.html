@@ -432,6 +432,9 @@
             <h3 class="study-topic-title" id="studyTopicTitle">Módulo de Capacitación</h3>
           </div>
           <div class="study-header-actions">
+            <button type="button" class="btn-refresh-formats" id="btnDownloadStudyDoc" title="Descargar archivo original persistido en el servidor" style="display: none;">
+              <span>⬇ Descargar Archivo</span>
+            </button>
             <button type="button" class="btn-refresh-formats" id="btnRefreshFormats" title="Reintentar consultar formatos generados" style="display: none;">
               <span>Sincronizar Formatos</span>
             </button>
@@ -653,6 +656,9 @@
         <div class="notebook-action-footer">
           <button type="button" class="btn-close-notebook-shelf" id="btnCloseNotebookOverlay">
             <span>Devolver al Estante</span>
+          </button>
+          <button type="button" class="btn-primary-action" id="btnDownloadOriginalDoc" style="background: rgba(255, 255, 255, 0.08); border: 1px solid var(--border-ui); color: var(--text-main);" title="Descargar documento original desde OCI">
+            <span>⬇ Descargar</span>
           </button>
           <button type="button" class="btn-primary-action" id="btnStartStudying">
             <span>Iniciar Capacitación &rarr;</span>

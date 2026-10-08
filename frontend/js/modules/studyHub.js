@@ -45,6 +45,7 @@ export const studyHub = {
       topicBadge: document.getElementById('studyTopicBadge'),
       topicTitle: document.getElementById('studyTopicTitle'),
       btnRefreshFormats: document.getElementById('btnRefreshFormats'),
+      btnDownloadStudyDoc: document.getElementById('btnDownloadStudyDoc'),
       formatTabs: document.querySelectorAll('.format-tab-btn'),
       formatViews: {
         flashcards: document.getElementById('viewFormatFlashcards'),
@@ -63,6 +64,23 @@ export const studyHub = {
           const currentStatus = state.get().studyHub?.formatsStatus;
           if (currentStatus === 'processing' || currentStatus === 'pending') return; // En polling activo, no enviar reintentos concurrentes
           await this.triggerRegeneration();
+        }
+      });
+    }
+
+    if (this.elements.btnDownloadStudyDoc) {
+      this.elements.btnDownloadStudyDoc.addEventListener('click', async () => {
+        const doc = state.get().currentDocument;
+        if (!doc?.id) return;
+        try {
+          this.elements.btnDownloadStudyDoc.disabled = true;
+          notifySuccess('Iniciando Descarga', 'Recuperando archivo original desde el servidor...');
+          await apiClient.downloadDocument(doc.id, doc.filename || doc.title || 'documento_original');
+        } catch (err) {
+          const friendly = toFriendlyError(err);
+          notifyError(friendly.title, friendly.message);
+        } finally {
+          this.elements.btnDownloadStudyDoc.disabled = false;
         }
       });
     }
@@ -368,6 +386,9 @@ export const studyHub = {
       if (this.elements.btnRefreshFormats) {
         this.elements.btnRefreshFormats.style.display = 'none';
       }
+      if (this.elements.btnDownloadStudyDoc) {
+        this.elements.btnDownloadStudyDoc.style.display = 'none';
+      }
       flashcards.render([]);
       quiz.render(null);
       videoGuide.render(null);
@@ -383,6 +404,11 @@ export const studyHub = {
     }
     if (this.elements.topicTitle) {
       this.elements.topicTitle.textContent = activeSection?.title || currentDocument.title;
+    }
+
+    // Mostrar u ocultar botón de descarga de documento original
+    if (this.elements.btnDownloadStudyDoc) {
+      this.elements.btnDownloadStudyDoc.style.display = currentDocument?.id ? 'inline-flex' : 'none';
     }
 
     // Actualizar Pestañas y Vistas
