@@ -1,0 +1,4 @@
+case_id,document_id,category,query,classification,md_evidence_coverage,txt_evidence_coverage,pdf_evidence_coverage,md_evidence_hit,txt_evidence_hit,pdf_evidence_hit,md_reference_token_recall,txt_reference_token_recall,pdf_reference_token_recall
+CLD-ES-001-Q05,CLD-ES-001,Cloud / DevOps,Menciona dos formas de describir a Kubernetes según el documento.,format_independent_failure,0.333333,0.333333,0.333333,False,False,False,0.557692,0.5,0.615385
+FE-ES-001-Q01,FE-ES-001,Frontend,¿Qué es HTML según el documento?,format_sensitive_hit_disagreement,0.5,0.0,0.5,True,False,True,1.0,0.411765,1.0
+FE-ES-001-Q05,FE-ES-001,Frontend,¿Qué puede hacer una etiqueta HTML con el contenido?,format_sensitive_coverage_only,0.8,0.6,0.8,True,True,True,1.0,0.988235,0.988235
