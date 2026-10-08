@@ -29,6 +29,7 @@ services:
       RAG_TIMEOUT_SECONDS: "120"
 
       AGENTS_BASE_URL: http://agents:8001
+      DATA_IA_BASE_URL: http://data-ia:8002
       AGENTS_GENERATE_PATH: /api/v1/generate
       AGENTS_TIMEOUT_SECONDS: "120"
 
