@@ -37,6 +37,13 @@ from tests.fakes import (
 
 DOCUMENT_ID_KEY = "document_id"
 
+_CURRENT_FORMATS = {
+    "quiz",
+    "flashcards",
+    "tldr",
+    "video_script",
+}
+
 _ADAPTATION_DATA = {
     "profile": "intermediate",
     "niche": "backend",
@@ -320,7 +327,7 @@ def test_formats_returns_ready_after_upload(
         FakeAdaptationOrchestrationService
     ),
 ) -> None:
-    """La carga prepara y completa Quiz y Flashcards por etapas."""
+    """La carga prepara y completa los cuatro formatos por etapas."""
     document_id = upload_document(
         client=client,
         api_prefix=api_prefix,
@@ -361,7 +368,7 @@ def test_formats_returns_ready_after_upload(
 
     assert len(
         completed_format_ids
-    ) == 2
+    ) == 4
 
     response = client.get(
         f"{api_prefix}/documents/"
@@ -384,28 +391,35 @@ def test_formats_returns_ready_after_upload(
 
     assert set(
         body["formats"]
-    ) == {
-        "quiz",
-        "flashcards",
-    }
+    ) == _CURRENT_FORMATS
 
-    assert (
-        body["formats"]["quiz"]["status"]
+    assert all(
+        format_response["status"]
         == "success"
+        for format_response
+        in body["formats"].values()
     )
 
     assert (
-        body["formats"]["flashcards"]["status"]
-        == "success"
+        body["formats"]["tldr"]["content"][
+            "summary"
+        ]
+        == "Síntesis breve basada en el documento."
+    )
+
+    assert (
+        body["formats"]["video_script"]["content"][
+            "scenes"
+        ][0]["duration_seconds"]
+        == 30
     )
 
     returned_format_ids = {
-        body["formats"]["quiz"][
+        format_response[
             "format_id"
-        ],
-        body["formats"]["flashcards"][
-            "format_id"
-        ],
+        ]
+        for format_response
+        in body["formats"].values()
     }
 
     assert (
@@ -509,12 +523,12 @@ def test_formats_returns_processing_for_active_attempts(
     )
 
 
-def test_formats_returns_ready_with_canonical_content(
+def test_formats_returns_ready_with_historical_baseline_content(
     client: TestClient,
     api_prefix: str,
     tmp_path: Path,
 ) -> None:
-    """Expone Quiz y Flashcards mediante el contrato canónico."""
+    """Mantiene ready para el baseline histórico Quiz + Flashcards."""
     document_id = (
         "doc_formats_canonical"
     )
@@ -552,6 +566,13 @@ def test_formats_returns_ready_with_canonical_content(
     body = response.json()
 
     assert body["status"] == "ready"
+
+    assert set(
+        body["formats"]
+    ) == {
+        "quiz",
+        "flashcards",
+    }
 
     quiz = body["formats"]["quiz"]
 

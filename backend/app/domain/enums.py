@@ -19,10 +19,12 @@ class DocumentStatus(StrEnum):
 
 
 class GeneratedFormatType(StrEnum):
-    """Formatos pedagógicos soportados durante Sprint 2."""
+    """Formatos pedagógicos soportados por BackendAPI."""
 
     QUIZ = "quiz"
     FLASHCARDS = "flashcards"
+    TLDR = "tldr"
+    VIDEO_SCRIPT = "video_script"
 
 
 class GeneratedFormatStatus(StrEnum):

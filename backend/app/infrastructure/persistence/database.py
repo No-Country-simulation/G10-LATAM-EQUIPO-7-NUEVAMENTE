@@ -29,7 +29,9 @@ CREATE TABLE IF NOT EXISTS generated_formats (
         CHECK (
             format_type IN (
                 'quiz',
-                'flashcards'
+                'flashcards',
+                'tldr',
+                'video_script'
             )
         ),
 
@@ -71,7 +73,9 @@ CREATE TABLE generated_formats_migrated (
         CHECK (
             format_type IN (
                 'quiz',
-                'flashcards'
+                'flashcards',
+                'tldr',
+                'video_script'
             )
         ),
 
@@ -167,6 +171,14 @@ _SCHEMA_INDEXES_SQL = (
         idx_format_evaluations_format
     ON format_evaluations(format_id);
     """,
+)
+
+_REQUIRED_GENERATED_FORMAT_SCHEMA_TOKENS = (
+    "'processing'",
+    "'quiz'",
+    "'flashcards'",
+    "'tldr'",
+    "'video_script'",
 )
 
 
@@ -294,12 +306,15 @@ class SQLiteDatabase:
     def _ensure_generated_formats_schema(
         connection: sqlite3.Connection,
     ) -> None:
-        """Garantiza que generated_formats soporte ``processing``.
+        """Garantiza el CHECK vigente de estados y formatos.
 
-        SQLite no permite modificar directamente un ``CHECK`` existente.
-        Si se detecta el esquema anterior de Sprint 2, la tabla se
-        reconstruye dentro de una transacción conservando todos sus
-        registros.
+        SQLite no permite modificar directamente una restricción ``CHECK``.
+        Si la tabla existente no admite ``processing`` o cualquiera de los
+        cuatro formatos canónicos, se reconstruye dentro de una transacción
+        conservando todos los registros.
+
+        Esto cubre tanto bases antiguas de Sprint 2 como bases de Sprint 3
+        creadas cuando únicamente existían ``quiz`` y ``flashcards``.
 
         Las claves foráneas se desactivan únicamente durante la
         reconstrucción porque ``format_evaluations`` puede referenciar
@@ -326,7 +341,13 @@ class SQLiteDatabase:
             schema_row["sql"] or ""
         ).lower()
 
-        if "'processing'" in schema_sql:
+        schema_is_current = all(
+            token in schema_sql
+            for token
+            in _REQUIRED_GENERATED_FORMAT_SCHEMA_TOKENS
+        )
+
+        if schema_is_current:
             return
 
         connection.execute(

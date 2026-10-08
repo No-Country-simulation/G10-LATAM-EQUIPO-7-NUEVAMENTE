@@ -11,6 +11,8 @@ from app.domain.generated_content import (
     FlashcardsContent,
     GeneratedContent,
     QuizContent,
+    TLDRContent,
+    VideoScriptContent,
 )
 from app.domain.generated_format import ChunkEvidence
 from app.domain.learning_metadata import LearningMetadata
@@ -263,7 +265,7 @@ class HTTPAgentsAdapter:
         format_type: GeneratedFormatType,
         content: dict[str, object] | None,
     ) -> GeneratedContent | None:
-        """Construye el contenido canónico según el formato solicitado."""
+        """Construye contenido canónico según el formato solicitado."""
         if content is None:
             return None
 
@@ -280,6 +282,22 @@ class HTTPAgentsAdapter:
             == GeneratedFormatType.FLASHCARDS
         ):
             return FlashcardsContent.from_dict(
+                content
+            )
+
+        if (
+            format_type
+            == GeneratedFormatType.TLDR
+        ):
+            return TLDRContent.from_dict(
+                content
+            )
+
+        if (
+            format_type
+            == GeneratedFormatType.VIDEO_SCRIPT
+        ):
+            return VideoScriptContent.from_dict(
                 content
             )
 

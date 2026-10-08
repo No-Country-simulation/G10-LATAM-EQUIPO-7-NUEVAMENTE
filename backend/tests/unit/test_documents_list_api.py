@@ -109,7 +109,7 @@ def test_list_documents_returns_processed_documents(
 
     assert all(
         len(completed_format_ids)
-        == 2
+        == 4
         for completed_format_ids
         in (
             fake_adaptation_orchestration_service
