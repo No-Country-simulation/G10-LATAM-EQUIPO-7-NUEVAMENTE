@@ -24,3 +24,7 @@ __pycache__/
 
 # Generated raw batches from Retrieval V2 ablation experiments
 Data_IA/data/evaluation/results/retrieval_v2_ablation/**/retrieval_*.json
+# Controlled format retrieval local Chroma indexes
+.format_corpus_chroma_md/
+.format_corpus_chroma_pdf/
+.format_corpus_chroma_txt/
