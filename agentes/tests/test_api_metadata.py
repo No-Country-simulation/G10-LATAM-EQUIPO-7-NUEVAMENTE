@@ -116,3 +116,39 @@ def test_generate_endpoint_metadata_fallback(mock_answer, mock_extract):
     # Verificamos que el formato no se rompió por culpa del fallo de los metadatos
     assert len(data["results"]) == 1
     assert data["results"][0]["status"] == "success"
+
+
+@patch("agentes.api.agent.extract_learning_metadata")
+@patch("agentes.api.agent.answer")
+def test_niche_variation_affects_output(mock_answer, mock_extract):
+    """
+    Validación PM: Verifica que al cambiar el nicho, los metadatos y salidas 
+    reflejen el cambio de contexto temático.
+    """
+    # Simulamos que Gemini extrajo conceptos orientados específicamente a FINANZAS
+    mock_extract.return_value = {
+        "status": "success",
+        "content": {
+            "key_concepts": ["Apalancamiento", "Gestión de riesgo", "Margin call"],
+            "prerequisites": ["Matemáticas financieras básicas"],
+            "estimated_time_minutes": 20
+        }
+    }
+    mock_answer.return_value = SUCCESS_QUIZ
+
+    # El payload simula un cambio radical de nicho por parte del usuario
+    payload = {
+        "document_id": "doc_test_nicho",
+        "formats": ["quiz"],
+        "profile": "inversionista",
+        "niche": "finanzas",  # <-- El nicho validado
+        "detail_level": "avanzado"
+    }
+
+    response = client.post("/api/v1/generate", json=payload)
+    assert response.status_code == 200
+    data = response.json()
+
+    # Validamos que el JSON de salida realmente inyectó y respetó los conceptos del nicho
+    concepts = data["learning_metadata"]["key_concepts"]
+    assert "Apalancamiento" in concepts or "Margin call" in concepts

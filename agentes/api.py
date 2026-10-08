@@ -122,7 +122,12 @@ def generate_formats(payload: GenerateRequest):
     # ==========================================
     # 1. EXTRACCIÓN ÚNICA DE LEARNING METADATA
     # ==========================================
-    metadata_response = agent.extract_learning_metadata(query=query_rag, document_id=payload.document_id)
+    # ¡NUEVO: Pasamos el nicho dinámicamente aquí!
+    metadata_response = agent.extract_learning_metadata(
+        query=query_rag, 
+        document_id=payload.document_id,
+        niche=payload.niche
+    )
     
     # Manejo del fallback: si la IA falla extrayendo metadatos, mandamos un default vacío pero no rompemos la API
     if metadata_response["status"] == "success":
