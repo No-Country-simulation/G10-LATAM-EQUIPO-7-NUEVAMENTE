@@ -7,8 +7,9 @@ Módulo central de ingestión, recuperación de conocimiento (RAG) y orquestaci�
 Durante esta fase, la arquitectura evolucionó para garantizar resultados precisos y mayor resiliencia E2E:
 
 * **Retrieval V2 (Búsqueda Híbrida + Reranking):** Implementación de búsqueda semántica (ChromaDB) combinada con búsqueda lexical (BM25), fusionadas mediante *Reciprocal Rank Fusion* (RRF) y reordenadas con un modelo Cross-Encoder.
-* **Contratos V2.0:** Actualización del contrato de Data/IA soportando `score_type: "cross_encoder"` y prefiltrado por `metadata_filters`.
-* **Capacidad Atómica y Nuevos Formatos:** Generación paralela soportando `quiz`, `flashcards`, `tldr` y `video_script`. El sistema está protegido por bloques `try/except` que devuelven estados de fallo controlados sin romper el servidor.
+* **Contratos V2.0 (Metadata a nivel raíz):** Actualización del contrato de Data/IA y orquestación con Backend, extrayendo metadatos pedagógicos (`key_concepts`, `prerequisites`, `estimated_time_minutes`) en una llamada independiente para unificarlos a nivel raíz del JSON.
+* **Inyección Dinámica de Nicho (Contextualización Temática):** El parámetro `niche` del payload se inyecta directamente en la capa de extracción de metadatos, obligando al LLM a pivotar y adaptar los conceptos clave y prerrequisitos estrictamente al dominio solicitado por el usuario (ej. *Ciberseguridad, Finanzas, Tecnología*), evitando respuestas genéricas.
+* **Capacidad Atómica y Nuevos Formatos:** Generación paralela soportando `quiz`, `flashcards`, `tldr` y `video_script`. El sistema está protegido por bloques `try/except` con fallback seguro para metadatos.
 * **Modelo Ligero de Baja Latencia:** Migración a `gemini-3.5-flash-lite` para mitigar cuellos de botella (Errores 503) y maximizar la velocidad de respuesta.
 
 ---
@@ -16,12 +17,12 @@ Durante esta fase, la arquitectura evolucionó para garantizar resultados precis
 ## Estructura del Módulo
 
     agentes/
-    ├── agent_v1.py            # Orquestador principal y ensamblaje de prompts
-    ├── api.py                 # Endpoints FastAPI con los contratos estructurales
+    ├── agent_v1.py            # Orquestador principal (Llamada atómica a Metadatos y Formatos)
+    ├── api.py                 # Endpoints FastAPI y Contratos Estructurales (Pydantic)
     ├── requirements.txt
     ├── rag/
     │   ├── config.py          # Configuración centralizada (chunk_size, top_k, modelo)
-    │   ├── models.py          # Document, Chunk, SearchResult y Esquemas Pydantic
+    │   ├── models.py          # Document, Chunk, SearchResult
     │   ├── cleaner.py         # Limpieza conservadora (Filtros Regex para PDFs)
     │   ├── extractor.py       # Extracción de formato .pdf/.md/.txt
     │   ├── chunker.py         # Segmentación para documentos nuevos
@@ -52,7 +53,7 @@ Durante esta fase, la arquitectura evolucionó para garantizar resultados precis
     
     uvicorn agentes.api:app --reload --port 8001
     
-    Accede a la interfaz interactiva (Swagger UI) en: [http://127.0.0.1:8001/docs](http://127.0.0.1:8001/docs)
+    Accede a la interfaz interactiva (Swagger UI) en: http://127.0.0.1:8001/docs
 
 ---
 
@@ -88,40 +89,30 @@ El método `answer_for_evaluation()` permite evaluar Recall@K y Precision@K apli
         metadata_filters={"document_id": "doc_123"}
     )
 
-Respuesta exitosa:
-
-    {
-      "contract_version": "2.0",
-      "case_id": "CLD-ES-001-Q01",
-      "query": "¿Qué es Kubernetes?",
-      "top_k": 5,
-      "score_type": "cross_encoder",
-      "status": "success",
-      "results": [
-        {
-          "rank": 1,
-          "chunk_id": "CLD-ES-001_CH_001",
-          "document_id": "CLD-ES-001",
-          "score": 4.95,
-          "text": "Kubernetes es...",
-          "metadata": {"categoria": "Cloud"}
-        }
-      ],
-      "error": null
-    }
-
 ### 2. Integración Backend (POST /api/v1/generate)
-Endpoint de generación atómica. Recibe un JSON con `document_id` y los formatos solicitados (`quiz`, `flashcards`, `tldr`, `video_script`).
+Endpoint de generación. Recibe un JSON con `document_id`, `niche` y los formatos solicitados. Retorna `learning_metadata` a nivel raíz y la generación en `results`.
 
 Ejemplo de respuesta exitosa (status: "success"):
 
     {
       "document_id": "doc_123",
+      "learning_metadata": {
+        "key_concepts": ["Concepto 1", "Concepto 2", "Concepto 3"],
+        "prerequisites": ["Conocimiento previo fundamental"],
+        "estimated_time_minutes": 15
+      },
       "results": [
         {
           "format": "quiz",
           "status": "success",
           "content": { "title": "...", "instructions": "...", "questions": [...] },
+          "sources_used": [ { "rank": 1, "chunk_id": "...", "score": 4.12, "text": "..." } ],
+          "error_message": null
+        },
+        {
+          "format": "flashcards",
+          "status": "success",
+          "content": { "title": "...", "instructions": "...", "cards": [...] },
           "sources_used": [ { "rank": 1, "chunk_id": "...", "score": 3.84, "text": "..." } ],
           "error_message": null
         }
@@ -132,6 +123,6 @@ Ejemplo de respuesta exitosa (status: "success"):
 
 ## Ejecución de Pruebas Automatizadas (QA)
 
-El módulo cuenta con una suite completa de pruebas unitarias y de integración que validan el Vector Store, el filtrado real de metadatos, el reranking y la integridad de los contratos Pydantic (usando `unittest.mock` y un cliente efímero en memoria).
+El módulo cuenta con una suite completa de pruebas unitarias y de integración que validan el Vector Store, el filtrado real de metadatos, el reranking, la inyección de nichos y la integridad de los contratos Pydantic.
 
     python -m pytest agentes/tests/
