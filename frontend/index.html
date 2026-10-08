@@ -20,7 +20,7 @@
   <aside class="welcome-portada" id="welcomePortada" aria-label="Portada de Bienvenida de NuevaMente">
     <div class="portada-card" id="portadaCard">
       <div class="portada-crest">
-        <span class="crest-badge">HACKATHON ONE · GRUPO 10 · LATAM</span>
+        <span class="crest-badge">CAPACITACIÓN CORPORATIVA · NUEVAMENTE IA</span>
       </div>
 
       <h1 class="portada-title">
@@ -29,23 +29,23 @@
       </h1>
 
       <p class="portada-description">
-        El portal donde cualquier documento o libro cobra vida pedagógica. Explora nuestra colección o procesa tus propios archivos en <strong>Flashcards 3D</strong>, <strong>Quizzes</strong> y <strong>Guiones didácticos</strong> con IA.
+        Transforma manuales, normativas y documentación operativa en programas interactivos de capacitación para tus colaboradores. Evalúa competencias con <strong>Quizzes</strong>, refuerza conocimientos con <strong>Flashcards 3D</strong> y estructura capacitaciones efectivas con IA.
       </p>
 
       <div class="portada-stats-pill-row">
-        <span class="portada-stat-pill">10 Tomos Clásicos</span>
-        <span class="portada-stat-pill">Contenido Adaptativo</span>
-        <span class="portada-stat-pill">4 Formatos de Estudio</span>
+        <span class="portada-stat-pill">Módulos Corporativos</span>
+        <span class="portada-stat-pill">Capacitación Adaptativa</span>
+        <span class="portada-stat-pill">Evaluación & Refuerzo</span>
       </div>
 
       <button type="button" class="btn-enter-library" id="btnEnterLibrary">
         <span class="btn-enter-icon"></span>
-        <span class="btn-enter-label">Ingresar a La Biblioteca</span>
+        <span class="btn-enter-label">Acceder al Catálogo de Capacitaciones</span>
         <span class="btn-enter-arrow">&rarr;</span>
       </button>
 
       <p class="portada-click-anywhere-hint">
-        Haz clic en el botón o en cualquier lugar para ingresar al librero
+        Haz clic en el botón o en cualquier lugar para ingresar al Catálogo de Capacitaciones
       </p>
     </div>
   </aside>
@@ -56,28 +56,33 @@
   <header class="app-header">
     <div class="brand" id="brandHeader" title="NuevaMente - Clic para volver a la Portada de Bienvenida" style="cursor: pointer;">
       <img src="LogoPropuesta - Editado.png" alt="Logo NuevaMente" class="header-brand-logo">
-      <span class="badge">Hackathon ONE · G10</span>
+      <span class="badge">Capacitación IA</span>
     </div>
 
     <!-- Navegación por Pestañas Principales (3 Pilares) -->
     <nav class="main-nav-tabs" aria-label="Navegación principal">
-      <button type="button" class="nav-tab-btn active" data-tab="library" title="La Biblioteca de NuevaMente">
-        <span>La Biblioteca</span>
+      <button type="button" class="nav-tab-btn active" data-tab="library" title="Catálogo de Capacitaciones de NuevaMente">
+        <span>Catálogo de Capacitaciones</span>
       </button>
-      <button type="button" class="nav-tab-btn" data-tab="upload" title="Carga de Documento">
+      <button type="button" class="nav-tab-btn" data-tab="upload" title="Carga y Adaptación de Documentación">
         <span>Cargar Documento</span>
       </button>
-      <button type="button" class="nav-tab-btn" data-tab="study" title="Centro de Estudio Multi-Formato">
-        <span>Centro de Estudio</span>
+      <button type="button" class="nav-tab-btn" data-tab="study" title="Centro de Capacitación y Evaluación">
+        <span>Centro de Capacitación</span>
       </button>
     </nav>
 
     <!-- Acciones Rápidas del Header -->
     <div class="header-actions">
-      <!-- Indicador de Conexión Backend Real (Sprint 2) -->
-      <div class="header-connection-badge" title="Conectado exclusivamente con Backend FastAPI">
+      <!-- Botón de Conmutación: Modo Interactivo / Modo Lista -->
+      <button type="button" class="btn-toggle-interactive-mode" id="btnToggleInteractive" title="Alternar entre catálogo en lista y estantería interactiva 3D">
+        <span>Modo Interactivo</span>
+      </button>
+
+      <!-- Indicador de Conexión Backend Real (Sprint 2 - Inicialmente Desconectado) -->
+      <div class="header-connection-badge is-disconnected" title="Sin conexión con Backend FastAPI">
         <span class="status-dot-pulse"></span>
-        <span>Backend API</span>
+        <span>Sin Conexión</span>
       </div>
 
     </div>
@@ -92,33 +97,105 @@
          PESTAÑA 1: LA BIBLIOTECA DE NUEVAMENTE
          ---------------------------------------------------------------------- -->
     <section id="viewLibrary" class="tab-view active">
-      <div class="library-view-container">
-        
-        <!-- Hero Header del Librero -->
-        <div class="library-hero-header">
-          <span class="library-hero-badge">Tu Espacio de Aprendizaje con IA</span>
-          <h2 class="library-hero-title">
-            <span class="library-title-prefix">La Biblioteca de</span>
-            <img src="LogoPropuesta - Editado.png" alt="NuevaMente" class="library-hero-logo" height="92">
-          </h2>
-          <p class="library-hero-subtitle">
-            Cada libro en la estantería representa un documento analizado. Haz clic en cualquiera para abrirlo y estudiar o añade tu propio PDF a la colección.
-          </p>
-        </div>
-
-        <!-- Estantería de Madera con Libros en 3D -->
-        <div class="bookshelf-rack">
-          <!-- Estante Superior (Row 1) -->
-          <div class="shelf-row" id="shelfRow1">
-            <div class="shelf-plank"></div>
+      
+      <!-- 1. Catálogo Ejecutivo en Modo Lista (Visible por Defecto) -->
+      <div class="library-catalog-view" id="libraryCatalogView">
+        <!-- Ribbon de KPIs y Estado -->
+        <div class="cosmic-metrics-grid">
+          <div class="cosmic-metric-card">
+            <span class="cosmic-metric-label">Módulos de Capacitación</span>
+            <div class="cosmic-metric-val">
+              <span id="metricDocCount">0</span>
+              <span class="cosmic-metric-sub">módulos activos</span>
+            </div>
           </div>
-
-          <!-- Estante Inferior (Row 2) -->
-          <div class="shelf-row" id="shelfRow2">
-            <div class="shelf-plank"></div>
+          <div class="cosmic-metric-card" id="metricBackendCard" title="Clic para reverificar conexión con FastAPI" style="cursor: pointer;">
+            <span class="cosmic-metric-label">Estado Servidor Backend</span>
+            <div class="cosmic-metric-val" id="metricBackendVal">
+              <span id="metricBackendText">Desconectado</span>
+              <span class="status-dot-pulse" id="metricBackendDot"></span>
+            </div>
           </div>
         </div>
 
+        <!-- Barra de Búsqueda del Catálogo -->
+        <div class="cosmic-search-wrapper">
+          <div class="cosmic-search-input-box">
+            <span class="cosmic-search-icon"></span>
+            <input type="text" id="searchDocList" class="cosmic-search-input" placeholder="Buscar módulo por título, área operativa o palabra clave..." autocomplete="off">
+            <button type="button" class="cosmic-search-clear" id="btnClearSearchList" title="Limpiar búsqueda" style="display: none;">&times;</button>
+          </div>
+          <div class="cosmic-search-count" id="searchCountList">0 documentos</div>
+          <button type="button" class="btn-hero-add-pdf" id="btnCatalogUploadAction" style="width: auto; padding: 0.55rem 1.15rem; font-size: 0.85rem;">
+            <span>+ Cargar Documento</span>
+          </button>
+        </div>
+
+        <!-- Filtros Rápidos por Área / Disciplina -->
+        <div class="cosmic-filters-row">
+          <button type="button" class="cosmic-chip active">Todos</button>
+          <button type="button" class="cosmic-chip">Tecnología & Cloud</button>
+          <button type="button" class="cosmic-chip">Legal & Compliance</button>
+          <button type="button" class="cosmic-chip">Operaciones & Negocios</button>
+          <button type="button" class="cosmic-chip">Gestión & RRHH</button>
+        </div>
+
+        <!-- Lista de Documentos -->
+        <div class="cosmic-doc-list" id="cosmicDocList">
+          <!-- Renderizado dinámicamente por bookshelf.js -->
+        </div>
+      </div>
+
+      <!-- 2. Modo Interactivo: Estantería 3D y Cuaderno (Se activa con 'Modo Interactivo') -->
+      <div class="interactive-bookshelf-wrapper" id="interactiveBookshelfWrapper">
+        <div class="library-view-container">
+          
+          <div class="library-hero-header">
+            <div class="library-hero-top">
+              <span class="library-hero-badge">Formación Corporativa con IA</span>
+              <h2 class="library-hero-title">
+                <span class="library-title-prefix">Catálogo de Capacitaciones de</span>
+                <img src="LogoPropuesta - Editado.png" alt="NuevaMente" class="library-hero-logo" height="92">
+              </h2>
+            </div>
+            <p class="library-hero-subtitle">
+              Cada manual o módulo en la estantería representa una unidad de capacitación para colaboradores. Selecciona cualquiera para iniciar el entrenamiento o incorpora nuevos procedimientos operativos.
+            </p>
+
+            <!-- Barra de Búsqueda 3D en la Estantería (Lupa) -->
+            <div class="interactive-search-container">
+              <div class="cosmic-search-input-box search-box-3d">
+                <span class="cosmic-search-icon"></span>
+                <input type="text" id="searchDoc3D" class="cosmic-search-input" placeholder="Buscar en la estantería..." autocomplete="off">
+                <button type="button" class="cosmic-search-clear" id="btnClearSearch3D" title="Limpiar búsqueda" style="display: none;">&times;</button>
+              </div>
+              <div class="interactive-search-count" id="searchCount3D" style="display: none;"></div>
+            </div>
+
+            <div class="library-hero-bottom">
+              <button type="button" class="btn-hero-add-pdf" id="btnHeroUploadQuick">
+                <span>+ Cargar Nuevo Documento</span>
+              </button>
+              <button type="button" class="btn-toggle-to-list" id="btnReturnToListMode">
+                <span>Ver en Modo Lista</span>
+              </button>
+            </div>
+          </div>
+
+          <!-- Estantería de Madera con Libros en 3D -->
+          <div class="bookshelf-rack">
+            <!-- Estante Superior (Row 1) -->
+            <div class="shelf-row" id="shelfRow1">
+              <div class="shelf-plank"></div>
+            </div>
+
+            <!-- Estante Inferior (Row 2) -->
+            <div class="shelf-row" id="shelfRow2">
+              <div class="shelf-plank"></div>
+            </div>
+          </div>
+
+        </div>
       </div>
     </section>
 
@@ -131,10 +208,10 @@
         <!-- Hero Header de la Pestaña -->
         <div class="upload-hero-header">
           <div class="upload-hero-title-box">
-            <span class="badge-pill badge-gold">Subí tu Documento</span>
-            <h2>Carga de Documento y Generación de Material de Estudio</h2>
+            <span class="badge-pill badge-gold">Gestión de Contenido Corporativo</span>
+            <h2>Carga de Documentación y Generación de Capacitación</h2>
             <p class="upload-subtitle">
-              Sube cualquier documento de estudio (medicina, ingeniería, leyes, economía, etc.) y generamos automáticamente flashcards, quiz, un video guía y un resumen para que lo estudies como prefieras.
+              Sube manuales de procesos, normativas internas, guías técnicas o políticas corporativas (en PDF, TXT o MD). El sistema generará automáticamente módulos de capacitación con evaluaciones, tarjetas de refuerzo y guías estructuradas para colaboradores.
             </p>
           </div>
         </div>
@@ -145,15 +222,15 @@
           <!-- Bloque 1: Carga de Archivo -->
           <div class="upload-panel-card">
             <div class="panel-title-row">
-              <h3><span></span> 1. Documento de Estudio</h3>
+              <h3><span></span> 1. Manual o Documento Corporativo</h3>
               <span class="panel-title-hint">PDF, TXT o MD (Hasta 10MB)</span>
             </div>
 
             <!-- Zona de Arrastrar y Soltar Grande -->
             <div class="file-dropzone-large" id="dropAreaLarge">
               <div class="dropzone-icon-large"></div>
-              <h4>Arrastra y suelta tu documento aquí</h4>
-              <p>O explora los archivos de tu dispositivo</p>
+              <h4>Arrastra y suelta el manual o documento aquí</h4>
+              <p>O explora los archivos de tu empresa (PDF, TXT, MD)</p>
               <label for="docFileInput" class="btn-browse-file">Seleccionar Archivo</label>
               <input type="file" id="docFileInput" accept=".pdf,.md,.txt" style="display:none;">
             </div>
@@ -171,56 +248,56 @@
             </div>
           </div>
 
-          <!-- Bloque 2: Parámetros Pedagógicos & Lanzador -->
+          <!-- Bloque 2: Parámetros de Capacitación & Lanzador -->
           <div class="upload-panel-card">
             <div class="panel-title-row">
-              <h3><span></span> 2. Parámetros de Adaptación</h3>
-              <span class="panel-title-hint">Guía el tono y la profundidad del contenido generado</span>
+              <h3><span></span> 2. Parámetros de Capacitación</h3>
+              <span class="panel-title-hint">Configura la audiencia y el enfoque del entrenamiento</span>
             </div>
 
             <div class="parameters-stack">
               <!-- Perfil (target_profile) -->
               <div class="param-field">
                 <label for="paramPerfil" class="param-label">
-                  <strong>Perfil del Estudiante:</strong>
+                  <strong>Nivel del Colaborador / Audiencia:</strong>
                 </label>
                 <select id="paramPerfil" class="custom-select">
-                  <option value="beginner">Principiante / Conceptos base, analogías y tono accesible</option>
-                  <option value="intermediate" selected>Intermedio / Aplicación práctica, ejemplos y metodología</option>
-                  <option value="advanced">Avanzado / Profundidad técnica, compensaciones y análisis crítico</option>
+                  <option value="beginner">Inicial / Inducción: Conceptos base, lineamientos generales y tono accesible</option>
+                  <option value="intermediate" selected>Operativo / Especialista: Procedimientos clave, aplicación práctica y metodología</option>
+                  <option value="advanced">Avanzado / Liderazgo: Profundidad técnica, toma de decisiones y análisis crítico</option>
                 </select>
               </div>
 
               <!-- Nicho / Temática (niche_context) -->
               <div class="param-field">
                 <label for="paramNicho" class="param-label">
-                  <strong>Área Temática / Especialidad:</strong>
+                  <strong>Área Operativa / Departamento:</strong>
                 </label>
                 <select id="paramNicho" class="custom-select">
                   <option value="general" selected>General / Detección universal del documento</option>
-                  <option value="backend">Ingeniería & Software (Backend)</option>
-                  <option value="health">Ciencias Médicas & Salud</option>
-                  <option value="legal">Ciencias Jurídicas & Derecho</option>
-                  <option value="business">Economía & Negocios</option>
-                  <option value="humanities">Humanidades & Educación</option>
+                  <option value="backend">Tecnología, Infraestructura & Software</option>
+                  <option value="health">Seguridad Ocupacional, Salud & Bioseguridad</option>
+                  <option value="legal">Legal, Compliance & Normativas Regulatorias</option>
+                  <option value="business">Finanzas, Gestión & Operaciones de Negocio</option>
+                  <option value="humanities">Recursos Humanos, Talento & Cultura Organizacional</option>
                 </select>
               </div>
 
               <!-- Nivel de Detalle (detail_level) -->
               <div class="param-field">
                 <label for="paramDetailLevel" class="param-label">
-                  <strong>Nivel de Detalle:</strong>
+                  <strong>Nivel de Detalle del Entrenamiento:</strong>
                 </label>
                 <select id="paramDetailLevel" class="custom-select">
-                  <option value="detailed" selected>Detallado / Paso a paso exhaustivo y explicativo</option>
-                  <option value="standard">Estándar / Cobertura equilibrada de contenidos</option>
-                  <option value="concise">Conciso / Enfoque sintético en conceptos clave</option>
+                  <option value="detailed" selected>Exhaustivo / Paso a paso detallado para capacitación integral</option>
+                  <option value="standard">Estándar / Cobertura equilibrada de competencias clave</option>
+                  <option value="concise">Sintético / Enfoque rápido en puntos críticos de control</option>
                 </select>
               </div>
               <!-- Botón de Lanzamiento -->
               <div style="margin-top: 0.75rem;">
                 <button type="button" class="btn-launch-rag" id="btnLanzarProcesamiento" style="width: 100%;">
-                  <span>Procesar Documento</span>
+                  <span>Generar Programa de Capacitación</span>
                 </button>
               </div>
             </div>
@@ -230,7 +307,7 @@
 
         <div class="pipeline-card" id="pipelineCard" style="display: none;">
           <div class="panel-title-row">
-            <h3>Procesando tu Documento</h3>
+            <h3>Generando Programa de Capacitación</h3>
             <span class="badge-pill badge-cyan" id="pipelineStatusBadge">Iniciando...</span>
           </div>
 
@@ -248,7 +325,7 @@
               <div class="step-circle">2</div>
               <div class="step-info">
                 <strong>Indexando</strong>
-                <span>Contenido y Embeddings</span>
+                <span>Embeddings y RAG</span>
               </div>
             </div>
             <div class="step-line" id="line2"></div>
@@ -257,7 +334,7 @@
               <div class="step-circle">3</div>
               <div class="step-info">
                 <strong>Generando</strong>
-                <span>Quiz y Flashcards con IA</span>
+                <span>Módulos de Formación con IA</span>
               </div>
             </div>
             <div class="step-line" id="line3"></div>
@@ -265,14 +342,14 @@
             <div class="step-item" id="stepCritic">
               <div class="step-circle">4</div>
               <div class="step-info">
-                <strong>Formatos</strong>
-                <span>Disponibles para estudio</span>
+                <strong>Capacitación</strong>
+                <span>Lista para colaboradores</span>
               </div>
             </div>
           </div>
 
           <div class="pipeline-live-log" id="pipelineLiveLog">
-            Preparando el procesamiento de tu documento...
+            Preparando la generación del programa de capacitación...
           </div>
         </div>
 
@@ -281,56 +358,59 @@
           <div class="result-success-banner">
             <div class="success-icon-badge"></div>
             <div>
-              <h3 style="color: var(--text-main); font-size: 1.25rem;">¡Contenido Educativo Procesado con Éxito!</h3>
+              <h3 style="color: var(--text-main); font-size: 1.25rem;">¡Programa de Capacitación Generado con Éxito!</h3>
               <p style="color: var(--text-secondary); font-size: 0.88rem; margin-top: 0.2rem;">
-                Ya podés estudiar este documento en cualquiera de los 4 formatos disponibles.
+                El contenido fue adaptado y estructurado según las necesidades de tu equipo. Selecciona una modalidad formativa para comenzar:
               </p>
               <div class="quality-badges-row">
-                <span class="q-badge" id="badgeTiempo">Tiempo de lectura: 8 min</span>
+                <span class="q-badge" id="badgeTiempo">Tiempo estimado: 8 min</span>
                 <span class="q-badge" id="badgeSecciones">Secciones: 2</span>
-                <span class="q-badge" id="badgeNivel">Nivel: Intermedio</span>
+                <span class="q-badge" id="badgeNivel">Nivel: Operativo</span>
               </div>
             </div>
           </div>
 
           <div style="display: flex; flex-direction: column; gap: 1rem;">
             <label class="param-label" style="font-size: 0.95rem;">
-              <span></span> <strong>Selecciona cómo deseas estudiar este contenido:</strong>
+              <span></span> <strong>Selecciona cómo deseas capacitar a tu equipo:</strong>
             </label>
             <div class="resolver-format-grid">
               <button type="button" class="btn-resolver-card" data-resolve-format="flashcards">
                 <span class="resolver-icon"></span>
                 <div class="resolver-text">
-                  <strong>Flashcards 3D</strong>
-                  <span>Mnemotecnia y conceptos clave</span>
+                  <strong>Tarjetas de Refuerzo</strong>
+                  <span>Memoria activa y conceptos clave</span>
                 </div>
               </button>
               <button type="button" class="btn-resolver-card" data-resolve-format="quiz">
                 <span class="resolver-icon"></span>
                 <div class="resolver-text">
-                  <strong>Quiz Interactivo</strong>
-                  <span>Autoevaluación con justificación</span>
+                  <strong>Evaluación de Competencias</strong>
+                  <span>Validación con justificación técnica</span>
                 </div>
               </button>
               <button type="button" class="btn-resolver-card" data-resolve-format="video">
                 <span class="resolver-icon"></span>
                 <div class="resolver-text">
-                  <strong>Tutorial (Video)</strong>
-                  <span>Guion pedagógico estructurado</span>
+                  <strong>Guion Formativo (Video)</strong>
+                  <span>Estructura didáctica para facilitadores</span>
                 </div>
               </button>
               <button type="button" class="btn-resolver-card" data-resolve-format="sintesis">
                 <span class="resolver-icon"></span>
                 <div class="resolver-text">
-                  <strong>Resumen Ejecutivo</strong>
-                  <span>Síntesis y conceptos clave</span>
+                  <strong>Síntesis Ejecutiva</strong>
+                  <span>Resumen clave para consulta rápida</span>
                 </div>
               </button>
             </div>
 
             <div class="secondary-actions-row">
               <button type="button" class="btn-primary-action" id="btnIrALaBiblioteca">
-                <span>Ver en La Biblioteca</span>
+                <span>Ver en el Catálogo de Capacitaciones</span>
+              </button>
+              <button type="button" class="btn-primary-action" id="btnIrAlCentroEstudio" style="background: linear-gradient(135deg, rgba(6, 182, 212, 0.25), rgba(245, 158, 11, 0.2)); border: 1px solid var(--accent-cyan);">
+                <span>Ir al Centro de Estudio</span>
               </button>
             </div>
           </div>
@@ -340,60 +420,60 @@
     </section>
 
     <!-- ----------------------------------------------------------------------
-         PESTAÑA 3: CENTRO DE ESTUDIO MULTI-FORMATO
+         PESTAÑA 3: CENTRO DE CAPACITACIÓN CORPORATIVA
          ---------------------------------------------------------------------- -->
     <section id="viewStudy" class="tab-view">
       <div class="study-view-container">
         
-        <!-- Encabezado del Hub de Estudio -->
+        <!-- Encabezado del Hub de Capacitación -->
         <div class="study-hub-header">
           <div class="study-topic-meta">
-            <span class="topic-badge-pill" id="studyTopicBadge">DISCIPLINA</span>
-            <h3 class="study-topic-title" id="studyTopicTitle">Sección de Estudio</h3>
+            <span class="topic-badge-pill" id="studyTopicBadge">ÁREA OPERATIVA</span>
+            <h3 class="study-topic-title" id="studyTopicTitle">Módulo de Capacitación</h3>
           </div>
           <div class="study-header-actions">
-            <button type="button" class="btn-refresh-formats" id="btnRefreshFormats" title="Reintentar consultar formatos al Backend" style="display: none;">
-              <span>↻ Sincronizar Formatos</span>
+            <button type="button" class="btn-refresh-formats" id="btnRefreshFormats" title="Reintentar consultar formatos generados" style="display: none;">
+              <span>Sincronizar Formatos</span>
             </button>
           </div>
         </div>
 
-        <!-- Pestañas de Formato Pedagógico (4 Salidas) -->
+        <!-- Pestañas de Modalidades Formativas (4 Salidas) -->
         <div class="format-tabs-bar" role="tablist">
-          <button type="button" class="format-tab-btn active" data-format="flashcards">Flashcards</button>
-          <button type="button" class="format-tab-btn" data-format="quiz">Quiz</button>
-          <button type="button" class="format-tab-btn" data-format="video">Tutorial (Video)</button>
-          <button type="button" class="format-tab-btn" data-format="sintesis">Resumen</button>
+          <button type="button" class="format-tab-btn active" data-format="flashcards">Tarjetas de Refuerzo</button>
+          <button type="button" class="format-tab-btn" data-format="quiz">Evaluación (Quiz)</button>
+          <button type="button" class="format-tab-btn" data-format="video">Guion Formativo</button>
+          <button type="button" class="format-tab-btn" data-format="sintesis">Síntesis Ejecutiva</button>
         </div>
 
-        <!-- Formato 1: Flashcards 3D -->
+        <!-- Formato 1: Flashcards 3D (Refuerzo de Conocimientos) -->
         <div class="format-view active" id="viewFormatFlashcards">
           <div class="flashcard-wrapper">
             <div class="flashcard" id="currentCard">
-              <!-- Cara Frontal (Pregunta) -->
+              <!-- Cara Frontal (Concepto / Pregunta Operativa) -->
               <div class="card-face card-face-front">
                 <div class="card-top-tag">
-                  <span class="badge-pill badge-gold">Concepto</span>
+                  <span class="badge-pill badge-gold">Competencia Clave</span>
                   <span id="cardProgressTop">1 / 1</span>
                 </div>
                 <div class="card-body">
-                  <h3 class="card-question" id="cardFrontText">Cargando tarjeta...</h3>
+                  <h3 class="card-question" id="cardFrontText">Cargando tarjeta de refuerzo...</h3>
                 </div>
                 <div class="card-footer-tip">
-                  <span>Haz clic o presiona <b>Espacio / Enter</b> para voltear</span>
+                  <span>Haz clic o presiona <b>Espacio / Enter</b> para validar conocimiento</span>
                 </div>
               </div>
 
-              <!-- Cara Posterior (Respuesta y Pista) -->
+              <!-- Cara Posterior (Respuesta y Justificación Técnica) -->
               <div class="card-face card-face-back">
                 <div class="card-top-tag">
-                  <span class="badge-pill badge-green">Explicación Didáctica</span>
-                  <span>Respuesta</span>
+                  <span class="badge-pill badge-green">Fundamento y Justificación</span>
+                  <span>Respuesta Correcta</span>
                 </div>
                 <div class="card-body">
                   <p class="card-answer" id="cardBackText">Cargando respuesta...</p>
                   <div class="card-hint-box" id="hintBox">
-                    <span class="hint-label">Pista didáctica</span>
+                    <span class="hint-label">Pista de Refuerzo</span>
                     <p id="cardHintText">Pista...</p>
                   </div>
                 </div>
@@ -410,13 +490,20 @@
             <span class="card-counter-indicator" id="cardCounter">Tarjeta 1 de 1</span>
             <button type="button" class="control-btn" id="btnFlipCard">Voltear</button>
             <button type="button" class="control-btn" id="btnNextCard">&rarr; Siguiente</button>
+            <button type="button" class="control-btn btn-regen-format" id="btnRegenFlashcards" title="Solicitar un nuevo conjunto de tarjetas de memorización a la IA">↻ Nuevas Tarjetas</button>
           </div>
         </div>
 
-        <!-- Formato 2: Quiz Interactivo -->
+        <!-- Formato 2: Quiz de Evaluación de Competencias -->
         <div class="format-view" id="viewFormatQuiz">
           <div class="quiz-container">
-            <h4 class="quiz-question-title" id="quizQuestionText">Cargando pregunta del quiz...</h4>
+            <div class="quiz-header-bar">
+              <span class="topic-badge-pill" id="quizCounterBadge">Evaluación Interactiva</span>
+              <button type="button" class="btn-regen-format" id="btnRegenQuiz" title="Generar un nuevo cuestionario con preguntas diferentes a la IA">
+                ↻ Cambiar Quiz / Nuevas Preguntas
+              </button>
+            </div>
+            <h4 class="quiz-question-title" id="quizQuestionText">Cargando evaluación de competencias...</h4>
             <div class="quiz-options-list" id="quizOptionsList">
               <!-- Generado dinámicamente por quiz.js -->
             </div>
@@ -429,16 +516,16 @@
           </div>
         </div>
 
-        <!-- Formato 3: Tutorial (Video / Guion Didáctico) -->
+        <!-- Formato 3: Guion Formativo y Estructura de Entrenamiento -->
         <div class="format-view" id="viewFormatVideo">
           <div class="video-container">
             <div class="video-mockup-player">
               <div class="video-play-icon">&#9658;</div>
-              <h4 id="videoMockupTitle" style="font-size: 1.15rem; color: #ffffff;">Tutorial Pedagógico</h4>
+              <h4 id="videoMockupTitle" style="font-size: 1.15rem; color: #ffffff;">Guion de Capacitación</h4>
               <span class="badge-pill badge-cyan" id="videoDuration">4:30 min</span>
             </div>
             <div class="video-script-box">
-              <h4>Estructura del Guion Pedagógico</h4>
+              <h4>Estructura del Guion Formativo</h4>
               <ul id="videoScriptList">
                 <!-- Generado por videoGuide.js -->
               </ul>
@@ -454,11 +541,11 @@
               <p id="sintesisResumen">Cargando resumen ejecutivo...</p>
             </div>
             <div class="sintesis-details">
-              <h4>Puntos Clave Extraídos</h4>
+              <h4>Puntos Críticos y Procedimientos</h4>
               <ul id="sintesisPuntosList">
                 <!-- Generado por summary.js -->
               </ul>
-              <h4>Conceptos Clave</h4>
+              <h4>Competencias Clave</h4>
               <div class="concept-chips" id="sintesisTerminosChips">
                 <!-- Generado por summary.js -->
               </div>
@@ -475,39 +562,39 @@
        BARRA INFERIOR DE ESTADO
        ======================================================================== -->
   <footer class="system-status-bar">
-    <div class="status-indicator">
+    <div class="status-indicator is-disconnected">
       <div class="status-dot"></div>
-      <span id="ociStatusText">Conectado a Backend API</span>
+      <span id="ociStatusText">Desconectado del servidor (FastAPI)</span>
     </div>
     <div>
-      <span id="qualityScoreText">Explorando la biblioteca</span>
+      <span id="qualityScoreText">Explorando módulos corporativos</span>
     </div>
   </footer>
 
-  <!-- Modal Principal: Cuaderno Abierto que Sale a Pantalla -->
+  <!-- Modal Principal: Cuaderno de Módulo Abierto que Sale a Pantalla -->
   <div class="open-book-modal-backdrop" id="openBookOverlay" style="display: none;">
     <div class="open-notebook-spread">
       
-      <!-- Hoja Izquierda: Ficha del Documento -->
+      <!-- Hoja Izquierda: Ficha del Módulo Corporativo -->
       <div class="notebook-page-left">
         <div class="doc-badge-row">
-          <span class="badge-pill badge-gold" id="openedDocBadge">DISCIPLINA</span>
+          <span class="badge-pill badge-gold" id="openedDocBadge">ÁREA OPERATIVA</span>
         </div>
 
         <div style="display: flex; flex-direction: column; gap: 0.75rem;">
-          <h3 class="opened-doc-title" id="openedDocTitle">Título del Documento</h3>
-          <p class="opened-doc-summary" id="openedDocSummary">Descripción y resumen del contenido analizado...</p>
+          <h3 class="opened-doc-title" id="openedDocTitle">Título del Módulo</h3>
+          <p class="opened-doc-summary" id="openedDocSummary">Descripción y alcance de la capacitación...</p>
         </div>
 
         <div class="study-meta-box">
-          <div>Tiempo de lectura: <strong id="openedDocTime">10 min</strong></div>
-          <div>Secciones: <strong id="openedDocSections">4</strong></div>
-          <div>Nivel: <strong id="openedDocLevel">Intermedio</strong></div>
+          <div>Tiempo estimado: <strong id="openedDocTime">10 min</strong></div>
+          <div>Módulos / Secciones: <strong id="openedDocSections">4</strong></div>
+          <div>Nivel: <strong id="openedDocLevel">Operativo</strong></div>
         </div>
 
         <div>
           <span style="font-size: 0.74rem; font-weight: 700; color: var(--text-muted); text-transform: uppercase; display: block; margin-bottom: 0.4rem;">
-            Conceptos Clave del Módulo:
+            Competencias Clave del Módulo:
           </span>
           <div class="concept-chips" id="openedDocChips">
             <!-- Chips inyectados dinámicamente -->
@@ -515,41 +602,41 @@
         </div>
       </div>
 
-      <!-- Hoja Derecha: Opciones de Estudio -->
+      <!-- Hoja Derecha: Modalidades de Capacitación -->
       <div class="notebook-page-right">
         <div class="study-choice-header">
-          <span class="badge-pill badge-green" style="margin-bottom: 0.4rem; display: inline-block;">Modalidades Disponibles</span>
-          <h4>¿Cómo quieres estudiar este material?</h4>
-          <p>Selecciona un formato interactivo para comenzar tu sesión:</p>
+          <span class="badge-pill badge-green" style="margin-bottom: 0.4rem; display: inline-block;">Modalidades de Entrenamiento</span>
+          <h4>¿Cómo deseas capacitar con este material?</h4>
+          <p>Selecciona un formato interactivo para iniciar la sesión formativa:</p>
         </div>
 
         <div class="study-options-mini-grid">
           <button type="button" class="btn-study-choice-card" data-study-format="flashcards">
             <span class="choice-icon"></span>
             <div class="choice-info">
-              <strong>Flashcards 3D</strong>
-              <span>Mnemotecnia activa</span>
+              <strong>Tarjetas de Refuerzo</strong>
+              <span>Memoria activa y conceptos</span>
             </div>
           </button>
           <button type="button" class="btn-study-choice-card" data-study-format="quiz">
             <span class="choice-icon"></span>
             <div class="choice-info">
-              <strong>Quiz</strong>
-              <span>Autoevaluación directa</span>
+              <strong>Evaluación (Quiz)</strong>
+              <span>Validación de competencias</span>
             </div>
           </button>
           <button type="button" class="btn-study-choice-card" data-study-format="video">
             <span class="choice-icon"></span>
             <div class="choice-info">
-              <strong>Tutorial</strong>
-              <span>Guion pedagógico</span>
+              <strong>Guion Formativo</strong>
+              <span>Estructura de capacitación</span>
             </div>
           </button>
           <button type="button" class="btn-study-choice-card" data-study-format="sintesis">
             <span class="choice-icon"></span>
             <div class="choice-info">
-              <strong>Resumen</strong>
-              <span>Síntesis ejecutiva</span>
+              <strong>Síntesis Ejecutiva</strong>
+              <span>Resumen operativo</span>
             </div>
           </button>
         </div>
@@ -559,7 +646,7 @@
             <span>Devolver al Estante</span>
           </button>
           <button type="button" class="btn-primary-action" id="btnStartStudying">
-            <span>Comenzar a Estudiar &rarr;</span>
+            <span>Iniciar Capacitación &rarr;</span>
           </button>
         </div>
       </div>

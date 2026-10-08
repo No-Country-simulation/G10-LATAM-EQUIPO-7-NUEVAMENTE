@@ -28,9 +28,20 @@ export const summary = {
     resumenText.textContent = sintesisData.executive_summary || sintesisData.resumen_ejecutivo || 'Resumen generado automáticamente.';
     
     const puntos = sintesisData.key_takeaways || sintesisData.puntos_clave || [];
-    puntosList.innerHTML = puntos.map(p => `<li>${p}</li>`).join('');
+    puntosList.innerHTML = '';
+    puntos.forEach(p => {
+      const li = document.createElement('li');
+      li.textContent = typeof p === 'string' ? p : String(p ?? '');
+      puntosList.appendChild(li);
+    });
 
     const terminos = sintesisData.key_terms || sintesisData.terminos_clave || [];
-    chipsContainer.innerHTML = terminos.map(t => `<span class="concept-chip">${t}</span>`).join('');
+    chipsContainer.innerHTML = '';
+    terminos.forEach(t => {
+      const chip = document.createElement('span');
+      chip.className = 'concept-chip';
+      chip.textContent = typeof t === 'string' ? t : String(t ?? '');
+      chipsContainer.appendChild(chip);
+    });
   }
 };

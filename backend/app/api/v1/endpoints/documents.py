@@ -6,17 +6,19 @@ from typing import Annotated
 
 from fastapi import (
     APIRouter,
+    BackgroundTasks,
     Depends,
     File,
     Form,
-    HTTPException,
     Response,
     UploadFile,
     status,
 )
 
 from app.api.adaptation_execution import (
-    execute_adaptation,
+    execute_background_generation,
+    execute_indexing,
+    prepare_background_generation,
 )
 from app.api.dependencies import (
     get_adaptation_orchestration_service,
@@ -38,7 +40,15 @@ from app.application.generated_format_query_service import (
     GeneratedFormatQueryService,
 )
 from app.core.config import settings
+from app.core.error_codes import ErrorCode
+from app.core.http_exceptions import APIHTTPException
 from app.domain.document import Document
+from app.ports.document_repository_port import (
+    DocumentRepositoryError,
+)
+from app.ports.generated_format_repository_port import (
+    GeneratedFormatRepositoryError,
+)
 from app.ports.object_storage_port import ObjectStoragePort
 from app.ports.temporary_storage_port import (
     FileTooLargeError,
@@ -53,6 +63,7 @@ from app.schemas.document import (
     DocumentCreatedResponse,
     DocumentListResponse,
     DocumentResponse,
+    LearningMetadataResponse,
 )
 from app.schemas.generated_format import (
     DocumentFormatsResponse,
@@ -98,8 +109,9 @@ def _validate_document_type(
 ) -> None:
     """Valida la extensión y el MIME type declarado del documento."""
     if not filename:
-        raise HTTPException(
+        raise APIHTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
+            code=ErrorCode.DOCUMENT_FILENAME_REQUIRED,
             detail="El documento debe tener un nombre.",
         )
 
@@ -110,8 +122,9 @@ def _validate_document_type(
     )
 
     if allowed_mime_types is None:
-        raise HTTPException(
+        raise APIHTTPException(
             status_code=status.HTTP_415_UNSUPPORTED_MEDIA_TYPE,
+            code=ErrorCode.UNSUPPORTED_FILE_TYPE,
             detail=(
                 "Formato de documento no soportado. "
                 "Se admiten archivos PDF, Markdown (.md) y TXT."
@@ -126,8 +139,9 @@ def _validate_document_type(
     )
 
     if normalized_content_type not in allowed_mime_types:
-        raise HTTPException(
+        raise APIHTTPException(
             status_code=status.HTTP_415_UNSUPPORTED_MEDIA_TYPE,
+            code=ErrorCode.MIME_TYPE_MISMATCH,
             detail=(
                 "El MIME type informado no corresponde "
                 "con un formato admitido."
@@ -139,6 +153,15 @@ def _to_document_response(
     document: Document,
 ) -> DocumentResponse:
     """Convierte la entidad de dominio al contrato HTTP público."""
+    learning_metadata = (
+        LearningMetadataResponse.from_domain(
+            document.learning_metadata
+        )
+        if document.learning_metadata
+        is not None
+        else None
+    )
+
     return DocumentResponse(
         document_id=document.document_id,
         filename=document.original_filename,
@@ -147,6 +170,7 @@ def _to_document_response(
         size_bytes=document.size_bytes,
         created_at=document.created_at,
         updated_at=document.updated_at,
+        learning_metadata=learning_metadata,
     )
 
 
@@ -154,19 +178,19 @@ def _to_document_response(
     "",
     response_model=DocumentCreatedResponse,
     status_code=status.HTTP_201_CREATED,
-    summary="Cargar y procesar documento",
+    summary="Cargar e indexar documento",
     description=(
         "Recibe un documento PDF, Markdown o TXT junto con "
         "el contexto pedagógico. Backend valida y almacena "
-        "el archivo, ejecuta la indexación, genera "
-        "automáticamente Quiz y Flashcards y persiste "
-        "los resultados para su posterior consulta."
+        "el archivo, completa la indexación RAG de forma "
+        "síncrona y, una vez indexado, programa la generación "
+        "de Quiz y Flashcards en segundo plano."
     ),
     responses={
         200: {
             "model": DocumentCreatedResponse,
             "description": (
-                "Documento previamente registrado y procesado."
+                "Documento previamente registrado e indexado."
             ),
         },
         400: {
@@ -175,7 +199,7 @@ def _to_document_response(
         409: {
             "description": (
                 "El documento no se encuentra en un estado "
-                "válido para ejecutar el procesamiento."
+                "válido para ejecutar la indexación."
             ),
         },
         413: {
@@ -186,14 +210,15 @@ def _to_document_response(
         },
         502: {
             "description": (
-                "Error durante almacenamiento, indexación "
-                "o generación de formatos."
+                "Error durante almacenamiento o indexación "
+                "del documento."
             ),
         },
     },
 )
 async def upload_document(
     response: Response,
+    background_tasks: BackgroundTasks,
     file: Annotated[
         UploadFile,
         File(
@@ -255,7 +280,11 @@ async def upload_document(
         ),
     ] = None,
 ) -> DocumentCreatedResponse:
-    """Carga el documento y completa su procesamiento interno."""
+    """Carga, almacena e indexa un documento.
+
+    La generación pedagógica se programa como tarea en segundo plano
+    únicamente después de que la indexación RAG finaliza correctamente.
+    """
     _validate_document_type(
         file.filename,
         file.content_type,
@@ -275,10 +304,11 @@ async def upload_document(
                 )
             )
         except FileTooLargeError as exc:
-            raise HTTPException(
+            raise APIHTTPException(
                 status_code=(
                     status.HTTP_413_CONTENT_TOO_LARGE
                 ),
+                code=ErrorCode.FILE_TOO_LARGE,
                 detail=(
                     "El archivo supera el máximo de "
                     f"{settings.MAX_UPLOAD_SIZE_MB} MB."
@@ -294,8 +324,9 @@ async def upload_document(
             missing_ok=True
         )
 
-        raise HTTPException(
+        raise APIHTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
+            code=ErrorCode.DOCUMENT_EMPTY,
             detail="El documento no puede estar vacío.",
         )
 
@@ -321,11 +352,24 @@ async def upload_document(
             )
 
     except DocumentStorageError as exc:
-        raise HTTPException(
+        raise APIHTTPException(
             status_code=status.HTTP_502_BAD_GATEWAY,
+            code=ErrorCode.DOCUMENT_STORAGE_FAILED,
             detail=(
                 "El documento fue registrado, pero no pudo "
                 "almacenarse en OCI Object Storage."
+            ),
+        ) from exc
+
+    except DocumentRepositoryError as exc:
+        raise APIHTTPException(
+            status_code=(
+                status.HTTP_500_INTERNAL_SERVER_ERROR
+            ),
+            code=ErrorCode.PERSISTENCE_ERROR,
+            detail=(
+                "No fue posible acceder a la persistencia "
+                "de documentos."
             ),
         ) from exc
 
@@ -334,19 +378,40 @@ async def upload_document(
             missing_ok=True
         )
 
-    await execute_adaptation(
+    await execute_indexing(
         orchestration_service=orchestration_service,
         document_id=document.document_id,
-        profile=profile,
-        niche=niche,
-        detail_level=detail_level,
-        learning_objective=learning_objective,
     )
 
     current_document = (
         document_service.get_document(
             document.document_id
         )
+    )
+
+    generation_attempts = (
+        prepare_background_generation(
+            orchestration_service=(
+                orchestration_service
+            ),
+            document_id=(
+                current_document.document_id
+            ),
+            profile=profile,
+            niche=niche,
+            detail_level=detail_level,
+            learning_objective=(
+                learning_objective
+            ),
+        )
+    )
+
+    background_tasks.add_task(
+        execute_background_generation,
+        orchestration_service=(
+            orchestration_service
+        ),
+        attempts=generation_attempts,
     )
 
     if not registration.created:
@@ -379,9 +444,21 @@ async def list_documents(
     ],
 ) -> DocumentListResponse:
     """Obtiene los documentos activos de la biblioteca."""
-    documents = (
-        document_service.list_active_documents()
-    )
+    try:
+        documents = (
+            document_service.list_active_documents()
+        )
+    except DocumentRepositoryError as exc:
+        raise APIHTTPException(
+            status_code=(
+                status.HTTP_500_INTERNAL_SERVER_ERROR
+            ),
+            code=ErrorCode.PERSISTENCE_ERROR,
+            detail=(
+                "No fue posible consultar la persistencia "
+                "de documentos."
+            ),
+        ) from exc
 
     return DocumentListResponse(
         documents=[
@@ -431,11 +508,27 @@ async def get_document_formats(
     except (
         GeneratedFormatQueryDocumentNotFoundError
     ) as exc:
-        raise HTTPException(
+        raise APIHTTPException(
             status_code=(
                 status.HTTP_404_NOT_FOUND
             ),
+            code=ErrorCode.DOCUMENT_NOT_FOUND,
             detail=str(exc),
+        ) from exc
+
+    except (
+        DocumentRepositoryError,
+        GeneratedFormatRepositoryError,
+    ) as exc:
+        raise APIHTTPException(
+            status_code=(
+                status.HTTP_500_INTERNAL_SERVER_ERROR
+            ),
+            code=ErrorCode.PERSISTENCE_ERROR,
+            detail=(
+                "No fue posible consultar la persistencia "
+                "de formatos del documento."
+            ),
         ) from exc
 
     formats = (
@@ -466,8 +559,8 @@ async def get_document_formats(
     status_code=status.HTTP_200_OK,
     summary="Consultar documento",
     description=(
-        "Consulta la metadata y el estado actual de "
-        "un documento mediante su document_id."
+        "Consulta la metadata, el estado y los metadatos "
+        "pedagógicos actuales de un documento mediante su document_id."
     ),
     responses={
         404: {
@@ -487,10 +580,24 @@ async def get_document(
         document = document_service.get_document(
             document_id
         )
+
     except DocumentNotFoundError as exc:
-        raise HTTPException(
+        raise APIHTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
+            code=ErrorCode.DOCUMENT_NOT_FOUND,
             detail=str(exc),
+        ) from exc
+
+    except DocumentRepositoryError as exc:
+        raise APIHTTPException(
+            status_code=(
+                status.HTTP_500_INTERNAL_SERVER_ERROR
+            ),
+            code=ErrorCode.PERSISTENCE_ERROR,
+            detail=(
+                "No fue posible consultar la persistencia "
+                "del documento."
+            ),
         ) from exc
 
     return _to_document_response(

@@ -50,6 +50,24 @@ class QuizContent(BaseModel):
     instructions: str = Field(..., description="Instrucciones para resolver el cuestionario.")
     questions: List[QuizItem] = Field(..., description="Lista de preguntas del quiz.")
 
+class TLDRContent(BaseModel):
+    title: str = Field(..., description="Título breve del contenido.")
+    summary: str = Field(..., description="Resumen ejecutivo conciso del contexto recuperado.")
+    key_points: List[str] = Field(..., description="Lista de los puntos esenciales.")
+    conclusion: str = Field(..., description="Idea final o takeaway principal.")
+
+class VideoScene(BaseModel):
+    scene_id: str = Field(..., description="Identificador corto de la escena.")
+    title: str = Field(..., description="Título de la escena.")
+    narration: str = Field(..., description="Texto que pronunciaría el docente o narrador.")
+    visual_description: str = Field(..., description="Qué debería verse en pantalla.")
+    duration_seconds: int = Field(..., description="Duración estimada de esa escena en segundos.")
+
+class VideoScriptContent(BaseModel):
+    title: str = Field(..., description="Título general.")
+    estimated_duration_minutes: int = Field(..., description="Duración estimada total.")
+    scenes: List[VideoScene] = Field(..., description="Secuencia ordenada del guion.")
+
 # ==========================================
 # CONTRATOS DE ENTRADA (Validación Pydantic)
 # ==========================================
@@ -144,7 +162,9 @@ def generate_formats(payload: GenerateRequest):
     # ==========================================
     for formato in payload.formats:
         
-        # Validamos los formatos (Añadidos tldr y video_script adelantándonos al merge de Oscar)
+        # ==========================================
+        # VALIDACIÓN DE FORMATO ATÓMICA
+        # ==========================================
         if formato not in ["quiz", "flashcards", "tldr", "video_script"]:
             respuestas_generadas.append({
                 "format": formato,

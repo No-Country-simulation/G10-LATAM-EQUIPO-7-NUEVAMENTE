@@ -10,6 +10,7 @@ from .rag.retriever import RetrieverService
 env_path = Path(__file__).resolve().parent.parent / '.env'
 load_dotenv(dotenv_path=env_path)
 
+# Configuración única, estricta y segura del cliente GenAI (sin imprimir claves en consola)
 API_KEY = os.environ["GEMINI_API_KEY"]
 MODEL_NAME = os.environ["GEMINI_MODEL"]
 
@@ -20,7 +21,9 @@ client = genai.Client(api_key=API_KEY)
 # ==========================================
 PROMPTS_BASE = {
     "quiz": "Genera un cuestionario interactivo de opción múltiple (mínimo 3 preguntas) asegurando incluir la respuesta correcta, opciones de distracción coherentes y una breve justificación pedagógica.",
-    "flashcards": "Genera 5 tarjetas de memorización (flashcards). Cada una debe tener un concepto clave en la cara frontal y su definición concisa en la cara trasera."
+    "flashcards": "Genera 5 tarjetas de memorización (flashcards). Cada una debe tener un concepto clave en la cara frontal y su definición concisa en la cara trasera.",
+    "tldr": "Genera un resumen ejecutivo conciso basado exclusivamente en el contexto recuperado, sin inventar información externa. Identifica entre 3 y 7 puntos clave esenciales cuando el contexto lo permita y cierra con la conclusión o takeaway principal. Adapta el lenguaje a profile, niche y detail_level.",
+    "video_script": "Genera un guion educativo de clase o video dividido en una secuencia ordenada de escenas. Usa únicamente el contexto recuperado sin inventar datos técnicos ausentes, adaptando el lenguaje a profile, niche y detail_level, y respetando learning_objective si existe. Cada escena debe incluir un identificador corto (scene_id), título, texto de narración pedagógica que pronunciaría el docente o narrador, descripción visual de lo que debería verse en pantalla y duration_seconds. La duración estimada total (estimated_duration_minutes) debe ser razonablemente coherente con la suma de las duraciones de las escenas."
 }
 
 class AgentV1:
@@ -123,25 +126,33 @@ class AgentV1:
                 
             prompt_final += f"""
             Adapta el lenguaje y la complejidad estrictamente a este perfil.
-            Genera identificadores únicos (IDs) cortos y alfanuméricos para cada pregunta o tarjeta.
+            Genera identificadores únicos (IDs) cortos y alfanuméricos para cada elemento cuando aplique (preguntas, tarjetas, escenas).
 
             CONTEXTO RECUPERADO (Usa ÚNICA Y ESTRICTAMENTE esta información, no inventes datos externos):
             {contexto_unificado}
             """
 
-            # 4. Importación local 
-            # NOTA: Si haces merge con el PR de Oscar, asegúrate de mantener sus importaciones de TldrContent aquí.
-            from .api import QuizContent, FlashcardsContent 
+            # 4. Importación local para prevenir dependencias circulares con api.py
+            from .api import (
+                QuizContent,
+                FlashcardsContent,
+                TLDRContent,
+                VideoScriptContent,
+            )
 
             # Mapeamos el formato al contrato Pydantic correcto
             if formato.lower() == "quiz":
                 esquema_salida = QuizContent
             elif formato.lower() == "flashcards":
                 esquema_salida = FlashcardsContent
+            elif formato.lower() == "tldr":
+                esquema_salida = TLDRContent
+            elif formato.lower() == "video_script":
+                esquema_salida = VideoScriptContent
             else:
                 raise ValueError(f"Formato '{formato}' no soportado para generación.")
 
-            # 5. Llamada al LLM
+            # 5. Llamada al LLM usando el SDK moderno 'google-genai' con Structured Outputs
             response = client.models.generate_content(
                 model=MODEL_NAME,
                 contents=prompt_final,
@@ -152,6 +163,7 @@ class AgentV1:
                 )
             )
             
+            # 6. Extracción validada mediante response.parsed del SDK moderno
             parsed_content = response.parsed
             texto_generado = parsed_content.model_dump()
 

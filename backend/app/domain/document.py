@@ -4,6 +4,7 @@ from dataclasses import dataclass, field
 from datetime import UTC, datetime
 
 from app.domain.enums import DocumentStatus
+from app.domain.learning_metadata import LearningMetadata
 
 
 @dataclass(slots=True)
@@ -21,6 +22,7 @@ class Document:
         size_bytes: Tamaño del documento en bytes.
         status: Estado actual dentro del flujo de procesamiento.
         oci_object_name: Identificador del objeto persistido en OCI.
+        learning_metadata: Metadatos pedagógicos de la adaptación vigente.
         created_at: Fecha de creación del registro.
         updated_at: Fecha de última modificación.
     """
@@ -33,6 +35,7 @@ class Document:
 
     status: DocumentStatus = DocumentStatus.RECEIVED
     oci_object_name: str | None = None
+    learning_metadata: LearningMetadata | None = None
 
     created_at: datetime = field(
         default_factory=lambda: datetime.now(UTC)
@@ -80,4 +83,12 @@ class Document:
     def clear_oci_object(self) -> None:
         """Retira la referencia al objeto OCI durante una compensación."""
         self.oci_object_name = None
+        self.updated_at = datetime.now(UTC)
+
+    def assign_learning_metadata(
+        self,
+        learning_metadata: LearningMetadata,
+    ) -> None:
+        """Asocia los metadatos pedagógicos devueltos por Agentes."""
+        self.learning_metadata = learning_metadata
         self.updated_at = datetime.now(UTC)

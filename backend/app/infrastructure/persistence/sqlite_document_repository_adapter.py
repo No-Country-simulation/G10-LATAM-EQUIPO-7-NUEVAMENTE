@@ -41,10 +41,11 @@ class SQLiteDocumentRepositoryAdapter:
                         size_bytes,
                         status,
                         oci_object_name,
+                        learning_metadata_json,
                         created_at,
                         updated_at
                     )
-                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                     """,
                     (
                         record.document_id,
@@ -54,6 +55,7 @@ class SQLiteDocumentRepositoryAdapter:
                         record.size_bytes,
                         record.status,
                         record.oci_object_name,
+                        record.learning_metadata_json,
                         record.created_at,
                         record.updated_at,
                     ),
@@ -135,6 +137,7 @@ class SQLiteDocumentRepositoryAdapter:
                         size_bytes = ?,
                         status = ?,
                         oci_object_name = ?,
+                        learning_metadata_json = ?,
                         updated_at = ?
                     WHERE document_id = ?
                     """,
@@ -145,6 +148,7 @@ class SQLiteDocumentRepositoryAdapter:
                         record.size_bytes,
                         record.status,
                         record.oci_object_name,
+                        record.learning_metadata_json,
                         record.updated_at,
                         record.document_id,
                     ),

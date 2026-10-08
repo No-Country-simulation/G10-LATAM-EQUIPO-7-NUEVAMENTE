@@ -13,6 +13,7 @@ from app.domain.generated_content import (
     QuizContent,
 )
 from app.domain.generated_format import ChunkEvidence
+from app.domain.learning_metadata import LearningMetadata
 from app.ports.agents_port import (
     AgentGeneratedFormatResult,
     AgentGenerationInput,
@@ -33,6 +34,34 @@ class _ChunkEvidenceHTTPResponse(BaseModel):
     rank: int
     score: float
     text: str
+
+
+class _LearningMetadataHTTPResponse(BaseModel):
+    """Metadata pedagógica retornada una sola vez por Agentes."""
+
+    model_config = ConfigDict(
+        extra="forbid",
+    )
+
+    key_concepts: list[str]
+    prerequisites: list[str]
+    estimated_time_minutes: int = Field(
+        ge=0
+    )
+
+    def to_domain(self) -> LearningMetadata:
+        """Convierte el contrato HTTP al value object del dominio."""
+        return LearningMetadata(
+            key_concepts=tuple(
+                self.key_concepts
+            ),
+            prerequisites=tuple(
+                self.prerequisites
+            ),
+            estimated_time_minutes=(
+                self.estimated_time_minutes
+            ),
+        )
 
 
 class _GeneratedFormatHTTPResult(BaseModel):
@@ -59,6 +88,7 @@ class _AgentGenerationHTTPResponse(BaseModel):
     )
 
     document_id: str
+    learning_metadata: _LearningMetadataHTTPResponse
     results: list[_GeneratedFormatHTTPResult]
 
 
@@ -91,7 +121,7 @@ class HTTPAgentsAdapter:
         self,
         request: AgentGenerationInput,
     ) -> AgentGenerationResult:
-        """Solicita Quiz y/o Flashcards al servicio de Agentes.
+        """Solicita formatos y metadata pedagógica a Agentes.
 
         Args:
             request: Solicitud normalizada construida por BackendAPI.
@@ -154,6 +184,11 @@ class HTTPAgentsAdapter:
                     payload_response.document_id
                 ),
                 results=results,
+                learning_metadata=(
+                    payload_response
+                    .learning_metadata
+                    .to_domain()
+                ),
             )
 
         except (

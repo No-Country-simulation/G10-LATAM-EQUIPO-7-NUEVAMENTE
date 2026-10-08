@@ -10,7 +10,8 @@
  * 2. Inyección global en window.__ENV__?.VITE_API_BASE_URL (despliegues Docker/Nginx)
  * 3. Parámetro en URL (?api=http://... o ?backend=http://...) para QA y testing en caliente
  * 4. LocalStorage ('nuevamente_backend_url') para cambio rápido en navegador
- * 5. Fallback por defecto: 'http://localhost:8000'
+ * 5. Si no es localhost, usar el mismo origen (window.location.origin)
+ * 6. Fallback por defecto: 'http://localhost:8000'
  */
 function resolveApiBaseUrl() {
   // 1. Variable de entorno de Vite
@@ -43,7 +44,7 @@ function resolveApiBaseUrl() {
     }
   }
 
-  // 5. Si estamos en un despliegue en la nube (no localhost), usar el mismo origen
+  // 5. Si estamos en un despliegue en la nube o proxy (no localhost), usar el mismo origen
   if (typeof window !== 'undefined' && window.location && window.location.hostname) {
     const host = window.location.hostname;
     if (host !== 'localhost' && host !== '127.0.0.1') {
@@ -51,7 +52,7 @@ function resolveApiBaseUrl() {
     }
   }
 
-  // 6. Fallback por defecto
+  // 6. Fallback por defecto para desarrollo local
   return 'http://localhost:8000';
 }
 
@@ -79,10 +80,11 @@ export const CONFIG = {
       DOCUMENTS: '/documents',
       UPLOAD_FILE: '/documents',
       DOCUMENT_DETAILS: (id) => `/documents/${id}`,
-      DOCUMENT_FORMATS: (id) => `/documents/${id}/formats`
+      DOCUMENT_FORMATS: (id) => `/documents/${id}/formats`,
+      DOCUMENT_REGENERATE: (id) => `/documents/${id}/formats/regenerate`
     },
     TIMEOUT_MS: resolveTimeoutMs(),
-    PROCESSING_TIMEOUT_MS: 120000, // 120s para procesamiento síncrono RAG + LLM en Sprint 2 (POST /documents)
+    PROCESSING_TIMEOUT_MS: 120000, // Timeout para almacenamiento OCI e indexación RAG síncrona (POST /documents)
     ADAPTATIONS_TIMEOUT_MS: 120000 // Compatibilidad retroactiva
   },
 
@@ -91,6 +93,12 @@ export const CONFIG = {
     MAX_SIZE_MB: 10,
     ALLOWED_EXTENSIONS: ['pdf', 'md', 'txt']
   },
+
+  // Paleta de colores de lomo disponibles para los libros (debe coincidir con .spine-* en bookshelf.css)
+  SPINE_COLORS: [
+    'navy', 'emerald', 'burgundy', 'amber', 'purple',
+    'forest', 'slate', 'ruby', 'indigo', 'cyan', 'gold-custom'
+  ],
 
   // Parámetros de adaptación pedagógica desacoplados (Sprint 2)
   PEDAGOGICAL: {
@@ -115,6 +123,14 @@ export const CONFIG = {
     BACKEND_URL: 'nuevamente_backend_url'
   }
 };
+
+/**
+ * Devuelve un color de lomo aleatorio de la paleta disponible.
+ */
+export function getRandomSpineColor() {
+  const colors = CONFIG.SPINE_COLORS;
+  return colors[Math.floor(Math.random() * colors.length)];
+}
 
 // Helper de consola para QA y desarrolladores: cambiar URL del backend al instante
 if (typeof window !== 'undefined') {

@@ -151,8 +151,34 @@ class GeneratedFormat:
                 "document_id no puede estar vacío."
             )
 
+        self._validate_processing_contract()
         self._validate_success_contract()
         self._validate_evidence()
+
+    def _validate_processing_contract(
+        self,
+    ) -> None:
+        """Valida que un intento en proceso no tenga resultado todavía."""
+        if (
+            self.status
+            != GeneratedFormatStatus.PROCESSING
+        ):
+            return
+
+        if self.content is not None:
+            raise ValueError(
+                "Una generación processing no puede incluir content."
+            )
+
+        if self.chunks_used:
+            raise ValueError(
+                "Una generación processing no puede incluir chunks_used."
+            )
+
+        if self.error_message is not None:
+            raise ValueError(
+                "Una generación processing no puede incluir error_message."
+            )
 
     def _validate_success_contract(
         self,
