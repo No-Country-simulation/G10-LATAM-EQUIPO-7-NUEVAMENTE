@@ -21,6 +21,13 @@ _ADAPTATION_DATA = {
     ),
 }
 
+_CURRENT_FORMATS = {
+    "quiz",
+    "flashcards",
+    "tldr",
+    "video_script",
+}
+
 
 @pytest.mark.parametrize(
     ("filename", "content_type"),
@@ -41,7 +48,7 @@ def test_upload_valid_document(
     filename: str,
     content_type: str,
 ) -> None:
-    """Almacena, indexa y genera formatos en etapas separadas."""
+    """Almacena, indexa y genera los cuatro formatos por etapas."""
     file_content = b"contenido de prueba"
 
     response = client.post(
@@ -107,7 +114,7 @@ def test_upload_valid_document(
 
     assert len(
         completed_format_ids
-    ) == 2
+    ) == 4
 
     formats_response = client.get(
         f"{api_prefix}/documents/"
@@ -130,30 +137,21 @@ def test_upload_valid_document(
 
     assert set(
         formats_body["formats"]
-    ) == {
-        "quiz",
-        "flashcards",
-    }
+    ) == _CURRENT_FORMATS
 
-    assert (
-        formats_body["formats"]
-        ["quiz"]["status"]
+    assert all(
+        format_response["status"]
         == "success"
-    )
-
-    assert (
-        formats_body["formats"]
-        ["flashcards"]["status"]
-        == "success"
+        for format_response
+        in formats_body["formats"].values()
     )
 
     returned_format_ids = {
-        formats_body["formats"][
-            "quiz"
-        ]["format_id"],
-        formats_body["formats"][
-            "flashcards"
-        ]["format_id"],
+        format_response[
+            "format_id"
+        ]
+        for format_response
+        in formats_body["formats"].values()
     }
 
     assert (
@@ -429,7 +427,7 @@ def test_duplicate_document_reuses_document_id(
 
     assert all(
         len(completed_format_ids)
-        == 2
+        == 4
         for completed_format_ids
         in (
             fake_adaptation_orchestration_service
@@ -447,10 +445,18 @@ def test_duplicate_document_reuses_document_id(
         == 200
     )
 
+    formats_body = (
+        formats_response.json()
+    )
+
     assert (
-        formats_response.json()["status"]
+        formats_body["status"]
         == "ready"
     )
+
+    assert set(
+        formats_body["formats"]
+    ) == _CURRENT_FORMATS
 
     stored_files = list(
         temporary_upload_directory.iterdir()

@@ -428,7 +428,7 @@ def test_unknown_document_is_rejected_during_indexing() -> None:
 
 
 def test_default_formats_are_prepared_separately() -> None:
-    """Registra Quiz y Flashcards sin ejecutar indexación ni Agentes."""
+    """Registra los cuatro formatos sin ejecutar indexación ni Agentes."""
     (
         service,
         rag_service,
@@ -479,6 +479,8 @@ def test_default_formats_are_prepared_separately() -> None:
     assert request["formats"] == (
         GeneratedFormatType.QUIZ,
         GeneratedFormatType.FLASHCARDS,
+        GeneratedFormatType.TLDR,
+        GeneratedFormatType.VIDEO_SCRIPT,
     )
 
     assert (
@@ -503,7 +505,7 @@ def test_default_formats_are_prepared_separately() -> None:
         )
     )
 
-    assert len(attempts) == 2
+    assert len(attempts) == 4
 
     assert all(
         attempt.status
@@ -559,6 +561,8 @@ def test_default_generation_persists_package_after_completion() -> None:
             (
                 "fmt_quiz",
                 "fmt_flashcards",
+                "fmt_tldr",
+                "fmt_video_script",
             )
         ]
     )

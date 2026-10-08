@@ -11,6 +11,8 @@ from app.domain.generated_content import (
     FlashcardsContent,
     GeneratedContent,
     QuizContent,
+    TLDRContent,
+    VideoScriptContent,
 )
 
 
@@ -183,7 +185,7 @@ class GeneratedFormat:
     def _validate_success_contract(
         self,
     ) -> None:
-        """Valida el contrato acordado con Agentes."""
+        """Valida el contenido exitoso según su tipo de formato."""
         if (
             self.status
             != GeneratedFormatStatus.SUCCESS
@@ -200,29 +202,31 @@ class GeneratedFormat:
                 "Una generación exitosa debe incluir chunks_used completos."
             )
 
-        if (
-            self.format_type
-            == GeneratedFormatType.QUIZ
-            and not isinstance(
-                self.content,
-                QuizContent,
-            )
-        ):
-            raise ValueError(
-                "El contenido de quiz debe cumplir QuizContent."
-            )
+        expected_content_types = {
+            GeneratedFormatType.QUIZ: QuizContent,
+            GeneratedFormatType.FLASHCARDS: (
+                FlashcardsContent
+            ),
+            GeneratedFormatType.TLDR: TLDRContent,
+            GeneratedFormatType.VIDEO_SCRIPT: (
+                VideoScriptContent
+            ),
+        }
 
-        if (
-            self.format_type
-            == GeneratedFormatType.FLASHCARDS
-            and not isinstance(
-                self.content,
-                FlashcardsContent,
-            )
+        expected_content_type = (
+            expected_content_types[
+                self.format_type
+            ]
+        )
+
+        if not isinstance(
+            self.content,
+            expected_content_type,
         ):
             raise ValueError(
-                "El contenido de flashcards debe cumplir "
-                "FlashcardsContent."
+                "El contenido de "
+                f"{self.format_type.value} debe cumplir "
+                f"{expected_content_type.__name__}."
             )
 
     def _validate_evidence(

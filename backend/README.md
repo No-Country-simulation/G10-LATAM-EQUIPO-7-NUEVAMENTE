@@ -26,7 +26,7 @@ Actualmente están implementados:
 - `GET /api/v1/documents` para listar documentos disponibles en la biblioteca.
 - `GET /api/v1/documents/{document_id}` para consultar metadata técnica, metadata pedagógica y estado del documento.
 - `GET /api/v1/documents/{document_id}/download` para recuperar desde OCI el archivo original mediante BackendAPI.
-- `GET /api/v1/documents/{document_id}/formats` para consultar Quiz y Flashcards persistidos.
+- `GET /api/v1/documents/{document_id}/formats` para consultar Quiz, Flashcards, TLDR y Video Script persistidos.
 - `POST /api/v1/documents/{document_id}/formats/regenerate` para iniciar una nueva generación de uno o varios formatos reutilizando el contexto pedagógico persistido.
 - Contrato transversal de errores con `code`, `detail`, `errors[]` y `timestamp`, independiente de los mensajes de UI de Frontend.
 - Admisión de archivos PDF, Markdown (`.md`) y TXT.
@@ -86,7 +86,7 @@ ensure_document_indexed()
 indexación RAG síncrona
 prepare_default_formats()
 ↓
-registro persistente de Quiz y Flashcards en processing
+registro persistente de Quiz, Flashcards, TLDR y Video Script en processing
 complete_default_generation()
 ↓
 generación real en segundo plano
@@ -203,7 +203,7 @@ output_format
 chunks
 ```
 
-Backend genera el `document_id` y decide internamente que la adaptación produce Quiz y Flashcards.
+Backend genera el `document_id` y decide internamente que la adaptación produce Quiz, Flashcards, TLDR y Video Script.
 
 ### Respuesta de carga
 
@@ -215,7 +215,7 @@ validación
 → almacenamiento
 → indexación RAG
 → INDEXED
-→ persistencia de Quiz/Flashcards en processing
+→ persistencia de Quiz/Flashcards/TLDR/Video Script en processing
 → registrar BackgroundTask
 → responder al Frontend
 ```
@@ -236,7 +236,7 @@ Una respuesta exitosa significa:
 
 - el documento fue almacenado;
 - el documento fue indexado;
-- Quiz y Flashcards fueron registrados como intentos activos;
+- Quiz, Flashcards, TLDR y Video Script fueron registrados como intentos activos;
 - la generación LLM puede continuar en segundo plano.
 
 No significa que los formatos ya estén terminados.
@@ -392,7 +392,7 @@ BackendAPI mantiene un contrato interno independiente del transporte HTTP.
 - validar la estructura de la respuesta;
 - recibir `learning_metadata` una sola vez a nivel raíz;
 - convertir `learning_metadata` al value object `LearningMetadata`;
-- convertir Quiz y Flashcards al dominio canónico de BackendAPI;
+- convertir Quiz, Flashcards, TLDR y Video Script al dominio canónico de BackendAPI;
 - convertir `sources_used` en `ChunkEvidence`;
 - conservar `error_message`;
 - traducir errores HTTP, timeouts y errores de conexión a `AgentsError`;
@@ -837,11 +837,19 @@ Interpretación:
 
 \| `processing` | Existe al menos un intento vigente en `processing`, o el documento aún está indexándose sin historial de formatos. |
 
-\| `ready` | Quiz y Flashcards vigentes están en `success`. |
+\| `ready` | No existen intentos activos, el baseline Quiz + Flashcards está en `success` y todos los formatos actualmente intentados están en `success`. Documentos históricos con solo el baseline exitoso conservan `ready`. |
 
 \| `partial` | No hay intentos activos y existe al menos un formato exitoso, pero no todos. |
 
 \| `error` | No hay intentos activos ni formatos exitosos vigentes. |
+
+La generación inicial actual registra los cuatro formatos. Por tanto, para
+documentos nuevos el estado natural `ready` implica que Quiz, Flashcards,
+TLDR y Video Script finalizaron correctamente. La regla conserva compatibilidad
+con documentos históricos creados cuando el baseline estaba compuesto solo por
+Quiz y Flashcards: si esos dos formatos son exitosos y no existen intentos
+adicionales fallidos o activos, el documento continúa reportándose como `ready`.
+
 
 #### Durante generación
 
@@ -1036,10 +1044,48 @@ Una generación exitosa persiste:
 
 ```text
 GeneratedFormat
-├── QuizContent | FlashcardsContent
+├── QuizContent | FlashcardsContent | TLDRContent | VideoScriptContent
 ├── GenerationContext
 └── chunks_used
 ```
+
+Contratos canónicos adicionales, alineados con los schemas públicos de Data/IA:
+
+```json
+{
+  "tldr": {
+    "title": "Resumen",
+    "summary": "Síntesis breve del documento.",
+    "key_points": [
+      "Punto principal"
+    ],
+    "conclusion": "Conclusión del resumen."
+  },
+  "video_script": {
+    "title": "Guion",
+    "estimated_duration_minutes": 2,
+    "scenes": [
+      {
+        "scene_id": "scene_1",
+        "title": "Introducción",
+        "visual_description": "Descripción visual.",
+        "narration": "Narración de la escena.",
+        "duration_seconds": 30
+      }
+    ]
+  }
+}
+```
+
+Los nombres públicos de formato son:
+
+```text
+quiz
+flashcards
+tldr
+video_script
+```
+
 
 No existe restricción única:
 
@@ -1120,7 +1166,7 @@ HTTPDataIAAdapter
 POST /evaluate
 ```
 
-Data/IA recibe únicamente contenido **ya generado exitosamente**. No genera Quiz ni Flashcards y no controla el estado de generación.
+Data/IA recibe únicamente contenido **ya generado exitosamente**. No genera material educativo y no controla el estado de generación.
 
 Contrato enviado:
 
@@ -1455,7 +1501,7 @@ validar
 → almacenar en OCI
 → indexar
 → alcanzar INDEXED
-→ persistir Quiz y Flashcards en processing
+→ persistir Quiz, Flashcards, TLDR y Video Script en processing
 → registrar BackgroundTask
 → responder metadata del documento
 ```
@@ -1464,7 +1510,7 @@ Después de responder al cliente:
 
 ```text
 background task
-→ solicitar Quiz + Flashcards a Agentes
+→ solicitar Quiz + Flashcards + TLDR + Video Script a Agentes
 → validar resultados
 → actualizar los mismos format_id
 → success | failed | no_results
@@ -1601,7 +1647,7 @@ Los campos opcionales `title` y `summary` continúan preparados para metadata en
 
 El tiempo pedagógico no se expone mediante un campo paralelo en la raíz. La única fuente de verdad es `learning_metadata.estimated_time_minutes`.
 
-`formats_status` no forma parte de este contrato. La fuente de verdad para disponibilidad y estado de Quiz y Flashcards es `/formats`.
+`formats_status` no forma parte de este contrato. La fuente de verdad para disponibilidad y estado de Quiz, Flashcards, TLDR y Video Script es `/formats`.
 
 ### Descargar documento original
 
@@ -2064,7 +2110,7 @@ mediante `GET /documents/{document_id}/formats` y no mediante un nuevo
 
 `ErrorResponse`.
 
-Si Quiz o Flashcards ya alcanzaron estados terminales en SQLite y posteriormente falla la escritura de `generated/content.json` en OCI, Backend registra el fallo de infraestructura pero no convierte artificialmente en `failed` un formato que Agentes ya generó correctamente. La persistencia SQLite continúa siendo la fuente de verdad del historial de generación.
+Si un formato ya alcanzó un estado terminal en SQLite y posteriormente falla la escritura de `generated/content.json` en OCI, Backend registra el fallo de infraestructura pero no convierte artificialmente en `failed` un formato que Agentes ya generó correctamente. La persistencia SQLite continúa siendo la fuente de verdad del historial de generación.
 
 ### Regeneración
 
@@ -2499,6 +2545,8 @@ La suite cubre, entre otros:
 - `learning_objective` opcional;
 - Quiz canónico;
 - Flashcards canónicas;
+- TLDR canónico;
+- Video Script canónico;
 - mapeo `sources_used → ChunkEvidence`;
 - estado `no_results`;
 - errores HTTP de Agentes;
@@ -2508,7 +2556,7 @@ La suite cubre, entre otros:
 - inicialización de servicios en el lifespan;
 - separación de `ensure_document_indexed()`, `prepare_default_formats()` y `complete_default_generation()`;
 - indexación síncrona desde `POST /documents`;
-- generación automática de Quiz y Flashcards como tarea en segundo plano;
+- generación automática de Quiz, Flashcards, TLDR y Video Script como tarea en segundo plano;
 - persistencia SQLite de los resultados recibidos vía HTTP;
 - lectura posterior de esos resultados desde SQLite;
 - contexto pedagógico de generación;
@@ -2518,7 +2566,7 @@ La suite cubre, entre otros:
 - actualización del mismo `format_id` a un estado terminal;
 - persistencia de intentos `FAILED` ante errores de integración con Agentes;
 - persistencia de intentos `FAILED` ante incumplimientos del contrato de Agentes;
-- migración SQLite del `CHECK` de estados sin pérdida de formatos ni evaluaciones;
+- migración SQLite del `CHECK` de estados y tipos de formato sin pérdida de formatos ni evaluaciones;
 - semántica de `INDEXED` separada del estado de generación;
 - `INDEXING` sin historial como `formats.status = processing`;
 - intentos de generación activos como `formats.status = processing`;
@@ -2533,7 +2581,7 @@ La suite cubre, entre otros:
 - separación entre listado, detalle y formatos;
 - ausencia de `/api/v1/adaptations` como endpoint público;
 - respuesta de `POST /documents` sin contenidos de formatos;
-- disponibilidad posterior de Quiz y Flashcards mediante `/formats`;
+- disponibilidad posterior de Quiz, Flashcards, TLDR y Video Script mediante `/formats`;
 - regeneración de un solo formato y de varios formatos en una misma solicitud;
 - reutilización automática de `profile`, `niche`, `detail_level` y `learning_objective`;
 - creación de nuevos `format_id` sin sobrescribir el historial anterior;
@@ -2571,6 +2619,13 @@ La suite cubre, entre otros:
 ---
 
 ## Validación E2E de Sprint 3
+
+> **Nota histórica:** las validaciones E2E documentadas en las secciones
+> iniciales de este bloque se realizaron cuando la generación por defecto
+> incluía únicamente Quiz y Flashcards. Se conservan como evidencia de las
+> tarjetas ejecutadas en ese momento. El contrato vigente de BackendAPI soporta
+> cuatro formatos: Quiz, Flashcards, TLDR y Video Script.
+
 
 La separación entre indexación y generación y el lifecycle de estados fueron validados funcionalmente en local.
 
@@ -3033,6 +3088,63 @@ Esto confirma que `evaluate` evalúa un artefacto previamente generado y no form
 
 ---
 
+### 9. Contrato y migración real de cuatro formatos
+
+BackendAPI amplió el contrato de formatos a:
+
+```text
+quiz
+flashcards
+tldr
+video_script
+```
+
+La base SQLite real de desarrollo fue inicializada sobre el esquema existente y
+se verificó que `generated_formats.format_type` acepta los cuatro valores sin
+romper relaciones:
+
+```text
+processing   : True
+quiz         : True
+flashcards   : True
+tldr         : True
+video_script : True
+
+FK violations: []
+```
+
+Resultado:
+
+```text
+MIGRACIÓN REAL 4 FORMATOS: OK
+```
+
+La migración reconstruye la tabla únicamente cuando el `CHECK` existente no
+contiene el conjunto vigente de estados y tipos. Conserva los registros
+históricos y las referencias de `format_evaluations`.
+
+La suite automatizada también cubre:
+
+```text
+TLDR.to_dict()/from_dict()                         ✅
+VideoScript.to_dict()/from_dict()                  ✅
+GeneratedFormat valida contenido por format_type  ✅
+SQLite persiste y reconstruye TLDR                 ✅
+SQLite persiste y reconstruye Video Script         ✅
+migración 2 → 4 formatos                           ✅
+HTTPAgentsAdapter soporta los cuatro formatos      ✅
+HTTPDataIAAdapter evalúa TLDR y Video Script       ✅
+GET /formats serializa los cuatro contratos        ✅
+regeneración acepta tldr y video_script            ✅
+```
+
+La implementación de Backend está desacoplada de la disponibilidad efectiva de
+cada formato en Agentes. Si un proveedor devuelve un resultado terminal
+`failed` o `no_results` para TLDR o Video Script, Backend conserva los éxitos
+de los demás formatos y reporta el estado agregado correspondiente.
+
+---
+
 ## Semántica del flujo actual para Frontend
 
 Frontend debe separar:
@@ -3246,6 +3358,8 @@ document_id
 learning_metadata
 quiz
 flashcards
+tldr
+video_script
 ```
 
 SQLite conserva el historial completo de intentos. OCI conserva la proyección educativa vigente.
@@ -3254,10 +3368,10 @@ Una regeneración individual reconstruye el paquete completo. Por ejemplo:
 
 ```text
 antes:
-Quiz v1 + Flashcards v1
+Quiz v1 + Flashcards v1 + TLDR v1 + Video Script v1
 
 regenerar Quiz:
-Quiz v2 + Flashcards v1
+Quiz v2 + Flashcards v1 + TLDR v1 + Video Script v1
 ```
 
 Una regeneración fallida no reemplaza un `success` histórico previo dentro del snapshot OCI.
@@ -3311,6 +3425,8 @@ INDEXED
    ↓
 Quiz processing
 Flashcards processing
+TLDR processing
+Video Script processing
    ↓
 POST responde
    │
