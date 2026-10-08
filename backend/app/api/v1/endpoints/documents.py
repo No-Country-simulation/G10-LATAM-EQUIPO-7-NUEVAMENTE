@@ -224,8 +224,9 @@ def _build_download_content_disposition(
         "Recibe un documento PDF, Markdown o TXT junto con "
         "el contexto pedagógico. Backend valida y almacena "
         "el archivo, completa la indexación RAG de forma "
-        "síncrona y, una vez indexado, programa la generación "
-        "de Quiz y Flashcards en segundo plano."
+        "síncrona y, una vez indexado, programa en segundo "
+        "plano la generación de Quiz, Flashcards, TLDR y "
+        "Video Script."
     ),
     responses={
         200: {
@@ -517,8 +518,9 @@ async def list_documents(
     status_code=status.HTTP_200_OK,
     summary="Consultar formatos generados",
     description=(
-        "Retorna Quiz y Flashcards persistidos para "
-        "un documento junto con su estado agregado."
+        "Retorna los formatos educativos persistidos para "
+        "un documento —Quiz, Flashcards, TLDR y Video Script— "
+        "junto con su estado agregado."
     ),
     responses={
         404: {

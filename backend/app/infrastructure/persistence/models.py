@@ -20,6 +20,8 @@ from app.domain.generated_content import (
     FlashcardsContent,
     GeneratedContent,
     QuizContent,
+    TLDRContent,
+    VideoScriptContent,
 )
 from app.domain.generated_format import (
     ChunkEvidence,
@@ -318,8 +320,32 @@ class GeneratedFormatRecord:
                 data
             )
 
-        return FlashcardsContent.from_dict(
-            data
+        if (
+            format_type
+            == GeneratedFormatType.FLASHCARDS
+        ):
+            return FlashcardsContent.from_dict(
+                data
+            )
+
+        if (
+            format_type
+            == GeneratedFormatType.TLDR
+        ):
+            return TLDRContent.from_dict(
+                data
+            )
+
+        if (
+            format_type
+            == GeneratedFormatType.VIDEO_SCRIPT
+        ):
+            return VideoScriptContent.from_dict(
+                data
+            )
+
+        raise ValueError(
+            f"Formato persistido no soportado: {format_type}."
         )
 
     def _deserialize_chunks_used(
