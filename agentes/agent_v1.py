@@ -6,6 +6,14 @@ from google import genai
 from google.genai import types
 from .rag.retriever import RetrieverService
 
+from .generated_schemas import (
+    LearningMetadata,
+    QuizContent,
+    FlashcardsContent,
+    TLDRContent,
+    VideoScriptContent,
+)
+
 # Carga única del archivo .env desde la raíz del proyecto
 env_path = Path(__file__).resolve().parent.parent / '.env'
 load_dotenv(dotenv_path=env_path)
@@ -52,9 +60,6 @@ class AgentV1:
             CONTEXTO RECUPERADO:
             {contexto_unificado}
             """
-
-            # Importación local para prevenir dependencias circulares
-            from .api import LearningMetadata
 
             response = client.models.generate_content(
                 model=MODEL_NAME,
@@ -132,13 +137,6 @@ class AgentV1:
             {contexto_unificado}
             """
 
-            # 4. Importación local para prevenir dependencias circulares con api.py
-            from .api import (
-                QuizContent,
-                FlashcardsContent,
-                TLDRContent,
-                VideoScriptContent,
-            )
 
             # Mapeamos el formato al contrato Pydantic correcto
             if formato.lower() == "quiz":

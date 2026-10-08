@@ -43,3 +43,8 @@ Data_IA/data/evaluation/results/retrieval_v2_ablation/**/retrieval_*.json
 .format_trace_v2_md/
 .format_trace_v2_txt/
 .format_trace_v2_pdf/
+
+# Multiformat end-to-end validation Chroma indexes
+.multiformat_e2e_chroma_md/
+.multiformat_e2e_chroma_txt/
+.multiformat_e2e_chroma_pdf/
