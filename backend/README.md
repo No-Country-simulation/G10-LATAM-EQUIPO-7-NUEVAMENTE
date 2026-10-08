@@ -25,6 +25,7 @@ Actualmente están implementados:
 - `POST /api/v1/documents` como entrada pública para cargar, almacenar e indexar un documento y programar su generación pedagógica inicial.
 - `GET /api/v1/documents` para listar documentos disponibles en la biblioteca.
 - `GET /api/v1/documents/{document_id}` para consultar metadata técnica, metadata pedagógica y estado del documento.
+- `GET /api/v1/documents/{document_id}/download` para recuperar desde OCI el archivo original mediante BackendAPI.
 - `GET /api/v1/documents/{document_id}/formats` para consultar Quiz y Flashcards persistidos.
 - `POST /api/v1/documents/{document_id}/formats/regenerate` para iniciar una nueva generación de uno o varios formatos reutilizando el contexto pedagógico persistido.
 - Contrato transversal de errores con `code`, `detail`, `errors[]` y `timestamp`, independiente de los mensajes de UI de Frontend.
@@ -57,7 +58,10 @@ Actualmente están implementados:
 - Persistencia de `learning_metadata` una sola vez a nivel de documento mediante `learning_metadata_json`.
 - Exposición de `learning_metadata` mediante `GET /api/v1/documents/{document_id}`.
 - Recuperación interna: `document_id → metadata → oci_object_name → bytes`.
+- La misma recuperación se reutiliza para indexación RAG y para la descarga pública del original.
 - Representación del documento recuperado mediante `RetrievedDocument`.
+- Descarga HTTP del original con su `Content-Type` persistido y `Content-Disposition: attachment`.
+- Exposición CORS de `Content-Disposition` para que Frontend pueda recuperar el nombre original.
 - Compensación cuando OCI finaliza correctamente pero falla la actualización final en BD.
 - Eliminación compensatoria del objeto OCI para evitar objetos huérfanos.
 - Manejo explícito mediante `DocumentStorageConsistencyError` cuando no puede garantizarse consistencia entre OCI y la BD.
@@ -1546,6 +1550,55 @@ El tiempo pedagógico no se expone mediante un campo paralelo en la raíz. La ú
 
 `formats_status` no forma parte de este contrato. La fuente de verdad para disponibilidad y estado de Quiz y Flashcards es `/formats`.
 
+### Descargar documento original
+
+```http
+GET /api/v1/documents/{document_id}/download
+```
+
+BackendAPI recupera el archivo original desde OCI utilizando el `document_id` canónico. Frontend no conoce `oci_object_name`, credenciales OCI ni la estructura interna del bucket.
+
+Flujo:
+
+```text
+Frontend
+↓
+GET /api/v1/documents/{document_id}/download
+↓
+DocumentService.retrieve_document()
+↓
+ObjectStoragePort.download_file()
+↓
+OCIObjectStorageAdapter
+↓
+OCI Object Storage
+```
+
+Respuesta exitosa:
+
+```http
+HTTP/1.1 200 OK
+Content-Type: application/pdf
+Content-Disposition: attachment; filename="manual.pdf"; filename*=UTF-8''manual.pdf
+```
+
+El body contiene los bytes del archivo original.
+
+Para TXT y Markdown se conserva igualmente el MIME type persistido. Si no existe un MIME type disponible, Backend utiliza `application/octet-stream`.
+
+`Content-Disposition` utiliza `filename` como fallback compatible y `filename*` para conservar correctamente nombres UTF-8.
+
+Errores principales:
+
+| HTTP | `code` | Caso |
+|---:|---|---|
+| `404` | `DOCUMENT_NOT_FOUND` | El `document_id` no existe. |
+| `409` | `DOCUMENT_STATE_CONFLICT` | El documento existe, pero no tiene un objeto original almacenado asociado. |
+| `500` | `PERSISTENCE_ERROR` | No fue posible consultar la metadata persistida del documento. |
+| `502` | `DOCUMENT_RETRIEVAL_FAILED` | No fue posible recuperar el objeto original desde OCI. |
+
+La descarga pública reutiliza el mismo caso de uso `DocumentService.retrieve_document()` que ya utiliza la integración RAG. No existe una segunda implementación de acceso a OCI.
+
 ### Consultar formatos
 
 ```http
@@ -1884,6 +1937,26 @@ De esta forma un fallo RAG ya no necesita interpretarse en Frontend como si
 
 fuera un fallo de OCI únicamente porque ambos utilicen `502`.
 
+### Descarga del documento original
+
+La descarga traduce explícitamente los errores del caso de uso:
+
+```text
+DocumentNotFoundError
+→ 404 DOCUMENT_NOT_FOUND
+
+DocumentNotStoredError
+→ 409 DOCUMENT_STATE_CONFLICT
+
+DocumentRetrievalError
+→ 502 DOCUMENT_RETRIEVAL_FAILED
+
+DocumentRepositoryError
+→ 500 PERSISTENCE_ERROR
+```
+
+Los fallos de OCI no exponen credenciales, nombres internos del proveedor ni stack traces al cliente.
+
 ### Preparación de generación
 
 El registro de intentos `processing` ocurre antes de responder.
@@ -2110,6 +2183,7 @@ backend/
 │   ├── fakes.py
 │   ├── integration/
 │   │   ├── test_agents_generation_integration.py
+│   │   ├── test_document_download_api.py
 │   │   ├── test_document_formats_api.py
 │   │   ├── test_documents_api.py
 │   │   ├── test_document_overwrite_behavior.py
@@ -2315,6 +2389,12 @@ La suite cubre, entre otros:
 - conservación de `learning_metadata = null` antes de disponer de una respuesta válida de Agentes;
 - relación `document_id → oci_object_name`;
 - almacenamiento y recuperación mediante Object Storage;
+- descarga pública del archivo original mediante `GET /documents/{document_id}/download`;
+- igualdad de bytes entre la respuesta HTTP y el objeto almacenado;
+- conservación del `Content-Type` original;
+- `Content-Disposition` con nombre original y soporte UTF-8;
+- exposición CORS de `Content-Disposition`;
+- errores `404`, `409` y `502` del flujo de descarga;
 - compensación ante inconsistencia OCI/BD;
 - transiciones de indexación;
 - reintentos desde `INDEXING_FAILED`;
@@ -2727,6 +2807,64 @@ La visualización `bÃ¡sicos` observada en algunas salidas de PowerShell corres
 
 ---
 
+### 7. Descarga real del documento original desde OCI
+
+También se validó de extremo a extremo el contrato público de descarga del archivo original.
+
+Documento utilizado:
+
+```text
+document_id:
+doc_57c8136e661545f4be1fb06ad3df8d1f
+
+filename:
+e2e_oci_20261007-180726.txt
+
+objeto OCI:
+documents/doc_57c8136e661545f4be1fb06ad3df8d1f/original.txt
+```
+
+El endpoint público respondió:
+
+```text
+GET /api/v1/documents/{document_id}/download
+HTTP 200
+Content-Type: text/plain; charset=utf-8
+Content-Disposition:
+attachment; filename="e2e_oci_20261007-180726.txt";
+filename*=UTF-8''e2e_oci_20261007-180726.txt
+
+bytes: 601
+```
+
+Se descargó además el mismo objeto directamente desde OCI y se compararon ambos contenidos mediante SHA-256:
+
+```text
+SHA Backend:
+a156c1602b6109d23918a923f8a5e68370186c48ae222b859d35accdff450e7a
+
+SHA OCI:
+a156c1602b6109d23918a923f8a5e68370186c48ae222b859d35accdff450e7a
+
+Bytes Backend == OCI: True
+```
+
+Resultado:
+
+```text
+Archivo recuperado desde OCI                 ✅
+Bytes Backend == Bytes OCI                   ✅
+SHA-256 Backend == SHA-256 OCI               ✅
+Content-Type original                        ✅
+Content-Disposition presente                 ✅
+
+E2E DOWNLOAD ORIGINAL OCI: OK
+```
+
+Esta validación confirma que BackendAPI actúa como frontera pública de descarga y que Frontend no necesita acceso directo al bucket.
+
+---
+
 ## Semántica del flujo actual para Frontend
 
 Frontend debe separar:
@@ -2743,6 +2881,17 @@ de:
 GET /documents/{id}/formats
 → estado de generación
 ```
+
+y puede recuperar el archivo fuente mediante:
+
+```text
+GET /documents/{id}/download
+→ bytes del original
+→ Content-Type original
+→ Content-Disposition con filename
+```
+
+Frontend no debe construir URLs de OCI ni utilizar credenciales del bucket.
 
 Flujo recomendado para la generación inicial:
 
@@ -3000,6 +3149,20 @@ Frontend
 GET /api/v1/documents/{id}
    ↓
 estado / learning_metadata
+
+Frontend
+   ↓
+GET /api/v1/documents/{id}/download
+   ↓
+BackendAPI
+   ↓
+DocumentService.retrieve_document()
+   ↓
+ObjectStoragePort.download_file()
+   ↓
+OCI
+   ↓
+bytes originales + Content-Type + Content-Disposition
 
 Frontend
    ↓
