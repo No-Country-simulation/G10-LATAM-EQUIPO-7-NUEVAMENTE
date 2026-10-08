@@ -455,10 +455,12 @@ export const uploadTab = {
     const exists = currentCustomBooks.some(b => b.id === procDoc.id);
     const updatedCustom = exists ? currentCustomBooks : [procDoc, ...currentCustomBooks];
 
-    // Backend registra Quiz y Flashcards en estado 'processing' en segundo plano
+    // Backend registra los 4 formatos en estado 'processing' en segundo plano (PR #71)
     const initialFormats = {
       quiz: { format_id: null, status: 'processing', content: null, error_message: null },
-      flashcards: { format_id: null, status: 'processing', content: null, error_message: null }
+      flashcards: { format_id: null, status: 'processing', content: null, error_message: null },
+      tldr: { format_id: null, status: 'processing', content: null, error_message: null },
+      video_script: { format_id: null, status: 'processing', content: null, error_message: null }
     };
 
     state.set({
@@ -529,11 +531,11 @@ export const uploadTab = {
           descSpan.textContent = 'Evaluación de competencias · Generando en segundo plano...';
           descSpan.style.color = 'var(--accent-gold)';
         } else if (fmt === 'video') {
-          descSpan.textContent = 'Estructura didáctica para facilitadores';
-          descSpan.style.color = 'var(--text-secondary)';
+          descSpan.textContent = 'Guion audiovisual · Generando en segundo plano...';
+          descSpan.style.color = 'var(--accent-gold)';
         } else if (fmt === 'sintesis') {
-          descSpan.textContent = 'Resumen clave para consulta rápida';
-          descSpan.style.color = 'var(--text-secondary)';
+          descSpan.textContent = 'Síntesis ejecutiva · Generando en segundo plano...';
+          descSpan.style.color = 'var(--accent-gold)';
         }
       });
     }

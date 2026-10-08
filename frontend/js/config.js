@@ -80,6 +80,7 @@ export const CONFIG = {
       DOCUMENTS: '/documents',
       UPLOAD_FILE: '/documents',
       DOCUMENT_DETAILS: (id) => `/documents/${id}`,
+      DOCUMENT_DOWNLOAD: (id) => `/documents/${id}/download`,
       DOCUMENT_FORMATS: (id) => `/documents/${id}/formats`,
       DOCUMENT_REGENERATE: (id) => `/documents/${id}/formats/regenerate`
     },

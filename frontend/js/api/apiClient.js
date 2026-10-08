@@ -430,5 +430,77 @@ export const apiClient = {
       clearTimeout(timeoutId);
       throw wrapFetchError(err, 'Tiempo de espera agotado al solicitar la regeneración de formatos.');
     }
+  },
+
+  /**
+   * Descarga el archivo binario original persistido en OCI Object Storage (GET /api/v1/documents/{id}/download)
+   * Contrato Backend PR #68 (commit 0fa75a3)
+   * @param {string} documentId
+   * @param {string} [fallbackFilename='documento_original']
+   */
+  async downloadDocument(documentId, fallbackFilename = 'documento_original') {
+    if (!documentId) {
+      throw new ApiError(400, { message: 'El identificador de documento es requerido para descargar.' });
+    }
+
+    const endpoint = typeof CONFIG.API.ENDPOINTS.DOCUMENT_DOWNLOAD === 'function'
+      ? CONFIG.API.ENDPOINTS.DOCUMENT_DOWNLOAD(documentId)
+      : `/documents/${documentId}/download`;
+    const url = `${CONFIG.API.DEFAULT_BASE_URL}${CONFIG.API.V1_PREFIX}${endpoint}`;
+
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), CONFIG.API.PROCESSING_TIMEOUT_MS || 60000);
+
+    try {
+      const response = await fetch(url, {
+        method: 'GET',
+        signal: controller.signal
+      });
+
+      clearTimeout(timeoutId);
+
+      if (!response.ok) {
+        const errorBody = await parseResponseBody(response);
+        throw new ApiError(response.status, errorBody);
+      }
+
+      // Extraer nombre de archivo de Content-Disposition si está disponible
+      let resolvedFilename = fallbackFilename;
+      const disposition = response.headers.get('Content-Disposition') || '';
+      
+      const utf8Match = disposition.match(/filename\*=UTF-8''([^;]+)/i);
+      const regularMatch = disposition.match(/filename="?([^";]+)"?/i);
+
+      if (utf8Match && utf8Match[1]) {
+        resolvedFilename = decodeURIComponent(utf8Match[1].trim());
+      } else if (regularMatch && regularMatch[1]) {
+        resolvedFilename = regularMatch[1].trim();
+      }
+
+      // Convertir respuesta a Blob y provocar la descarga en el navegador
+      const blob = await response.blob();
+      const downloadUrl = window.URL.createObjectURL(blob);
+      const tempLink = document.createElement('a');
+      tempLink.style.display = 'none';
+      tempLink.href = downloadUrl;
+      tempLink.download = resolvedFilename;
+
+      document.body.appendChild(tempLink);
+      tempLink.click();
+
+      // Limpieza de memoria
+      setTimeout(() => {
+        window.URL.revokeObjectURL(downloadUrl);
+        if (tempLink.parentNode) {
+          tempLink.parentNode.removeChild(tempLink);
+        }
+      }, 1000);
+
+      state.set({ isBackendConnected: true, lastConnectionCheck: Date.now() });
+      return { success: true, filename: resolvedFilename };
+    } catch (err) {
+      clearTimeout(timeoutId);
+      throw wrapFetchError(err, 'No fue posible descargar el documento original desde el servidor.');
+    }
   }
 };
