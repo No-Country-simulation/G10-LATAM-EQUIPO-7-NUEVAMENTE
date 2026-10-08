@@ -205,7 +205,7 @@ export const studyHub = {
           this.stopPolling();
 
           if (globalStatus === 'ready') {
-            notifySuccess('Formatos Listos', '¡El Quiz y las Flashcards ya están disponibles para estudiar!');
+            notifySuccess('Formatos Listos', '¡Los formatos pedagógicos ya están disponibles para estudiar!');
 
             // Refrescar metadatos pedagógicos generados por Backend (PR #63)
             apiClient.getDocumentById(docId).then(docDetail => {
@@ -292,17 +292,16 @@ export const studyHub = {
       formatsToRegenerate = explicitFormats;
     } else if (globalStatus === 'partial') {
       // Comportamiento de conveniencia UX: reintentar formatos que presentaron fallo
-      if (currentFormats.quiz?.status === 'failed' || currentFormats.quiz?.status === 'no_results') {
-        formatsToRegenerate.push('quiz');
-      }
-      if (currentFormats.flashcards?.status === 'failed' || currentFormats.flashcards?.status === 'no_results') {
-        formatsToRegenerate.push('flashcards');
-      }
+      ['quiz', 'flashcards', 'tldr', 'video_script'].forEach(fmt => {
+        if (currentFormats[fmt]?.status === 'failed' || currentFormats[fmt]?.status === 'no_results') {
+          formatsToRegenerate.push(fmt);
+        }
+      });
       if (formatsToRegenerate.length === 0) {
-        formatsToRegenerate = ['quiz', 'flashcards'];
+        formatsToRegenerate = ['quiz', 'flashcards', 'tldr', 'video_script'];
       }
     } else {
-      formatsToRegenerate = ['quiz', 'flashcards'];
+      formatsToRegenerate = ['quiz', 'flashcards', 'tldr', 'video_script'];
     }
 
     this.isFetchingFormats = true;
@@ -467,16 +466,22 @@ export const studyHub = {
       || (globalStatus === 'error' ? { status: 'failed', errorMessage: 'No fue posible generar la Evaluación de Competencias (Quiz).' } : null);
     quiz.render(quizData);
 
-    // 3. Tutorial / Video (Extensible)
-    const videoData = backendFormats.tutorial 
+    // 3. Guion Audiovisual Formativo (Video Script)
+    const videoData = backendFormats.video_script
+      || backendFormats.tutorial 
       || backendFormats.video 
-      || activeSection?.video;
+      || activeSection?.video
+      || (globalStatus === 'processing' || globalStatus === 'pending' || globalStatus === 'loading' ? { status: globalStatus === 'pending' ? 'pending' : 'processing' } : null)
+      || (globalStatus === 'error' ? { status: 'failed', errorMessage: 'No fue posible generar el Guion Audiovisual Formativo.' } : null);
     videoGuide.render(videoData);
 
-    // 4. Síntesis / Resumen (Extensible)
-    const summaryData = backendFormats.summary 
+    // 4. Síntesis Ejecutiva (TLDR)
+    const summaryData = backendFormats.tldr
+      || backendFormats.summary 
       || backendFormats.sintesis 
-      || activeSection?.sintesis;
+      || activeSection?.sintesis
+      || (globalStatus === 'processing' || globalStatus === 'pending' || globalStatus === 'loading' ? { status: globalStatus === 'pending' ? 'pending' : 'processing' } : null)
+      || (globalStatus === 'error' ? { status: 'failed', errorMessage: 'No fue posible generar la Síntesis Ejecutiva.' } : null);
     summary.render(summaryData);
   },
 

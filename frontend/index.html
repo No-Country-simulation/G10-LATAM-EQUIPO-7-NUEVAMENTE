@@ -521,36 +521,54 @@
 
         <!-- Formato 3: Guion Formativo y Estructura de Entrenamiento -->
         <div class="format-view" id="viewFormatVideo">
+          <div class="format-header-bar">
+            <span class="topic-badge-pill" id="videoCounterBadge">Guion Audiovisual Formativo</span>
+            <button type="button" class="btn-regen-format" id="btnRegenVideo" title="Generar un nuevo guion didáctico para facilitadores">
+              ↻ Regenerar Guion
+            </button>
+          </div>
           <div class="video-container">
             <div class="video-mockup-player">
-              <div class="video-play-icon">&#9658;</div>
+              <div class="video-play-icon" id="videoPlayPreviewBtn" title="Vista previa del guion">&#9658;</div>
               <h4 id="videoMockupTitle" style="font-size: 1.15rem; color: #ffffff;">Guion de Capacitación</h4>
               <span class="badge-pill badge-cyan" id="videoDuration">4:30 min</span>
             </div>
             <div class="video-script-box">
-              <h4>Estructura del Guion Formativo</h4>
-              <ul id="videoScriptList">
-                <!-- Generado por videoGuide.js -->
-              </ul>
+              <h4>Escenas y Estructura Didáctica</h4>
+              <div class="video-scenes-list" id="videoScriptList">
+                <!-- Generado dinámicamente por videoGuide.js -->
+              </div>
             </div>
           </div>
         </div>
 
         <!-- Formato 4: Síntesis / Resumen RAG -->
         <div class="format-view" id="viewFormatSintesis">
+          <div class="format-header-bar">
+            <span class="topic-badge-pill" id="sintesisCounterBadge">Síntesis Ejecutiva (TLDR)</span>
+            <button type="button" class="btn-regen-format" id="btnRegenSintesis" title="Generar una nueva síntesis ejecutiva del documento">
+              ↻ Regenerar Síntesis
+            </button>
+          </div>
           <div class="sintesis-container">
             <div class="sintesis-card">
-              <h4>Resumen Ejecutivo</h4>
+              <h4 id="sintesisTitle">Resumen Ejecutivo</h4>
               <p id="sintesisResumen">Cargando resumen ejecutivo...</p>
+              <div class="sintesis-conclusion-box" id="sintesisConclusionBox">
+                <h5>Conclusión y Cierre Formativo</h5>
+                <p id="sintesisConclusion">Cargando conclusión formativa...</p>
+              </div>
             </div>
             <div class="sintesis-details">
               <h4>Puntos Críticos y Procedimientos</h4>
               <ul id="sintesisPuntosList">
-                <!-- Generado por summary.js -->
+                <!-- Generado dinámicamente por summary.js -->
               </ul>
-              <h4>Competencias Clave</h4>
-              <div class="concept-chips" id="sintesisTerminosChips">
-                <!-- Generado por summary.js -->
+              <div id="sintesisTerminosSection" style="display: none;">
+                <h4>Competencias Clave</h4>
+                <div class="concept-chips" id="sintesisTerminosChips">
+                  <!-- Generado dinámicamente por summary.js -->
+                </div>
               </div>
             </div>
           </div>
