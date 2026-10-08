@@ -1,4 +1,4 @@
-﻿"""Adaptador OCI para almacenamiento persistente de objetos."""
+"""Adaptador OCI para almacenamiento persistente de objetos."""
 
 from pathlib import Path
 from typing import Any
@@ -50,6 +50,33 @@ class OCIObjectStorageAdapter:
                     put_object_body=file_stream,
                     content_type=content_type,
                 )
+
+        except ObjectStorageConfigurationError:
+            raise
+
+        except Exception as exc:
+            raise ObjectStorageError(
+                f"No fue posible cargar el objeto {object_name} en OCI."
+            ) from exc
+
+    def upload_bytes(
+        self,
+        *,
+        content: bytes,
+        object_name: str,
+        content_type: str | None = None,
+    ) -> None:
+        """Carga bytes directamente en el bucket configurado."""
+        self._validate_target()
+
+        try:
+            self._get_client().put_object(
+                namespace_name=self._namespace,
+                bucket_name=self._bucket_name,
+                object_name=object_name,
+                put_object_body=content,
+                content_type=content_type,
+            )
 
         except ObjectStorageConfigurationError:
             raise
