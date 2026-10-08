@@ -67,6 +67,8 @@ class AdaptationOrchestrationService:
     _DEFAULT_FORMATS = (
         GeneratedFormatType.QUIZ,
         GeneratedFormatType.FLASHCARDS,
+        GeneratedFormatType.TLDR,
+        GeneratedFormatType.VIDEO_SCRIPT,
     )
 
     _INDEXABLE_STATUSES = frozenset(
@@ -145,7 +147,7 @@ class AdaptationOrchestrationService:
         detail_level: str,
         learning_objective: str | None = None,
     ) -> list[GeneratedFormat]:
-        """Registra Quiz y Flashcards como intentos ``processing``.
+        """Registra los cuatro formatos como intentos ``processing``.
 
         Esta etapa ocurre después de confirmar la indexación y antes
         de responder a Frontend.

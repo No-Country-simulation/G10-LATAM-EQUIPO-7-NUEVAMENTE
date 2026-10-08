@@ -1,4 +1,4 @@
-﻿"""Dobles de prueba compartidos por BackendAPI."""
+"""Dobles de prueba compartidos por BackendAPI."""
 
 from copy import deepcopy
 from datetime import UTC, datetime
@@ -17,8 +17,12 @@ from app.domain.enums import (
 from app.domain.generated_content import (
     FlashcardItem,
     FlashcardsContent,
+    GeneratedContent,
     QuizContent,
     QuizQuestion,
+    TLDRContent,
+    VideoScriptContent,
+    VideoScriptScene,
 )
 from app.domain.generated_format import (
     ChunkEvidence,
@@ -239,18 +243,25 @@ class FailingRAGPort:
 
 
 class FakeAdaptationOrchestrationService:
-    """Simula el flujo de adaptación para pruebas HTTP.
+    """Simula el flujo actual de adaptación para pruebas HTTP.
 
-    El fake reproduce el contrato establecido para Sprint 3:
+    El fake reproduce el contrato de cuatro formatos:
 
     1. ``ensure_document_indexed`` representa la indexación síncrona;
-    2. ``prepare_default_formats`` registra Quiz y Flashcards como
-       intentos ``processing``;
+    2. ``prepare_default_formats`` registra Quiz, Flashcards, TLDR y
+       Video Script como intentos ``processing``;
     3. ``complete_default_generation`` actualiza esos mismos intentos
-       a ``success``.
+       a ``success`` con contenido canónico.
 
-    No ejecuta integraciones HTTP reales hacia RAG ni Agentes.
+    No ejecuta integraciones HTTP reales hacia RAG, Agentes ni Data/IA.
     """
+
+    _DEFAULT_FORMATS = (
+        GeneratedFormatType.QUIZ,
+        GeneratedFormatType.FLASHCARDS,
+        GeneratedFormatType.TLDR,
+        GeneratedFormatType.VIDEO_SCRIPT,
+    )
 
     def __init__(
         self,
@@ -322,7 +333,7 @@ class FakeAdaptationOrchestrationService:
         detail_level: str,
         learning_objective: str | None = None,
     ) -> list[GeneratedFormat]:
-        """Persiste Quiz y Flashcards como intentos processing."""
+        """Persiste los cuatro formatos como intentos processing."""
         self.preparation_requests.append(
             {
                 "document_id": document_id,
@@ -373,10 +384,7 @@ class FakeAdaptationOrchestrationService:
                 chunks_used=(),
                 error_message=None,
             )
-            for format_type in (
-                GeneratedFormatType.QUIZ,
-                GeneratedFormatType.FLASHCARDS,
-            )
+            for format_type in self._DEFAULT_FORMATS
         ]
 
         return [
@@ -424,58 +432,6 @@ class FakeAdaptationOrchestrationService:
                 ),
             )
 
-            if (
-                attempt.format_type
-                == GeneratedFormatType.QUIZ
-            ):
-                content = QuizContent(
-                    title="Quiz de prueba",
-                    instructions=(
-                        "Seleccione la respuesta correcta."
-                    ),
-                    questions=(
-                        QuizQuestion(
-                            question_id=(
-                                f"q_{uuid4().hex[:8]}"
-                            ),
-                            question=(
-                                "¿Cuál es el concepto principal?"
-                            ),
-                            options=(
-                                "Respuesta correcta",
-                                "Respuesta incorrecta",
-                            ),
-                            correct_answer=(
-                                "Respuesta correcta"
-                            ),
-                            explanation=(
-                                "Explicación basada "
-                                "en el documento."
-                            ),
-                        ),
-                    ),
-                )
-
-            else:
-                content = FlashcardsContent(
-                    title="Flashcards de prueba",
-                    instructions=(
-                        "Revise cada tarjeta."
-                    ),
-                    cards=(
-                        FlashcardItem(
-                            card_id=(
-                                f"card_{uuid4().hex[:8]}"
-                            ),
-                            front="Concepto principal",
-                            back=(
-                                "Definición basada "
-                                "en el documento."
-                            ),
-                        ),
-                    ),
-                )
-
             completed_format = GeneratedFormat(
                 format_id=attempt.format_id,
                 document_id=attempt.document_id,
@@ -486,7 +442,11 @@ class FakeAdaptationOrchestrationService:
                 generation_context=(
                     attempt.generation_context
                 ),
-                content=content,
+                content=(
+                    self._build_content(
+                        attempt.format_type
+                    )
+                ),
                 chunks_used=evidence,
                 error_message=None,
                 created_at=attempt.created_at,
@@ -502,3 +462,111 @@ class FakeAdaptationOrchestrationService:
             )
 
         return completed_formats
+
+    @staticmethod
+    def _build_content(
+        format_type: GeneratedFormatType,
+    ) -> GeneratedContent:
+        """Construye contenido canónico determinista para cada formato."""
+        if (
+            format_type
+            == GeneratedFormatType.QUIZ
+        ):
+            return QuizContent(
+                title="Quiz de prueba",
+                instructions=(
+                    "Seleccione la respuesta correcta."
+                ),
+                questions=(
+                    QuizQuestion(
+                        question_id=(
+                            f"q_{uuid4().hex[:8]}"
+                        ),
+                        question=(
+                            "¿Cuál es el concepto principal?"
+                        ),
+                        options=(
+                            "Respuesta correcta",
+                            "Respuesta incorrecta",
+                        ),
+                        correct_answer=(
+                            "Respuesta correcta"
+                        ),
+                        explanation=(
+                            "Explicación basada "
+                            "en el documento."
+                        ),
+                    ),
+                ),
+            )
+
+        if (
+            format_type
+            == GeneratedFormatType.FLASHCARDS
+        ):
+            return FlashcardsContent(
+                title="Flashcards de prueba",
+                instructions=(
+                    "Revise cada tarjeta."
+                ),
+                cards=(
+                    FlashcardItem(
+                        card_id=(
+                            f"card_{uuid4().hex[:8]}"
+                        ),
+                        front="Concepto principal",
+                        back=(
+                            "Definición basada "
+                            "en el documento."
+                        ),
+                    ),
+                ),
+            )
+
+        if (
+            format_type
+            == GeneratedFormatType.TLDR
+        ):
+            return TLDRContent(
+                title="Resumen de prueba",
+                summary=(
+                    "Síntesis breve basada en el documento."
+                ),
+                key_points=(
+                    "Concepto principal",
+                    "Aplicación educativa",
+                ),
+                conclusion=(
+                    "Conclusión basada en el documento."
+                ),
+            )
+
+        if (
+            format_type
+            == GeneratedFormatType.VIDEO_SCRIPT
+        ):
+            return VideoScriptContent(
+                title="Guion de prueba",
+                estimated_duration_minutes=1,
+                scenes=(
+                    VideoScriptScene(
+                        scene_id=(
+                            f"scene_{uuid4().hex[:8]}"
+                        ),
+                        title="Introducción",
+                        visual_description=(
+                            "Visual relacionado con "
+                            "el concepto principal."
+                        ),
+                        narration=(
+                            "Narración basada en el documento."
+                        ),
+                        duration_seconds=30,
+                    ),
+                ),
+            )
+
+        raise ValueError(
+            "Formato no soportado por el fake: "
+            f"{format_type.value}."
+        )

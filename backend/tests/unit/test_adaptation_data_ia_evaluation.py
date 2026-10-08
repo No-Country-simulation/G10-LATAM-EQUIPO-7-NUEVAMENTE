@@ -17,6 +17,9 @@ from app.domain.generated_content import (
     FlashcardsContent,
     QuizContent,
     QuizQuestion,
+    TLDRContent,
+    VideoScriptContent,
+    VideoScriptScene,
 )
 from app.domain.generated_format import (
     ChunkEvidence,
@@ -45,40 +48,9 @@ class SuccessfulGenerationService:
         ] = []
 
         for attempt in attempts:
-            if (
+            content = self._build_content(
                 attempt.format_type
-                == GeneratedFormatType.QUIZ
-            ):
-                content = QuizContent(
-                    title="Quiz",
-                    instructions="Seleccione.",
-                    questions=(
-                        QuizQuestion(
-                            question_id="q1",
-                            question="¿Qué orquesta?",
-                            options=(
-                                "Backend",
-                                "Frontend",
-                            ),
-                            correct_answer="Backend",
-                            explanation=(
-                                "Backend coordina."
-                            ),
-                        ),
-                    ),
-                )
-            else:
-                content = FlashcardsContent(
-                    title="Tarjetas",
-                    instructions="Revise.",
-                    cards=(
-                        FlashcardItem(
-                            card_id="c1",
-                            front="Backend",
-                            back="Orquestador.",
-                        ),
-                    ),
-                )
+            )
 
             completed.append(
                 GeneratedFormat(
@@ -118,6 +90,86 @@ class SuccessfulGenerationService:
             )
 
         return completed
+
+    @staticmethod
+    def _build_content(
+        format_type: GeneratedFormatType,
+    ):
+        """Construye contenido válido para cada formato."""
+        if (
+            format_type
+            == GeneratedFormatType.QUIZ
+        ):
+            return QuizContent(
+                title="Quiz",
+                instructions="Seleccione.",
+                questions=(
+                    QuizQuestion(
+                        question_id="q1",
+                        question="¿Qué orquesta?",
+                        options=(
+                            "Backend",
+                            "Frontend",
+                        ),
+                        correct_answer="Backend",
+                        explanation=(
+                            "Backend coordina."
+                        ),
+                    ),
+                ),
+            )
+
+        if (
+            format_type
+            == GeneratedFormatType.FLASHCARDS
+        ):
+            return FlashcardsContent(
+                title="Tarjetas",
+                instructions="Revise.",
+                cards=(
+                    FlashcardItem(
+                        card_id="c1",
+                        front="Backend",
+                        back="Orquestador.",
+                    ),
+                ),
+            )
+
+        if (
+            format_type
+            == GeneratedFormatType.TLDR
+        ):
+            return TLDRContent(
+                title="Resumen",
+                summary=(
+                    "Backend coordina las integraciones."
+                ),
+                key_points=(
+                    "Orquestación",
+                    "Persistencia",
+                ),
+                conclusion=(
+                    "Backend centraliza el flujo."
+                ),
+            )
+
+        return VideoScriptContent(
+            title="Guion",
+            estimated_duration_minutes=1,
+            scenes=(
+                VideoScriptScene(
+                    scene_id="scene_1",
+                    title="Introducción",
+                    visual_description=(
+                        "Diagrama de arquitectura."
+                    ),
+                    narration=(
+                        "Backend coordina las integraciones."
+                    ),
+                    duration_seconds=30,
+                ),
+            ),
+        )
 
     def fail_processing_attempts(
         self,
@@ -187,34 +239,31 @@ def _build_attempts() -> tuple[
     GeneratedFormat,
     ...,
 ]:
-    """Construye intentos processing de Quiz y Flashcards."""
+    """Construye intentos processing de los cuatro formatos."""
     context = GenerationContext(
         profile="intermediate",
         niche="backend",
         detail_level="detailed",
     )
 
-    return (
+    return tuple(
         GeneratedFormat(
-            format_id="fmt_quiz",
+            format_id=(
+                f"fmt_{format_type.value}"
+            ),
             document_id="doc_123",
-            format_type=GeneratedFormatType.QUIZ,
+            format_type=format_type,
             status=(
                 GeneratedFormatStatus.PROCESSING
             ),
             generation_context=context,
-        ),
-        GeneratedFormat(
-            format_id="fmt_flashcards",
-            document_id="doc_123",
-            format_type=(
-                GeneratedFormatType.FLASHCARDS
-            ),
-            status=(
-                GeneratedFormatStatus.PROCESSING
-            ),
-            generation_context=context,
-        ),
+        )
+        for format_type in (
+            GeneratedFormatType.QUIZ,
+            GeneratedFormatType.FLASHCARDS,
+            GeneratedFormatType.TLDR,
+            GeneratedFormatType.VIDEO_SCRIPT,
+        )
     )
 
 
@@ -240,7 +289,7 @@ def _build_service(
 
 
 def test_successful_formats_are_evaluated_after_generation() -> None:
-    """Data/IA recibe únicamente formatos ya generados exitosamente."""
+    """Data/IA recibe los cuatro formatos cuando terminan en success."""
     evaluation_service = (
         SpyEvaluationService()
     )
@@ -272,6 +321,8 @@ def test_successful_formats_are_evaluated_after_generation() -> None:
     assert evaluation_service.format_ids == [
         "fmt_quiz",
         "fmt_flashcards",
+        "fmt_tldr",
+        "fmt_video_script",
     ]
 
     assert (
@@ -283,7 +334,7 @@ def test_successful_formats_are_evaluated_after_generation() -> None:
 
 
 def test_data_ia_failure_does_not_fail_generated_content() -> None:
-    """Un fallo de evaluación no invalida una generación exitosa."""
+    """Un fallo de evaluación no invalida ninguna generación exitosa."""
     evaluation_service = (
         SpyEvaluationService(
             fail=True
@@ -317,6 +368,8 @@ def test_data_ia_failure_does_not_fail_generated_content() -> None:
     assert evaluation_service.format_ids == [
         "fmt_quiz",
         "fmt_flashcards",
+        "fmt_tldr",
+        "fmt_video_script",
     ]
 
     assert (
