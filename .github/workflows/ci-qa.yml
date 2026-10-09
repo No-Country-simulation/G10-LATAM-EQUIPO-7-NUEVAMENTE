@@ -49,17 +49,46 @@ jobs:
 
     env:
       PYTHONPATH: ${{ github.workspace }}
+      VENV: ${{ github.workspace }}/agentes/.venv
 
     steps:
       - name: Checkout
         uses: actions/checkout@v4
 
       - name: Setup Python
+        id: setup-python
         uses: actions/setup-python@v5
         with:
           python-version: "3.11"
-          cache: pip
-          cache-dependency-path: agentes/requirements.txt
+
+      - name: Restore Agents virtual environment
+        id: venv-cache
+        uses: actions/cache/restore@v4
+        with:
+          path: agentes/.venv
+          key: ${{ runner.os }}-agents-venv-${{ steps.setup-python.outputs.python-version }}-${{ hashFiles('agentes/requirements.txt') }}
+
+      - name: Create virtual environment
+        if: steps.venv-cache.outputs.cache-hit != 'true'
+        run: python -m venv "$VENV"
+
+      - name: Add virtual environment to PATH
+        run: echo "$VENV/bin" >> "$GITHUB_PATH"
+
+      - name: Install CPU-only PyTorch
+        if: steps.venv-cache.outputs.cache-hit != 'true'
+        run: pip install torch --index-url https://download.pytorch.org/whl/cpu
+
+      - name: Install dependencies
+        if: steps.venv-cache.outputs.cache-hit != 'true'
+        run: pip install -r agentes/requirements.txt
+
+      - name: Save Agents virtual environment
+        if: steps.venv-cache.outputs.cache-hit != 'true'
+        uses: actions/cache/save@v4
+        with:
+          path: agentes/.venv
+          key: ${{ steps.venv-cache.outputs.cache-primary-key }}
 
       - name: Restore Hugging Face cache
         id: hf-cache
@@ -72,12 +101,6 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-hf-
 
-      - name: Install CPU-only PyTorch
-        run: pip install torch --index-url https://download.pytorch.org/whl/cpu
-
-      - name: Install dependencies
-        run: pip install -r agentes/requirements.txt
-
       - name: Run tests
         run: pytest agentes/tests -q
 
@@ -89,7 +112,6 @@ jobs:
             ~/.cache/huggingface
             ~/.cache/torch/sentence_transformers
           key: ${{ steps.hf-cache.outputs.cache-primary-key }}
-
   data-ia:
     name: Data IA - Tests
     runs-on: ubuntu-latest
