@@ -46,7 +46,7 @@ jobs:
   agentes:
     name: Agents - Tests
     runs-on: ubuntu-latest
-    
+
     env:
       PYTHONPATH: ${{ github.workspace }}
 
@@ -61,8 +61,9 @@ jobs:
           cache: pip
           cache-dependency-path: agentes/requirements.txt
 
-      - name: Cache Hugging Face models
-        uses: actions/cache@v4
+      - name: Restore Hugging Face cache
+        id: hf-cache
+        uses: actions/cache/restore@v4
         with:
           path: |
             ~/.cache/huggingface
@@ -71,11 +72,23 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-hf-
 
+      - name: Install CPU-only PyTorch
+        run: pip install torch --index-url https://download.pytorch.org/whl/cpu
+
       - name: Install dependencies
         run: pip install -r agentes/requirements.txt
 
       - name: Run tests
         run: pytest agentes/tests -q
+
+      - name: Save Hugging Face cache
+        if: always() && steps.hf-cache.outputs.cache-hit != 'true'
+        uses: actions/cache/save@v4
+        with:
+          path: |
+            ~/.cache/huggingface
+            ~/.cache/torch/sentence_transformers
+          key: ${{ steps.hf-cache.outputs.cache-primary-key }}
 
   data-ia:
     name: Data IA - Tests
