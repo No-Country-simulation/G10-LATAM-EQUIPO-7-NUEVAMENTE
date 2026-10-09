@@ -2,6 +2,7 @@
 
 **Sistema Inteligente de Adaptación y Generación de Contenido Educativo**  
 Hackathon ONE · Grupo 10 · LATAM — Programa Oracle Next Education & Alura
+Actualizacion 8 de octubre de 2026
 
 ---
 
