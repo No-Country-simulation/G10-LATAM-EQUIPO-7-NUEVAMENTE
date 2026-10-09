@@ -46,6 +46,9 @@ jobs:
   agentes:
     name: Agents - Tests
     runs-on: ubuntu-latest
+    
+    env:
+      PYTHONPATH: ${{ github.workspace }}
 
     steps:
       - name: Checkout
