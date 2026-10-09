@@ -1,0 +1,56 @@
+name: Deploy Main to OCI
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+concurrency:
+  group: deploy-main
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Configure SSH
+        env:
+          DEPLOY_SSH_KEY: ${{ secrets.DEPLOY_SSH_KEY }}
+          DEPLOY_KNOWN_HOSTS: ${{ secrets.DEPLOY_KNOWN_HOSTS }}
+        run: |
+          mkdir -p ~/.ssh
+          printf '%s\n' "$DEPLOY_SSH_KEY" > ~/.ssh/id_ed25519
+          chmod 600 ~/.ssh/id_ed25519
+
+          printf '%s\n' "$DEPLOY_KNOWN_HOSTS" > ~/.ssh/known_hosts
+          chmod 600 ~/.ssh/known_hosts
+
+      - name: Deploy main
+        env:
+          DEPLOY_HOST: ${{ secrets.DEPLOY_HOST }}
+          DEPLOY_USER: ${{ secrets.DEPLOY_USER }}
+          DEPLOY_SHA: ${{ github.sha }}
+        run: |
+          ssh -i ~/.ssh/id_ed25519 "$DEPLOY_USER@$DEPLOY_HOST" "DEPLOY_SHA='$DEPLOY_SHA' bash -s" <<'EOF'
+            set -euo pipefail
+
+            cd /opt/nuevamente/app
+
+            if [ -n "$(git status --porcelain)" ]; then
+              echo "ERROR: Hay cambios locales en el servidor. Se cancela el despliegue."
+              git status --short
+              exit 1
+            fi
+
+            git fetch origin main
+            git switch -C main origin/main
+            git reset --hard "$DEPLOY_SHA"
+
+            docker compose up -d --build --force-recreate
+            docker compose ps
+          EOF

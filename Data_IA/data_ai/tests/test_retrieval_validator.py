@@ -5,11 +5,11 @@ from data_ai.validators.retrieval_validator import (
 
 def make_success_payload():
     return {
-        "contract_version": "1.0",
+        "contract_version": "2.0",
         "case_id": "AI-ES-001-Q01",
         "query": "¿Qué es inteligencia artificial?",
         "top_k": 5,
-        "score_type": "cosine_similarity",
+        "score_type": "cross_encoder",
         "status": "success",
         "results": [
             {
@@ -35,11 +35,11 @@ def test_success_payload_is_valid():
 
 def test_no_results_payload_is_valid():
     payload = {
-        "contract_version": "1.0",
+        "contract_version": "2.0",
         "case_id": "AI-ES-001-Q02",
         "query": "Pregunta sin resultados",
         "top_k": 5,
-        "score_type": "cosine_similarity",
+        "score_type": "cross_encoder",
         "status": "no_results",
         "results": [],
         "error": None,
@@ -52,11 +52,11 @@ def test_no_results_payload_is_valid():
 
 def test_error_payload_is_valid():
     payload = {
-        "contract_version": "1.0",
+        "contract_version": "2.0",
         "case_id": "AI-ES-001-Q03",
         "query": "Pregunta con error técnico",
         "top_k": 5,
-        "score_type": "cosine_similarity",
+        "score_type": "cross_encoder",
         "status": "error",
         "results": [],
         "error": {
@@ -85,11 +85,11 @@ def test_success_requires_results():
 
 def test_error_requires_error_object():
     payload = {
-        "contract_version": "1.0",
+        "contract_version": "2.0",
         "case_id": "AI-ES-001-Q04",
         "query": "Pregunta con error",
         "top_k": 5,
-        "score_type": "cosine_similarity",
+        "score_type": "cross_encoder",
         "status": "error",
         "results": [],
         "error": None,
@@ -124,7 +124,7 @@ def test_rank_must_follow_position():
 
 def test_required_contract_field_is_missing():
     payload = make_success_payload()
-    payload.pop("error")
+    payload.pop("query") # <--- SE CAMBIO "error" POR "query"
 
     errors = validate_retrieval_contract(payload)
 

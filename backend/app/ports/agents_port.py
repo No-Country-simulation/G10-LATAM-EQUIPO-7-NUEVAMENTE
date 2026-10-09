@@ -1,6 +1,6 @@
 """Puerto de integración entre BackendAPI y Agentes."""
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from typing import Protocol
 
 from app.domain.enums import (
@@ -14,6 +14,7 @@ from app.domain.generated_format import (
     ChunkEvidence,
     GenerationContext,
 )
+from app.domain.learning_metadata import LearningMetadata
 
 
 class AgentsError(Exception):
@@ -66,6 +67,9 @@ class AgentGenerationResult:
         AgentGeneratedFormatResult,
         ...
     ]
+    learning_metadata: LearningMetadata = field(
+        default_factory=LearningMetadata.empty
+    )
 
 
 class AgentsPort(Protocol):
@@ -75,5 +79,5 @@ class AgentsPort(Protocol):
         self,
         request: AgentGenerationInput,
     ) -> AgentGenerationResult:
-        """Genera Quiz y/o Flashcards para un documento indexado."""
+        """Genera formatos y metadata pedagógica para un documento."""
         ...

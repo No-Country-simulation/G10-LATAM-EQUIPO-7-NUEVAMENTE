@@ -21,6 +21,13 @@ _ADAPTATION_DATA = {
     ),
 }
 
+_CURRENT_FORMATS = {
+    "quiz",
+    "flashcards",
+    "tldr",
+    "video_script",
+}
+
 
 @pytest.mark.parametrize(
     ("filename", "content_type"),
@@ -41,7 +48,7 @@ def test_upload_valid_document(
     filename: str,
     content_type: str,
 ) -> None:
-    """Procesa el documento sin exponer formatos en la respuesta de carga."""
+    """Almacena, indexa y genera los cuatro formatos por etapas."""
     file_content = b"contenido de prueba"
 
     response = client.post(
@@ -68,12 +75,22 @@ def test_upload_valid_document(
     assert body["duplicate"] is False
     assert "formats" not in body
 
+    document_id = body["document_id"]
+
     assert (
         fake_adaptation_orchestration_service
-        .requests
+        .indexing_requests
+        == [
+            document_id
+        ]
+    )
+
+    assert (
+        fake_adaptation_orchestration_service
+        .preparation_requests
         == [
             {
-                "document_id": body["document_id"],
+                "document_id": document_id,
                 "profile": "intermediate",
                 "niche": "backend",
                 "detail_level": "detailed",
@@ -85,9 +102,23 @@ def test_upload_valid_document(
         ]
     )
 
+    assert len(
+        fake_adaptation_orchestration_service
+        .completion_requests
+    ) == 1
+
+    completed_format_ids = (
+        fake_adaptation_orchestration_service
+        .completion_requests[0]
+    )
+
+    assert len(
+        completed_format_ids
+    ) == 4
+
     formats_response = client.get(
         f"{api_prefix}/documents/"
-        f"{body['document_id']}/formats"
+        f"{document_id}/formats"
     )
 
     assert (
@@ -106,21 +137,28 @@ def test_upload_valid_document(
 
     assert set(
         formats_body["formats"]
-    ) == {
-        "quiz",
-        "flashcards",
+    ) == _CURRENT_FORMATS
+
+    assert all(
+        format_response["status"]
+        == "success"
+        for format_response
+        in formats_body["formats"].values()
+    )
+
+    returned_format_ids = {
+        format_response[
+            "format_id"
+        ]
+        for format_response
+        in formats_body["formats"].values()
     }
 
     assert (
-        formats_body["formats"]
-        ["quiz"]["status"]
-        == "success"
-    )
-
-    assert (
-        formats_body["formats"]
-        ["flashcards"]["status"]
-        == "success"
+        returned_format_ids
+        == set(
+            completed_format_ids
+        )
     )
 
     stored_files = list(
@@ -138,7 +176,7 @@ def test_upload_valid_document(
     ).suffix.lower()
 
     expected_object_name = (
-        f"documents/{body['document_id']}/"
+        f"documents/{document_id}/"
         f"original{extension}"
     )
 
@@ -281,7 +319,19 @@ def test_upload_returns_502_when_object_storage_fails(
 
     assert (
         fake_adaptation_orchestration_service
-        .requests
+        .indexing_requests
+        == []
+    )
+
+    assert (
+        fake_adaptation_orchestration_service
+        .preparation_requests
+        == []
+    )
+
+    assert (
+        fake_adaptation_orchestration_service
+        .completion_requests
         == []
     )
 
@@ -295,7 +345,7 @@ def test_duplicate_document_reuses_document_id(
         FakeAdaptationOrchestrationService
     ),
 ) -> None:
-    """Un duplicado reutiliza document_id sin volver a almacenar el archivo."""
+    """Un duplicado reutiliza document_id sin volver a almacenarse."""
     file_content = b"mismo contenido"
 
     first_response = client.post(
@@ -342,20 +392,52 @@ def test_duplicate_document_reuses_document_id(
     assert "formats" not in first_body
     assert "formats" not in second_body
 
+    document_id = (
+        first_body["document_id"]
+    )
+
+    assert (
+        fake_adaptation_orchestration_service
+        .indexing_requests
+        == [
+            document_id,
+            document_id,
+        ]
+    )
+
     assert len(
-        fake_adaptation_orchestration_service.requests
+        fake_adaptation_orchestration_service
+        .preparation_requests
     ) == 2
 
     assert all(
         request["document_id"]
-        == first_body["document_id"]
+        == document_id
         for request
-        in fake_adaptation_orchestration_service.requests
+        in (
+            fake_adaptation_orchestration_service
+            .preparation_requests
+        )
+    )
+
+    assert len(
+        fake_adaptation_orchestration_service
+        .completion_requests
+    ) == 2
+
+    assert all(
+        len(completed_format_ids)
+        == 4
+        for completed_format_ids
+        in (
+            fake_adaptation_orchestration_service
+            .completion_requests
+        )
     )
 
     formats_response = client.get(
         f"{api_prefix}/documents/"
-        f"{first_body['document_id']}/formats"
+        f"{document_id}/formats"
     )
 
     assert (
@@ -363,10 +445,18 @@ def test_duplicate_document_reuses_document_id(
         == 200
     )
 
+    formats_body = (
+        formats_response.json()
+    )
+
     assert (
-        formats_response.json()["status"]
+        formats_body["status"]
         == "ready"
     )
+
+    assert set(
+        formats_body["formats"]
+    ) == _CURRENT_FORMATS
 
     stored_files = list(
         temporary_upload_directory.iterdir()
@@ -379,7 +469,7 @@ def test_duplicate_document_reuses_document_id(
     ) == 1
 
     expected_object_name = (
-        f"documents/{first_body['document_id']}/"
+        f"documents/{document_id}/"
         "original.txt"
     )
 
@@ -493,7 +583,7 @@ def test_get_registered_document(
         FakeAdaptationOrchestrationService
     ),
 ) -> None:
-    """Consulta la metadata pública de un documento ya procesado."""
+    """Consulta la metadata pública de un documento indexado."""
     file_content = b"contenido persistido"
 
     create_response = client.post(
@@ -513,6 +603,24 @@ def test_get_registered_document(
     document_id = (
         create_response.json()["document_id"]
     )
+
+    assert (
+        fake_adaptation_orchestration_service
+        .indexing_requests
+        == [
+            document_id
+        ]
+    )
+
+    assert len(
+        fake_adaptation_orchestration_service
+        .preparation_requests
+    ) == 1
+
+    assert len(
+        fake_adaptation_orchestration_service
+        .completion_requests
+    ) == 1
 
     response = client.get(
         f"{api_prefix}/documents/{document_id}"
@@ -536,7 +644,8 @@ def test_get_registered_document(
 
     assert body["title"] is None
     assert body["summary"] is None
-    assert body["estimated_time"] is None
+    assert body["learning_metadata"] is None
+    assert "estimated_time" not in body
 
     assert "formats_status" not in body
     assert "formats" not in body
@@ -578,7 +687,7 @@ def test_adaptations_endpoint_is_not_public(
     client: TestClient,
     api_prefix: str,
 ) -> None:
-    """La adaptación se ejecuta internamente y no expone endpoint público."""
+    """La adaptación continúa siendo un caso de uso interno."""
     response = client.post(
         f"{api_prefix}/adaptations",
         json={

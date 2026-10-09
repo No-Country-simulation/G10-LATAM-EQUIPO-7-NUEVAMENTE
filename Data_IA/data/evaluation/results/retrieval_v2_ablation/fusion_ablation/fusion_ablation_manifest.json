@@ -1,0 +1,33 @@
+{
+  "experiment": "retrieval_v2_rrf_cross_fusion_ablation",
+  "total_cases": 50,
+  "top_k": 5,
+  "candidate_k": 15,
+  "rrf_k": 60,
+  "metadata_filter": "document_id",
+  "ground_truth": "ground_truth_v2.csv",
+  "corpus": "chunks_v1.csv",
+  "normalization": "per-query min-max over candidate set",
+  "fusion_formula": "alpha * cross_normalized + (1-alpha) * rrf_normalized",
+  "alpha_meaning": "Cross-Encoder weight",
+  "alphas": [
+    0.25,
+    0.5,
+    0.75
+  ],
+  "conditions": [
+    "RRF-only",
+    "Fusion alpha=0.25",
+    "Fusion alpha=0.50",
+    "Fusion alpha=0.75",
+    "Cross-Encoder"
+  ],
+  "models": {
+    "cross_encoder": "cross-encoder/ms-marco-MiniLM-L-6-v2"
+  },
+  "hashes": {
+    "ground_truth_v2.csv": "8cd975bc8b295d4a106470be55a65cfc10d3c25a61606c1f65855d713d95b515",
+    "chunks_v1.csv": "309167963f1d5255374f3cb71b5533cfdcd97f02c7fd9650a0387c18903190c0",
+    "retrieval_results_agentes_v2.json": "12c096acc16a4c0be9886637b6040eb74e8f23d109043639d13a3acc546253aa"
+  }
+}

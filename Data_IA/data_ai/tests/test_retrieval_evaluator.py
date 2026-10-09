@@ -31,11 +31,11 @@ def make_ground_truth():
 
 def make_success_payload(case_id="AI-ES-001-Q01"):
     return {
-        "contract_version": "1.0",
+        "contract_version": "2.0", # CAMBIO AQUI
         "case_id": case_id,
         "query": "¿Qué es inteligencia artificial?",
         "top_k": 5,
-        "score_type": "cosine_similarity",
+        "score_type": "cross_encoder", # CAMBIO AQUI
         "status": "success",
         "results": [
             {
@@ -53,11 +53,11 @@ def make_success_payload(case_id="AI-ES-001-Q01"):
 
 def make_no_results_payload(case_id="AI-ES-001-Q02"):
     return {
-        "contract_version": "1.0",
+        "contract_version": "2.0", # CAMBIO AQUI
         "case_id": case_id,
         "query": "Pregunta sin resultados",
         "top_k": 5,
-        "score_type": "cosine_similarity",
+        "score_type": "cross_encoder", # CAMBIO AQUI
         "status": "no_results",
         "results": [],
         "error": None,
@@ -66,11 +66,11 @@ def make_no_results_payload(case_id="AI-ES-001-Q02"):
 
 def make_error_payload(case_id="AI-ES-001-Q02"):
     return {
-        "contract_version": "1.0",
+        "contract_version": "2.0", # CAMBIO AQUI
         "case_id": case_id,
         "query": "Pregunta con error",
         "top_k": 5,
-        "score_type": "cosine_similarity",
+        "score_type": "cross_encoder", # CAMBIO AQUI
         "status": "error",
         "results": [],
         "error": {

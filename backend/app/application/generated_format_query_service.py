@@ -32,6 +32,13 @@ _PROCESSING_DOCUMENT_STATUSES = frozenset(
     }
 )
 
+_BASELINE_READY_FORMATS = frozenset(
+    {
+        GeneratedFormatType.QUIZ,
+        GeneratedFormatType.FLASHCARDS,
+    }
+)
+
 
 class GeneratedFormatQueryDocumentNotFoundError(
     Exception
@@ -149,19 +156,7 @@ class GeneratedFormatQueryService:
     def _resolve_empty_history_status(
         document_status: DocumentStatus,
     ) -> DocumentFormatsStatus:
-        """Resuelve el estado cuando todavía no hay generaciones.
-
-        ``INDEXING`` representa procesamiento activo del documento.
-
-        ``INDEXED`` solo confirma que la indexación terminó correctamente.
-        No implica que la generación se encuentre ejecutándose. Si un
-        documento está indexado y aún no existe historial de formatos,
-        la generación permanece pendiente.
-
-        Los fallos de generación se representan mediante registros
-        ``GeneratedFormat`` con estado ``FAILED`` y se resuelven a
-        ``DocumentFormatsStatus.ERROR`` mediante el historial.
-        """
+        """Resuelve el estado cuando todavía no hay generaciones."""
         if (
             document_status
             in _FAILED_DOCUMENT_STATUSES
@@ -208,6 +203,16 @@ class GeneratedFormatQueryService:
             if not candidates:
                 continue
 
+            processing_candidates = [
+                generated_format
+                for generated_format
+                in candidates
+                if (
+                    generated_format.status
+                    == GeneratedFormatStatus.PROCESSING
+                )
+            ]
+
             successful_candidates = [
                 generated_format
                 for generated_format
@@ -218,11 +223,18 @@ class GeneratedFormatQueryService:
                 )
             ]
 
-            available_candidates = (
-                successful_candidates
-                if successful_candidates
-                else candidates
-            )
+            if processing_candidates:
+                available_candidates = (
+                    processing_candidates
+                )
+
+            elif successful_candidates:
+                available_candidates = (
+                    successful_candidates
+                )
+
+            else:
+                available_candidates = candidates
 
             current_format = max(
                 available_candidates,
@@ -248,7 +260,31 @@ class GeneratedFormatQueryService:
             ...
         ],
     ) -> DocumentFormatsStatus:
-        """Calcula el estado agregado consumido por Frontend."""
+        """Calcula el estado agregado consumido por Frontend.
+
+        ``quiz`` y ``flashcards`` conservan el baseline histórico para no
+        degradar documentos creados antes de incorporar ``tldr`` y
+        ``video_script``.
+
+        Reglas:
+        - cualquier intento activo -> ``processing``;
+        - ningún éxito -> ``error``;
+        - baseline incompleto -> ``partial``;
+        - baseline completo pero algún formato intentado no fue exitoso
+          -> ``partial``;
+        - todos los formatos intentados son exitosos y el baseline está
+          completo -> ``ready``.
+        """
+        if any(
+            generated_format.status
+            == GeneratedFormatStatus.PROCESSING
+            for generated_format
+            in formats
+        ):
+            return (
+                DocumentFormatsStatus.PROCESSING
+            )
+
         successful_types = {
             generated_format.format_type
             for generated_format
@@ -259,21 +295,24 @@ class GeneratedFormatQueryService:
             )
         }
 
-        supported_types = set(
-            GeneratedFormatType
-        )
+        if not successful_types:
+            return DocumentFormatsStatus.ERROR
+
+        if not successful_types.issuperset(
+            _BASELINE_READY_FORMATS
+        ):
+            return DocumentFormatsStatus.PARTIAL
+
+        attempted_types = {
+            generated_format.format_type
+            for generated_format
+            in formats
+        }
 
         if (
             successful_types
-            == supported_types
+            != attempted_types
         ):
-            return (
-                DocumentFormatsStatus.READY
-            )
+            return DocumentFormatsStatus.PARTIAL
 
-        if successful_types:
-            return (
-                DocumentFormatsStatus.PARTIAL
-            )
-
-        return DocumentFormatsStatus.ERROR
+        return DocumentFormatsStatus.READY

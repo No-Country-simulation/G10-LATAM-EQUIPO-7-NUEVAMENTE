@@ -1,0 +1,62 @@
+﻿rank,chunk_id,document_id,vector_rank,bm25_rank,score,rrf_score,cross_score,matched_keywords,chunk_evidence_coverage,cumulative_matched_keywords,cumulative_evidence_coverage,threshold_reached,text
+1,FE-ES-001_1_23,FE-ES-001,4,1,,0.032018442622950824,5.094967842102051,,0.0,,0.0,False,"<!DOCTYPE html> : El tipo de documento. Cuando HTML era joven (1991-1992), los doctype estaban destinados a actuar como enlaces a un conjunto de reglas que la página HTML tenía que seguir para ser considerada un buen HTML. Los doctypes solían parecerse a algo como esto:
+
+<!DOCTYPE html>
+
+Más recientemente, el doctype es un artefacto histórico que debe incluirse para que todo lo demás funcione correctamente. <!DOCTYPE html> es la cadena más corta de caracteres que cuenta como un tipo de documento válido. ¡Eso es todo lo que necesitas saber!
+
+<!DOCTYPE html>
+- <html></html> : El elemento <html> . Este elemento envuelve todo el contenido de la página. A veces se le conoce como el elemento raíz.
+
+<html></html> : El elemento <html> . Este elemento envuelve todo el contenido de la página. A veces se le conoce como el elemento raíz.
+
+<html></html>"
+2,FE-ES-001_1_22,FE-ES-001,3,2,,0.03200204813108039,4.795095443725586,,0.0,,0.0,False,"Mi página de prueba
+
+ Esta es mi página
+
+Aquí tenemos:
+- <!DOCTYPE html> : El tipo de documento. Cuando HTML era joven (1991-1992), los doctype estaban destinados a actuar como enlaces a un conjunto de reglas que la página HTML tenía que seguir para ser considerada un buen HTML. Los doctypes solían parecerse a algo como esto: html <!DOCTYPE html PUBLIC ""-//W3C//DTD XHTML 1.0 Transitional//EN"" ""http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd""> Más recientemente, el doctype es un artefacto histórico que debe incluirse para que todo lo demás funcione correctamente. <!DOCTYPE html> es la cadena más corta de caracteres que cuenta como un tipo de documento válido. ¡Eso es todo lo que necesitas saber!"
+3,FE-ES-001_1_10,FE-ES-001,,3,,0.015873015873015872,3.299712657928467,,0.0,,0.0,False,"No todos los elementos siguen el patrón de una etiqueta de apertura, contenido y una etiqueta de cierre. Algunos elementos consisten en una sola etiqueta, que normalmente se utiliza para insertar/incrustar algo en el documento. Dichos elementos se denominan elementos vacíos . Por ejemplo, el elemento <img> incrusta un archivo de imagen en una página:
+
+<img>
+
+<img
+  src=""https://raw.githubusercontent.com/mdn/beginner-html-site/gh-pages/images/firefox-icon.png""
+  alt=""Icono de Firefox"" />
+
+Esto daría como resultado lo siguiente:
+
+Nota: En HTML, no es necesario añadir un / al final de la etiqueta de un elemento vacío, por ejemplo: <img src=""images/cat.jpg"" alt=""cat"" /> . Sin embargo, también es una sintaxis válida, y puede hacerlo cuando desee que su HTML sea XML válido.
+
+/
+
+<img src=""images/cat.jpg"" alt=""cat"" />
+Atributos"
+4,FE-ES-001_1_29,FE-ES-001,15,4,,0.028958333333333336,3.0599117279052734,,0.0,,0.0,False,"<body></body> : El elemento <body> . Contiene todo el contenido que se muestra en la página, incluidos texto, imágenes, vídeos, juegos, pistas de audio reproducibles o cualquier otra cosa.
+
+<body></body>
+
+<body>
+Aprendizaje activo: añadir algunas funciones a un documento HTML
+
+Si quieres experimentar con escribir algo de HTML en tu ordenador local, puedes:
+- Copie el ejemplo de página HTML listado anteriormente.
+- Crea un nuevo archivo en tu editor de texto.
+- Pega el código en el nuevo archivo de texto.
+- Guarde el archivo como index.html .
+
+index.html
+
+Nota: También puedes encontrar esta plantilla HTML básica en el repositorio de GitHub del área de aprendizaje de MDN .
+
+Ahora puede abrir este archivo en un navegador web para ver cómo se ve el código renderizado. Edita el código y actualiza el navegador para ver cuál es el resultado. Inicialmente, la página se ve así:"
+5,FE-ES-001_1_42,FE-ES-001,8,,,0.014705882352941176,0.7592812776565552,,0.0,,0.0,False,"¡Has llegado al final del artículo! Esperamos que hayas disfrutado de tu recorrido por los conceptos básicos de HTML.
+
+En este punto, debes entender cómo se ve HTML y cómo funciona a un nivel básico. También deberías poder escribir algunos elementos y atributos. Los artículos posteriores de este módulo profundizan en algunos de los temas introducidos aquí, así como en la presentación de otros conceptos del lenguaje.
+- A medida que comiences a aprender más sobre HTML, considera aprender los conceptos básicos de CSS (hojas de estilo en cascada). CSS es el lenguaje utilizado para dar estilo a las páginas web, como cambiar fuentes o colores o alterar el diseño de la página. HTML y CSS funcionan bien juntos, como pronto descubrirás.
+Vease también
+- Aplicar color a elementos HTML usando CSS
+- Overview: Estructurando la web con HTML
+- Siguiente
+Help improve MDN"

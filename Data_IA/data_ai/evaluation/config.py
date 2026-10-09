@@ -8,7 +8,7 @@ RATIO_ALUCINACION_EXCELENTE = 0.15
 RATIO_ALUCINACION_BUENO = 0.30
 
 # Versiones del motor y rúbrica
-EVALUATOR_VERSION = "1.0.0"
+EVALUATOR_VERSION = "1.1.0"
 RUBRIC_VERSION = "1.0.0"
 
 # Umbrales de adaptación didáctica

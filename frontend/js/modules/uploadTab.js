@@ -4,9 +4,10 @@
  * Incorpora límite estricto de 10 MB (Tarea 4) y manejo UX de errores y estados (Tarea 5).
  */
 
-import { CONFIG } from '../config.js';
+import { CONFIG, getRandomSpineColor } from '../config.js';
 import { state } from '../state.js';
 import { apiClient, ApiError } from '../api/apiClient.js';
+import { toFriendlyError } from '../utils/friendlyError.js';
 import { router } from './router.js';
 import { statusDialog } from './statusDialog.js';
 import {
@@ -59,11 +60,14 @@ export const uploadTab = {
 
       // Resultados y Resolver
       resultBoxContainer: document.getElementById('resultBoxContainer'),
+      resultSuccessTitle: document.querySelector('#resultBoxContainer .result-success-banner h3'),
+      resultSuccessSubtitle: document.querySelector('#resultBoxContainer .result-success-banner p'),
       badgeTiempo: document.getElementById('badgeTiempo'),
       badgeSecciones: document.getElementById('badgeSecciones'),
       badgeNivel: document.getElementById('badgeNivel'),
       resolverFormatCards: document.querySelectorAll('.btn-resolver-card'),
-      btnIrALaBiblioteca: document.getElementById('btnIrALaBiblioteca')
+      btnIrALaBiblioteca: document.getElementById('btnIrALaBiblioteca'),
+      btnIrAlCentroEstudio: document.getElementById('btnIrAlCentroEstudio')
     };
   },
 
@@ -257,7 +261,10 @@ export const uploadTab = {
     if (resultBoxContainer) resultBoxContainer.style.display = 'none';
     if (btnLanzarProcesamiento) {
       btnLanzarProcesamiento.disabled = true;
-      btnLanzarProcesamiento.innerHTML = '<span>Procesando documento...</span>';
+      btnLanzarProcesamiento.textContent = '';
+      const span = document.createElement('span');
+      span.textContent = 'Procesando documento...';
+      btnLanzarProcesamiento.appendChild(span);
     }
     this.resetStepperUI();
 
@@ -279,7 +286,7 @@ export const uploadTab = {
       let uploadResult;
 
       // Paso 1: Subir el documento al backend con parámetros pedagógicos (POST /api/v1/documents)
-      // Contrato Sprint 2: Frontend envía file, profile, niche, detail_level en multipart/form-data.
+      // Contrato Backend PR #54: Guarda en OCI y completa indexación RAG de forma síncrona.
       this.currentActiveStep = this.elements.stepOci;
       this.setStepActive(this.elements.stepOci, 'Guardando tu documento en OCI...');
 
@@ -312,23 +319,15 @@ export const uploadTab = {
         isMock: false
       });
 
-      // Paso 2: Indexación y embeddings completados por Backend
+      // Paso 2: Indexación y embeddings RAG completados por Backend
       this.currentActiveStep = this.elements.stepChroma;
       this.setStepActive(this.elements.stepChroma, 'Indexando contenido y analizando embeddings...');
       this.setStepCompleted(this.elements.stepChroma, this.elements.line2);
 
-      // Paso 3: Generación pedagógica adaptativa (Quiz + Flashcards)
-      // Nota Sprint 2: El backend orquesta RAG + Generación internamente; /adaptations ya no se consume.
+      // Paso 3: Generación pedagógica adaptativa (Quiz + Flashcards en segundo plano)
+      // Backend inicia la generación en background; liberamos al usuario de la pantalla de carga
       this.currentActiveStep = this.elements.stepGen;
-      this.setStepActive(this.elements.stepGen, `Generando Quiz y Flashcards (${this.getLevelLabel(profile)})...`);
-      this.setStepCompleted(this.elements.stepGen, this.elements.line3);
-
-      // Paso 4: Formatos de estudio listos en el Backend
-      // Nota Sprint 2: No se consulta GET /formats inmediatamente tras el POST para evitar puntos de fallo;
-      // los formatos se consultan al acceder al Study Hub.
-      this.currentActiveStep = this.elements.stepCritic;
-      this.setStepActive(this.elements.stepCritic, 'Formatos de estudio listos para acceder...');
-      this.setStepCompleted(this.elements.stepCritic, null);
+      this.setStepActive(this.elements.stepGen, 'Documento indexado. Generando formatos en segundo plano (Quiz + Flashcards)...');
 
       // Crear el documento persistido para el estado global y el librero
       const procDoc = this.createDocumentFromUpload(selectedFile, uploadResult, pedagogicalParams);
@@ -337,34 +336,37 @@ export const uploadTab = {
     } catch (err) {
       console.error('[Pipeline Error]:', err);
       
+      const friendly = toFriendlyError(err);
+
       if (this.currentActiveStep) {
-        this.setStepFailed(this.currentActiveStep, err.message);
+        this.setStepFailed(this.currentActiveStep, friendly.title);
       }
 
       if (this.elements.pipelineLiveLog) {
-        this.elements.pipelineLiveLog.textContent = `Error: ${err.message}`;
+        this.elements.pipelineLiveLog.textContent = `Aviso: ${friendly.message}`;
       }
 
       if (this.elements.pipelineStatusBadge) {
-        this.elements.pipelineStatusBadge.textContent = `Error ${err.status || 500}`;
-        this.elements.pipelineStatusBadge.style.background = 'rgba(239, 68, 68, 0.2)';
-        this.elements.pipelineStatusBadge.style.color = '#ef4444';
+        const badgeLabel = friendly.status === 0 ? 'Sin Conexión' : `Estado ${friendly.status}`;
+        this.elements.pipelineStatusBadge.textContent = badgeLabel;
+        this.elements.pipelineStatusBadge.style.background = 'rgba(245, 158, 11, 0.18)';
+        this.elements.pipelineStatusBadge.style.color = 'var(--accent-gold)';
       }
 
-      // Desplegar diálogo temporal con detalles exactos del error devuelto por backend
+      // Desplegar diálogo temporal con detalles exactos y amigables
       statusDialog.showError({
-        status: err.status || 500,
-        code: err.code || 'PIPELINE_ERROR',
-        message: err.message,
-        details: err.details || [],
+        status: friendly.status,
+        code: friendly.code,
+        message: friendly.message,
+        details: friendly.details,
         filename: selectedFile ? selectedFile.name : ''
       });
 
       notifyError(
-        `Error HTTP ${err.status || 500}: ${err.code || 'PIPELINE_ERROR'}`,
-        err.message,
+        friendly.title,
+        friendly.message,
         {
-          actionText: 'Reintentar',
+          actionText: friendly.actionText || 'Reintentar',
           onAction: () => {
             if (selectedFile) this.runPipeline(selectedFile, params, apiMode);
           }
@@ -373,7 +375,10 @@ export const uploadTab = {
     } finally {
       if (btnLanzarProcesamiento) {
         btnLanzarProcesamiento.disabled = false;
-        btnLanzarProcesamiento.innerHTML = '<span>Procesar Documento</span>';
+        btnLanzarProcesamiento.textContent = '';
+        const span = document.createElement('span');
+        span.textContent = 'Procesar Documento';
+        btnLanzarProcesamiento.appendChild(span);
       }
     }
   },
@@ -402,10 +407,10 @@ export const uploadTab = {
       filename: rawName,
       title: formattedTitle,
       discipline: discipline,
-      spineColor: 'gold-custom',
-      description: `Documento procesado y adaptado (${uploadResult.isDuplicate ? 'Registro existente reutilizado' : 'Nuevo registro creado'}).`,
+      spineColor: getRandomSpineColor(),
+      description: `Documento indexado mediante RAG (${uploadResult.isDuplicate ? 'Registro existente reutilizado' : 'Nuevo registro creado'}). Formatos pedagógicos en proceso de generación.`,
       filesize: selectedFile.size || '1.0 MB',
-      status: uploadResult.status || 'stored',
+      status: uploadResult.status || 'indexed',
       metadatos: {
         document_id: docId,
         perfil: profile,
@@ -419,8 +424,8 @@ export const uploadTab = {
         {
           id: `sec_${docId}`,
           title: formattedTitle,
-          summary: `Documento registrado y adaptado exitosamente con Quiz y Flashcards.`,
-          key_concepts: [discipline, 'Concepto Clave', 'Estudio Adaptativo']
+          summary: `Documento indexado exitosamente. Generando Evaluación y Tarjetas de Refuerzo en segundo plano.`,
+          key_concepts: [discipline, 'Competencia Clave', 'Capacitación Adaptativa']
         }
       ]
     };
@@ -450,8 +455,13 @@ export const uploadTab = {
     const exists = currentCustomBooks.some(b => b.id === procDoc.id);
     const updatedCustom = exists ? currentCustomBooks : [procDoc, ...currentCustomBooks];
 
-    const rawFormats = uploadResult.formats || null;
-    const globalStatus = rawFormats ? 'ready' : 'idle';
+    // Backend registra los 4 formatos en estado 'processing' en segundo plano (PR #71)
+    const initialFormats = {
+      quiz: { format_id: null, status: 'processing', content: null, error_message: null },
+      flashcards: { format_id: null, status: 'processing', content: null, error_message: null },
+      tldr: { format_id: null, status: 'processing', content: null, error_message: null },
+      video_script: { format_id: null, status: 'processing', content: null, error_message: null }
+    };
 
     state.set({
       currentDocument: procDoc,
@@ -464,8 +474,8 @@ export const uploadTab = {
       },
       studyHub: {
         activeSectionId: procDoc.sections[0]?.id || null,
-        formats: rawFormats,
-        formatsStatus: globalStatus,
+        formats: initialFormats,
+        formatsStatus: 'processing',
         activeFormat: 'flashcards',
         currentCardIndex: 0,
         isFlipped: false
@@ -473,23 +483,31 @@ export const uploadTab = {
     });
 
     if (this.elements.pipelineStatusBadge) {
-      this.elements.pipelineStatusBadge.textContent = 'Quiz + Flashcards Listos';
-      this.elements.pipelineStatusBadge.style.background = 'rgba(16, 185, 129, 0.2)';
-      this.elements.pipelineStatusBadge.style.color = '#10b981';
+      this.elements.pipelineStatusBadge.textContent = 'Documento Indexado · Formatos en Proceso';
+      this.elements.pipelineStatusBadge.style.background = 'rgba(245, 158, 11, 0.2)';
+      this.elements.pipelineStatusBadge.style.color = 'var(--accent-gold)';
     }
 
     if (this.elements.pipelineLiveLog) {
-      this.elements.pipelineLiveLog.textContent = '¡Proceso completado! Documento procesado y adaptado exitosamente por el Backend.';
+      this.elements.pipelineLiveLog.textContent = 'El documento ya fue procesado e indexado. Estamos terminando de generar los formatos; puedes continuar navegando.';
     }
 
     notifySuccess(
-      uploadResult.isDuplicate ? 'Documento Reutilizado (200)' : 'Documento Almacenado y Adaptado (201)',
-      `"${procDoc.filename}" ya está disponible en tu Biblioteca y Centro de Estudio.`
+      uploadResult.isDuplicate ? 'Documento Reutilizado e Indexado (200)' : 'Documento Almacenado e Indexado (201)',
+      'El documento ya fue procesado. Estamos terminando de generar los formatos pedagógicos; puedes continuar navegando.'
     );
+
+    // Actualizar encabezados del banner de resultados con texto seguro
+    if (this.elements.resultSuccessTitle) {
+      this.elements.resultSuccessTitle.textContent = '¡Documento Procesado e Indexado con Éxito!';
+    }
+    if (this.elements.resultSuccessSubtitle) {
+      this.elements.resultSuccessSubtitle.textContent = 'El documento ya fue procesado. Estamos terminando de generar los formatos pedagógicos; puedes continuar navegando o ingresar al Centro de Estudio.';
+    }
 
     // Actualizar datos de lectura
     if (this.elements.badgeTiempo) {
-      this.elements.badgeTiempo.textContent = 'Persistencia: OCI Storage';
+      this.elements.badgeTiempo.textContent = 'Almacenamiento: OCI';
     }
     if (this.elements.badgeSecciones) {
       this.elements.badgeSecciones.textContent = `ID: ${procDoc.id.substring(0, 8)}...`;
@@ -507,11 +525,17 @@ export const uploadTab = {
         if (!descSpan) return;
 
         if (fmt === 'flashcards') {
-          descSpan.textContent = 'Mnemotecnia y conceptos clave · Listo';
-          descSpan.style.color = 'var(--text-secondary)';
+          descSpan.textContent = 'Tarjetas de refuerzo · Generando en segundo plano...';
+          descSpan.style.color = 'var(--accent-gold)';
         } else if (fmt === 'quiz') {
-          descSpan.textContent = 'Autoevaluación con justificación · Listo';
-          descSpan.style.color = 'var(--text-secondary)';
+          descSpan.textContent = 'Evaluación de competencias · Generando en segundo plano...';
+          descSpan.style.color = 'var(--accent-gold)';
+        } else if (fmt === 'video') {
+          descSpan.textContent = 'Guion audiovisual · Generando en segundo plano...';
+          descSpan.style.color = 'var(--accent-gold)';
+        } else if (fmt === 'sintesis') {
+          descSpan.textContent = 'Síntesis ejecutiva · Generando en segundo plano...';
+          descSpan.style.color = 'var(--accent-gold)';
         }
       });
     }
@@ -519,20 +543,20 @@ export const uploadTab = {
     // Mostrar panel de resolución de formatos
     if (this.elements.resultBoxContainer) {
       this.elements.resultBoxContainer.style.display = 'flex';
-      this.elements.resultBoxContainer.scrollIntoView({ behavior: 'smooth' });
+      this.elements.resultBoxContainer.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
     }
   },
 
   getLevelLabel(perfil) {
     const map = {
-      beginner: 'Principiante',
-      intermediate: 'Intermedio',
-      advanced: 'Avanzado',
-      principiante: 'Principiante',
-      intermedio: 'Intermedio',
-      avanzado: 'Avanzado'
+      beginner: 'Inicial / Inducción',
+      intermediate: 'Operativo / Especialista',
+      advanced: 'Avanzado / Liderazgo',
+      principiante: 'Inicial / Inducción',
+      intermedio: 'Operativo / Especialista',
+      avanzado: 'Avanzado / Liderazgo'
     };
-    return map[(perfil || '').toLowerCase()] || 'Intermedio';
+    return map[(perfil || '').toLowerCase()] || 'Operativo / Especialista';
   },
 
   setupResolverActions() {
@@ -552,6 +576,12 @@ export const uploadTab = {
     if (this.elements.btnIrALaBiblioteca) {
       this.elements.btnIrALaBiblioteca.addEventListener('click', () => {
         router.navigate('library');
+      });
+    }
+
+    if (this.elements.btnIrAlCentroEstudio) {
+      this.elements.btnIrAlCentroEstudio.addEventListener('click', () => {
+        router.navigate('study');
       });
     }
   },

@@ -41,7 +41,7 @@ def test_document_created_response() -> None:
 
 
 def test_document_response() -> None:
-    """Expone metadata base y campos enriquecidos opcionales."""
+    """Expone metadata pública sin el campo legado de tiempo."""
     now = datetime.now(
         UTC
     )
@@ -59,4 +59,8 @@ def test_document_response() -> None:
     assert response.size_bytes == 100
     assert response.title is None
     assert response.summary is None
-    assert response.estimated_time is None
+    assert response.learning_metadata is None
+
+    serialized = response.model_dump()
+
+    assert "estimated_time" not in serialized

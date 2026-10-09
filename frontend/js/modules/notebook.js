@@ -78,13 +78,12 @@ export const notebook = {
       this.spreads = [];
       this.elements.spreadsContainer.innerHTML = `
         <div style="display:flex; flex-direction:column; align-items:center; justify-content:center; padding:4rem 2rem; text-align:center; color:var(--text-secondary); width:100%;">
-          <div style="font-size:3rem; margin-bottom:1rem;">📖</div>
-          <h3 style="color:var(--text-main); font-size:1.4rem; margin-bottom:0.5rem;">Cuaderno en Espera</h3>
+          <h3 style="color:var(--text-main); font-size:1.4rem; margin-bottom:0.5rem;">Panel de Lectura en Espera</h3>
           <p style="max-width:500px; font-size:0.95rem; line-height:1.6; margin-bottom:1.5rem;">
-            Aún no has abierto ningún libro. Ve a La Biblioteca para seleccionar uno existente o sube un documento nuevo para generar su cuaderno interactivo.
+            Aún no abriste ningún recurso. Ve al Catálogo de Capacitaciones para seleccionar uno existente o sube un documento nuevo para generar su panel de lectura interactivo.
           </p>
           <button type="button" class="btn-primary-action" id="btnEmptyGoLibrary">
-            <span>Explorar La Biblioteca</span>
+            <span>Explorar el Catálogo de Capacitaciones</span>
           </button>
         </div>
       `;
@@ -93,7 +92,7 @@ export const notebook = {
       });
       if (this.elements.bottomDock) this.elements.bottomDock.innerHTML = '';
       if (this.elements.spreadIndicator) this.elements.spreadIndicator.textContent = 'Sin documento';
-      if (this.elements.guideInstruction) this.elements.guideInstruction.textContent = 'Abre un libro desde la biblioteca.';
+      if (this.elements.guideInstruction) this.elements.guideInstruction.textContent = 'Abre un recurso desde el catálogo.';
       if (this.elements.btnPagePrev) this.elements.btnPagePrev.style.display = 'none';
       if (this.elements.btnPageNext) this.elements.btnPageNext.style.display = 'none';
       if (this.elements.btnIrPortada) this.elements.btnIrPortada.style.display = 'none';
@@ -110,7 +109,7 @@ export const notebook = {
     this.spreads.push({
       id: 'spread_cover',
       title: 'Portada',
-      instruction: `Explora el material pedagógico adaptado para: ${doc.title}`,
+      instruction: `Explora el módulo de capacitación estructurado para: ${doc.title}`,
       element: coverSpread
     });
     this.elements.spreadsContainer.appendChild(coverSpread);
@@ -128,7 +127,7 @@ export const notebook = {
       this.spreads.push({
         id: `spread_sec_${i}`,
         title: titleLabel,
-        instruction: 'Haz clic en "Estudiar Sección" en cualquier módulo para acceder a las Flashcards, Quiz y Video.',
+        instruction: 'Haz clic en "Capacitar en esta Sección" en cualquier módulo para acceder a las Flashcards, Quiz y Video.',
         element: sectionSpread
       });
       this.elements.spreadsContainer.appendChild(sectionSpread);
@@ -139,7 +138,7 @@ export const notebook = {
     this.spreads.push({
       id: 'spread_index',
       title: 'Índice General',
-      instruction: 'Haz clic en cualquier sección del índice para ir directamente a sus páginas de estudio.',
+      instruction: 'Haz clic en cualquier sección del índice para ir directamente a sus páginas de capacitación.',
       element: indexSpread
     });
     this.elements.spreadsContainer.appendChild(indexSpread);
@@ -158,21 +157,49 @@ export const notebook = {
     spread.id = 'viewCoverDynamic';
 
     const meta = doc.metadatos || {};
+    const lm = doc.learning_metadata || {};
+    const tiempoEstudio = typeof lm.estimated_time_minutes === 'number'
+      ? `${lm.estimated_time_minutes} min`
+      : (typeof doc.estimated_time_minutes === 'number' ? `${doc.estimated_time_minutes} min` : (meta.tiempo_estudio || '8 min'));
+
+    const prereqs = Array.isArray(lm.prerequisites) && lm.prerequisites.length > 0
+      ? lm.prerequisites
+      : (Array.isArray(doc.prerequisites) ? doc.prerequisites : []);
+
     spread.innerHTML = `
-      <span class="cover-emboss-badge">${doc.discipline || 'Documento Técnico'}</span>
-      <h2 class="cover-doc-title">${doc.title}</h2>
-      <p class="cover-doc-description">${doc.description}</p>
+      <span class="cover-emboss-badge"></span>
+      <h2 class="cover-doc-title"></h2>
+      <p class="cover-doc-description"></p>
       
       <div class="cover-meta-grid">
-        <div class="cover-meta-item">Perfil: <strong>${meta.perfil || 'General'}</strong></div>
-        <div class="cover-meta-item">Tiempo estimado: <strong>${meta.tiempo_estudio || '8 min'}</strong></div>
-        <div class="cover-meta-item">Archivo: <strong>${doc.filename}</strong></div>
+        <div class="cover-meta-item">Nivel: <strong class="meta-level"></strong></div>
+        <div class="cover-meta-item">Tiempo estimado: <strong class="meta-time"></strong></div>
+        <div class="cover-meta-item">Archivo: <strong class="meta-file"></strong></div>
       </div>
 
       <button type="button" class="btn-open-notebook" id="btnOpenDynamicNotebook">
-        <span>Abrir Cuaderno de Estudio</span>
+        <span>Abrir Módulo de Capacitación</span>
       </button>
     `;
+
+    spread.querySelector('.cover-emboss-badge').textContent = doc.discipline || 'Documentación Corporativa';
+    spread.querySelector('.cover-doc-title').textContent = doc.title || 'Módulo Corporativo';
+    spread.querySelector('.cover-doc-description').textContent = doc.description || doc.summary || 'Programa formativo interactivo.';
+    spread.querySelector('.meta-level').textContent = meta.perfil || 'Operativo';
+    spread.querySelector('.meta-time').textContent = tiempoEstudio;
+    spread.querySelector('.meta-file').textContent = doc.filename || '';
+
+    if (prereqs.length > 0) {
+      const metaGrid = spread.querySelector('.cover-meta-grid');
+      const prereqsItem = document.createElement('div');
+      prereqsItem.className = 'cover-meta-item';
+      prereqsItem.style.gridColumn = '1 / -1';
+      prereqsItem.textContent = 'Prerrequisitos: ';
+      const strong = document.createElement('strong');
+      strong.textContent = prereqs.join(', ');
+      prereqsItem.appendChild(strong);
+      metaGrid.appendChild(prereqsItem);
+    }
 
     spread.querySelector('#btnOpenDynamicNotebook')?.addEventListener('click', () => {
       this.goToSpread(1);
@@ -190,11 +217,11 @@ export const notebook = {
         return `
           <div class="page-half">
             <div class="page-header-row">
-              <span class="page-chapter-badge">Notas de Estudio</span>
+              <span class="page-chapter-badge">Notas de Capacitación</span>
               <span class="page-number-label">Pág. ${pageNum}</span>
             </div>
             <div class="page-body-content" style="justify-content: center; align-items: center; opacity: 0.6;">
-              <p>Espacio reservado para anotaciones del estudiante y síntesis complementaria.</p>
+              <p>Espacio reservado para anotaciones del colaborador y síntesis operativa.</p>
             </div>
             <div class="page-footer-actions">
               <span class="page-number-label">—</span>
@@ -208,7 +235,7 @@ export const notebook = {
         <div class="page-half" data-sec-id="${sec.id}">
           <div class="page-header-row">
             <div>
-              <span class="page-chapter-badge">Sección ${pageNum}</span>
+              <span class="page-chapter-badge">Módulo ${pageNum}</span>
               <h4 class="page-topic-title">${sec.title}</h4>
             </div>
             <span class="page-number-label">Pág. ${pageNum}</span>
@@ -217,14 +244,14 @@ export const notebook = {
           <div class="page-body-content">
             <p>${sec.summary}</p>
             <div class="page-key-concepts-box">
-              <h5>Conceptos Clave Analizados:</h5>
+              <h5>Competencias y Puntos Clave:</h5>
               <div class="concept-chips">${chipsHtml}</div>
             </div>
           </div>
 
           <div class="page-footer-actions">
             <button type="button" class="btn-study-badge" data-study-section="${sec.id}">
-              <span>Estudiar esta Sección</span>
+              <span>Capacitar en esta Sección</span>
             </button>
             <span class="page-number-label">${doc.discipline}</span>
           </div>
@@ -267,7 +294,7 @@ export const notebook = {
         <span class="badge-pill badge-gold">${doc.sections?.length || 0} Secciones</span>
       </div>
       <p style="color: var(--text-secondary); font-size: 0.92rem;">
-        Haz clic en cualquier sección para saltar directamente a sus páginas de lectura en el cuaderno.
+        Haz clic en cualquier sección para saltar directamente a sus páginas en el panel de lectura.
       </p>
       <div class="index-topics-grid">
         ${topicsHtml}

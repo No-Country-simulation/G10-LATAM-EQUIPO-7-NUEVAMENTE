@@ -1,7 +1,7 @@
 """
-Contrato de retrieval v1.0 acordado con Data/IA para el cálculo de
+Contrato de retrieval v2.0 acordado con Data/IA para el cálculo de
 Recall@3, Recall@5, Precision@3, Precision@5.
- 
+
 Toda respuesta (success, no_results, error) trae siempre la misma
 forma de llaves, incluyendo "error" (null cuando no aplica), para
 que el consumidor del JSON no tenga que manejar formas distintas
@@ -10,8 +10,8 @@ según el status.
 
 from .models import SearchResult
 
-CONTRACT_VERSION = "1.0"
-SCORE_TYPE = "cosine_similarity"
+CONTRACT_VERSION = "2.0"
+SCORE_TYPE = "cross_encoder"
 
 
 def build_success_response(

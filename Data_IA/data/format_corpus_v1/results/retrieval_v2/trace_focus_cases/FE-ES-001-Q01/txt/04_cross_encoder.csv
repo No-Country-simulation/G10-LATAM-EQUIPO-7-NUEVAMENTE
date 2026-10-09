@@ -1,0 +1,181 @@
+﻿rank,chunk_id,document_id,vector_rank,bm25_rank,score,rrf_score,cross_score,matched_keywords,chunk_evidence_coverage,cumulative_matched_keywords,cumulative_evidence_coverage,threshold_reached,text
+1,FE-ES-001_1_23,FE-ES-001,4,1,,0.032018442622950824,5.094967842102051,,0.0,,0.0,False,"<!DOCTYPE html> : El tipo de documento. Cuando HTML era joven (1991-1992), los doctype estaban destinados a actuar como enlaces a un conjunto de reglas que la página HTML tenía que seguir para ser considerada un buen HTML. Los doctypes solían parecerse a algo como esto:
+
+<!DOCTYPE html>
+
+Más recientemente, el doctype es un artefacto histórico que debe incluirse para que todo lo demás funcione correctamente. <!DOCTYPE html> es la cadena más corta de caracteres que cuenta como un tipo de documento válido. ¡Eso es todo lo que necesitas saber!
+
+<!DOCTYPE html>
+- <html></html> : El elemento <html> . Este elemento envuelve todo el contenido de la página. A veces se le conoce como el elemento raíz.
+
+<html></html> : El elemento <html> . Este elemento envuelve todo el contenido de la página. A veces se le conoce como el elemento raíz.
+
+<html></html>"
+2,FE-ES-001_1_22,FE-ES-001,3,2,,0.03200204813108039,4.795095443725586,,0.0,,0.0,False,"Mi página de prueba
+
+ Esta es mi página
+
+Aquí tenemos:
+- <!DOCTYPE html> : El tipo de documento. Cuando HTML era joven (1991-1992), los doctype estaban destinados a actuar como enlaces a un conjunto de reglas que la página HTML tenía que seguir para ser considerada un buen HTML. Los doctypes solían parecerse a algo como esto: html <!DOCTYPE html PUBLIC ""-//W3C//DTD XHTML 1.0 Transitional//EN"" ""http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd""> Más recientemente, el doctype es un artefacto histórico que debe incluirse para que todo lo demás funcione correctamente. <!DOCTYPE html> es la cadena más corta de caracteres que cuenta como un tipo de documento válido. ¡Eso es todo lo que necesitas saber!"
+3,FE-ES-001_1_10,FE-ES-001,,3,,0.015873015873015872,3.299712657928467,,0.0,,0.0,False,"No todos los elementos siguen el patrón de una etiqueta de apertura, contenido y una etiqueta de cierre. Algunos elementos consisten en una sola etiqueta, que normalmente se utiliza para insertar/incrustar algo en el documento. Dichos elementos se denominan elementos vacíos . Por ejemplo, el elemento <img> incrusta un archivo de imagen en una página:
+
+<img>
+
+<img
+  src=""https://raw.githubusercontent.com/mdn/beginner-html-site/gh-pages/images/firefox-icon.png""
+  alt=""Icono de Firefox"" />
+
+Esto daría como resultado lo siguiente:
+
+Nota: En HTML, no es necesario añadir un / al final de la etiqueta de un elemento vacío, por ejemplo: <img src=""images/cat.jpg"" alt=""cat"" /> . Sin embargo, también es una sintaxis válida, y puede hacerlo cuando desee que su HTML sea XML válido.
+
+/
+
+<img src=""images/cat.jpg"" alt=""cat"" />
+Atributos"
+4,FE-ES-001_1_29,FE-ES-001,15,4,,0.028958333333333336,3.0599117279052734,,0.0,,0.0,False,"<body></body> : El elemento <body> . Contiene todo el contenido que se muestra en la página, incluidos texto, imágenes, vídeos, juegos, pistas de audio reproducibles o cualquier otra cosa.
+
+<body></body>
+
+<body>
+Aprendizaje activo: añadir algunas funciones a un documento HTML
+
+Si quieres experimentar con escribir algo de HTML en tu ordenador local, puedes:
+- Copie el ejemplo de página HTML listado anteriormente.
+- Crea un nuevo archivo en tu editor de texto.
+- Pega el código en el nuevo archivo de texto.
+- Guarde el archivo como index.html .
+
+index.html
+
+Nota: También puedes encontrar esta plantilla HTML básica en el repositorio de GitHub del área de aprendizaje de MDN .
+
+Ahora puede abrir este archivo en un navegador web para ver cómo se ve el código renderizado. Edita el código y actualiza el navegador para ver cuál es el resultado. Inicialmente, la página se ve así:"
+5,FE-ES-001_1_42,FE-ES-001,8,,,0.014705882352941176,0.7592812776565552,,0.0,,0.0,False,"¡Has llegado al final del artículo! Esperamos que hayas disfrutado de tu recorrido por los conceptos básicos de HTML.
+
+En este punto, debes entender cómo se ve HTML y cómo funciona a un nivel básico. También deberías poder escribir algunos elementos y atributos. Los artículos posteriores de este módulo profundizan en algunos de los temas introducidos aquí, así como en la presentación de otros conceptos del lenguaje.
+- A medida que comiences a aprender más sobre HTML, considera aprender los conceptos básicos de CSS (hojas de estilo en cascada). CSS es el lenguaje utilizado para dar estilo a las páginas web, como cambiar fuentes o colores o alterar el diseño de la página. HTML y CSS funcionan bien juntos, como pronto descubrirás.
+Vease también
+- Aplicar color a elementos HTML usando CSS
+- Overview: Estructurando la web con HTML
+- Siguiente
+Help improve MDN"
+6,FE-ES-001_1_1,FE-ES-001,1,7,,0.03131881575727918,0.7420376539230347,lenguaje de marcado,0.5,lenguaje de marcado,0.5,True,"HTML (HyperText Markup Language, por sus siglas en inglés) es un lenguaje de marcado que indica a los navegadores web cómo estructurar las páginas web que visita. Puede ser tan complicado o tan simple como el desarrollador web quiera que sea. HTML consiste en una serie de elementos , que utiliza para encerrar, envolver o marcar diferentes partes del contenido para que aparezca o actúe de cierta manera. Las etiquetas pueden convertir el contenido en un hipervínculo para conectarse a otra página, poner palabras en cursiva, etc. Por ejemplo, considere la siguiente línea de texto:
+
+Mi gato es muy gruñón
+
+Si quisiéramos que el texto se mantuviera solo, podríamos especificar que es un párrafo encerrándolo en un elemento de párrafo ( <p> ):
+
+<p>
+
+Mi gato es muy gruñón"
+7,FE-ES-001_1_27,FE-ES-001,11,12,,0.02797339593114241,0.549193799495697,,0.0,lenguaje de marcado,0.5,True,"<meta charset=""utf-8""> : El elemento <meta> . Este elemento representa metadatos que no pueden ser representados por otros elementos HTML relacionados con metadatos, como <base> , <link> , <script> , <style> o <title> . El atributo charset especifica la codificación de caracteres para su documento como UTF-8, que incluye la mayoría de los caracteres de la gran mayoría de los lenguajes humanos escritos. Con esta configuración, la página ahora puede manejar cualquier contenido textual que pueda contener. No hay razón para no configurar esto, y puede ayudar a evitar algunos problemas más adelante.
+
+<meta charset=""utf-8"">
+
+<meta>
+
+<base>
+
+<link>
+
+<script>
+
+<style>
+
+<title>"
+8,FE-ES-001_1_26,FE-ES-001,6,9,,0.02964426877470356,0.3487114906311035,,0.0,lenguaje de marcado,0.5,True,"<head></head>
+
+<head>
+- <meta charset=""utf-8""> : El elemento <meta> . Este elemento representa metadatos que no pueden ser representados por otros elementos HTML relacionados con metadatos, como <base> , <link> , <script> , <style> o <title> . El atributo charset especifica la codificación de caracteres para su documento como UTF-8, que incluye la mayoría de los caracteres de la gran mayoría de los lenguajes humanos escritos. Con esta configuración, la página ahora puede manejar cualquier contenido textual que pueda contener. No hay razón para no configurar esto, y puede ayudar a evitar algunos problemas más adelante."
+9,FE-ES-001_1_35,FE-ES-001,,8,,0.014705882352941176,0.3202322721481323,,0.0,lenguaje de marcado,0.5,True,"// Actualizar el userCode guardado cada vez que el usuario actualice el código de área de texto
+textarea.onkeyup = () => {
+  // Solo queremos guardar el estado cuando se muestra el código de usuario,
+  // no la solución, para que la solución no se guarde sobre el código de usuario
+  if (solution.value === ""Mostrar solución"") {
+    userEntry = textarea.value;
+  } else {
+    solutionEntry = textarea.value;
+  }
+
+  updateCode();
+};
+Espacios en blanco en HTML
+
+En los ejemplos anteriores, es posible que hayas notado que se incluyen muchos espacios en blanco en el código. Este paso es opcional. Estos dos fragmentos de código son equivalentes:
+
+Los perros son tontos.
+
+Los perros
+    son
+        tontos."
+10,FE-ES-001_1_24,FE-ES-001,2,6,,0.03128054740957967,0.081404909491539,,0.0,lenguaje de marcado,0.5,True,"<html></html>
+
+<html>
+- <head></head> : El elemento <head> . Este elemento actúa como un contenedor para todo lo que desea incluir en la página HTML, que no es el contenido que la página mostrará a los espectadores. Esto incluye palabras clave y una descripción de la página que aparecería en los resultados de búsqueda, CSS para dar estilo al contenido, declaraciones de conjuntos de caracteres y más. Aprenderás más sobre esto en el próximo artículo de la serie."
+11,FE-ES-001_1_40,FE-ES-001,12,5,,0.029273504273504274,-1.424309253692627,,0.0,lenguaje de marcado,0.5,True,"<p>
+
+Nota: No es necesario usar referencias de entidad para ningún otro símbolo, ya que los navegadores modernos manejarán bien los símbolos reales siempre que la codificación de caracteres de tu HTML esté configurada en UTF-8 .
+Comentarios en HTML
+
+HTML tiene un mecanismo para escribir comentarios en el código. Los navegadores ignoran los comentarios, lo que hace que los comentarios sean invisibles para el usuario. El propósito de los comentarios es permitirle incluir notas en el código para explicar su lógica o codificación. Esto es muy útil si vuelve a una base de código después de estar ausente el tiempo suficiente para no recordarlo por completo. Del mismo modo, los comentarios son invaluables ya que diferentes personas están haciendo cambios y actualizaciones.
+
+Para escribir un comentario en HTML, envuélvalo en los marcadores especiales <!-- y --> . Por ejemplo:
+
+<!--
+
+-->"
+12,FE-ES-001_1_0,FE-ES-001,9,,,0.014492753623188406,-1.8545539379119873,,0.0,lenguaje de marcado,0.5,True,"Esta página ha sido traducida del inglés por la comunidad. Aprende más y únete a la comunidad de MDN Web Docs .
+
+View in English Always switch to English
+
+View in English Always switch to English
+Primeros pasos con HTML
+- Overview: Estructurando la web con HTML
+- Siguiente
+
+En este artículo, cubrimos los conceptos básicos de HTML. Para empezar, este artículo define elementos, atributos y todos los demás términos importantes que puedas haber escuchado. También explica dónde encajan en HTML. Aprenderás cómo se estructuran los elementos HTML, cómo se estructura una página HTML típica y otras características importantes del lenguaje básico. ¡En el camino, también tendrás la oportunidad de jugar con HTML!
+¿Qué es HTML?"
+13,FE-ES-001_1_25,FE-ES-001,5,14,,0.0288981288981289,-1.895301342010498,,0.0,lenguaje de marcado,0.5,True,"<head></head> : El elemento <head> . Este elemento actúa como un contenedor para todo lo que desea incluir en la página HTML, que no es el contenido que la página mostrará a los espectadores. Esto incluye palabras clave y una descripción de la página que aparecería en los resultados de búsqueda, CSS para dar estilo al contenido, declaraciones de conjuntos de caracteres y más. Aprenderás más sobre esto en el próximo artículo de la serie.
+
+<head></head>"
+14,FE-ES-001_1_3,FE-ES-001,7,11,,0.02900988017658188,-2.558570146560669,,0.0,lenguaje de marcado,0.5,True,"<title>
+
+<title>
+
+<TITLE>
+
+<Title>
+
+<TiTlE>
+Anatomía de un elemento HTML
+
+Exploremos más a fondo nuestro elemento de párrafo de la sección anterior:
+
+La anatomía de nuestro elemento es:
+- La etiqueta de apertura: Consiste en el nombre del elemento (en este ejemplo, p para el párrafo), envuelto en corchetes angulares de apertura y cierre. Esta etiqueta de apertura marca dónde inicia o comienza a surtir efecto el elemento. En este ejemplo, precede al inicio del texto del párrafo.
+- El contenido: Este es el contenido del elemento. En este ejemplo, es el texto del párrafo.
+- La etiqueta de cierre: Esta es la misma que la etiqueta de apertura, excepto que incluye una barra diagonal delante del nombre del elemento. Esto marca donde termina el elemento. No incluir una etiqueta de cierre es un error común para principiantes que puede producir resultados peculiares."
+15,FE-ES-001_1_28,FE-ES-001,10,,,0.014285714285714285,-3.035252571105957,,0.0,lenguaje de marcado,0.5,True,"<meta charset=""utf-8"">
+
+<meta>
+
+<base>
+
+<link>
+
+<script>
+
+<style>
+
+<title>
+
+charset
+- <title></title> : El elemento <title> . Esto establece el título de la página, que es el título que aparece en la pestaña del navegador en la que se carga la página. El título de la página también se utiliza para describir la página cuando está en marcadores.
+
+<title></title> : El elemento <title> . Esto establece el título de la página, que es el título que aparece en la pestaña del navegador en la que se carga la página. El título de la página también se utiliza para describir la página cuando está en marcadores.
+
+<title></title>
+
+<title>
+- <body></body> : El elemento <body> . Contiene todo el contenido que se muestra en la página, incluidos texto, imágenes, vídeos, juegos, pistas de audio reproducibles o cualquier otra cosa."
