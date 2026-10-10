@@ -85,7 +85,7 @@ class AgentV1:
                 "status": "failed",
                 "content": {
                     "key_concepts": ["Error al extraer conceptos"],
-                    "prerequisites": ["N/A"],
+                    "prerequisites": ["No se pudieron determinar"],
                     "estimated_time_minutes": 0
                 },
                 "error_message": f"Error Gemini/Parse en metadatos: {str(e)}"
