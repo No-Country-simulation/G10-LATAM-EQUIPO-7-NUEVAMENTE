@@ -16,9 +16,10 @@ from agentes.api import app, agent, vector_store  # noqa: E402
 
 client = TestClient(app)
 
+# Decorador inteligente: omite la prueba si no hay clave real O si estamos en el CI determinista
 skip_if_no_key = pytest.mark.skipif(
-    not os.getenv("GEMINI_API_KEY") or os.getenv("GEMINI_API_KEY") == "api_key_aqui",
-    reason="Se requiere GEMINI_API_KEY real en el .env."
+    not os.getenv("GEMINI_API_KEY") or os.getenv("GEMINI_API_KEY") == "api_key_aqui" or os.getenv("CI") == "true",
+    reason="Prueba real de integración omitida en CI determinista o por ausencia de clave."
 )
 
 

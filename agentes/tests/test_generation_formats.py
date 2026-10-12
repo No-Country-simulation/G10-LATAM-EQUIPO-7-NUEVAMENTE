@@ -18,6 +18,15 @@ from agentes.rag.models import Chunk
 
 
 # ==========================================
+# DECORADOR INTELIGENTE PARA CI DETERMINISTA
+# ==========================================
+skip_if_no_real_gemini = pytest.mark.skipif(
+    not os.environ.get("GEMINI_API_KEY") or os.environ.get("CI") == "true",
+    reason="Prueba real de Gemini omitida en CI determinista para evitar bloqueos de red/cuota."
+)
+
+
+# ==========================================
 # FIXTURE: INYECCIÓN DE CONTEXTO REAL EN CHROMADB
 # ==========================================
 @pytest.fixture(autouse=True)
@@ -106,6 +115,7 @@ def test_video_script_content_rejects_incomplete_payload():
 def test_client():
     return TestClient(app)
 
+@skip_if_no_real_gemini
 def test_generate_accepts_tldr_real(test_client):
     """6. /api/v1/generate ejecuta TLDR real contra Gemini."""
     response = test_client.post(
@@ -125,6 +135,7 @@ def test_generate_accepts_tldr_real(test_client):
     assert "learning_metadata" in data
 
 
+@skip_if_no_real_gemini
 def test_generate_accepts_video_script_real(test_client):
     """7. /api/v1/generate ejecuta Video Script real contra Gemini."""
     response = test_client.post(
@@ -167,6 +178,7 @@ def test_generate_unknown_format_returns_failed(test_client):
 # ==========================================
 # 3. Tests de AgentV1 (EJECUCIÓN REAL SIN MOCKS)
 # ==========================================
+@skip_if_no_real_gemini
 def test_agent_v1_uses_tldr_content_schema_real():
     """11. AgentV1 extrae clase TLDRContent de forma E2E."""
     agent = AgentV1(vector_store=vector_store)
@@ -187,6 +199,7 @@ def test_agent_v1_uses_tldr_content_schema_real():
     assert len(result["sources_used"]) >= 1
 
 
+@skip_if_no_real_gemini
 def test_agent_v1_uses_video_script_content_schema_real():
     """12. AgentV1 extrae clase VideoScriptContent de forma E2E."""
     agent = AgentV1(vector_store=vector_store)

@@ -1,9 +1,12 @@
 import os
-import json
+import time
+import random
+import logging
 from pathlib import Path
 from dotenv import load_dotenv
 from google import genai
 from google.genai import types
+from google.genai import errors as genai_errors
 from .rag.retriever import RetrieverService
 
 from .generated_schemas import (
@@ -14,11 +17,22 @@ from .generated_schemas import (
     VideoScriptContent,
 )
 
+logger = logging.getLogger(__name__)
+
+# override=True: el .env del proyecto siempre gana sobre variables ya definidas
+# (por ejemplo, la key falsa que conftest.py pone para que los módulos importen).
 env_path = Path(__file__).resolve().parent.parent / '.env'
-load_dotenv(dotenv_path=env_path)
+load_dotenv(dotenv_path=env_path, override=True)
 
 API_KEY = os.environ["GEMINI_API_KEY"]
 MODEL_NAME = os.environ["GEMINI_MODEL"]
+
+# Opcionales (definibles en el .env)
+FALLBACK_MODEL = os.getenv("GEMINI_FALLBACK_MODEL", "").strip()
+MAX_RETRIES = int(os.getenv("GEMINI_MAX_RETRIES", "5"))
+
+# Errores temporales: vale la pena reintentar. 400/404 fallan de inmediato.
+RETRYABLE_CODES = {429, 500, 502, 503, 504}
 
 client = genai.Client(api_key=API_KEY)
 
@@ -29,18 +43,65 @@ PROMPTS_BASE = {
     "video_script": "Genera un guion educativo de clase o video dividido en una secuencia ordenada de escenas. Usa únicamente el contexto recuperado sin inventar datos técnicos ausentes, adaptando el lenguaje a profile, niche y detail_level, y respetando learning_objective si existe. Cada escena debe incluir un identificador corto (scene_id), título, texto de narración pedagógica que pronunciaría el docente o narrador, descripción visual de lo que debería verse en pantalla y duration_seconds. La duración estimada total (estimated_duration_minutes) debe ser razonablemente coherente con la suma de las duraciones de las escenas."
 }
 
+
+def _generate_with_retry(prompt: str, config):
+    """
+    Llama a Gemini con reintentos y espera creciente (1, 2, 4, 8, 16 s + jitter)
+    ante errores temporales. Si se agotan con el modelo principal, prueba
+    GEMINI_FALLBACK_MODEL (si está definido). Errores no temporales se lanzan ya.
+    """
+    modelos = [MODEL_NAME]
+    if FALLBACK_MODEL and FALLBACK_MODEL != MODEL_NAME:
+        modelos.append(FALLBACK_MODEL)
+
+    ultimo_error = None
+
+    for modelo in modelos:
+        for intento in range(MAX_RETRIES):
+            try:
+                return client.models.generate_content(
+                    model=modelo,
+                    contents=prompt,
+                    config=config
+                )
+            except genai_errors.APIError as e:
+                if getattr(e, "code", None) not in RETRYABLE_CODES:
+                    raise
+                ultimo_error = e
+                espera = min(2 ** intento, 30) + random.uniform(0, 1)
+                logger.warning(
+                    "Gemini %s con %s (intento %d/%d). Reintentando en %.1fs",
+                    e.code, modelo, intento + 1, MAX_RETRIES, espera
+                )
+                time.sleep(espera)
+
+        logger.warning("Se agotaron los reintentos con el modelo %s", modelo)
+
+    raise ultimo_error
+
+
 def _generate_and_parse(prompt: str, schema: type, temperature: float = 0.2) -> dict:
     """Función interna extraída para la suite de pruebas y generación LLM."""
-    response = client.models.generate_content(
-        model=MODEL_NAME,
-        contents=prompt,
-        config=types.GenerateContentConfig(
-            response_mime_type="application/json",
-            response_schema=schema,
-            temperature=temperature
-        )
+    config = types.GenerateContentConfig(
+        response_mime_type="application/json",
+        response_schema=schema,
+        temperature=temperature
     )
-    return response.parsed.model_dump()
+    response = _generate_with_retry(prompt, config)
+
+    parsed = getattr(response, "parsed", None)
+    if parsed is not None:
+        return parsed.model_dump()
+
+    # Respaldo: el SDK no pudo validar contra el schema; parseamos el texto crudo
+    raw = (getattr(response, "text", None) or "").strip()
+    if not raw:
+        raise ValueError("Gemini devolvió una respuesta vacía (parsed=None y text vacío).")
+    if raw.startswith("```"):
+        raw = raw.strip("`").strip()
+        if raw.lower().startswith("json"):
+            raw = raw[4:].strip()
+    return schema.model_validate_json(raw).model_dump()
 
 
 class AgentV1:
@@ -50,7 +111,7 @@ class AgentV1:
     def extract_learning_metadata(self, query: str, document_id: str, niche: str = "", top_k: int = 5) -> dict:
         try:
             resultados = self.retriever.retrieve(query=query, top_k=top_k, metadata_filters={"document_id": document_id})
-            
+
             if not resultados:
                 return {"status": "no_results", "content": None, "error_message": "Sin resultados"}
 
@@ -68,8 +129,8 @@ class AgentV1:
             """
 
             parsed_content = _generate_and_parse(
-                prompt=prompt_metadata, 
-                schema=LearningMetadata, 
+                prompt=prompt_metadata,
+                schema=LearningMetadata,
                 temperature=0.1
             )
 
@@ -80,6 +141,7 @@ class AgentV1:
             }
 
         except Exception as e:
+            logger.exception("extract_learning_metadata falló")
             # Contrato pasivo estricto: siempre incluye error_message
             return {
                 "status": "failed",
@@ -93,20 +155,20 @@ class AgentV1:
 
     def answer(self, query: str, document_id: str, formato: str, perfil: str, nicho: str, nivel: str, learning_objective: str = None, top_k: int = 5) -> dict:
         chunks_usados = []
-        
+
         try:
             resultados = self.retriever.retrieve(query=query, top_k=top_k, metadata_filters={"document_id": document_id})
-            
+
             if not resultados:
                 return {
-                    "status": "no_results", 
-                    "content": None, 
+                    "status": "no_results",
+                    "content": None,
                     "sources_used": [],
                     "error_message": "No se encontró contexto suficiente en el documento."
                 }
 
             contexto_unificado = "\n\n".join([res.text for res in resultados])
-            
+
             for index, res in enumerate(resultados):
                 chunks_usados.append({
                     "rank": index + 1,
@@ -117,11 +179,11 @@ class AgentV1:
                 })
 
             instruccion_base = PROMPTS_BASE.get(formato.lower(), "Genera un resumen estructurado.")
-            
+
             prompt_final = f"""
             INSTRUCCIÓN PRINCIPAL:
             {instruccion_base}
-            
+
             REGLAS DE ADAPTACIÓN:
             - Perfil objetivo: {perfil}
             - Nicho temático: {nicho}
@@ -129,7 +191,7 @@ class AgentV1:
             """
             if learning_objective:
                 prompt_final += f"- Objetivo de aprendizaje: {learning_objective}\n"
-                
+
             prompt_final += f"""
             Adapta el lenguaje y la complejidad estrictamente a este perfil.
             Genera identificadores únicos (IDs) cortos y alfanuméricos para cada elemento cuando aplique (preguntas, tarjetas, escenas).
@@ -150,8 +212,8 @@ class AgentV1:
                 raise ValueError(f"Formato '{formato}' no soportado para generación.")
 
             texto_generado = _generate_and_parse(
-                prompt=prompt_final, 
-                schema=esquema_salida, 
+                prompt=prompt_final,
+                schema=esquema_salida,
                 temperature=0.2
             )
 
@@ -163,6 +225,7 @@ class AgentV1:
             }
 
         except Exception as e:
+            logger.exception("answer falló")
             return {
                 "status": "failed",
                 "content": None,
