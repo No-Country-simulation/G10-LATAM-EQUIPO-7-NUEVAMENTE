@@ -36,7 +36,7 @@ NuevaMente está dividido en servicios desacoplados que se comunican mediante co
 | **Frontend** | Interfaz para cargar documentos, consultar la biblioteca y estudiar los formatos generados | [`frontend/README.md`](frontend/README.md) |
 | **BackendAPI** | Punto de entrada HTTP y orquestador del ciclo de vida documental, la generación y la evaluación | [`backend/README.md`](backend/README.md) |
 | **Agentes** | Indexación RAG, recuperación de evidencia y generación de contenido | [`agentes/README.md`](agentes/README.md) |
-| **Data/IA** | Evaluación de contenido generado, rúbricas y herramientas de evaluación de retrieval | [`Data_IA/README.md`](Data_IA/README.md) |
+| **Data/IA** | Evaluación de calidad de formatos generados y benchmark offline de retrieval | [`Data_IA/README.md`](Data_IA/README.md) |
 | **Infraestructura** | Contenedores, despliegue y recursos OCI | [`docs/`](docs) |
 
 Cada módulo documenta por separado su arquitectura, contratos y operación. Este README resume cómo colaboran para entregar el producto.
@@ -76,12 +76,12 @@ BackendAPI es el **orquestador central** y el único intermediario entre el Fron
 ### Recorrido de un documento
 
 1. El usuario carga un PDF, Markdown o TXT y define el perfil, nicho, nivel de detalle y, opcionalmente, un objetivo de aprendizaje.
-2. Backend valida el archivo, asigna una identidad al documento, guarda el original y solicita su indexación. El documento queda disponible para procesamiento cuando la indexación termina correctamente.
-3. Backend registra los cuatro formatos como `processing` y responde al Frontend. La generación continúa en segundo plano; el Frontend consulta los estados y resultados a través de Backend.
+2. Backend valida el archivo, asigna una identidad al documento, guarda el original e indexa el documento mediante Agentes. La carga espera a que la indexación termine correctamente antes de responder.
+3. Una vez indexado, Backend registra los cuatro formatos como `processing` y responde al Frontend. La generación continúa en segundo plano; el Frontend consulta los estados y resultados a través de Backend.
 4. Agentes recupera fragmentos del documento indexado y genera Quiz, Flashcards, resumen y guion de video. Los resultados incluyen metadata pedagógica y evidencia (`chunks_used`) para mantener la trazabilidad.
 5. Backend persiste los formatos y la metadata pedagógica, actualiza el paquete educativo en Object Storage y solicita a Data/IA evaluar cada formato generado que está listo para evaluación. Los resultados de evaluación se guardan como historial separado del contenido.
 
-Los errores de generación y evaluación se registran por separado: un problema en la evaluación no convierte por sí solo un formato ya generado correctamente en un fallo de generación. La evaluación de calidad de formatos está integrada en el flujo de Backend; el benchmark de retrieval con corpus versionado también puede ejecutarse de forma independiente. El alcance técnico y los contratos de esos procesos están en los README de [Backend](backend/README.md), [Agentes](agentes/README.md) y [Data/IA](Data_IA/README.md).
+Los errores de generación y evaluación se registran por separado: un problema en la evaluación no convierte por sí solo un formato ya generado correctamente en un fallo de generación. La evaluación de calidad de formatos está integrada en el flujo de Backend; el benchmark de retrieval de Data/IA es un proceso offline independiente y no interviene en cada carga. El alcance técnico y los contratos de esos procesos están en los README de [Backend](backend/README.md), [Agentes](agentes/README.md) y [Data/IA](Data_IA/README.md).
 
 ### Estado observable
 
@@ -142,18 +142,20 @@ Más información:
 - [`docs/NuevaMente_Despliegue_Docker_CICD.md`](docs/NuevaMente_Despliegue_Docker_CICD.md)
 
 ---
+
 ## Documentación adicional
 
-La carpeta [`docs/`](docs) contiene documentación complementaria sobre:
+| Si buscas… | Consulta… |
+|---|---|
+| Implementación y contratos del Frontend | [frontend/README.md](frontend/README.md) |
+| Orquestación, estados y persistencia del BackendAPI | [backend/README.md](backend/README.md) |
+| Indexación, recuperación y generación de Agentes | [agentes/README.md](agentes/README.md) |
+| API evaluadora, rúbrica y benchmarks de Data/IA | [Data_IA/README.md](Data_IA/README.md) |
+| Arquitectura y recursos de OCI | [docs/NuevaMente_Arquitectura_OCI.md](docs/NuevaMente_Arquitectura_OCI.md) |
+| Despliegue Docker y estado de CI/CD | [docs/NuevaMente_Despliegue_Docker_CICD.md](docs/NuevaMente_Despliegue_Docker_CICD.md) |
 
-- arquitectura;
-- infraestructura OCI;
-- Docker y despliegue;
-- integración de servicios;
-- flujo funcional del producto;
-- lineamientos técnicos del equipo.
-
-Cada módulo mantiene además su documentación específica en su propio README.
+La carpeta [`docs/`](docs) conserva además diagramas, evidencias y documentación
+complementaria del equipo.
 
 ---
 
