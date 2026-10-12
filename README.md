@@ -16,12 +16,12 @@ El objetivo es reducir el tiempo necesario para convertir documentación técnic
 - **fidelidad a la fuente**, utilizando como contexto los fragmentos recuperados del documento original;
 - **adaptación pedagógica**, ajustando lenguaje, profundidad y presentación al perfil solicitado.
 
-El alcance funcional de **Sprint 2** se concentra en dos formatos educativos:
+El servicio de Agentes genera actualmente cuatro formatos educativos:
 
 - **Quiz interactivo**, con opciones, respuesta correcta y justificación;
-- **Flashcards**, con concepto o pregunta y su correspondiente explicación.
-
-Otros formatos contemplados por el producto, como tutoriales y resúmenes, forman parte de iteraciones posteriores.
+- **Flashcards**, con concepto o pregunta y su correspondiente explicación;
+- **Resumen ejecutivo** (`tldr`), con síntesis, puntos clave y conclusión;
+- **Guion de video** (`video_script`), organizado en escenas con narración y descripción visual.
 
 ---
 
@@ -90,7 +90,7 @@ BackendAPI funciona como **orquestador central del producto**.
 
 Frontend no accede directamente a OCI, al Vector Store ni a los servicios de Agentes. Backend mantiene el control del flujo y utiliza contratos HTTP desacoplados para comunicarse con los demás componentes.
 
-La integración de Data/IA con el flujo productivo completo no forma parte obligatoria del E2E de Sprint 2; durante este Sprint se dejó preparado su servicio de evaluación y los contratos necesarios para incorporarlo posteriormente al pipeline.
+Data/IA mantiene sus contratos y herramientas de evaluación como un módulo independiente. La documentación de [Agentes](agentes/README.md) detalla el contrato de evaluación de retrieval y los formatos que expone actualmente el servicio.
 
 ---
 ## RAG y generación educativa
@@ -111,7 +111,7 @@ La recuperación está filtrada por `document_id`, evitando mezclar información
 
 Para cada generación se conservan también los chunks utilizados como evidencia.
 Esto permite mantener trazabilidad entre el contenido generado y las fuentes recuperadas.
-El servicio de generación recibe el contexto pedagógico solicitado y produce salidas estructuradas para Quiz y Flashcards.
+El servicio de generación recibe el contexto pedagógico solicitado y produce salidas estructuradas para los cuatro formatos soportados. Cada formato se procesa de forma independiente y devuelve su estado, contenido, fuentes utilizadas y, si corresponde, un mensaje de error.
 
 ---
 
@@ -134,7 +134,7 @@ Actualmente existen versiones congeladas del Ground Truth que permiten comparar 
 
 El servicio valida primero los contratos estructurales y posteriormente aplica una evaluación de calidad.
 
-Durante Sprint 2 se implementó un **baseline heurístico reproducible**, acompañado de una rúbrica de decisión y resultados estructurados.
+El módulo cuenta con un **baseline heurístico reproducible**, acompañado de una rúbrica de decisión y resultados estructurados.
 
 Estados posibles de evaluación:
 
@@ -144,7 +144,7 @@ requiere_revision
 rechazado
 ```
 
-La evolución hacia evaluación semántica más avanzada y un Agente Revisor forma parte de las siguientes iteraciones del proyecto.
+Este baseline no representa una evaluación semántica avanzada ni un Agente Revisor.
 
 ---
 
