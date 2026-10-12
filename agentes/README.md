@@ -2,6 +2,18 @@
 
 Esta guía describe el funcionamiento del paquete `agentes/`: sus componentes, el recorrido de los datos y los contratos entre la API, el RAG y el proveedor generativo. Para la descripción del producto y su arquitectura global, consulta el [README de la raíz](../README.md).
 
+## Navegación
+
+| Si buscas… | Consulta… |
+|---|---|
+| Qué cubre este servicio y cómo se separan sus recorridos | [Límites del módulo](#límites-del-módulo) |
+| Cómo se conectan indexación, generación y evaluación | [Arquitectura y recorrido de llamadas](#arquitectura-y-recorrido-de-llamadas) |
+| Campos y respuestas de los endpoints | [API HTTP](#api-http) |
+| Extracción, chunking, almacenamiento vectorial y ranking | [RAG: ingestión, datos y recuperación](#rag-ingestión-datos-y-recuperación) |
+| Corpus congelado y contrato de evaluación de retrieval | [Corpus congelado y contrato de evaluación](#corpus-congelado-y-contrato-de-evaluación) |
+| Variables de entorno, arranque local y pruebas | [Configuración y ejecución](#configuración-y-ejecución) y [Pruebas](#pruebas) |
+| Archivo responsable de un cambio | [Mapa del código](#mapa-del-código) |
+
 ## Límites del módulo
 
 El módulo tiene dos recorridos que comparten el motor de recuperación, pero tienen objetivos distintos:

@@ -41,6 +41,16 @@ NuevaMente está dividido en servicios desacoplados que se comunican mediante co
 
 Cada módulo documenta por separado su arquitectura, contratos y operación. Este README resume cómo colaboran para entregar el producto.
 
+## Navegación
+
+| Si buscas… | Consulta… |
+|---|---|
+| El recorrido de un documento y sus estados | [Arquitectura y flujo del producto](#arquitectura-y-flujo-del-producto) |
+| Tecnologías principales | [Stack tecnológico](#stack-tecnológico) |
+| Despliegue y documentación de infraestructura | [Infraestructura y despliegue](#infraestructura-y-despliegue) y [Documentación adicional](#documentación-adicional) |
+| Detalles de implementación de un servicio | README de [Frontend](frontend/README.md), [BackendAPI](backend/README.md), [Agentes](agentes/README.md) o [Data/IA](Data_IA/README.md) |
+| Prácticas transversales de seguridad | [Buenas prácticas de seguridad](#buenas-prácticas-de-seguridad) |
+
 ---
 
 ## Arquitectura y flujo del producto
