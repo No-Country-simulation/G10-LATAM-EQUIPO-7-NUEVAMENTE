@@ -1364,7 +1364,9 @@ INDEXED
 ▼
 prepare_default_formats()
 ├─ quiz = processing
-└─ flashcards = processing
+├─ flashcards = processing
+├─ tldr = processing
+└─ video_script = processing
 │
 ▼
 registrar BackgroundTask
@@ -1379,16 +1381,17 @@ complete_default_generation()
 ▼
 POST /api/v1/generate
 ├─ Quiz
-└─ Flashcards
+├─ Flashcards
+├─ TLDR
+└─ Video Script
 │
 ▼
-mismos format_id → estado terminal
+cada format_id → estado terminal independiente
 │
-├─ success → FormatEvaluationService
-│             ↓
-│          Data/IA /evaluate
-│             ↓
-│          format_evaluations
+├─ success → FormatEvaluationService → Data/IA /evaluate
+│             └─ format_evaluations
+├─ failed
+└─ no_results
 │
 ▼
 GeneratedPackageStorageService
@@ -1483,15 +1486,19 @@ DocumentStatus = INDEXED
 mientras:
 
 ```text
-quiz        = processing
-flashcards  = processing
+quiz         = processing
+flashcards   = processing
+tldr         = processing
+video_script = processing
 ```
 
 o:
 
 ```text
-quiz        = failed
-flashcards  = failed
+quiz         = failed
+flashcards   = failed
+tldr         = failed
+video_script = failed
 ```
 
 ---

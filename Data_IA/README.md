@@ -1,598 +1,249 @@
 # NuevaMente — Data/IA
 
-Módulo de **Data/IA** del proyecto NuevaMente.
+Guía oficial del módulo Data/IA. Aquí se describe su responsabilidad, el
+contrato de evaluación de formatos, el benchmark offline de retrieval, la
+organización de datos y cómo ejecutar el servicio y sus pruebas.
 
-Esta área se encarga de definir, validar y evaluar la calidad de los resultados generados por el sistema, manteniendo contratos reproducibles, métricas de retrieval, Ground Truth y evaluación estructurada de formatos educativos.
+Data/IA evalúa contenido educativo generado y mantiene herramientas y datos
+para medir retrieval. No implementa el pipeline productivo de extracción,
+chunking, embeddings, búsqueda ni generación; esas responsabilidades
+pertenecen a [Agentes](../agentes/README.md). El flujo global del producto se
+describe en el [README de la raíz](../README.md).
 
----
+## Navegación
 
-## Responsabilidad de Data/IA
+| Si buscas… | Consulta… |
+|---|---|
+| Responsabilidades y límites del módulo | [Alcance](#alcance) |
+| API, request, respuesta y formatos aceptados | [API de evaluación](#api-de-evaluación) |
+| Criterios, versión del evaluator y veredicto | [Evaluación de calidad](#evaluación-de-calidad) |
+| Benchmark y análisis de retrieval | [Evaluación offline de retrieval](#evaluación-offline-de-retrieval) |
+| Corpus controlado para comparar formatos de archivo | [Validación multiformato](#validación-multiformato) |
+| Directorios y responsabilidades de código | [Mapa del módulo](#mapa-del-módulo) |
+| Instalación, arranque y pruebas | [Operación local](#operación-local) |
 
-Data/IA se enfoca en:
+## Alcance
 
-- preparación y versionado del corpus de evaluación;
-- definición y mantenimiento de Ground Truth;
-- validación de contratos de entrada y salida;
-- métricas de retrieval;
-- análisis de errores;
-- evaluación de formatos educativos;
-- detección heurística de información no respaldada;
-- evaluación de relevancia, coherencia y adaptación didáctica;
-- definición de reglas de aprobación, revisión y rechazo;
-- exposición del endpoint `/evaluate`.
+Data/IA mantiene dos recorridos relacionados, pero separados:
 
----
+1. **Evaluación integrada de formatos:** recibe desde BackendAPI el formato
+   generado, el contexto de generación y los chunks que sirvieron como
+   evidencia. Devuelve scores, veredicto y observaciones.
+2. **Evaluación offline de retrieval:** valida respuestas de Agentes frente a
+   un corpus y Ground Truth versionados; produce métricas y análisis de error.
 
-## Fuera del alcance de Data/IA
+Responsabilidades:
 
-El pipeline productivo de:
+- contratos y validación de solicitudes y respuestas;
+- evaluación de relevancia, coherencia, adaptación didáctica e información
+  respaldada;
+- rúbrica para aprobar, solicitar revisión o rechazar;
+- mantenimiento reproducible de corpus, Ground Truth, métricas e informes.
 
-- extracción;
-- limpieza y normalización;
-- chunking;
-- embeddings multilingües;
-- Vector Store;
-- retrieval;
-- orquestación;
-- generación de contenido;
+La evaluación de calidad no genera contenido ni vuelve a ejecutar retrieval.
+Usa la evidencia (`chunks_used`) que acompaña al resultado generado.
 
-corresponde principalmente al equipo de **Agentes**.
+## API de evaluación
 
-Data/IA recibe los resultados generados y la evidencia utilizada para evaluar su calidad.
+La aplicación FastAPI se define en `data_ai/api/app.py`.
 
----
+| Método y ruta | Función |
+|---|---|
+| `GET /health` | Comprueba la disponibilidad del servicio. |
+| `POST /evaluate` | Valida y evalúa un formato educativo generado. |
 
-# Sprint 2 — Evaluación de formatos
+`POST /evaluate` acepta `format` como discriminador y valida `generated_content`
+contra el esquema correspondiente. Los formatos definidos en el contrato son
+`quiz`, `flashcards`, `tldr` y `video_script`.
 
-Durante Sprint 2 se implementó el flujo de evaluación para los formatos:
+La solicitud incluye:
 
-- `quiz`
-- `flashcards`
+- `document_id` y `format`;
+- `generation_context`: `profile`, `niche`, `detail_level` y
+  `learning_objective` opcional;
+- `generated_content`, validado según el formato;
+- `chunks_used`, con identificador, documento, ranking, score y texto de cada
+  fragmento de evidencia.
 
-El sistema recibe contenido generado, contexto de generación y chunks utilizados como evidencia.
+La validación rechaza campos extra, contenido mal formado, identificadores
+duplicados y chunks que no pertenezcan al `document_id` de la solicitud. Los
+modelos completos y sus reglas están en
+[`data_ai/schemas/format_evaluation.py`](data_ai/schemas/format_evaluation.py).
 
-El flujo actual es:
+La respuesta contiene `document_id`, `format`, `status`, `scores`,
+`informacion_no_respaldada` y `observaciones`; también incluye las versiones de
+evaluator y rúbrica. Los estados posibles son `aprobado`,
+`requiere_revision` y `rechazado`.
 
-```text
-EvaluationRequest
-        ↓
-Validación Pydantic
-        ↓
-reviewer.evaluar_contenido()
-        ↓
-quality_evaluator.evaluate()
-        ↓
-EvaluationScores
-+ informacion_no_respaldada
-        ↓
-rubric.calcular_veredicto_evaluacion()
-        ↓
-EvaluationResponse
-        ↓
-HTTP 200
-```
+## Evaluación de calidad
 
----
-
-# API de evaluación
-
-La API utiliza **FastAPI**.
-
-Archivo principal:
-
-```text
-data_ai/api/app.py
-```
-
-Para ejecutarla:
-
-```bash
-python -m uvicorn data_ai.api.app:app --reload
-```
-
-Por defecto:
+El flujo de evaluación es:
 
 ```text
-http://127.0.0.1:8000
+POST /evaluate
+  -> validación FastAPI / Pydantic
+  -> reviewer.evaluar_contenido
+  -> quality_evaluator.evaluate
+  -> rubric.calcular_veredicto_evaluacion
+  -> respuesta estructurada
 ```
 
----
-
-## GET `/health`
-
-Permite comprobar que el servicio se encuentra disponible.
-
-### Respuesta
-
-```json
-{
-  "status": "ok"
-}
-```
-
----
-
-## POST `/evaluate`
-
-Evalúa un Quiz o conjunto de Flashcards generado por NuevaMente.
-
-### Request
-
-El request contiene:
-
-```text
-document_id
-format
-generation_context
-generated_content
-chunks_used
-```
-
-Ejemplo simplificado:
-
-```json
-{
-  "document_id": "DOC-001",
-  "format": "quiz",
-  "generation_context": {
-    "profile": "student",
-    "niche": "technology",
-    "detail_level": "beginner",
-    "learning_objective": "Comprender conceptos básicos de FastAPI"
-  },
-  "generated_content": {},
-  "chunks_used": []
-}
-```
-
-Los contratos completos se encuentran en:
-
-```text
-data_ai/schemas/format_evaluation.py
-```
-
----
-
-# Contexto de generación
-
-`GenerationContext` conserva los parámetros utilizados durante la generación para que Data/IA pueda evaluar la adaptación del contenido.
-
-Campos:
-
-```text
-profile
-niche
-detail_level
-learning_objective
-```
-
-`learning_objective` es opcional.
-
----
-
-# Chunks utilizados como evidencia
-
-Cada elemento de `chunks_used` incluye:
-
-```text
-chunk_id
-document_id
-rank
-score
-text
-```
-
-Todos los chunks deben pertenecer al mismo `document_id` de la solicitud.
-
-Data/IA necesita el texto completo de los chunks para evaluar el grado de respaldo del contenido generado.
-
----
-
-# Scores de evaluación
-
-El evaluator devuelve cuatro dimensiones:
-
-```text
-relevancia
-coherencia
-adaptacion_didactica
-informacion_respaldada
-```
-
-Cada dimensión utiliza una escala de:
-
-```text
-1 — 5
-```
-
----
-
-## Relevancia
-
-Evalúa si el contenido generado mantiene relación con:
-
-- el objetivo de aprendizaje;
-- el nicho;
-- los conceptos relevantes del contexto.
-
----
-
-## Coherencia
-
-Evalúa si el contenido presenta una estructura mínima suficiente para ser utilizado como material educativo.
-
----
-
-## Adaptación didáctica
-
-Considera parámetros como:
-
-```text
-profile
-detail_level
-```
-
-Por ejemplo, un contenido excesivamente largo para un perfil principiante puede requerir revisión.
-
----
-
-## Información respaldada
-
-Compara el contenido evaluable contra los chunks utilizados como evidencia.
-
-Para Quiz se analizan principalmente:
-
-```text
-question
-correct_answer
-explanation
-```
-
-Los distractores no se consideran afirmaciones de conocimiento para la detección de información no respaldada.
-
-Para Flashcards se evalúan:
-
-```text
-front
-back
-```
-
----
-
-# Baseline heurístico
-
-La versión actual de `quality_evaluator.py` implementa un **baseline heurístico léxico**.
-
-Actualmente utiliza:
-
-- normalización de texto;
-- stopwords;
-- términos significativos;
-- coincidencia de vocabulario;
-- proporción de términos respaldados;
-- reglas simples de longitud y adaptación.
-
-Esta implementación permite cerrar el flujo funcional de evaluación de Sprint 2.
-
-No debe considerarse todavía un evaluador semántico avanzado.
-
-Mejoras futuras pueden incluir:
-
-- embeddings;
-- similitud semántica;
-- reranking;
-- NLI;
-- evaluación asistida por LLM;
-- calibración de umbrales con dataset validado.
-
----
-
-# Veredicto final
-
-Las reglas de decisión están definidas en:
-
-```text
-data_ai/evaluation/rubric.py
-```
-
-Reglas actuales:
-
-```text
-informacion_no_respaldada = True
-→ rechazado
-
-algún score <= 2
-→ rechazado
-
-ningún score <= 2
-y algún score == 3
-→ requiere_revision
-
-todos los scores >= 4
-e informacion_no_respaldada = False
-→ aprobado
-```
-
-Estados posibles:
-
-```text
-aprobado
-requiere_revision
-rechazado
-```
-
----
-
-# EvaluationResponse
-
-Ejemplo:
-
-```json
-{
-  "document_id": "DOC-001",
-  "format": "quiz",
-  "status": "aprobado",
-  "scores": {
-    "relevancia": 5,
-    "coherencia": 5,
-    "adaptacion_didactica": 5,
-    "informacion_respaldada": 5
-  },
-  "informacion_no_respaldada": false,
-  "observaciones": [
-    "Aprobado: El contenido cumple con altos estándares de calidad."
-  ]
-}
-```
-
----
-
-# Estructura principal
+Se puntúan cuatro dimensiones, cada una de 1 a 5:
+
+| Dimensión | Criterio general |
+|---|---|
+| `relevancia` | Relación del contenido con la fuente y el contexto de aprendizaje. |
+| `coherencia` | Claridad, estructura y consistencia lógica. |
+| `adaptacion_didactica` | Adecuación al perfil y al nivel de detalle. |
+| `informacion_respaldada` | Grado de respaldo en los chunks recibidos. |
+
+La detección de respaldo se aplica al contenido factual de cada formato. Por
+ejemplo, no trata los distractores del Quiz como afirmaciones factuales; en un
+resumen evalúa el resumen, los puntos clave y la conclusión, y en un guion de
+video evalúa la narración, no las instrucciones visuales.
+
+El evaluator actual es un baseline heurístico léxico (versión `1.1.0`), no un
+evaluador semántico avanzado. Normaliza mayúsculas y acentos y compara términos
+significativos con la evidencia. La versión de rúbrica actual es `1.0.0`.
+
+Reglas del veredicto:
+
+- se **rechaza** si se detecta información no respaldada o algún score es
+  menor o igual a 2;
+- se marca **requiere revisión** si no hay scores menores o iguales a 2, pero
+  alguno es 3;
+- se **aprueba** si todos los scores son al menos 4 y no hay información no
+  respaldada.
+
+La integración técnica de los cuatro formatos y la comparación de evaluator
+V1.0/V1.1 están documentadas en
+[Validación multiformato end-to-end](data/format_corpus_v1/results/multiformat_end_to_end/README.md).
+
+## Evaluación offline de retrieval
+
+Este benchmark mide el comportamiento del retrieval de Agentes; no forma
+parte de la búsqueda ejecutada por el endpoint `/evaluate`.
+
+El conjunto de evaluación contiene corpus y Ground Truth versionados. Los
+artefactos congelados no deben sobrescribirse: cualquier cambio de corpus,
+chunking, Ground Truth o configuración debe producir una nueva versión y un
+manifest que permita reproducir la corrida.
+
+| Recurso | Ubicación |
+|---|---|
+| Corpus de chunks congelado | [`data/evaluation/chunks_v1.csv`](data/evaluation/chunks_v1.csv) |
+| Ground Truth v1 y v2 | [`data/evaluation/`](data/evaluation) |
+| Respuestas de Agentes usadas como entrada | [`data/evaluation/input/`](data/evaluation/input) |
+| Contrato histórico Retrieval v1 | [`docs/contracts/retrieval_contract_v1.md`](docs/contracts/retrieval_contract_v1.md) |
+| Resultados detallados Retrieval V2 | [`data/evaluation/results/retrieval_v2/README.md`](data/evaluation/results/retrieval_v2/README.md) |
+| Ablation study y configuración recomendada | [`data/evaluation/results/retrieval_v2_ablation/README.md`](data/evaluation/results/retrieval_v2_ablation/README.md) |
+
+El benchmark calcula Recall@K y Precision@K y conserva resultados, manifests
+y análisis de error en `data/evaluation/results/`. Los notebooks de
+`notebooks/` documentan preparación de Ground Truth, evaluación y análisis.
+Las métricas solo son comparables cuando se usa el mismo corpus, versión de
+Ground Truth y configuración declarados en el manifest correspondiente.
+
+El contrato v1 se conserva como referencia histórica. Para el contrato de
+runtime y sus cambios vigentes, consulta la documentación de
+[Agentes](../agentes/README.md).
+
+## Validación multiformato
+
+`data/format_corpus_v1/` contiene representaciones Markdown, TXT y PDF de un
+mismo corpus controlado. Permite estudiar el efecto del formato de entrada
+manteniendo constante el contenido semántico; es independiente del benchmark
+congelado de retrieval.
+
+- [Descripción del corpus controlado](data/format_corpus_v1/README.md)
+- [Resultados de retrieval por formato](data/format_corpus_v1/results/retrieval_v2/README.md)
+- [Validación técnica end-to-end de 3 formatos fuente por 4 formatos generados](data/format_corpus_v1/results/multiformat_end_to_end/README.md)
+
+Los documentos fuente y sus versiones derivadas son datos experimentales, no
+guías de implementación. Para regenerar el corpus se utiliza
+`scripts/build_controlled_format_corpus.py`.
+
+## Mapa del módulo
 
 ```text
 Data_IA/
-│
 ├── data_ai/
-│   ├── api/
-│   │   └── app.py
-│   │
-│   ├── evaluation/
-│   │   ├── quality_evaluator.py
-│   │   ├── reviewer.py
-│   │   └── rubric.py
-│   │
-│   ├── metrics/
-│   │   ├── retrieval_evaluator.py
-│   │   ├── retrieval_metrics.py
-│   │   ├── retrieval_reporting.py
-│   │   └── error_analysis.py
-│   │
-│   ├── schemas/
-│   │   ├── evaluation.py
-│   │   ├── format_evaluation.py
-│   │   └── retrieval.py
-│   │
-│   ├── validators/
-│   │
-│   └── tests/
-│
+│   ├── api/             # Aplicación FastAPI
+│   ├── evaluation/      # Evaluator, reviewer, rúbrica y configuración
+│   ├── loaders/         # Carga de resultados de retrieval
+│   ├── metrics/         # Métricas, reportes y análisis de error
+│   ├── schemas/         # Contratos de evaluación y retrieval
+│   ├── validators/      # Validación de documentos y resultados
+│   └── tests/           # Pruebas unitarias y de API
 ├── data/
-│   └── evaluation/
-│       ├── input/
-│       ├── mock/
-│       ├── results/
-│       ├── chunks_v1.csv
-│       ├── ground_truth_v1.csv
-│       ├── ground_truth_v2.csv
-│       ├── evaluation_manifest_v1.json
-│       └── evaluation_manifest_v2.json
-│
-├── notebooks/
-│   ├── 01_data_ai_corpus_ground_truth_v1.ipynb
-│   ├── 02_data_ai_retrieval_evaluation_v1.ipynb
-│   ├── 03_data_ai_retrieval_error_analysis_v1.ipynb
-│   └── 04_data_ai_retrieval_evaluation_gt_v2.ipynb
-│
-├── docs/
-│   ├── contracts/
-│   └── Informe_Retrieval_v1_GT_v1_vs_GT_v2.pdf
-│
+│   ├── evaluation/      # Corpus, Ground Truth, manifests, entradas y resultados
+│   └── format_corpus_v1/# Corpus controlado para pruebas multiformato
+├── docs/contracts/      # Contratos documentados y versionados
+├── notebooks/           # Preparación, evaluación y análisis experimental
+├── scripts/             # Generación de corpus y runners/diagnósticos
 ├── requirements.txt
 └── README.md
 ```
 
----
+Puntos de entrada frecuentes:
 
-# Retrieval evaluation
+| Necesidad | Archivo o carpeta |
+|---|---|
+| Cambiar rutas HTTP | `data_ai/api/app.py` |
+| Cambiar esquemas de evaluación de formatos | `data_ai/schemas/format_evaluation.py` |
+| Cambiar evaluación de calidad | `data_ai/evaluation/quality_evaluator.py` |
+| Cambiar reglas del veredicto | `data_ai/evaluation/rubric.py` |
+| Cambiar carga/validación de resultados de retrieval | `data_ai/loaders/`, `data_ai/validators/` |
+| Cambiar métricas o reportes de retrieval | `data_ai/metrics/` |
+| Añadir o actualizar pruebas | `data_ai/tests/` |
+| Crear benchmarks reproducibles | `notebooks/`, `scripts/` y `data/evaluation/` |
 
-Data/IA mantiene un benchmark reproducible para evaluar retrieval.
+## Operación local
 
-El contrato se encuentra en:
+Ejecuta los comandos desde `Data_IA/`.
 
-```text
-docs/contracts/retrieval_contract_v1.md
-```
+### Instalar dependencias
 
-El batch real utilizado se encuentra en:
-
-```text
-data/evaluation/input/retrieval_results_agentes_v1.json
-```
-
----
-
-## Ground Truth v1
-
-Ground Truth original congelado.
-
-Artefactos:
-
-```text
-ground_truth_v1.csv
-evaluation_manifest_v1.json
-```
-
-Resultados principales:
-
-```text
-Recall@3 = 0.5400
-Recall@5 = 0.7200
-
-Precision@3 = 0.1867
-Precision@5 = 0.1480
-```
-
----
-
-## Ground Truth v2
-
-Versión ampliada después de revisión manual de casos con múltiples chunks válidos.
-
-Artefactos:
-
-```text
-ground_truth_v2.csv
-evaluation_manifest_v2.json
-```
-
-Resultados:
-
-```text
-Recall@3 = 0.573333
-Recall@5 = 0.753333
-
-Precision@3 = 0.213333
-Precision@5 = 0.164000
-```
-
-El retrieval utilizado para ambas mediciones es el mismo.
-
-La diferencia corresponde únicamente a la actualización del Ground Truth.
-
----
-
-# Análisis de errores
-
-Notebook:
-
-```text
-notebooks/03_data_ai_retrieval_error_analysis_v1.ipynb
-```
-
-Categorías utilizadas:
-
-```text
-AMBIGUEDAD_CONTEXTO
-RANKING_SEMANTICO
-ENTIDAD_LEXICAL
-COMPETENCIA_INTRADOCUMENTO
-PREGUNTA_INFERENCIAL
-CHUNKING
-EMBEDDING
-GROUND_TRUTH
-OTRO
-```
-
----
-
-# Pruebas automáticas
-
-Ejecutar desde `Data_IA`:
-
-```bash
-python -m pytest data_ai/tests -v
-```
-
-Última validación funcional realizada durante Sprint 2:
-
-```text
-55 passed
-```
-
-También se validó manualmente el endpoint `/evaluate` con:
-
-- Quiz válido;
-- Flashcards válidas.
-
-Ambos casos devolvieron:
-
-```text
-HTTP 200
-status = aprobado
-```
-
----
-
-# Instalación
-
-Crear entorno virtual:
-
-```bash
+```powershell
 python -m venv .venv
-```
-
-Windows:
-
-```bash
-.venv\Scripts\activate
-```
-
-macOS/Linux:
-
-```bash
-source .venv/bin/activate
-```
-
-Instalar dependencias:
-
-```bash
+.\.venv\Scripts\Activate.ps1
 pip install -r requirements.txt
 ```
 
----
+En macOS/Linux:
 
-# Artefactos versionados
-
-Los artefactos congelados no deben sobrescribirse.
-
-Si cambia alguno de los siguientes elementos:
-
-- corpus;
-- chunking;
-- Ground Truth;
-- configuración de evaluación;
-
-debe generarse una nueva versión.
-
-Esto permite conservar:
-
-- trazabilidad;
-- reproducibilidad;
-- comparación histórica de métricas.
-
----
-
-# Estado actual
-
-## Sprint 2
-
-Completado:
-
-```text
-✅ Contratos Quiz / Flashcards
-✅ GenerationContext
-✅ Validation schemas
-✅ EvaluationScores
-✅ EvaluationResponse
-✅ Quality evaluator baseline
-✅ Reviewer
-✅ Rúbrica
-✅ POST /evaluate
-✅ HTTP 200 para requests válidos
-✅ Validación 422 para contratos inválidos
-✅ Tests automáticos
-✅ Prueba end-to-end Quiz
-✅ Prueba end-to-end Flashcards
+```bash
+python -m venv .venv
+source .venv/bin/activate
+pip install -r requirements.txt
 ```
 
-El siguiente trabajo corresponde a integración con el resto del sistema y mejoras del evaluator durante los siguientes sprints.
+### Iniciar la API
+
+```bash
+python -m uvicorn data_ai.api.app:app --reload --port 8000
+```
+
+La documentación interactiva de FastAPI queda disponible en
+`http://127.0.0.1:8000/docs`.
+
+### Ejecutar pruebas
+
+```bash
+python -m pytest data_ai/tests
+```
+
+### Ejecutar scripts y notebooks
+
+Los scripts de `scripts/` pueden ejecutarse desde la raíz del repositorio
+según la ruta indicada en cada uno. Los notebooks de `notebooks/` registran
+los parámetros, las versiones de los datos y el análisis asociado; antes de
+comparar resultados, verifica el manifest y no reemplaces salidas históricas.
+
+## Documentación relacionada
+
+- [README de Agentes](../agentes/README.md): indexación, retrieval y generación.
+- [README de BackendAPI](../backend/README.md): integración HTTP y persistencia
+  de las evaluaciones recibidas.
+- [README del corpus controlado](data/format_corpus_v1/README.md): diseño y
+  reproducibilidad de las entradas MD/TXT/PDF.
