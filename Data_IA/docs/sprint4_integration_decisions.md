@@ -994,3 +994,617 @@ Draft acordado para implementación inicial
 ```
 
 Las decisiones podrán actualizarse si BackendAPI o Agentes identifican una incompatibilidad durante integración.
+
+---
+
+# 51. Acuerdos inter-área posteriores al Draft PR
+
+Después de la revisión del Draft PR de Data/IA con los equipos de Agentes
+y BackendAPI, se congelan las siguientes decisiones para Sprint 4.
+
+Estas decisiones sustituyen cualquier alternativa previa marcada como
+pendiente dentro de la documentación de este Sprint.
+
+---
+
+# 52. Proveedor del Semantic Evaluator
+
+Data/IA utilizará:
+
+```text
+Gemini
+```
+
+como proveedor inicial del Semantic Evaluator bajo el enfoque:
+
+```text
+LLM-as-a-Judge
+```
+
+La integración continuará utilizando la abstracción:
+
+```text
+SemanticProvider
+```
+
+para evitar acoplar la lógica de evaluación directamente al SDK del
+proveedor.
+
+---
+
+# 53. Configuración independiente de Data/IA
+
+Data/IA tendrá configuración propia para el proveedor semántico.
+
+Variables propuestas:
+
+```text
+DATA_IA_GEMINI_API_KEY
+DATA_IA_GEMINI_MODEL
+```
+
+Aunque durante desarrollo local la API key pueda apuntar al mismo secreto
+utilizado por Agentes, la configuración permanecerá separada.
+
+Esto permite utilizar en el futuro modelos diferentes para:
+
+```text
+generación
+```
+
+y:
+
+```text
+evaluación semántica
+```
+
+sin acoplar ambos servicios.
+
+---
+
+# 54. Contrato público Data/IA → Backend
+
+La evaluación semántica se expondrá como un objeto anidado.
+
+Estructura conceptual:
+
+```json
+{
+  "document_id": "doc_123",
+  "format": "tldr",
+  "verdict": "requires_revision",
+  "heuristic_scores": {},
+  "semantic_evaluation": {
+    "status": "success",
+    "scores": {},
+    "observations": [],
+    "recommendations": [],
+    "unsupported_information": [],
+    "error_code": null,
+    "error_message": null,
+    "model": "gemini-...",
+    "prompt_version": "semantic-evaluator-v0.1",
+    "latency_ms": 120
+  },
+  "evaluator_version": "...",
+  "rubric_version": "..."
+}
+```
+
+Esta estructura evita dispersar los campos semánticos en la raíz y permite
+evolucionar el evaluador semántico sin generar colisiones con otros campos.
+
+---
+
+# 55. `semantic_evaluation`
+
+El objeto:
+
+```text
+semantic_evaluation
+```
+
+representa exclusivamente el resultado del componente semántico.
+
+Su:
+
+```text
+status
+```
+
+es un estado técnico.
+
+Valores:
+
+```text
+success
+failed
+unavailable
+```
+
+No debe confundirse con:
+
+```text
+verdict
+```
+
+que representa la evaluación pedagógica del contenido.
+
+---
+
+# 56. Vocabulario canónico de `verdict`
+
+Para Sprint 4 se adopta como vocabulario técnico canónico:
+
+```text
+approved
+requires_revision
+rejected
+```
+
+Se abandona como vocabulario nuevo:
+
+```text
+aprobado
+requiere_revision
+rechazado
+```
+
+Los datos históricos de Backend pueden migrarse mediante:
+
+```text
+aprobado
+→ approved
+
+requiere_revision
+→ requires_revision
+
+rechazado
+→ rejected
+```
+
+---
+
+# 57. Diferencia entre estado técnico y verdict
+
+Ejemplo:
+
+```text
+semantic_evaluation.status = failed
+```
+
+significa:
+
+```text
+el componente semántico no pudo completar su evaluación
+```
+
+No significa:
+
+```text
+el contenido fue rechazado
+```
+
+De la misma forma:
+
+```text
+verdict = rejected
+```
+
+significa:
+
+```text
+el contenido no cumple los criterios de calidad
+```
+
+y no implica que el proveedor semántico haya fallado.
+
+---
+
+# 58. Fallback cuando falla el Semantic Evaluator
+
+Si:
+
+```text
+heuristic evaluator = disponible
+```
+
+y:
+
+```text
+semantic evaluator = failed | unavailable
+```
+
+Data/IA conservará un fallback controlado.
+
+El `verdict` podrá obtenerse utilizando únicamente el evaluador heurístico.
+
+El error semántico permanecerá observable dentro de:
+
+```text
+semantic_evaluation
+```
+
+---
+
+# 59. Evaluación degradada
+
+Conceptualmente existirán tres situaciones:
+
+```text
+evaluación completa
+heurístico + semántico disponibles
+
+evaluación degradada
+heurístico disponible + semántico no disponible
+
+evaluación fallida
+no existe información suficiente para producir un verdict confiable
+```
+
+La representación pública definitiva de este estado global se terminará de
+validar durante la integración del endpoint.
+
+Un campo candidato es:
+
+```text
+evaluation_status
+```
+
+con valores:
+
+```text
+complete
+degraded
+failed
+```
+
+Este campo no debe añadirse al contrato público hasta validar su necesidad
+con Backend durante implementación.
+
+---
+
+# 60. No fabricar un verdict
+
+Si no existe ninguna señal de evaluación válida suficiente:
+
+```text
+heurístico no disponible
++
+semántico no disponible
+```
+
+Data/IA no debe inventar:
+
+```text
+approved
+requires_revision
+rejected
+```
+
+El fallo de evaluación debe permanecer explícito.
+
+---
+
+# 61. Comportamiento de `approved`
+
+```text
+approved
+```
+
+indica que el contenido cumple los criterios del evaluador.
+
+Backend puede finalizar inmediatamente el ciclo.
+
+---
+
+# 62. Comportamiento de `requires_revision`
+
+```text
+requires_revision
+```
+
+indica que el contenido presenta problemas corregibles.
+
+Si Backend todavía dispone de un intento:
+
+```text
+contenido
++
+observations
++
+recommendations
+↓
+Agente Revisor
+```
+
+---
+
+# 63. Comportamiento de `rejected`
+
+```text
+rejected
+```
+
+NO implica automáticamente terminar el ciclo.
+
+Mientras exista un intento de corrección disponible:
+
+```text
+rejected
+↓
+Agente Revisor
+```
+
+puede ejecutarse normalmente.
+
+`rejected` representa:
+
+```text
+calidad insuficiente
+```
+
+y no necesariamente:
+
+```text
+contenido técnicamente incorregible
+```
+
+---
+
+# 64. Regla de terminación del ciclo
+
+Para la configuración inicial de Sprint 4:
+
+```text
+generación inicial
++
+máximo 1 corrección automática
+```
+
+Backend utilizará conceptualmente:
+
+```text
+approved
+→ finalizar
+
+requires_revision + intento disponible
+→ corregir
+
+rejected + intento disponible
+→ corregir
+
+requires_revision + sin intentos
+→ finalizar con última evaluación
+
+rejected + sin intentos
+→ finalizar con última evaluación
+```
+
+Data/IA no controla el número de intentos.
+
+---
+
+# 65. Persistencia
+
+Cada llamada a Data/IA representa:
+
+```text
+una evaluación independiente
+```
+
+Data/IA no asignará:
+
+```text
+evaluation_id
+```
+
+ni administrará historial de evaluaciones.
+
+---
+
+# 66. Responsabilidad de Backend sobre persistencia
+
+BackendAPI será responsable de:
+
+```text
+crear evaluation_id
+relacionar evaluación con versión generada
+persistir evaluación
+relacionarla con el ciclo
+ordenar historial
+entregar historial a Frontend
+```
+
+---
+
+# 67. Historial
+
+Data/IA no necesita recibir:
+
+```text
+evaluation_id
+attempt
+max_attempts
+cycle_id
+evaluation_history
+```
+
+para poder evaluar contenido.
+
+Esto mantiene Data/IA:
+
+```text
+stateless
+```
+
+respecto al ciclo de corrección.
+
+---
+
+# 68. Scores separados
+
+Se congela para Sprint 4:
+
+```text
+heuristic_scores
+```
+
+y:
+
+```text
+semantic_evaluation.scores
+```
+
+como señales separadas.
+
+---
+
+# 69. Sin `final_score`
+
+No se implementará todavía:
+
+```text
+final_score
+weighted_score
+combined_score
+```
+
+ni ningún promedio heurístico-semántico.
+
+---
+
+# 70. Sin pesos arbitrarios
+
+No se utilizarán fórmulas como:
+
+```text
+0.5 heuristic
++
+0.5 semantic
+```
+
+o equivalentes hasta completar la calibración.
+
+Los pesos, si fueran necesarios, deberán derivarse de evidencia obtenida
+mediante dataset calibrado.
+
+---
+
+# 71. Contrato Backend → Data/IA
+
+Para evaluar un formato, Data/IA requiere:
+
+```text
+document_id
+format
+generated_content
+generation_context
+chunks_used
+```
+
+No se requiere metadata del ciclo de Backend para ejecutar la evaluación.
+
+---
+
+# 72. Uso de `generation_context`
+
+`generation_context` puede utilizarse para evaluar:
+
+```text
+relevance
+didactic_adaptation
+```
+
+Incluye conceptualmente:
+
+```text
+profile
+niche
+detail_level
+learning_objective
+```
+
+---
+
+# 73. Regla factual definitiva
+
+Para:
+
+```text
+content_support
+```
+
+la única evidencia factual válida será:
+
+```text
+chunks_used
+```
+
+Nunca:
+
+```text
+generation_context
+profile
+niche
+detail_level
+learning_objective
+conocimiento interno del LLM
+```
+
+---
+
+# 74. Integración con Agente Revisor
+
+Cuando el contenido necesite corrección, Backend podrá enviar al Agente
+Revisor información producida por Data/IA, principalmente:
+
+```text
+observations
+recommendations
+unsupported_information
+```
+
+El Agente Revisor será responsable de utilizar ese diagnóstico para generar
+una versión corregida.
+
+Data/IA no modifica directamente el contenido.
+
+---
+
+# 75. Estado de decisiones de Sprint 4
+
+Con la revisión de Agentes y Backend se consideran cerradas:
+
+```text
+[x] Gemini como LLM-as-a-Judge
+[x] configuración independiente para Data/IA
+[x] semantic_evaluation anidado
+[x] verdict técnico en inglés
+[x] fallback heurístico
+[x] rejected puede corregirse si quedan intentos
+[x] Backend administra persistencia e historial
+[x] scores heurístico y semántico separados
+[x] sin final_score antes de calibración
+[x] contrato Backend → Data/IA
+[x] chunks_used como única evidencia factual
+```
+
+---
+
+# 76. Pendientes técnicos
+
+Después de congelar estos acuerdos quedan como implementación:
+
+```text
+1. Adapter real de Gemini.
+2. Tests del adapter.
+3. Configuración de variables de entorno.
+4. Provider output schema compatible con Gemini.
+5. Integración SemanticEvaluator con quality_evaluator.
+6. Fallback heurístico-semántico.
+7. Nuevo response público del endpoint /evaluate.
+8. Tests de integración del endpoint.
+9. Dataset de calibración.
+10. Validación del ciclo completo con Backend y Agentes.
+```

@@ -3313,3 +3313,49 @@ La política HTTP y las demás decisiones de integración quedan detalladas en:
 ```text
 Data_IA/docs/sprint4_integration_decisions.md
 ```
+
+---
+
+# Actualización posterior a revisión con Backend y Agentes
+
+Las siguientes decisiones dejan de considerarse pendientes:
+
+```text
+semantic_evaluation
+→ objeto anidado
+
+verdict canónico
+→ approved | requires_revision | rejected
+
+fallback semántico
+→ utilizar heurístico cuando sea válido
+
+persistencia/historial
+→ BackendAPI
+
+heurístico + semántico
+→ permanecen separados
+
+final_score
+→ no se implementa antes de calibración
+
+proveedor semántico
+→ Gemini
+
+configuración del proveedor
+→ independiente para Data/IA
+```
+
+La migración desde los valores históricos:
+
+```text
+aprobado
+requiere_revision
+rechazado
+```
+
+deberá coordinarse con BackendAPI antes de eliminar soporte a los valores
+actuales.
+
+La evolución continuará siendo aditiva hasta que Backend complete la
+migración al contrato Evaluation V2.

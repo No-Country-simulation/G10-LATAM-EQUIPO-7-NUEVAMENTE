@@ -2130,3 +2130,87 @@ Data_IA/docs/sprint4_integration_decisions.md
 ```
 
 Este documento debe consultarse antes de modificar contratos relacionados con Retrieval o generación.
+
+---
+
+# Sprint 4 — Decisiones inter-área congeladas
+
+Después de la revisión con Agentes y BackendAPI se confirman las siguientes
+decisiones para Evaluation V2:
+
+```text
+Proveedor semántico:
+Gemini / LLM-as-a-Judge
+
+Configuración:
+independiente para Data/IA
+
+Semantic result:
+semantic_evaluation anidado
+
+Verdict:
+approved | requires_revision | rejected
+
+Fallback:
+heurístico disponible + semántico fallido
+→ conservar verdict heurístico
+
+Persistencia:
+BackendAPI
+
+Historial:
+BackendAPI
+
+Scores:
+heurístico y semántico separados
+
+Final score:
+no definido hasta calibración
+
+Evidencia factual:
+chunks_used únicamente
+```
+
+## Contrato conceptual de respuesta
+
+```json
+{
+  "document_id": "doc_123",
+  "format": "tldr",
+  "verdict": "requires_revision",
+  "heuristic_scores": {
+    "relevance": 4,
+    "coherence": 4,
+    "didactic_adaptation": 3,
+    "content_support": 4
+  },
+  "semantic_evaluation": {
+    "status": "success",
+    "scores": {
+      "relevance": 4.5,
+      "coherence": 4.2,
+      "didactic_adaptation": 3.7,
+      "content_support": 4.1
+    },
+    "observations": [],
+    "recommendations": [],
+    "unsupported_information": [],
+    "error_code": null,
+    "error_message": null,
+    "model": "gemini-...",
+    "prompt_version": "semantic-evaluator-v0.1",
+    "latency_ms": 120
+  },
+  "evaluator_version": "...",
+  "rubric_version": "..."
+}
+```
+
+Este ejemplo continúa siendo conceptual hasta completar la implementación
+del endpoint público.
+
+La fuente de verdad para las decisiones transversales se encuentra en:
+
+```text
+Data_IA/docs/sprint4_integration_decisions.md
+```
