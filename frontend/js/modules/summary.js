@@ -124,10 +124,29 @@ export const summary = {
       return;
     }
 
-    // Caso 3: Sin contenido o sin resultados
-    if (this.meta.status === 'no_results' || !sintesisData) {
+    // Caso 3: Formato no generado en versión previa del documento
+    if (!sintesisData || (!sintesisData.content && !sintesisData.format_id && this.meta.status !== 'no_results')) {
+      if (counterBadge) counterBadge.textContent = 'Síntesis (No disponible)';
+      if (titleText) titleText.textContent = 'Síntesis Ejecutiva';
+      if (btnRegen) {
+        btnRegen.disabled = true;
+        btnRegen.title = 'Este documento fue procesado antes de incorporar la Síntesis Ejecutiva. Sube el documento nuevamente para habilitarla.';
+      }
+      resumenText.textContent = 'Este documento fue indexado antes de la incorporación de la Síntesis Ejecutiva (TLDR). Para generar todos los formatos pedagógicos disponibles, vuelve a subir el documento desde el Catálogo.';
+      puntosList.innerHTML = '';
+      if (conclusionBox) conclusionBox.style.display = 'none';
+      if (terminosSection) terminosSection.style.display = 'none';
+      return;
+    }
+
+    // Caso 4: Sin resultados pedagógicos
+    if (this.meta.status === 'no_results') {
       if (counterBadge) counterBadge.textContent = 'Síntesis Ejecutiva';
       if (titleText) titleText.textContent = 'Síntesis Ejecutiva';
+      if (btnRegen) {
+        btnRegen.disabled = false;
+        btnRegen.title = 'Generar una nueva síntesis ejecutiva del documento';
+      }
       resumenText.textContent = 'El documento no contiene suficiente información para formular una síntesis ejecutiva.';
       puntosList.innerHTML = '';
       if (conclusionBox) conclusionBox.style.display = 'none';
