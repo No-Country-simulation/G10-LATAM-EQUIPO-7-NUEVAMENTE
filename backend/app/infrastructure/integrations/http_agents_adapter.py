@@ -125,15 +125,32 @@ class HTTPAgentsAdapter:
     ) -> AgentGenerationResult:
         """Solicita formatos y metadata pedagógica a Agentes.
 
+        Agentes usa el mismo contrato de respuesta (``document_id``,
+        ``learning_metadata``, ``results``) tanto para éxito total (200)
+        como para éxito parcial (207 Multi-Status: al menos un formato
+        u otro fallaron) y para fallo global (429/502/503/504/404/422/500:
+        todas las unidades fallaron). En los tres casos ``results`` trae
+        el detalle atómico por formato, incluido ``error_message`` con la
+        causa real cuando corresponde.
+
+        Por eso el adapter no corta por código HTTP: siempre intenta
+        interpretar el body con ese contrato y solo lo descarta -lanzando
+        ``AgentsError``- si ni siquiera eso es posible (timeout, error de
+        conexión, o un body que no cumple el contrato acordado).
+
         Args:
             request: Solicitud normalizada construida por BackendAPI.
 
         Returns:
             Resultado de generación expresado mediante el dominio interno.
+            Puede incluir formatos en ``FAILED``/``NO_RESULTS`` junto a
+            otros en ``SUCCESS`` (éxito parcial), o todos en estado de
+            fallo (fallo global), cada uno con su ``error_message`` real.
 
         Raises:
-            AgentsError: Si ocurre un timeout, error HTTP, error de
-                conexión o Agentes devuelve un contrato incompatible.
+            AgentsError: Si ocurre un timeout, un error de conexión, o
+                Agentes devuelve un body que no cumple el contrato
+                acordado (incluso en un código de error HTTP).
         """
         payload = self._build_request_payload(
             request
@@ -145,20 +162,11 @@ class HTTPAgentsAdapter:
                 json=payload,
             )
 
-            response.raise_for_status()
-
         except httpx.TimeoutException as exc:
             raise AgentsError(
                 "La solicitud de generación a Agentes "
                 f"superó el tiempo permitido para "
                 f"{request.document_id}."
-            ) from exc
-
-        except httpx.HTTPStatusError as exc:
-            raise AgentsError(
-                "Agentes rechazó la generación del documento "
-                f"{request.document_id} con estado HTTP "
-                f"{exc.response.status_code}."
             ) from exc
 
         except httpx.RequestError as exc:
@@ -168,29 +176,8 @@ class HTTPAgentsAdapter:
             ) from exc
 
         try:
-            payload_response = (
-                _AgentGenerationHTTPResponse.model_validate(
-                    response.json()
-                )
-            )
-
-            results = tuple(
-                self._to_domain_result(
-                    item
-                )
-                for item in payload_response.results
-            )
-
-            return AgentGenerationResult(
-                document_id=(
-                    payload_response.document_id
-                ),
-                results=results,
-                learning_metadata=(
-                    payload_response
-                    .learning_metadata
-                    .to_domain()
-                ),
+            return self._parse_generation_response(
+                response
             )
 
         except (
@@ -199,10 +186,54 @@ class HTTPAgentsAdapter:
             ValueError,
             ValidationError,
         ) as exc:
+            if response.is_success:
+                raise AgentsError(
+                    "Agentes devolvió una respuesta de generación "
+                    f"inválida para el documento {request.document_id}."
+                ) from exc
+
             raise AgentsError(
-                "Agentes devolvió una respuesta de generación "
-                f"inválida para el documento {request.document_id}."
+                "Agentes rechazó la generación del documento "
+                f"{request.document_id} con estado HTTP "
+                f"{response.status_code}."
             ) from exc
+
+    @classmethod
+    def _parse_generation_response(
+        cls,
+        response: httpx.Response,
+    ) -> AgentGenerationResult:
+        """Interpreta el body de ``/generate`` según el contrato acordado.
+
+        Deliberadamente no mira ``response.status_code``: el contrato de
+        Agentes es el mismo para 200, 207 y los códigos de fallo global,
+        así que tanto el éxito parcial como el fallo global se resuelven
+        aquí igual que un éxito total.
+        """
+        payload_response = (
+            _AgentGenerationHTTPResponse.model_validate(
+                response.json()
+            )
+        )
+
+        results = tuple(
+            cls._to_domain_result(
+                item
+            )
+            for item in payload_response.results
+        )
+
+        return AgentGenerationResult(
+            document_id=(
+                payload_response.document_id
+            ),
+            results=results,
+            learning_metadata=(
+                payload_response
+                .learning_metadata
+                .to_domain()
+            ),
+        )
 
     @staticmethod
     def _build_request_payload(
