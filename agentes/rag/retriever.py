@@ -10,7 +10,7 @@ from .contract import (
 class RetrieverService:
     """
     Interfaz principal de recuperación. Coordina VectorStore y arma
-    las respuestas bajo el contrato v1.0 acordado con Data/IA.
+    las respuestas bajo el contrato v2.0 acordado con Data/IA.
     """
 
     def __init__(self, vector_store: VectorStore):
@@ -48,12 +48,16 @@ class RetrieverService:
         Novedad V2: Acepta metadata_filters (ej. categoria o document_id) 
         para aislar la competencia de chunks en el benchmark.
         """
-        if not case_id or not case_id.strip():
-            raise ValueError(
-                "case_id es obligatorio para evaluación y no puede estar vacío."
-            )
+        # Fallback por si llega vacío, para que build_error_response no se rompa al armar el payload de error
+        safe_case_id = case_id if case_id and str(case_id).strip() else "ID_INVALIDO"
 
         try:
+            # 1. Movimos la validación del case_id al try
+            if not case_id or not str(case_id).strip():
+                raise ValueError(
+                    "case_id es obligatorio para evaluación y no puede estar vacío."
+                )
+
             self._validate_query(query)
             self._validate_top_k(top_k)
             
@@ -63,23 +67,26 @@ class RetrieverService:
                 top_k=top_k, 
                 filters=metadata_filters
             )
+
+            # 2. Movimos el success y no_results al try. 
+            # Si un chunk no tiene document_id y build_success_response lanza ValueError, se captura limpiamente.
+            if not results:
+                return build_no_results_response(case_id, query, top_k)
+
+            return build_success_response(case_id, query, top_k, results)
+
         except ValueError as exc:
             return build_error_response(
-                case_id, query, top_k, "INVALID_INPUT", str(exc)
+                safe_case_id, query, top_k, "INVALID_INPUT", str(exc)
             )
         except Exception as exc:
             return build_error_response(
-                case_id, query, top_k, "RETRIEVAL_FAILED", str(exc)
+                safe_case_id, query, top_k, "RETRIEVAL_FAILED", str(exc)
             )
-
-        if not results:
-            return build_no_results_response(case_id, query, top_k)
-
-        return build_success_response(case_id, query, top_k, results)
 
     @staticmethod
     def _validate_query(query: str):
-        if not query or not query.strip():
+        if not query or not str(query).strip():
             raise ValueError("La consulta (query) no puede estar vacía.")
 
     @staticmethod
