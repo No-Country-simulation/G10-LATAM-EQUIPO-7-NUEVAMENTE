@@ -256,47 +256,50 @@
             </div>
 
             <div class="parameters-stack">
-              <!-- Perfil (target_profile) -->
-              <div class="param-field">
-                <label for="paramPerfil" class="param-label">
-                  <strong>Nivel del Colaborador / Audiencia:</strong>
-                </label>
-                <select id="paramPerfil" class="custom-select">
-                  <option value="beginner">Inicial / Inducción: Conceptos base, lineamientos generales y tono accesible</option>
-                  <option value="intermediate" selected>Operativo / Especialista: Procedimientos clave, aplicación práctica y metodología</option>
-                  <option value="advanced">Avanzado / Liderazgo: Profundidad técnica, toma de decisiones y análisis crítico</option>
-                </select>
+              <div class="parameters-fields-grid">
+                <!-- Perfil (target_profile) -->
+                <div class="param-field">
+                  <label for="paramPerfil" class="param-label">
+                    <strong>Nivel del Colaborador / Audiencia:</strong>
+                  </label>
+                  <select id="paramPerfil" class="custom-select">
+                    <option value="beginner">Inicial / Inducción: Conceptos base, lineamientos generales y tono accesible</option>
+                    <option value="intermediate" selected>Operativo / Especialista: Procedimientos clave, aplicación práctica y metodología</option>
+                    <option value="advanced">Avanzado / Liderazgo: Profundidad técnica, toma de decisiones y análisis crítico</option>
+                  </select>
+                </div>
+
+                <!-- Nicho / Temática (niche_context) -->
+                <div class="param-field">
+                  <label for="paramNicho" class="param-label">
+                    <strong>Área Operativa / Departamento:</strong>
+                  </label>
+                  <select id="paramNicho" class="custom-select">
+                    <option value="general" selected>General / Detección universal del documento</option>
+                    <option value="backend">Tecnología, Infraestructura & Software</option>
+                    <option value="health">Seguridad Ocupacional, Salud & Bioseguridad</option>
+                    <option value="legal">Legal, Compliance & Normativas Regulatorias</option>
+                    <option value="business">Finanzas, Gestión & Operaciones de Negocio</option>
+                    <option value="humanities">Recursos Humanos, Talento & Cultura Organizacional</option>
+                  </select>
+                </div>
+
+                <!-- Nivel de Detalle (detail_level) -->
+                <div class="param-field">
+                  <label for="paramDetailLevel" class="param-label">
+                    <strong>Nivel de Detalle del Entrenamiento:</strong>
+                  </label>
+                  <select id="paramDetailLevel" class="custom-select">
+                    <option value="detailed" selected>Exhaustivo / Paso a paso detallado para capacitación integral</option>
+                    <option value="standard">Estándar / Cobertura equilibrada de competencias clave</option>
+                    <option value="concise">Sintético / Enfoque rápido en puntos críticos de control</option>
+                  </select>
+                </div>
               </div>
 
-              <!-- Nicho / Temática (niche_context) -->
-              <div class="param-field">
-                <label for="paramNicho" class="param-label">
-                  <strong>Área Operativa / Departamento:</strong>
-                </label>
-                <select id="paramNicho" class="custom-select">
-                  <option value="general" selected>General / Detección universal del documento</option>
-                  <option value="backend">Tecnología, Infraestructura & Software</option>
-                  <option value="health">Seguridad Ocupacional, Salud & Bioseguridad</option>
-                  <option value="legal">Legal, Compliance & Normativas Regulatorias</option>
-                  <option value="business">Finanzas, Gestión & Operaciones de Negocio</option>
-                  <option value="humanities">Recursos Humanos, Talento & Cultura Organizacional</option>
-                </select>
-              </div>
-
-              <!-- Nivel de Detalle (detail_level) -->
-              <div class="param-field">
-                <label for="paramDetailLevel" class="param-label">
-                  <strong>Nivel de Detalle del Entrenamiento:</strong>
-                </label>
-                <select id="paramDetailLevel" class="custom-select">
-                  <option value="detailed" selected>Exhaustivo / Paso a paso detallado para capacitación integral</option>
-                  <option value="standard">Estándar / Cobertura equilibrada de competencias clave</option>
-                  <option value="concise">Sintético / Enfoque rápido en puntos críticos de control</option>
-                </select>
-              </div>
               <!-- Botón de Lanzamiento -->
-              <div style="margin-top: 0.75rem;">
-                <button type="button" class="btn-launch-rag" id="btnLanzarProcesamiento" style="width: 100%;">
+              <div class="launch-action-wrapper">
+                <button type="button" class="btn-launch-rag" id="btnLanzarProcesamiento">
                   <span>Generar Programa de Capacitación</span>
                 </button>
               </div>

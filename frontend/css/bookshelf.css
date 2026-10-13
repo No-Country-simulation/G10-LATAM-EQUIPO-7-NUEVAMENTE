@@ -236,24 +236,52 @@
   position: relative;
   display: flex;
   align-items: flex-end;
-  justify-content: center;
-  gap: clamp(0.6rem, 1vw, 1rem);
-  padding: 0 0.8rem clamp(0.6rem, 1vh, 0.9rem);
-  flex-wrap: wrap;
+  justify-content: flex-start;
+  gap: clamp(0.55rem, 0.9vw, 0.9rem);
+  padding: 0 1.4rem 20px;
+  flex-wrap: nowrap;
+  overflow-x: auto;
+  overflow-y: hidden;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(245, 158, 11, 0.45) rgba(11, 17, 30, 0.6);
+  scroll-behavior: smooth;
+  min-height: clamp(235px, 28vh, 275px);
+  -webkit-overflow-scrolling: touch;
+}
+
+.shelf-row::-webkit-scrollbar {
+  height: 7px;
+}
+
+.shelf-row::-webkit-scrollbar-track {
+  background: rgba(11, 17, 30, 0.6);
+  border-radius: 4px;
+}
+
+.shelf-row::-webkit-scrollbar-thumb {
+  background: rgba(245, 158, 11, 0.45);
+  border-radius: 4px;
+}
+
+.shelf-row::-webkit-scrollbar-thumb:hover {
+  background: rgba(245, 158, 11, 0.8);
 }
 
 /* La Tabla de Madera del Estante */
 .shelf-plank {
   position: absolute;
   bottom: 0;
-  left: 0.5rem;
-  right: 0.5rem;
+  left: 0;
+  right: 0;
+  min-width: 100%;
+  width: max(100%, max-content);
   height: 18px;
   background: linear-gradient(to bottom, #854d0e, #533107 40%, #291802);
   border-top: 3px solid #b45309;
   border-radius: 5px;
   box-shadow: 0 12px 28px rgba(0, 0, 0, 0.9), inset 0 2px 4px rgba(255, 255, 255, 0.2);
   z-index: 1;
+  pointer-events: none;
 }
 
 .shelf-plank::after {
@@ -269,6 +297,7 @@
 
 /* Lomo Individual de Libro 3D (Dimensiones estilizadas y armónicas) */
 .book-spine {
+  flex-shrink: 0;
   position: relative;
   width: clamp(56px, 4.4vw, 68px);
   height: clamp(210px, 26vh, 248px);
@@ -281,7 +310,7 @@
   flex-direction: column;
   justify-content: space-between;
   align-items: center;
-  padding: 0.8rem 0.3rem 0.7rem;
+  padding: 0.8rem 0.35rem 0.65rem;
   transform-origin: bottom center;
   transition: transform 0.35s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.35s ease;
   box-shadow: 3px 6px 18px rgba(0, 0, 0, 0.8), inset -3px 0 8px rgba(0, 0, 0, 0.6), inset 2px 0 6px rgba(255, 255, 255, 0.18);
@@ -289,8 +318,8 @@
 }
 
 /* Variaciones sutiles de altura y anchura para realismo */
-.book-spine:nth-child(2n) { height: clamp(200px, 25vh, 238px); width: clamp(52px, 4.2vw, 64px); }
-.book-spine:nth-child(3n) { height: clamp(220px, 27vh, 256px); width: clamp(60px, 4.8vw, 72px); }
+.book-spine:nth-child(2n) { height: clamp(200px, 25vh, 238px); width: clamp(54px, 4.2vw, 64px); }
+.book-spine:nth-child(3n) { height: clamp(220px, 27vh, 256px); width: clamp(60px, 4.8vw, 70px); }
 .book-spine:nth-child(5n) { height: clamp(208px, 25.5vh, 244px); width: clamp(55px, 4.3vw, 66px); }
 
 /* Efecto Hover: El libro se adelanta hacia afuera */
@@ -320,31 +349,31 @@
   writing-mode: vertical-rl;
   text-orientation: mixed;
   transform: rotate(180deg);
-  font-size: clamp(0.82rem, 1vw, 0.92rem);
+  font-size: clamp(0.78rem, 0.95vw, 0.88rem);
   font-weight: 700;
-  letter-spacing: 0.05em;
+  letter-spacing: 0.04em;
   color: #fef08a;
   text-shadow: 0 1px 4px rgba(0, 0, 0, 0.95);
-  max-height: 155px;
+  max-height: 165px;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  padding: 0.2rem 0;
-  line-height: 1.2;
+  padding: 0.15rem 0;
+  line-height: 1.25;
 }
 
 /* Disciplina o Código en la Base del Lomo (Ajustado para no desbordar) */
 .spine-code-tag {
-  font-size: clamp(0.68rem, 0.8vw, 0.76rem);
+  font-size: clamp(0.62rem, 0.72vw, 0.7rem);
   font-weight: 800;
   color: #fde047;
-  letter-spacing: 0.04em;
+  letter-spacing: 0.03em;
   font-family: inherit;
-  background: rgba(0, 0, 0, 0.55);
+  background: rgba(0, 0, 0, 0.65);
   border: 1px solid rgba(253, 230, 138, 0.4);
-  padding: 0.16rem 0.45rem;
+  padding: 0.14rem 0.35rem;
   border-radius: 5px;
-  max-width: 94%;
+  max-width: 96%;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
