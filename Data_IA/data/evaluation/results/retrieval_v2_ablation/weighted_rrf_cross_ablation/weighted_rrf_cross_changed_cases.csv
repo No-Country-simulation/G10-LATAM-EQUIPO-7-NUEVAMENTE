@@ -1,0 +1,2 @@
+﻿case_id,categoria,recall_at_3_50_50_cross,recall_at_3_60_40_cross,delta_recall_at_3,recall_at_5_50_50_cross,recall_at_5_60_40_cross,delta_recall_at_5
+BE-ES-001-Q02,Backend,1.0,0.0,-1.0,1.0,0.0,-1.0

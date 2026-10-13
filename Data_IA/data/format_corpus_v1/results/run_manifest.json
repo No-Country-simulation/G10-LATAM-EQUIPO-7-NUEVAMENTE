@@ -1,0 +1,87 @@
+{
+  "experiment_name": "NuevaMente Controlled Format Retrieval Evaluation",
+  "experiment_version": "v1",
+  "generated_at_utc": "2026-10-08T03:29:22.957654+00:00",
+  "corpus": {
+    "name": "format_corpus_v1",
+    "formats": [
+      "md",
+      "txt",
+      "pdf"
+    ],
+    "documents": 10,
+    "semantic_content_controlled": true,
+    "separate_vector_indexes": true
+  },
+  "evaluation": {
+    "ground_truth": "Data_IA/data/evaluation/ground_truth_v2.csv",
+    "expected_cases": 50,
+    "top_k": 5,
+    "evidence_hit_threshold": 0.5,
+    "primary_metric": "evidence_hit",
+    "supporting_metrics": [
+      "evidence_coverage",
+      "reference_token_recall"
+    ],
+    "document_id_filter": true
+  },
+  "results": {
+    "md": {
+      "cases": 50,
+      "successful_queries": 50,
+      "evidence_hits": 49,
+      "evidence_hit_rate": 0.98,
+      "mean_evidence_coverage": 0.867667,
+      "mean_reference_token_recall": 0.989316
+    },
+    "txt": {
+      "cases": 50,
+      "successful_queries": 50,
+      "evidence_hits": 48,
+      "evidence_hit_rate": 0.96,
+      "mean_evidence_coverage": 0.853667,
+      "mean_reference_token_recall": 0.959142
+    },
+    "pdf": {
+      "cases": 50,
+      "successful_queries": 50,
+      "evidence_hits": 49,
+      "evidence_hit_rate": 0.98,
+      "mean_evidence_coverage": 0.867667,
+      "mean_reference_token_recall": 0.978146
+    }
+  },
+  "case_findings": {
+    "hit_disagreements": 1,
+    "coverage_only_differences": 1,
+    "format_independent_failures": 1,
+    "hit_disagreement_case_ids": [
+      "FE-ES-001-Q01"
+    ],
+    "coverage_only_case_ids": [
+      "FE-ES-001-Q05"
+    ],
+    "format_independent_failure_case_ids": [
+      "CLD-ES-001-Q05"
+    ]
+  },
+  "input_hashes_sha256": {
+    "retrieval_format_summary.csv": "8151165b940fd3dfd81be399a2595683fd237334205274c52748ca88327b6ac9",
+    "retrieval_format_comparison.csv": "251553058df630ee3c8e50d2d7182b134a12bdfd875d24fb54a41d1c02b65778",
+    "retrieval_md.csv": "8defc7fba60a21df42c405ffb813424213ebc892715acaa031c0b2906bfd97f8",
+    "retrieval_txt.csv": "56f180882bb2ca5fa32914bbba7b1e37e147623eae01f1879855a8d297bfa9f8",
+    "retrieval_pdf.csv": "695f19cb9b1ea4901d911fafe364587acb9d919e07159bf43cfef829b40c64a7"
+  },
+  "generated_artifacts": [
+    "controlled_format_category_summary.csv",
+    "controlled_format_case_analysis.csv",
+    "run_manifest.json",
+    "README.md"
+  ],
+  "interpretation_guardrails": [
+    "No sobrescribir resultados históricos de Retrieval V1/V2.",
+    "No interpretar relevant_chunk_ids como IDs directamente comparables entre formatos.",
+    "No modificar chunking ni corpus antes de conservar esta corrida como baseline experimental.",
+    "Un desacuerdo de hit aislado no demuestra que un formato sea globalmente inferior."
+  ]
+}

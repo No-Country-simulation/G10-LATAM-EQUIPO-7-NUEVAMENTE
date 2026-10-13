@@ -190,3 +190,53 @@ def test_evaluacion_relevancia_nicho_generico():
     )
 
     assert scores.relevancia == 5
+
+from data_ai.schemas.format_evaluation import TLDRContent, VideoScriptContent, VideoScriptScene, ChunkUsed
+
+def test_evaluacion_tldr_aprobado():
+    content = TLDRContent(
+        title="Resumen de Python",
+        summary="Python es una tecnología y lenguaje muy popular.",
+        key_points=["Backend", "Data Science"],
+        conclusion="Python es una tecnología esencial."
+    )
+    context = GenerationContext(profile="profesional", niche="tecnología", detail_level="alto")
+    chunks = [
+        ChunkUsed(
+            chunk_id="1", document_id="doc1", rank=1, score=0.9, 
+            text="Python es una tecnología y lenguaje muy popular usado en Backend y Data Science."
+        )
+    ]
+    
+    scores, alucinacion = evaluate(generated_content=content, chunks_used=chunks, generation_context=context)
+    
+    assert scores.relevancia >= 4
+    assert alucinacion is False
+    assert scores.informacion_respaldada >= 4
+
+def test_evaluacion_video_detecta_alucinacion():
+    content = VideoScriptContent(
+        title="Intro a React",
+        estimated_duration_minutes=5,
+        scenes=[
+            VideoScriptScene(
+                scene_id="SCENE-001",
+                title="Escena inicial",
+                visual_description="Logo de React", 
+                narration="React sirve para clonar dinosaurios con ADN cuántico.",
+                duration_seconds=30
+            )
+        ]
+    )
+    context = GenerationContext(profile="estudiante", niche="desarrollo", detail_level="medio")
+    chunks = [
+        ChunkUsed(
+            chunk_id="1", document_id="doc1", rank=1, score=0.9, 
+            text="React es una biblioteca de JavaScript para construir interfaces de usuario."
+        )
+    ]
+    
+    scores, alucinacion = evaluate(generated_content=content, chunks_used=chunks, generation_context=context)
+    
+    assert alucinacion is True
+    assert scores.informacion_respaldada == 1

@@ -1,4 +1,4 @@
-"""Manejadores de errores: toda respuesta de error usa el schema `ErrorResponse`."""
+"""Manejadores de errores: toda respuesta usa el schema `ErrorResponse`."""
 
 import logging
 
@@ -11,19 +11,45 @@ from starlette.status import (
     HTTP_500_INTERNAL_SERVER_ERROR,
 )
 
+from app.core.error_codes import ErrorCode
+from app.core.http_exceptions import APIHTTPException
 from app.schemas.common import ErrorDetail, ErrorResponse
 
 logger = logging.getLogger(__name__)
 
 
-def _json(status_code: int, payload: ErrorResponse) -> JSONResponse:
+def _json(
+    status_code: int,
+    payload: ErrorResponse,
+) -> JSONResponse:
+    """Serializa el contrato público de error."""
     return JSONResponse(
         status_code=status_code,
         content=payload.model_dump(mode="json"),
     )
 
 
+def _resolve_http_error_code(
+    exc: StarletteHTTPException,
+) -> ErrorCode:
+    """Obtiene el código funcional de un HTTPException controlado.
+
+    Los HTTPException creados por FastAPI/Starlette que no pertenezcan al
+    contrato de BackendAPI reciben ``HTTP_ERROR`` para evitar inferir una
+    causa funcional incorrecta.
+    """
+    if isinstance(
+        exc,
+        APIHTTPException,
+    ):
+        return exc.code
+
+    return ErrorCode.HTTP_ERROR
+
+
 def register_exception_handlers(app: FastAPI) -> None:
+    """Registra el contrato transversal de errores de BackendAPI."""
+
     @app.exception_handler(StarletteHTTPException)
     async def http_exception_handler(
         _: Request,
@@ -31,7 +57,12 @@ def register_exception_handlers(app: FastAPI) -> None:
     ) -> JSONResponse:
         return _json(
             exc.status_code,
-            ErrorResponse(detail=str(exc.detail)),
+            ErrorResponse(
+                code=_resolve_http_error_code(
+                    exc
+                ),
+                detail=str(exc.detail),
+            ),
         )
 
     @app.exception_handler(RequestValidationError)
@@ -44,7 +75,8 @@ def register_exception_handlers(app: FastAPI) -> None:
                 code=error["type"],
                 message=error["msg"],
                 field=".".join(
-                    str(part) for part in error["loc"][1:]
+                    str(part)
+                    for part in error["loc"][1:]
                 )
                 or None,
             )
@@ -54,7 +86,12 @@ def register_exception_handlers(app: FastAPI) -> None:
         return _json(
             HTTP_422_UNPROCESSABLE_CONTENT,
             ErrorResponse(
-                detail="Error de validación en la petición.",
+                code=(
+                    ErrorCode.REQUEST_VALIDATION_ERROR
+                ),
+                detail=(
+                    "Error de validación en la petición."
+                ),
                 errors=errors,
             ),
         )
@@ -73,6 +110,9 @@ def register_exception_handlers(app: FastAPI) -> None:
         return _json(
             HTTP_500_INTERNAL_SERVER_ERROR,
             ErrorResponse(
-                detail="Error interno del servidor."
+                code=(
+                    ErrorCode.INTERNAL_SERVER_ERROR
+                ),
+                detail="Error interno del servidor.",
             ),
         )

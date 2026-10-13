@@ -19,6 +19,12 @@ class GeneratedFormatAlreadyExistsError(
     """El formato generado ya existe."""
 
 
+class GeneratedFormatNotFoundError(
+    GeneratedFormatRepositoryError
+):
+    """El formato generado solicitado no existe."""
+
+
 class GeneratedFormatDocumentNotFoundError(
     GeneratedFormatRepositoryError
 ):
@@ -34,7 +40,14 @@ class GeneratedFormatRepositoryPort(
         self,
         generated_format: GeneratedFormat,
     ) -> GeneratedFormat:
-        """Persiste una generación."""
+        """Persiste un nuevo intento de generación."""
+        ...
+
+    def update(
+        self,
+        generated_format: GeneratedFormat,
+    ) -> GeneratedFormat:
+        """Actualiza el estado y resultado de un intento existente."""
         ...
 
     def find_by_id(

@@ -1,192 +1,280 @@
-# NuevaMente - Agentes: Agent V1 + RAG Core
+# Agentes: arquitectura y contratos internos
 
-Módulo central de ingestión, recuperación de conocimiento (RAG) y orquestación de agentes para el hackathon NuevaMente (G10-LATAM-EQUIPO-7).
+Esta guía describe el funcionamiento del paquete `agentes/`: sus componentes, el recorrido de los datos y los contratos entre la API, el RAG y el proveedor generativo. Para la descripción del producto y su arquitectura global, consulta el [README de la raíz](../README.md).
 
-## Novedades: Sprint 2 (Integración)
+## Navegación
 
-Durante esta fase, el módulo evolucionó para garantizar una conexión robusta con el ecosistema del proyecto:
+| Si buscas… | Consulta… |
+|---|---|
+| Qué cubre este servicio y cómo se separan sus recorridos | [Límites del módulo](#límites-del-módulo) |
+| Cómo se conectan indexación, generación y evaluación | [Arquitectura y recorrido de llamadas](#arquitectura-y-recorrido-de-llamadas) |
+| Campos y respuestas de los endpoints | [API HTTP](#api-http) |
+| Extracción, chunking, almacenamiento vectorial y ranking | [RAG: ingestión, datos y recuperación](#rag-ingestión-datos-y-recuperación) |
+| Corpus congelado y contrato de evaluación de retrieval | [Corpus congelado y contrato de evaluación](#corpus-congelado-y-contrato-de-evaluación) |
+| Variables de entorno, arranque local y pruebas | [Configuración y ejecución](#configuración-y-ejecución) y [Pruebas](#pruebas) |
+| Archivo responsable de un cambio | [Mapa del código](#mapa-del-código) |
 
-* **Contratos Estructurados:** Estandarización estricta de las entradas y salidas en `api.py` y `agent_v1.py` para asegurar la interoperabilidad con Backend y Frontend.
-* **Procesamiento de Chunks Completos:** Optimización en la orquestación y paso de contexto hacia el LLM.
-* **Estabilización del Entorno:** Limpieza profunda de dependencias y aislamiento del módulo para evitar conflictos con la arquitectura de Data/IA.
+## Límites del módulo
 
----
+El módulo tiene dos recorridos que comparten el motor de recuperación, pero tienen objetivos distintos:
 
-## Estructura del Módulo
+1. **Recorrido de aplicación:** recibe documentos por HTTP, indexa sus chunks y permite generar formatos educativos con evidencia de un documento.
+2. **Recorrido de evaluación:** carga un corpus congelado desde CSV y produce respuestas bajo el contrato de retrieval `2.0`, para medir recuperación de evidencia.
+
+La API HTTP de aplicación usa rutas `/api/v1`. La versión `2.0` corresponde únicamente al contrato de evaluación de retrieval. `AgentV1` es el nombre actual de la clase de generación; no determina la versión de esos contratos.
+
+## Arquitectura y recorrido de llamadas
 
 ```text
-agentes/
-├── agent_v1.py            # Orquestador principal y ensamblaje de prompts
-├── api.py                 # Endpoints FastAPI con los contratos del Sprint 2
-├── requirements.txt
-├── rag/
-│   ├── config.py          # Configuración centralizada (chunk_size, top_k, modelo, rutas)
-│   ├── models.py          # Document, Chunk, SearchResult
-│   ├── cleaner.py         # Limpieza conservadora (no altera indentación)
-│   ├── extractor.py       # Extracción de formato .pdf/.md/.txt para documentos nuevos
-│   ├── chunker.py         # Segmentación para documentos nuevos (900/150)
-│   ├── chunks_loader.py   # Carga directa de chunks_v1.csv (Ground Truth v1)
-│   ├── embeddings.py      # MultilingualEmbedding (sentence-transformers)
-│   ├── vector_store.py    # VectorStore (ChromaDB, espacio coseno explícito)
-│   ├── retriever.py       # RetrieverService: retrieve() y retrieve_for_evaluation()
-│   └── contract.py        # Builders del contrato de retrieval v1.0
-└── tests/
-    └── test_rag.py
+POST /api/v1/index
+  api.index_document
+    -> rag.extractor.extract_document
+    -> rag.cleaner.clean_text
+    -> rag.chunker.create_chunks
+    -> rag.embeddings.MultilingualEmbedding
+    -> rag.vector_store.VectorStore.add_chunks
+    -> ChromaDB
 
-   Modos de Carga del Vector Store
-1. Corpus congelado de Ground Truth v1 (chunks_v1.csv)
-Uso exclusivo para evaluación contra el Ground Truth de Data/IA:
+POST /api/v1/generate
+  api.generate_formats
+    -> construir query (payload.query o texto derivado del contexto pedagógico)
+    -> AgentV1.extract_learning_metadata
+         -> RetrieverService.retrieve
+         -> VectorStore.search
+         -> Gemini con LearningMetadata
+    -> por cada formato solicitado, secuencialmente:
+         -> AgentV1.answer
+         -> RetrieverService.retrieve
+         -> VectorStore.search
+         -> Gemini con el esquema Pydantic de ese formato
+    -> respuesta con learning_metadata y resultados por formato
 
-from agentes.rag.vector_store import VectorStore
-from agentes.rag.embeddings import MultilingualEmbedding
-from agentes.rag.pipeline import ingest_ground_truth_v1
+Evaluación offline
+  generar_lote.generar_lote_resultados
+    -> rag.chunks_loader.load_chunks_from_csv
+    -> VectorStore.add_chunks
+    -> AgentV1.answer_for_evaluation
+    -> RetrieverService.retrieve_for_evaluation
+    -> rag.contract (contrato 2.0)
+```
 
-vector_store = VectorStore(
-    path="./chroma_db",
-    collection_name="nuevamente_v1",
-    embedding_service=MultilingualEmbedding()
-)
+El endpoint de generación itera por los formatos en serie: la independencia es por resultado, no una ejecución paralela. Cada búsqueda aplica `document_id` como filtro de metadata. La generación usa el texto de los chunks recuperados como contexto, y conserva esos chunks en `sources_used`.
 
-ingest_ground_truth_v1("./Data_IA/data/evaluation/chunks_v1.csv", vector_store)
+## API HTTP
 
-Nota: Este método preserva exactamente chunk_id, document_id, texto y límites de cada chunk definidos por Data/IA. Omite los procesos de extractor/cleaner/chunker.
+La aplicación FastAPI se define en `api.py` como `app`. El agente, el servicio de embeddings y el vector store se inicializan al importar ese módulo.
 
-2. Documentos nuevos
-Uso para contenido adicional fuera del corpus congelado:
+### `POST /api/v1/index`
 
-Python
-from agentes.rag.pipeline import ingest_file
+Entrada `multipart/form-data`:
 
-ingest_file("manual.pdf", vector_store)
-Uso del Agente y Contratos de Retrieval (v1.0)
-Python
-from agentes.agent_v1 import AgentV1
+| Campo | Tipo | Obligatorio | Descripción |
+|---|---|---:|---|
+| `document_id` | texto | Sí | Identificador utilizado como metadata para aislar las búsquedas y construir IDs de chunks. |
+| `file` | archivo | Sí | PDF con texto, Markdown (`.md`) o texto plano (`.txt`). La extensión determina el extractor. |
 
-agent = AgentV1(vector_store)
+Procesamiento: el archivo se escribe temporalmente preservando su extensión; el extractor produce uno o más `Document`; la API agrega `document_id` y `source`, limpia y divide el texto, y guarda los chunks en ChromaDB. El temporal se elimina en el bloque `finally`.
 
-# Ejecución estándar
-results = agent.answer(query="¿Qué es Kubernetes?", top_k=5)
+Respuesta exitosa:
 
-# Ejecución para evaluación con Data/IA (Recall@k, Precision@k)
-response = agent.answer_for_evaluation(
-    case_id="CLD-ES-001-Q01",
-    query="¿Qué es Kubernetes?",
-    top_k=5
-)
-El método answer_for_evaluation retorna el siguiente contrato estructurado:
-
-{
-  "contract_version": "1.0",
-  "case_id": "CLD-ES-001-Q01",
-  "query": "¿Qué es Kubernetes?",
-  "top_k": 5,
-  "score_type": "cosine_similarity",
-  "status": "success",
-  "results": [
-    {
-      "rank": 1,
-      "chunk_id": "CLD-ES-001_CH_001",
-      "document_id": "CLD-ES-001",
-      "score": 0.91,
-      "text": "Kubernetes es...",
-      "metadata": {"categoria": "Cloud/DevOps", "titulo_documento": "..."}
-    }
-  ]
-}
-
-Manejo de excepciones: Si no hay resultados, retorna status: "no_results". En caso de fallo en la búsqueda, retorna status: "error" junto con error.code. El parámetro case_id es obligatorio para mantener la trazabilidad.
-
-
-Endpoints de Integración (API)
-El módulo expone una API local (puerto 8001) mediante FastAPI con los siguientes contratos para la integración con Backend:
-
-POST /api/v1/index: Endpoint multipart/form-data. Recibe el archivo físico (file) y su document_id. Ejecuta el pipeline completo de extracción, limpieza, segmentación e indexación vectorial en ChromaDB.
-
-POST /api/v1/generate: Endpoint de generación atómica. Recibe un JSON con document_id, formatos solicitados (quiz, flashcards), perfil y nivel de detalle. Aplica un proceso de retrieval filtrado estrictamente por documento.
-
-Instalación y Pruebas
-Bash
-python -m venv venv
-source venv/bin/activate   # Windows: venv\Scripts\activate
-pip install -r requirements.txt
-pytest agentes/tests/
-
-
-
-# Módulo de Agentes y Pipeline RAG - spring2
-
-Este módulo implementa el núcleo de inteligencia artificial y recuperación de información (RAG) para el proyecto NuevaMente. Integra FastAPI, bases de datos vectoriales (ChromaDB) y el LLM Gemini 3.5 Flash, garantizando capacidad atómica y validación estricta de contratos de datos.
-
-## Arquitectura y Endpoints
-
-### 1. Ingesta e Indexación (`POST /api/v1/index`)
-* **Descripción:** Recibe un documento binario mediante `multipart/form-data`, extrae su contenido (soporta PDF, TXT, MD), realiza el *chunking*, procesa embeddings multilingües y guarda los fragmentos en **ChromaDB** vinculados a un `document_id`.
-
-### 2. Generación Atómica Adaptativa (`POST /api/v1/generate`)
-* **Descripción:** Recupera los fragmentos más relevantes del RAG, ensambla un prompt dinámico adaptado al usuario (`profile`, `niche`, `detail_level`, `learning_objective`) y se conecta a **Gemini** para generar contenido.
-* **Contratos Soportados:** `quiz` y `flashcards`.
-* **Capacidad Atómica:** El sistema está protegido mediante bloques `try/except`. Si el modelo falla, no se encuentra la API Key, o la petición es inválida, se devuelve un estado `"status": "error"` controlado con su tipificación, asegurando que la ejecución del pipeline y el servidor nunca se rompan.
-
-## Validación Pydantic Estricta (Contratos Data/IA)
-Para asegurar la interoperabilidad con los equipos de Data y Frontend, la salida cruda de Gemini es interceptada y forzada a validarse contra modelos **Pydantic** (`QuizContent` y `FlashcardsContent`). Si la IA omite un campo o genera una estructura incorrecta, Pydantic bloquea la entrega y reporta el error, garantizando el estándar de **Cero Errores de Estructura**.
-
-## Configuración y Despliegue Local
-
-1. Crea un archivo `.env` en la **raíz principal del proyecto** (puedes guiarte con el `.env.example`):
-   ```env
-   GEMINI_API_KEY="api_key_aqui"
-   GEMINI_MODEL="gemini-3.5-flash"
-Instala las dependencias limpias del módulo:
-
-Bash
-pip install -r requirements.txt
-Levanta el servidor usando Uvicorn:
-
-Bash
-uvicorn agentes.api:app --reload --port 8001
-Accede a la interfaz interactiva (Swagger) en:
-http://127.0.0.1:8001/docs
-
-
-Contrato de Datos (API v1)
-El endpoint /api/v1/generate cumple estrictamente con el contrato esperado por Backend #41 y Frontend #44.
-
-Ejemplo de respuesta exitosa (status: "success"):
-
-JSON
+```json
 {
   "document_id": "doc_123",
+  "status": "indexed"
+}
+```
+
+Las excepciones durante la indexación se convierten en HTTP 500 con su detalle. La ingestión actual no devuelve conteos de páginas o chunks.
+
+### `POST /api/v1/generate`
+
+Entrada JSON (`GenerateRequest`):
+
+| Campo | Tipo | Obligatorio | Descripción |
+|---|---|---:|---|
+| `document_id` | string | Sí | Documento que restringe retrieval. |
+| `formats` | string[] | Sí | Formatos a generar: `quiz`, `flashcards`, `tldr`, `video_script`. |
+| `profile` | string | Sí | Perfil destinatario usado en la adaptación del contenido. |
+| `niche` | string | Sí | Nicho temático usado en query y metadatos pedagógicos. |
+| `detail_level` | string | Sí | Nivel de profundidad solicitado. |
+| `learning_objective` | string o `null` | No | Objetivo incorporado a query y prompt cuando está presente. |
+| `query` | string o `null` | No | Si es truthy, reemplaza la query derivada usada para retrieval. |
+
+Cuando no se proporciona `query`, se construye a partir de `niche`, `profile` y `detail_level`; si hay `learning_objective`, también se agrega. Primero se hace una llamada de retrieval y generación a Gemini para `learning_metadata`. Después, por cada formato solicitado, se vuelve a recuperar contexto y se genera una salida estructurada.
+
+La respuesta tiene esta forma:
+
+```json
+{
+  "document_id": "doc_123",
+  "learning_metadata": {
+    "key_concepts": ["Concepto"],
+    "prerequisites": ["Conocimiento previo"],
+    "estimated_time_minutes": 15
+  },
   "results": [
     {
       "format": "quiz",
       "status": "success",
-      "content": { ... JSON validado por Pydantic ... },
-      "sources_used": [ { "rank": 1, "chunk_id": "...", "text": "..." } ],
+      "content": {},
+      "sources_used": [
+        {
+          "rank": 1,
+          "chunk_id": "doc_123_1_0",
+          "document_id": "doc_123",
+          "score": 0.75,
+          "text": "Fragmento recuperado"
+        }
+      ],
       "error_message": null
     }
   ]
 }
+```
 
+`learning_metadata` está a nivel raíz. Si su extracción falla o no encuentra resultados, la API devuelve listas vacías y tiempo `0`. Cada resultado de formato es independiente: estados posibles incluyen `success`, `no_results` y `failed`; un formato no soportado produce `failed` sin detener los formatos siguientes. Los errores de generación quedan en `error_message`.
 
-Ejemplo de respuesta fallida con capacidad atómica (status: "failed" o "no_results"):
+Esquemas de `content` (`generated_schemas.py`):
 
-JSON
+| Formato | Esquema | Campos principales |
+|---|---|---|
+| `quiz` | `QuizContent` | `title`, `instructions`, `questions`; cada pregunta incluye `question_id`, `question`, `options`, `correct_answer`, `explanation`. |
+| `flashcards` | `FlashcardsContent` | `title`, `instructions`, `cards`; cada tarjeta incluye `card_id`, `front`, `back`. |
+| `tldr` | `TLDRContent` | `title`, `summary`, `key_points`, `conclusion`. |
+| `video_script` | `VideoScriptContent` | `title`, `estimated_duration_minutes`, `scenes`; cada escena incluye `scene_id`, `title`, `narration`, `visual_description`, `duration_seconds`. |
+
+## RAG: ingestión, datos y recuperación
+
+### Tipos y configuración
+
+`rag/models.py` define `Document(text, metadata)`, `Chunk(id, text, metadata)` y `SearchResult(chunk_id, text, score, metadata)`. `SearchResult.document_id` se lee de metadata y falla explícitamente si no existe; no se infiere del nombre del archivo.
+
+`rag/config.py` concentra los valores por defecto:
+
+| Parámetro | Valor actual | Uso |
+|---|---|---|
+| `chunk_size` | `900` | Tamaño objetivo del chunk. |
+| `chunk_overlap` | `150` | Solapamiento entre chunks consecutivos. |
+| `top_k_default` | `5` | Cantidad de resultados finales por defecto. |
+| `embedding_model_name` | `paraphrase-multilingual-mpnet-base-v2` | Modelo de embeddings de `sentence-transformers`. |
+| `vector_store_path` | `./chroma_db` | Persistencia local de ChromaDB. |
+| `collection_name` | `nuevamente_v1` | Colección por defecto. |
+
+### Ingestión de documentos nuevos
+
+`rag.extractor.extract_document(path)` soporta `.pdf`, `.md` y `.txt`. Los PDF se extraen página por página y el resto como un único documento UTF-8. No hay OCR: una página PDF sin texto extraíble produce texto vacío.
+
+`rag.cleaner.clean_text` normaliza Unicode y saltos de línea, sin eliminar espacios internos ni indentación. `rag.chunker.create_chunks` divide cada documento mediante `RecursiveCharacterTextSplitter`; valida que `chunk_overlap < chunk_size`. Los IDs se forman como `{document_id}_{page}_{chunk_index}`.
+
+`rag.pipeline.ingest_file` reúne extracción, limpieza, chunking e indexación para uso desde código. El endpoint HTTP implementa ese flujo directamente y añade el metadata de origen del archivo antes de crear los chunks.
+
+### Vector store y algoritmo de búsqueda
+
+`rag.vector_store.VectorStore` persiste los embeddings en una colección ChromaDB con distancia coseno y crea un Cross-Encoder para reranking. `add_chunks` codifica los textos e inserta/actualiza por ID.
+
+`search(query, top_k, filters)` realiza estos pasos:
+
+1. Codifica la consulta.
+2. Recupera hasta `top_k * 3` candidatos semánticos desde ChromaDB, aplicando `filters`.
+3. Obtiene los documentos que cumplen el mismo filtro y calcula BM25; conserva hasta `top_k * 3` candidatos con score lexical positivo.
+4. Fusiona los rankings por ID con Reciprocal Rank Fusion (`k=60`).
+5. Reordena los candidatos fusionados con el Cross-Encoder y devuelve los primeros `top_k` como `SearchResult`. El score expuesto es el score del Cross-Encoder.
+
+`rag.retriever.RetrieverService` valida que la query no esté vacía y que `top_k > 0`. `retrieve` acepta `document_id` y/o filtros de metadata; `retrieve_for_evaluation` requiere `case_id` y convierte errores de entrada o recuperación al contrato de evaluación.
+
+## Corpus congelado y contrato de evaluación
+
+El benchmark tiene que preservar los IDs, textos, límites y metadata acordados. Por ello, `rag.chunks_loader.load_chunks_from_csv` carga directamente columnas `chunk_id`, `document_id` y `chunk_text`, más metadata opcional. No aplicar `clean_text` ni `create_chunks` a este corpus: alteraría los datos evaluados.
+
+`rag.pipeline.ingest_ground_truth_v1(csv_path, vector_store)` carga e indexa el CSV congelado. `generar_lote.py` usa por defecto:
+
+- `Data_IA/data/evaluation/chunks_v1.csv`
+- `Data_IA/data/evaluation/ground_truth_v1.csv`
+
+Desde la raíz del repositorio se puede ejecutar el lote con `python -m agentes.generar_lote`. Escribe `agentes/retrieval_results_agentes_v1.json`.
+
+`AgentV1.answer_for_evaluation(case_id, query, top_k=5, metadata_filters=None)` delega a `RetrieverService.retrieve_for_evaluation`. El contrato se construye en `rag/contract.py` y mantiene estas claves en los estados `success`, `no_results` y `error`:
+
+```json
 {
-  "document_id": "doc_123",
-  "results": [
-    {
-      "format": "quiz",
-      "status": "failed",
-      "content": null,
-      "sources_used": [],
-      "error_message": "Error crítico en el pipeline o generación..."
-    }
-  ]
+  "contract_version": "2.0",
+  "case_id": "CASE-001",
+  "query": "consulta",
+  "top_k": 5,
+  "score_type": "cross_encoder",
+  "status": "success",
+  "results": [],
+  "error": null
 }
+```
 
+Cada resultado exitoso lleva `rank`, `chunk_id`, `document_id`, `score`, `text` y `metadata`. En errores, `error` contiene `code` y `message`; si no hay coincidencias, `results` queda vacío y `error` es `null`.
 
-Ejecución de Pruebas Automatizadas
-El módulo cuenta con 13 pruebas unitarias e integración que validan el Vector Store, el Chunking, la similitud coseno y la integridad del contrato Pydantic.
+## Configuración y ejecución
 
-Bash
+Al importar `agent_v1.py` se cargan `GEMINI_API_KEY` y `GEMINI_MODEL` desde el entorno o desde `.env` en la raíz del repositorio. Son obligatorias para inicializar el cliente Gemini. El modelo concreto se elige mediante `GEMINI_MODEL`; no hay un default en código.
+
+Desde la raíz del repositorio:
+
+```powershell
+python -m venv .venv
+.\.venv\Scripts\Activate.ps1
+pip install -r agentes\requirements.txt
+uvicorn agentes.api:app --reload --port 8001
+```
+
+Para macOS/Linux, activar el entorno con `source .venv/bin/activate`. Swagger queda en `http://127.0.0.1:8001/docs`. El `Dockerfile` espera contexto de build en la raíz del repositorio porque copia `agentes/requirements.txt` y `agentes/`.
+
+## Mapa del código
+
+```text
+agentes/
+├── api.py                    # App FastAPI, modelos de entrada y endpoints HTTP
+├── agent_v1.py               # Orquestación de retrieval, prompts y Gemini
+├── generated_schemas.py      # Modelos Pydantic de metadatos y formatos
+├── generar_lote.py           # Runner del benchmark offline
+├── Dockerfile                # Imagen del servicio; build context en raíz del repo
+├── requirements.txt          # Dependencias Python del módulo
+├── retrieval_results_agentes_v1.json # Salida guardada de benchmark
+├── rag/
+│   ├── config.py             # Configuración por defecto del RAG
+│   ├── models.py             # Document, Chunk y SearchResult
+│   ├── extractor.py          # PDF, Markdown y TXT
+│   ├── cleaner.py            # Normalización conservadora
+│   ├── chunker.py            # Chunking de documentos nuevos
+│   ├── embeddings.py         # Adaptador sentence-transformers
+│   ├── vector_store.py       # ChromaDB, BM25, RRF y Cross-Encoder
+│   ├── retriever.py          # Validación y contrato de recuperación
+│   ├── chunks_loader.py      # Importación literal del corpus CSV congelado
+│   ├── pipeline.py           # Pipelines de ingestión reutilizables
+│   └── contract.py           # Respuestas de evaluación retrieval 2.0
+└── tests/
+    ├── conftest.py
+    ├── test_agente.py
+    ├── test_api_metadata.py
+    ├── test_generation_formats.py
+    ├── test_rag.py
+    └── test_retrieval_v2.py
+```
+
+### Dónde realizar cambios
+
+| Necesidad | Punto de entrada |
+|---|---|
+| Agregar o cambiar una ruta o contrato HTTP | `api.py` |
+| Ajustar el prompt, el contexto o la llamada Gemini | `agent_v1.py` |
+| Cambiar la estructura de una salida generada | `generated_schemas.py` y sus pruebas |
+| Cambiar el tamaño/solapamiento de chunks o modelo de embeddings | `rag/config.py` |
+| Cambiar estrategia de retrieval, filtros o ranking | `rag/vector_store.py` y `rag/retriever.py` |
+| Cambiar ingestión de archivos nuevos | `rag/extractor.py`, `rag/cleaner.py`, `rag/chunker.py` |
+| Cambiar la lectura o el contrato del benchmark | `rag/chunks_loader.py`, `rag/contract.py` |
+
+## Pruebas
+
+Ejecutar desde la raíz:
+
+```text
 python -m pytest agentes/tests/
+```
+
+Las pruebas relevantes se distribuyen por componente: `test_rag.py` cubre primitivas RAG y el contrato; `test_retrieval_v2.py` cubre filtros y reranking; `test_api_metadata.py` valida metadatos de la API; `test_generation_formats.py` cubre schemas, endpoints y generación; `test_agente.py` integra el agente con el corpus de evaluación.

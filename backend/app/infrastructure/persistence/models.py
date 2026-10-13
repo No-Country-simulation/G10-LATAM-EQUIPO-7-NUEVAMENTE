@@ -20,12 +20,15 @@ from app.domain.generated_content import (
     FlashcardsContent,
     GeneratedContent,
     QuizContent,
+    TLDRContent,
+    VideoScriptContent,
 )
 from app.domain.generated_format import (
     ChunkEvidence,
     GeneratedFormat,
     GenerationContext,
 )
+from app.domain.learning_metadata import LearningMetadata
 
 
 @dataclass(frozen=True, slots=True)
@@ -39,6 +42,7 @@ class DocumentRecord:
     size_bytes: int
     status: str
     oci_object_name: str | None
+    learning_metadata_json: str | None
     created_at: str
     updated_at: str
 
@@ -56,6 +60,15 @@ class DocumentRecord:
             size_bytes=document.size_bytes,
             status=document.status.value,
             oci_object_name=document.oci_object_name,
+            learning_metadata_json=(
+                json.dumps(
+                    document.learning_metadata.to_dict(),
+                    ensure_ascii=False,
+                )
+                if document.learning_metadata
+                is not None
+                else None
+            ),
             created_at=document.created_at.isoformat(),
             updated_at=document.updated_at.isoformat(),
         )
@@ -74,6 +87,9 @@ class DocumentRecord:
             size_bytes=row["size_bytes"],
             status=row["status"],
             oci_object_name=row["oci_object_name"],
+            learning_metadata_json=row[
+                "learning_metadata_json"
+            ],
             created_at=row["created_at"],
             updated_at=row["updated_at"],
         )
@@ -92,12 +108,38 @@ class DocumentRecord:
                 self.status
             ),
             oci_object_name=self.oci_object_name,
+            learning_metadata=(
+                self._deserialize_learning_metadata()
+            ),
             created_at=datetime.fromisoformat(
                 self.created_at
             ),
             updated_at=datetime.fromisoformat(
                 self.updated_at
             ),
+        )
+
+    def _deserialize_learning_metadata(
+        self,
+    ) -> LearningMetadata | None:
+        """Reconstruye la metadata pedagógica persistida del documento."""
+        if self.learning_metadata_json is None:
+            return None
+
+        data = json.loads(
+            self.learning_metadata_json
+        )
+
+        if not isinstance(
+            data,
+            dict,
+        ):
+            raise ValueError(
+                "learning_metadata_json debe representar un objeto."
+            )
+
+        return LearningMetadata.from_dict(
+            data
         )
 
 
@@ -278,8 +320,32 @@ class GeneratedFormatRecord:
                 data
             )
 
-        return FlashcardsContent.from_dict(
-            data
+        if (
+            format_type
+            == GeneratedFormatType.FLASHCARDS
+        ):
+            return FlashcardsContent.from_dict(
+                data
+            )
+
+        if (
+            format_type
+            == GeneratedFormatType.TLDR
+        ):
+            return TLDRContent.from_dict(
+                data
+            )
+
+        if (
+            format_type
+            == GeneratedFormatType.VIDEO_SCRIPT
+        ):
+            return VideoScriptContent.from_dict(
+                data
+            )
+
+        raise ValueError(
+            f"Formato persistido no soportado: {format_type}."
         )
 
     def _deserialize_chunks_used(
@@ -364,9 +430,7 @@ class FormatEvaluationRecord:
                 .didactic_adaptation
             ),
             content_support_score=(
-                evaluation
-                .scores
-                .content_support
+                evaluation.scores.content_support
             ),
             unsupported_information=int(
                 evaluation

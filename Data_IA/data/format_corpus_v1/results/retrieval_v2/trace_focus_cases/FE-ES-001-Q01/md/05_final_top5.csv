@@ -1,0 +1,84 @@
+﻿rank,chunk_id,document_id,vector_rank,bm25_rank,score,rrf_score,cross_score,matched_keywords,chunk_evidence_coverage,cumulative_matched_keywords,cumulative_evidence_coverage,threshold_reached,text
+1,FE-ES-001_1_1,FE-ES-001,1,5,,0.03177805800756621,6.141265392303467,lenguaje de marcado,0.5,lenguaje de marcado,0.5,True,"## ¿Qué es HTML?
+
+HTML (HyperText Markup Language, por sus siglas en inglés) es un lenguaje de marcado que indica a los navegadores web cómo estructurar las páginas web que visita. Puede ser tan complicado o tan simple como el desarrollador web quiera que sea. HTML consiste en una serie de elementos , que utiliza para encerrar, envolver o marcar diferentes partes del contenido para que aparezca o actúe de cierta manera. Las etiquetas pueden convertir el contenido en un hipervínculo para conectarse a otra página, poner palabras en cursiva, etc. Por ejemplo, considere la siguiente línea de texto:
+
+```text
+Mi gato es muy gruñón
+```
+
+Si quisiéramos que el texto se mantuviera solo, podríamos especificar que es un párrafo encerrándolo en un elemento de párrafo ( <p> ):
+
+`<p>`
+
+```text
+Mi gato es muy gruñón
+```"
+2,FE-ES-001_1_24,FE-ES-001,5,1,,0.03177805800756621,5.261666297912598,,0.0,lenguaje de marcado,0.5,True,"<!DOCTYPE html> : El tipo de documento. Cuando HTML era joven (1991-1992), los doctype estaban destinados a actuar como enlaces a un conjunto de reglas que la página HTML tenía que seguir para ser considerada un buen HTML. Los doctypes solían parecerse a algo como esto:
+
+`<!DOCTYPE html>`
+
+Más recientemente, el doctype es un artefacto histórico que debe incluirse para que todo lo demás funcione correctamente. <!DOCTYPE html> es la cadena más corta de caracteres que cuenta como un tipo de documento válido. ¡Eso es todo lo que necesitas saber!
+
+`<!DOCTYPE html>`
+
+- <html></html> : El elemento <html> . Este elemento envuelve todo el contenido de la página. A veces se le conoce como el elemento raíz.
+
+<html></html> : El elemento <html> . Este elemento envuelve todo el contenido de la página. A veces se le conoce como el elemento raíz.
+
+`<html></html>`
+
+`<html>`"
+3,FE-ES-001_1_23,FE-ES-001,3,2,,0.03200204813108039,5.086689472198486,,0.0,lenguaje de marcado,0.5,True,"```text
+ Mi página de prueba
+
+ Esta es mi página
+```
+
+Aquí tenemos:
+
+- <!DOCTYPE html> : El tipo de documento. Cuando HTML era joven (1991-1992), los doctype estaban destinados a actuar como enlaces a un conjunto de reglas que la página HTML tenía que seguir para ser considerada un buen HTML. Los doctypes solían parecerse a algo como esto: html <!DOCTYPE html PUBLIC ""-//W3C//DTD XHTML 1.0 Transitional//EN"" ""http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd""> Más recientemente, el doctype es un artefacto histórico que debe incluirse para que todo lo demás funcione correctamente. <!DOCTYPE html> es la cadena más corta de caracteres que cuenta como un tipo de documento válido. ¡Eso es todo lo que necesitas saber!"
+4,FE-ES-001_1_30,FE-ES-001,15,3,,0.029206349206349208,2.6002564430236816,,0.0,lenguaje de marcado,0.5,True,"<body></body> : El elemento <body> . Contiene todo el contenido que se muestra en la página, incluidos texto, imágenes, vídeos, juegos, pistas de audio reproducibles o cualquier otra cosa.
+
+`<body></body>`
+
+`<body>`
+
+### Aprendizaje activo: añadir algunas funciones a un documento HTML
+
+Si quieres experimentar con escribir algo de HTML en tu ordenador local, puedes:
+
+- Copie el ejemplo de página HTML listado anteriormente.
+
+- Crea un nuevo archivo en tu editor de texto.
+
+- Pega el código en el nuevo archivo de texto.
+
+- Guarde el archivo como index.html .
+
+`index.html`
+
+Nota: También puedes encontrar esta plantilla HTML básica en el repositorio de GitHub del área de aprendizaje de MDN .
+
+Ahora puede abrir este archivo en un navegador web para ver cómo se ve el código renderizado. Edita el código y actualiza el navegador para ver cuál es el resultado. Inicialmente, la página se ve así:"
+5,FE-ES-001_1_10,FE-ES-001,,4,,0.015625,2.5737199783325195,,0.0,lenguaje de marcado,0.5,True,"### Elementos vacíos
+
+No todos los elementos siguen el patrón de una etiqueta de apertura, contenido y una etiqueta de cierre. Algunos elementos consisten en una sola etiqueta, que normalmente se utiliza para insertar/incrustar algo en el documento. Dichos elementos se denominan elementos vacíos . Por ejemplo, el elemento <img> incrusta un archivo de imagen en una página:
+
+`<img>`
+
+```text
+<img
+  src=""https://raw.githubusercontent.com/mdn/beginner-html-site/gh-pages/images/firefox-icon.png""
+  alt=""Icono de Firefox"" />
+```
+
+Esto daría como resultado lo siguiente:
+
+Nota: En HTML, no es necesario añadir un / al final de la etiqueta de un elemento vacío, por ejemplo: <img src=""images/cat.jpg"" alt=""cat"" /> . Sin embargo, también es una sintaxis válida, y puede hacerlo cuando desee que su HTML sea XML válido.
+
+`/`
+
+`<img src=""images/cat.jpg"" alt=""cat"" />`
+
+## Atributos"

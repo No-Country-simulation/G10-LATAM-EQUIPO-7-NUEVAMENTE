@@ -1,0 +1,183 @@
+﻿rank,chunk_id,document_id,vector_rank,bm25_rank,score,rrf_score,cross_score,matched_keywords,chunk_evidence_coverage,cumulative_matched_keywords,cumulative_evidence_coverage,threshold_reached,text
+1,FE-ES-001_1_1,FE-ES-001,,,-0.23625612258911133,,,lenguaje de marcado,0.5,lenguaje de marcado,0.5,True,"HTML!
+¿Qué es HTML?
+HTML (HyperText Markup Language, por sus siglas en inglés) es un lenguaje de marcado que indica a los
+navegadores web cómo estructurar las páginas web que visita. Puede ser tan complicado o tan simple como el
+desarrollador web quiera que sea. HTML consiste en una serie de elementos , que utiliza para encerrar, envolver
+o marcar diferentes partes del contenido para que aparezca o actúe de cierta manera. Las etiquetas pueden
+convertir el contenido en un hipervínculo para conectarse a otra página, poner palabras en cursiva, etc. Por
+ejemplo, considere la siguiente línea de texto:
+ Mi gato es muy gruñón
+Si quisiéramos que el texto se mantuviera solo, podríamos especificar que es un párrafo encerrándolo en un
+elemento de párrafo ( <p> ):
+<p>
+ Mi gato es muy gruñón"
+2,FE-ES-001_10_0,FE-ES-001,,,-0.30839312076568604,,,,0.0,lenguaje de marcado,0.5,True,"- <html></html> : El elemento <html> . Este elemento envuelve todo el contenido de la página. A veces se le
+conoce como el elemento raíz.
+<html></html> : El elemento <html> . Este elemento envuelve todo el contenido de la página. A veces se le
+conoce como el elemento raíz.
+<html></html>
+<html>
+- <head></head> : El elemento <head> . Este elemento actúa como un contenedor para todo lo que desea incluir
+en la página HTML, que no es el contenido que la página mostrará a los espectadores. Esto incluye palabras clave
+y una descripción de la página que aparecería en los resultados de búsqueda, CSS para dar estilo al contenido,
+declaraciones de conjuntos de caracteres y más. Aprenderás más sobre esto en el próximo artículo de la serie.
+<head></head> : El elemento <head> . Este elemento actúa como un contenedor para todo lo que desea incluir"
+3,FE-ES-001_9_1,FE-ES-001,,,-0.3327305316925049,,,,0.0,lenguaje de marcado,0.5,True,"HTML . Por ejemplo, esto se romperá:
+ Un enlace a mi ejemplo.
+En su lugar, debe hacer lo siguiente:
+ Un enlace a mi ejemplo.
+Anatomía de un documento HTML
+Los elementos HTML individualmente no son muy útiles por sí solos. A continuación, examinemos cómo se
+combinan los elementos para formar una página HTML completa:
+  Mi página de prueba
+ Esta es mi página
+Aquí tenemos:
+- <!DOCTYPE html> : El tipo de documento. Cuando HTML era joven (1991-1992), los doctype estaban
+destinados a actuar como enlaces a un conjunto de reglas que la página HTML tenía que seguir para ser
+considerada un buen HTML. Los doctypes solían parecerse a algo como esto: html <!DOCTYPE html PUBLIC
+""-//W3C//DTD XHTML 1.0 Transitional//EN"" ""http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd""> Más
+recientemente, el doctype es un artefacto histórico que debe incluirse para que todo lo demás funcione"
+4,FE-ES-001_10_1,FE-ES-001,,,-0.38442695140838623,,,,0.0,lenguaje de marcado,0.5,True,"<head></head> : El elemento <head> . Este elemento actúa como un contenedor para todo lo que desea incluir
+en la página HTML, que no es el contenido que la página mostrará a los espectadores. Esto incluye palabras clave
+y una descripción de la página que aparecería en los resultados de búsqueda, CSS para dar estilo al contenido,
+declaraciones de conjuntos de caracteres y más. Aprenderás más sobre esto en el próximo artículo de la serie.
+<head></head>
+<head>
+- <meta charset=""utf-8""> : El elemento <meta> . Este elemento representa metadatos que no pueden ser
+representados por otros elementos HTML relacionados con metadatos, como <base> , <link> , <script> , <style> o
+<title> . El atributo charset especifica la codificación de caracteres para su documento como UTF-8, que incluye la
+mayoría de los caracteres de la gran mayoría de los lenguajes humanos escritos. Con esta configuración, la"
+5,FE-ES-001_8_1,FE-ES-001,,,-0.40972965955734253,,,,0.0,lenguaje de marcado,0.5,True,"HTML del ejemplo anterior produce este resultado:
+Omitir comillas en torno a los valores de atributo
+Si observa el código de muchos otros sitios, es posible que encuentre una serie de estilos de marcado extraños,
+incluidos los valores de atributos sin comillas. Esto está permitido en ciertas circunstancias, pero también puede
+romper su margen de beneficio en otras circunstancias. El elemento en el fragmento de código a continuación,
+<a> , se llama ancla. Los anclajes encierran texto y los convierten en enlaces. El atributo href especifica la
+dirección web a la que apunta el enlace. Puedes escribir esta versión básica a continuación con solo el atributo
+href , así:
+<a>
+href
+href
+ sitio web favorito
+Los anclajes también pueden tener un atributo title , una descripción de la página vinculada. Sin embargo, tan"
+6,FE-ES-001_1_0,FE-ES-001,,,-0.41887855529785156,,,lenguaje de marcado,0.5,lenguaje de marcado,0.5,True,"Esta página ha sido traducida del inglés por la comunidad. Aprende más y únete a la comunidad de MDN Web
+Docs .
+View in English Always switch to English
+View in English Always switch to English
+Primeros pasos con HTML
+- Overview: Estructurando la web con HTML
+- Siguiente
+En este artículo, cubrimos los conceptos básicos de HTML. Para empezar, este artículo define elementos,
+atributos y todos los demás términos importantes que puedas haber escuchado. También explica dónde encajan
+en HTML. Aprenderás cómo se estructuran los elementos HTML, cómo se estructura una página HTML típica y
+otras características importantes del lenguaje básico. ¡En el camino, también tendrás la oportunidad de jugar con
+HTML!
+¿Qué es HTML?
+HTML (HyperText Markup Language, por sus siglas en inglés) es un lenguaje de marcado que indica a los"
+7,FE-ES-001_9_2,FE-ES-001,,,-0.42017507553100586,,,,0.0,lenguaje de marcado,0.5,True,"recientemente, el doctype es un artefacto histórico que debe incluirse para que todo lo demás funcione
+correctamente. <!DOCTYPE html> es la cadena más corta de caracteres que cuenta como un tipo de documento
+válido. ¡Eso es todo lo que necesitas saber!
+<!DOCTYPE html> : El tipo de documento. Cuando HTML era joven (1991-1992), los doctype estaban destinados
+a actuar como enlaces a un conjunto de reglas que la página HTML tenía que seguir para ser considerada un
+buen HTML. Los doctypes solían parecerse a algo como esto:
+<!DOCTYPE html>
+Más recientemente, el doctype es un artefacto histórico que debe incluirse para que todo lo demás funcione
+correctamente. <!DOCTYPE html> es la cadena más corta de caracteres que cuenta como un tipo de documento
+válido. ¡Eso es todo lo que necesitas saber!
+<!DOCTYPE html>"
+8,FE-ES-001_10_2,FE-ES-001,,,-0.4321470856666565,,,,0.0,lenguaje de marcado,0.5,True,"mayoría de los caracteres de la gran mayoría de los lenguajes humanos escritos. Con esta configuración, la
+página ahora puede manejar cualquier contenido textual que pueda contener. No hay razón para no configurar
+esto, y puede ayudar a evitar algunos problemas más adelante.
+<meta charset=""utf-8""> : El elemento <meta> . Este elemento representa metadatos que no pueden ser
+representados por otros elementos HTML relacionados con metadatos, como <base> , <link> , <script> , <style> o
+<title> . El atributo charset especifica la codificación de caracteres para su documento como UTF-8, que incluye la
+mayoría de los caracteres de la gran mayoría de los lenguajes humanos escritos. Con esta configuración, la
+página ahora puede manejar cualquier contenido textual que pueda contener. No hay razón para no configurar
+esto, y puede ayudar a evitar algunos problemas más adelante."
+9,FE-ES-001_14_0,FE-ES-001,,,-0.43250590562820435,,,,0.0,lenguaje de marcado,0.5,True,"son
+        tontos.
+No importa cuánto espacio en blanco utilice dentro del contenido del elemento HTML (que puede incluir uno o más
+caracteres de espacio, o también saltos de línea), el analizador HTML reduce cada secuencia de espacio en
+blanco a un solo espacio al representar el código. Entonces, ¿por qué usar tanto espacio en blanco? La respuesta
+es la legibilidad.
+Puede ser más fácil entender lo que está pasando en tu código si lo tienes bien formateado. En nuestro HTML
+tenemos cada elemento anidado indentado por dos espacios más que el que está dentro. Depende de usted elegir
+el estilo de formato (cuántos espacios para cada nivel de indentación, por ejemplo), pero debe considerar
+formatearlo.
+Echemos un vistazo a cómo el navegador representa los dos párrafos anteriores con y sin espacios en blanco:"
+10,FE-ES-001_15_3,FE-ES-001,,,-0.43721330165863037,,,,0.0,lenguaje de marcado,0.5,True,"- A medida que comiences a aprender más sobre HTML, considera aprender los conceptos básicos de CSS (hojas
+de estilo en cascada). CSS es el lenguaje utilizado para dar estilo a las páginas web, como cambiar fuentes o
+colores o alterar el diseño de la página. HTML y CSS funcionan bien juntos, como pronto descubrirás.
+Vease también
+- Aplicar color a elementos HTML usando CSS"
+11,FE-ES-001_11_0,FE-ES-001,,,-0.449826180934906,,,,0.0,lenguaje de marcado,0.5,True,"<title></title> : El elemento <title> . Esto establece el título de la página, que es el título que aparece en la pestaña
+del navegador en la que se carga la página. El título de la página también se utiliza para describir la página
+cuando está en marcadores.
+<title></title>
+<title>
+- <body></body> : El elemento <body> . Contiene todo el contenido que se muestra en la página, incluidos texto,
+imágenes, vídeos, juegos, pistas de audio reproducibles o cualquier otra cosa.
+<body></body> : El elemento <body> . Contiene todo el contenido que se muestra en la página, incluidos texto,
+imágenes, vídeos, juegos, pistas de audio reproducibles o cualquier otra cosa.
+<body></body>
+<body>
+Aprendizaje activo: añadir algunas funciones a un documento HTML
+Si quieres experimentar con escribir algo de HTML en tu ordenador local, puedes:
+- Copie el ejemplo de página HTML listado anteriormente."
+12,FE-ES-001_8_2,FE-ES-001,,,-0.452428936958313,,,,0.0,lenguaje de marcado,0.5,True,"<a>
+href
+href
+ sitio web favorito
+Los anclajes también pueden tener un atributo title , una descripción de la página vinculada. Sin embargo, tan
+pronto como añadimos el title de la misma manera que el atributo href hay problemas:
+title
+title
+href
+ sitio web favorito
+Como se ha escrito anteriormente, el navegador malinterpreta el marcado, confundiendo el atributo title con tres
+atributos: un atributo title con el valor The , y dos atributos booleanos, Mozilla y homepage . ¡Obviamente, esto no
+es la intención! Causará errores o comportamientos inesperados, como puede ver en el ejemplo en vivo a
+continuación. ¡Intenta pasar el cursor sobre el enlace para ver el texto del título!
+title
+The
+Mozilla
+homepage
+Incluya siempre las comillas de los atributos. Evita tales problemas y da como resultado un código más legible.
+¿Comillas simples o dobles?"
+13,FE-ES-001_15_2,FE-ES-001,,,-0.45816946029663086,,,,0.0,lenguaje de marcado,0.5,True,"invaluables ya que diferentes personas están haciendo cambios y actualizaciones.
+Para escribir un comentario en HTML, envuélvalo en los marcadores especiales <!-- y --> . Por ejemplo:
+<!--
+-->
+ No estoy dentro de un comentario
+Como puede ver a continuación, solo se muestra el primer párrafo en la salida en vivo.
+Resumen
+¡Has llegado al final del artículo! Esperamos que hayas disfrutado de tu recorrido por los conceptos básicos de
+HTML.
+En este punto, debes entender cómo se ve HTML y cómo funciona a un nivel básico. También deberías poder
+escribir algunos elementos y atributos. Los artículos posteriores de este módulo profundizan en algunos de los
+temas introducidos aquí, así como en la presentación de otros conceptos del lenguaje.
+- A medida que comiences a aprender más sobre HTML, considera aprender los conceptos básicos de CSS (hojas"
+14,FE-ES-001_15_1,FE-ES-001,,,-0.4608200192451477,,,,0.0,lenguaje de marcado,0.5,True,"corchetes angulares con referencias de caracteres.
+<p>
+Nota: No es necesario usar referencias de entidad para ningún otro símbolo, ya que los navegadores modernos
+manejarán bien los símbolos reales siempre que la codificación de caracteres de tu HTML esté configurada en
+UTF-8 .
+Comentarios en HTML
+HTML tiene un mecanismo para escribir comentarios en el código. Los navegadores ignoran los comentarios, lo
+que hace que los comentarios sean invisibles para el usuario. El propósito de los comentarios es permitirle incluir
+notas en el código para explicar su lógica o codificación. Esto es muy útil si vuelve a una base de código después
+de estar ausente el tiempo suficiente para no recordarlo por completo. Del mismo modo, los comentarios son
+invaluables ya que diferentes personas están haciendo cambios y actualizaciones."
+15,FE-ES-001_10_3,FE-ES-001,,,-0.4636414051055908,,,,0.0,lenguaje de marcado,0.5,True,"esto, y puede ayudar a evitar algunos problemas más adelante.
+<meta charset=""utf-8"">
+<meta>
+<base>
+<link>
+<script>
+<style>
+<title>
+charset
+- <title></title> : El elemento <title> . Esto establece el título de la página, que es el título que aparece en la
+pestaña del navegador en la que se carga la página. El título de la página también se utiliza para describir la
+página cuando está en marcadores."

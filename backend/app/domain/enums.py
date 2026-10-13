@@ -19,15 +19,18 @@ class DocumentStatus(StrEnum):
 
 
 class GeneratedFormatType(StrEnum):
-    """Formatos pedagógicos soportados durante Sprint 2."""
+    """Formatos pedagógicos soportados por BackendAPI."""
 
     QUIZ = "quiz"
     FLASHCARDS = "flashcards"
+    TLDR = "tldr"
+    VIDEO_SCRIPT = "video_script"
 
 
 class GeneratedFormatStatus(StrEnum):
-    """Estados posibles de una generación solicitada a Agentes."""
+    """Estados posibles de un intento de generación."""
 
+    PROCESSING = "processing"
     SUCCESS = "success"
     FAILED = "failed"
     NO_RESULTS = "no_results"

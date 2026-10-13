@@ -1,0 +1,7 @@
+﻿case_id,format,document_id,query,evidence_keywords,vector_threshold_rank,bm25_threshold_rank,rrf_threshold_rank,cross_threshold_rank,final_top5_coverage,final_top5_hit,diagnosis
+FE-ES-001-Q01,md,FE-ES-001,¿Qué es HTML según el documento?,lenguaje de marcado;estructurar páginas web,1,5,2,1,0.5,True,retrieved_in_final_top5
+CLD-ES-001-Q05,md,CLD-ES-001,Menciona dos formas de describir a Kubernetes según el documento.,contenedores;microservicios;nube,1,2,1,8,0.333333,False,cross_encoder_reranking_failure
+FE-ES-001-Q01,txt,FE-ES-001,¿Qué es HTML según el documento?,lenguaje de marcado;estructurar páginas web,1,7,3,6,0.0,False,cross_encoder_reranking_failure
+CLD-ES-001-Q05,txt,CLD-ES-001,Menciona dos formas de describir a Kubernetes según el documento.,contenedores;microservicios;nube,1,2,1,9,0.333333,False,cross_encoder_reranking_failure
+FE-ES-001-Q01,pdf,FE-ES-001,¿Qué es HTML según el documento?,lenguaje de marcado;estructurar páginas web,1,6,2,1,0.5,True,retrieved_in_final_top5
+CLD-ES-001-Q05,pdf,CLD-ES-001,Menciona dos formas de describir a Kubernetes según el documento.,contenedores;microservicios;nube,1,2,1,7,0.333333,False,cross_encoder_reranking_failure

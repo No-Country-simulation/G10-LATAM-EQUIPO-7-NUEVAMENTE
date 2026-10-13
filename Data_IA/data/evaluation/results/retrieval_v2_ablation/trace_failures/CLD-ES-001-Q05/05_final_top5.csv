@@ -1,0 +1,65 @@
+﻿chunk_id,document_id,vector_rank,bm25_rank,rrf_score,cross_score,text,rank
+CLD-ES-001_CH_003,CLD-ES-001,6,4,0.030776515151515152,4.243513107299805,"## ¿Qué hace de Kubernetes una plataforma?
+
+A pesar de que Kubernetes ya ofrece muchas funcionalidades, siempre hay nuevos
+escenarios que se benefician de nuevas características. Los flujos de trabajo
+de las aplicaciones pueden optimizarse para acelerar el tiempo de desarrollo.
+Una solución de orquestación propia puede ser suficiente al principio, pero suele requerir
+una automatización robusta cuando necesita escalar. Es por ello que Kubernetes fue diseñada como
+una plataforma: para poder construir un ecosistema de componentes y herramientas que hacen
+más fácil el desplegar, escalar y administrar aplicaciones.",1
+CLD-ES-001_CH_014,CLD-ES-001,7,6,0.03007688828584351,3.947869300842285,"- Aislamiento de recursos :
+Hace el rendimiento de la aplicación más predecible
+
+- Utilización de recursos :
+Permite mayor eficiencia y densidad
+
+## ¿Qué significa Kubernetes? ¿Qué significa K8S?
+
+El nombre Kubernetes proviene del griego y significa timonel o piloto . Es la raíz de gobernador y de cibernética . K8s es una abrevación que se obtiene al reemplazar las ocho letras ""ubernete"" con el número 8.
+
+## ¿Qué sigue?
+
+- ¿Estás listo para empezar ?
+
+- Para saber más, visita el resto de la documentación de Kubernetes .
+
+## Comentarios
+
+¿Fue útil esta página?
+
+Gracias por la retroalimentacion. Si tienes una pregunta específica y respondible sobre cómo usar Kubernetes, hazla en Stack Overflow .
+Abre un issue en el Repositorio de GitHub si deseas reportar un problema o sugerir una mejora .",2
+CLD-ES-001_CH_005,CLD-ES-001,3,11,0.029957522915269395,3.4465150833129883,"Este diseño ha permitido que otros sistemas sean construidos sobre Kubernetes.
+
+## Lo que Kubernetes no es
+
+Kubernetes no es una Plataforma como Servicio (PaaS) convencional. Ya que
+Kubernetes opera a nivel del contenedor y no a nivel del hardware, ofrece
+algunas características que las PaaS también ofrecen, como deployments,
+escalado, balanceo de carga, registros y monitoreo. Dicho esto, Kubernetes
+no es monolítico y las soluciones que se ofrecen de forma predeterminada
+son opcionales e intercambiables.
+
+Kubernetes ofrece los elementos esenciales para construir una plataforma
+para desarrolladores, preservando la elección del usuario y la flexibilidad
+en las partes más importantes.
+
+Entonces, podemos decir que Kubernetes:",3
+CLD-ES-001_CH_004,CLD-ES-001,9,3,0.03036576949620428,3.005845069885254,"Las etiquetas, o Labels , le
+permiten a los usuarios organizar sus recursos como deseen. Las anotaciones, o Annotations , les permiten asignar información arbitraria a un recurso para
+facilitar sus flujos de trabajo y hacer más fácil a las herramientas administrativas inspeccionar el estado.
+
+Además, el Plano de Control de Kubernetes usa las mismas APIs que usan los desarrolladores y usuarios finales.
+Los usuarios pueden escribir sus propios controladores, como por ejemplo un planificador o scheduler ,
+usando sus propias
+APIs desde una herramienta de línea de comandos .
+
+Este diseño ha permitido que otros sistemas sean construidos sobre Kubernetes.
+
+## Lo que Kubernetes no es",4
+CLD-ES-001_CH_007,CLD-ES-001,8,7,0.029631255487269532,2.9918928146362305,"- No provee servicios en capa de aplicación como middleware (por ejemplo, buses de mensaje), frameworks de procesamiento de datos (como Spark), bases de datos (como MySQL), caches o sistemas de almacenamiento (como Ceph). Es posible correr estas aplicaciones en Kubernetes, o acceder a ellos desde una aplicación usando un mecanismo portable como el Open Service Broker.
+
+- No dictamina las soluciones de registros, monitoreo o alerta que se deben usar. Hay algunas integraciones que se ofrecen como prueba de concepto, y existen mecanismos para recolectar y exportar métricas.
+
+- No provee ni obliga a usar un sistema o lenguaje de configuración (como jsonnet ) sino que ofrece una API declarativa que puede ser usada con cualquier forma de especificación declarativa",5

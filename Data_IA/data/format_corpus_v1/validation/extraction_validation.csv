@@ -1,0 +1,11 @@
+document_id,md_documents,txt_documents,pdf_documents,md_file_type,txt_file_type,pdf_file_type,md_chars,txt_chars,pdf_chars,md_nonempty,txt_nonempty,pdf_nonempty,md_vs_txt_jaccard,pdf_vs_txt_jaccard
+AI-ES-001,1,1,1,markdown,text,pdf,1232,1224,1224,True,True,True,1.0,1.0
+AI-ES-002,1,1,1,markdown,text,pdf,1376,1368,1368,True,True,True,1.0,1.0
+BE-ES-001,1,1,11,markdown,text,pdf,11575,11060,11068,True,True,True,0.994106,0.996063
+BE-ES-002,1,1,8,markdown,text,pdf,12574,12200,12232,True,True,True,0.993475,0.996732
+CLD-ES-001,1,1,4,markdown,text,pdf,9490,9467,9467,True,True,True,1.0,1.0
+CLD-ES-002,1,1,2,markdown,text,pdf,2008,1994,1994,True,True,True,1.0,1.0
+DS-ES-001,1,1,1,markdown,text,pdf,867,862,862,True,True,True,1.0,1.0
+DS-ES-002,1,1,1,markdown,text,pdf,1021,1013,1013,True,True,True,1.0,1.0
+FE-ES-001,1,1,16,markdown,text,pdf,29994,29447,29448,True,True,True,1.0,0.997875
+FE-ES-002,1,1,2,markdown,text,pdf,4285,4264,4264,True,True,True,1.0,1.0

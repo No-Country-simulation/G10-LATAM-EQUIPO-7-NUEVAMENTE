@@ -14,6 +14,7 @@ from app.infrastructure.persistence.models import (
 from app.ports.generated_format_repository_port import (
     GeneratedFormatAlreadyExistsError,
     GeneratedFormatDocumentNotFoundError,
+    GeneratedFormatNotFoundError,
     GeneratedFormatRepositoryError,
 )
 
@@ -31,7 +32,7 @@ class SQLiteGeneratedFormatRepositoryAdapter:
         self,
         generated_format: GeneratedFormat,
     ) -> GeneratedFormat:
-        """Persiste una nueva generación.
+        """Persiste un nuevo intento de generación.
 
         Raises:
             GeneratedFormatAlreadyExistsError:
@@ -123,6 +124,109 @@ class SQLiteGeneratedFormatRepositoryAdapter:
 
         return generated_format
 
+    def update(
+        self,
+        generated_format: GeneratedFormat,
+    ) -> GeneratedFormat:
+        """Actualiza un intento de generación existente.
+
+        La identidad de una generación es inmutable. ``format_id``,
+        ``document_id``, ``format_type`` y ``created_at`` deben
+        conservarse durante toda la transición:
+
+        processing → success | failed | no_results
+
+        Raises:
+            GeneratedFormatNotFoundError:
+                Si format_id no existe.
+            GeneratedFormatRepositoryError:
+                Si se intenta modificar la identidad o falla SQLite.
+        """
+        record = GeneratedFormatRecord.from_domain(
+            generated_format
+        )
+
+        try:
+            with self._database.connect() as connection:
+                existing = connection.execute(
+                    """
+                    SELECT
+                        document_id,
+                        format_type,
+                        created_at
+                    FROM generated_formats
+                    WHERE format_id = ?
+                    """,
+                    (record.format_id,),
+                ).fetchone()
+
+                if existing is None:
+                    raise GeneratedFormatNotFoundError(
+                        "No existe el formato generado "
+                        f"{record.format_id}."
+                    )
+
+                if (
+                    existing["document_id"]
+                    != record.document_id
+                    or existing["format_type"]
+                    != record.format_type
+                    or existing["created_at"]
+                    != record.created_at
+                ):
+                    raise GeneratedFormatRepositoryError(
+                        "No es posible modificar la identidad "
+                        "de un intento de generación existente."
+                    )
+
+                connection.execute(
+                    """
+                    UPDATE generated_formats
+                    SET
+                        status = ?,
+                        content_json = ?,
+                        chunks_used_json = ?,
+                        profile = ?,
+                        niche = ?,
+                        detail_level = ?,
+                        learning_objective = ?,
+                        error_message = ?,
+                        updated_at = ?
+                    WHERE format_id = ?
+                    """,
+                    (
+                        record.status,
+                        record.content_json,
+                        record.chunks_used_json,
+                        record.profile,
+                        record.niche,
+                        record.detail_level,
+                        record.learning_objective,
+                        record.error_message,
+                        record.updated_at,
+                        record.format_id,
+                    ),
+                )
+
+        except (
+            GeneratedFormatNotFoundError,
+            GeneratedFormatRepositoryError,
+        ):
+            raise
+
+        except sqlite3.IntegrityError as exc:
+            raise GeneratedFormatRepositoryError(
+                "No fue posible actualizar el formato generado "
+                "por una restricción de integridad."
+            ) from exc
+
+        except sqlite3.Error as exc:
+            raise GeneratedFormatRepositoryError(
+                "No fue posible actualizar el formato generado."
+            ) from exc
+
+        return generated_format
+
     def find_by_id(
         self,
         format_id: str,
@@ -153,6 +257,7 @@ class SQLiteGeneratedFormatRepositoryAdapter:
                 .from_row(row)
                 .to_domain()
             )
+
         except (
             TypeError,
             ValueError,
@@ -192,6 +297,7 @@ class SQLiteGeneratedFormatRepositoryAdapter:
                 .to_domain()
                 for row in rows
             ]
+
         except (
             TypeError,
             ValueError,

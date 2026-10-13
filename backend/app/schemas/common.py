@@ -5,6 +5,8 @@ from typing import Generic, Literal, TypeVar
 
 from pydantic import BaseModel, ConfigDict, Field
 
+from app.core.error_codes import ErrorCode
+
 T = TypeVar("T")
 
 
@@ -21,7 +23,7 @@ class ErrorDetail(BaseSchema):
     """Detalle individual de un error de la API."""
 
     code: str = Field(
-        description="Identificador estable del error."
+        description="Identificador estable del detalle de error."
     )
     message: str = Field(
         description="Mensaje legible para el cliente."
@@ -35,6 +37,12 @@ class ErrorDetail(BaseSchema):
 class ErrorResponse(BaseSchema):
     """Respuesta estándar para errores de la API."""
 
+    code: ErrorCode = Field(
+        description=(
+            "Código funcional estable que identifica "
+            "la causa general del error."
+        )
+    )
     detail: str
     errors: list[ErrorDetail] = Field(default_factory=list)
     timestamp: datetime = Field(

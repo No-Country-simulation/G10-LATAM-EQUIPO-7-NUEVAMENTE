@@ -1,0 +1,14 @@
+﻿source_format,generated_format,term,reason,occurrences
+md,quiz,documento,generation_context_term,2
+md,tldr,documento,generation_context_term,1
+md,tldr,frontend,generation_context_term,1
+md,video_script,aparece,format_presentation_term,1
+txt,quiz,documento,generation_context_term,2
+txt,flashcards,principal,generation_context_term,1
+txt,flashcards,documento,generation_context_term,1
+txt,tldr,frontend,generation_context_term,2
+txt,tldr,documento,generation_context_term,1
+txt,video_script,texto,format_presentation_term,1
+pdf,tldr,frontend,generation_context_term,2
+pdf,tldr,correctamente,generation_context_term,1
+pdf,video_script,texto,format_presentation_term,1

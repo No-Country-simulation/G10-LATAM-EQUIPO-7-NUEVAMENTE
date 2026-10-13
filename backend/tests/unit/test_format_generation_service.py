@@ -7,6 +7,7 @@ import pytest
 
 from app.application.format_generation_service import (
     DocumentNotReadyForGenerationError,
+    FormatGenerationAttemptStateError,
     FormatGenerationContractError,
     FormatGenerationDocumentNotFoundError,
     FormatGenerationIntegrationError,
@@ -26,6 +27,7 @@ from app.domain.generated_content import (
 )
 from app.domain.generated_format import (
     ChunkEvidence,
+    GeneratedFormat,
 )
 from app.ports.agents_port import (
     AgentGeneratedFormatResult,
@@ -99,6 +101,28 @@ class FakeGeneratedFormatRepository:
             generated_format
         )
         return generated_format
+
+    def update(
+        self,
+        generated_format,
+    ):
+        """Actualiza una generación existente en memoria."""
+        for index, stored_format in enumerate(
+            self.formats
+        ):
+            if (
+                stored_format.format_id
+                == generated_format.format_id
+            ):
+                self.formats[index] = (
+                    generated_format
+                )
+                return generated_format
+
+        raise RuntimeError(
+            "No existe el formato "
+            f"{generated_format.format_id}."
+        )
 
     def find_by_id(
         self,
@@ -299,66 +323,200 @@ def build_document(
         status=status,
     )
 
+def build_service(
+    *,
+    document: Document | None,
+    agents=None,
+) -> tuple[
+    FormatGenerationService,
+    FakeGeneratedFormatRepository,
+]:
+    """Construye el servicio con dependencias controladas."""
+    repository = (
+        FakeGeneratedFormatRepository()
+    )
 
-def test_generate_formats_persists_quiz_and_flashcards() -> None:
-    """Genera y persiste ambos formatos con contexto y evidencias."""
-    document_repository = FakeDocumentRepository(
-        build_document(
+    service = FormatGenerationService(
+        document_repository=(
+            FakeDocumentRepository(
+                document
+            )
+        ),
+        generated_format_repository=repository,
+        agents=(
+            agents
+            if agents is not None
+            else FakeAgents()
+        ),
+    )
+
+    return service, repository
+
+
+def test_prepare_generation_persists_processing_attempts() -> None:
+    """Registra Quiz y Flashcards antes de llamar a Agentes."""
+    service, repository = build_service(
+        document=build_document(
             DocumentStatus.INDEXED
         )
     )
 
-    generated_repository = (
-        FakeGeneratedFormatRepository()
+    attempts = service.prepare_generation(
+        document_id="doc_123",
+        formats=(
+            GeneratedFormatType.QUIZ,
+            GeneratedFormatType.FLASHCARDS,
+        ),
+        profile="beginner",
+        niche="technology",
+        detail_level="detailed",
+        learning_objective=(
+            "Comprender microservicios."
+        ),
     )
 
+    assert len(attempts) == 2
+    assert len(repository.formats) == 2
+
+    assert {
+        attempt.format_type
+        for attempt in attempts
+    } == {
+        GeneratedFormatType.QUIZ,
+        GeneratedFormatType.FLASHCARDS,
+    }
+
+    assert all(
+        attempt.status
+        == GeneratedFormatStatus.PROCESSING
+        for attempt in attempts
+    )
+
+    assert all(
+        attempt.content is None
+        for attempt in attempts
+    )
+
+    assert all(
+        attempt.chunks_used == ()
+        for attempt in attempts
+    )
+
+    assert all(
+        attempt.error_message is None
+        for attempt in attempts
+    )
+
+
+def test_prepare_generation_rejects_unknown_document() -> None:
+    """No registra intentos para un documento inexistente."""
+    service, repository = build_service(
+        document=None
+    )
+
+    with pytest.raises(
+        FormatGenerationDocumentNotFoundError,
+    ):
+        service.prepare_generation(
+            document_id="doc_inexistente",
+            formats=(
+                GeneratedFormatType.QUIZ,
+            ),
+            profile="beginner",
+            niche="general",
+            detail_level="standard",
+        )
+
+    assert repository.formats == []
+
+
+def test_prepare_generation_requires_indexed_document() -> None:
+    """Solo permite preparar formatos para documentos indexados."""
+    service, repository = build_service(
+        document=build_document(
+            DocumentStatus.STORED
+        )
+    )
+
+    with pytest.raises(
+        DocumentNotReadyForGenerationError,
+    ):
+        service.prepare_generation(
+            document_id="doc_123",
+            formats=(
+                GeneratedFormatType.QUIZ,
+            ),
+            profile="beginner",
+            niche="general",
+            detail_level="standard",
+        )
+
+    assert repository.formats == []
+
+
+def test_complete_generation_updates_same_attempts() -> None:
+    """Los resultados reemplazan processing sin crear nuevas filas."""
     agents = FakeAgents()
 
-    service = FormatGenerationService(
-        document_repository=(
-            document_repository
-        ),
-        generated_format_repository=(
-            generated_repository
+    service, repository = build_service(
+        document=build_document(
+            DocumentStatus.INDEXED
         ),
         agents=agents,
     )
 
+    attempts = service.prepare_generation(
+        document_id="doc_123",
+        formats=(
+            GeneratedFormatType.QUIZ,
+            GeneratedFormatType.FLASHCARDS,
+        ),
+        profile="beginner",
+        niche="technology",
+        detail_level="detailed",
+        learning_objective=(
+            "Comprender microservicios."
+        ),
+    )
+
+    original_ids = {
+        attempt.format_type: attempt.format_id
+        for attempt in attempts
+    }
+
     result = asyncio.run(
-        service.generate_formats(
-            document_id="doc_123",
-            formats=(
-                GeneratedFormatType.QUIZ,
-                GeneratedFormatType.FLASHCARDS,
-            ),
-            profile="beginner",
-            niche="technology",
-            detail_level="detailed",
-            learning_objective=(
-                "Comprender microservicios."
-            ),
+        service.complete_generation(
+            attempts=tuple(
+                attempts
+            )
         )
     )
 
     assert len(result) == 2
-    assert len(
-        generated_repository.formats
-    ) == 2
+
+    assert len(repository.formats) == 2
+
+    assert all(
+        generated_format.status
+        == GeneratedFormatStatus.SUCCESS
+        for generated_format in result
+    )
+
+    assert {
+        generated_format.format_type:
+        generated_format.format_id
+        for generated_format in result
+    } == original_ids
 
     assert agents.last_request is not None
 
-    assert (
-        agents.last_request
-        .generation_context
-        .detail_level
-        == "detailed"
-    )
-
-    quiz = result[0]
-
-    assert (
-        quiz.format_type
-        == GeneratedFormatType.QUIZ
+    quiz = next(
+        generated_format
+        for generated_format in result
+        if (
+            generated_format.format_type
+            == GeneratedFormatType.QUIZ
+        )
     )
 
     assert isinstance(
@@ -375,115 +533,50 @@ def test_generate_formats_persists_quiz_and_flashcards() -> None:
     )
 
 
-def test_generate_formats_rejects_unknown_document() -> None:
-    """No invoca Agentes si el documento no existe."""
-    service = FormatGenerationService(
-        document_repository=(
-            FakeDocumentRepository(
-                None
-            )
+def test_complete_generation_marks_same_attempts_failed_on_agents_error() -> None:
+    """Un fallo externo convierte processing en failed."""
+    service, repository = build_service(
+        document=build_document(
+            DocumentStatus.INDEXED
         ),
-        generated_format_repository=(
-            FakeGeneratedFormatRepository()
-        ),
-        agents=FakeAgents(),
-    )
-
-    with pytest.raises(
-        FormatGenerationDocumentNotFoundError,
-    ):
-        asyncio.run(
-            service.generate_formats(
-                document_id="doc_inexistente",
-                formats=(
-                    GeneratedFormatType.QUIZ,
-                ),
-                profile="beginner",
-                niche="general",
-                detail_level="standard",
-            )
-        )
-
-
-def test_generate_formats_requires_indexed_document() -> None:
-    """Solo permite generar formatos para documentos indexados."""
-    service = FormatGenerationService(
-        document_repository=(
-            FakeDocumentRepository(
-                build_document(
-                    DocumentStatus.STORED
-                )
-            )
-        ),
-        generated_format_repository=(
-            FakeGeneratedFormatRepository()
-        ),
-        agents=FakeAgents(),
-    )
-
-    with pytest.raises(
-        DocumentNotReadyForGenerationError,
-    ):
-        asyncio.run(
-            service.generate_formats(
-                document_id="doc_123",
-                formats=(
-                    GeneratedFormatType.QUIZ,
-                ),
-                profile="beginner",
-                niche="general",
-                detail_level="standard",
-            )
-        )
-
-
-def test_generate_formats_translates_agents_error() -> None:
-    """Persiste el intento fallido y traduce el error de Agentes."""
-    repository = (
-        FakeGeneratedFormatRepository()
-    )
-
-    service = FormatGenerationService(
-        document_repository=(
-            FakeDocumentRepository(
-                build_document(
-                    DocumentStatus.INDEXED
-                )
-            )
-        ),
-        generated_format_repository=repository,
         agents=FailingAgents(),
     )
+
+    attempts = service.prepare_generation(
+        document_id="doc_123",
+        formats=(
+            GeneratedFormatType.QUIZ,
+            GeneratedFormatType.FLASHCARDS,
+        ),
+        profile="beginner",
+        niche="general",
+        detail_level="standard",
+    )
+
+    original_ids = {
+        attempt.format_id
+        for attempt in attempts
+    }
 
     with pytest.raises(
         FormatGenerationIntegrationError,
         match="Agentes no pudo generar",
     ):
         asyncio.run(
-            service.generate_formats(
-                document_id="doc_123",
-                formats=(
-                    GeneratedFormatType.QUIZ,
-                    GeneratedFormatType.FLASHCARDS,
-                ),
-                profile="beginner",
-                niche="general",
-                detail_level="standard",
+            service.complete_generation(
+                attempts=tuple(
+                    attempts
+                )
             )
         )
 
-    assert len(
-        repository.formats
-    ) == 2
+    assert len(repository.formats) == 2
 
     assert {
-        generated_format.format_type
+        generated_format.format_id
         for generated_format
         in repository.formats
-    } == {
-        GeneratedFormatType.QUIZ,
-        GeneratedFormatType.FLASHCARDS,
-    }
+    } == original_ids
 
     assert all(
         generated_format.status
@@ -499,12 +592,6 @@ def test_generate_formats_translates_agents_error() -> None:
     )
 
     assert all(
-        generated_format.chunks_used == ()
-        for generated_format
-        in repository.formats
-    )
-
-    assert all(
         generated_format.error_message
         == (
             "Agentes no pudo generar los formatos "
@@ -515,116 +602,89 @@ def test_generate_formats_translates_agents_error() -> None:
     )
 
 
-def test_generate_formats_rejects_wrong_document_id() -> None:
-    """No persiste resultados asociados a otro documento."""
-    repository = (
-        FakeGeneratedFormatRepository()
-    )
-
-    service = FormatGenerationService(
-        document_repository=(
-            FakeDocumentRepository(
-                build_document(
-                    DocumentStatus.INDEXED
-                )
-            )
+def test_complete_generation_marks_attempt_failed_on_wrong_document_id() -> None:
+    """Un contrato inválido actualiza el intento existente a failed."""
+    service, repository = build_service(
+        document=build_document(
+            DocumentStatus.INDEXED
         ),
-        generated_format_repository=repository,
         agents=WrongDocumentAgents(),
     )
+
+    attempts = service.prepare_generation(
+        document_id="doc_123",
+        formats=(
+            GeneratedFormatType.QUIZ,
+        ),
+        profile="beginner",
+        niche="general",
+        detail_level="standard",
+    )
+
+    format_id = attempts[0].format_id
 
     with pytest.raises(
         FormatGenerationContractError,
         match="document_id diferente",
     ):
         asyncio.run(
-            service.generate_formats(
-                document_id="doc_123",
-                formats=(
-                    GeneratedFormatType.QUIZ,
-                ),
-                profile="beginner",
-                niche="general",
-                detail_level="standard",
+            service.complete_generation(
+                attempts=tuple(
+                    attempts
+                )
             )
         )
 
-    assert len(
-        repository.formats
-    ) == 1
+    assert len(repository.formats) == 1
 
-    failed_generation = (
+    failed_attempt = (
         repository.formats[0]
     )
 
     assert (
-        failed_generation.format_type
-        == GeneratedFormatType.QUIZ
+        failed_attempt.format_id
+        == format_id
     )
 
     assert (
-        failed_generation.status
+        failed_attempt.status
         == GeneratedFormatStatus.FAILED
     )
 
-    assert (
-        failed_generation.error_message
-        == (
-            "Agentes devolvió un document_id "
-            "diferente al solicitado."
-        )
-    )
 
-
-def test_generate_formats_requires_all_requested_results() -> None:
-    """Rechaza una respuesta incompleta antes de persistir."""
-    repository = (
-        FakeGeneratedFormatRepository()
-    )
-
-    service = FormatGenerationService(
-        document_repository=(
-            FakeDocumentRepository(
-                build_document(
-                    DocumentStatus.INDEXED
-                )
-            )
+def test_complete_generation_marks_attempts_failed_when_result_is_incomplete() -> None:
+    """Una respuesta incompleta falla el mismo lote processing."""
+    service, repository = build_service(
+        document=build_document(
+            DocumentStatus.INDEXED
         ),
-        generated_format_repository=repository,
         agents=MissingFormatAgents(),
+    )
+
+    attempts = service.prepare_generation(
+        document_id="doc_123",
+        formats=(
+            GeneratedFormatType.QUIZ,
+            GeneratedFormatType.FLASHCARDS,
+        ),
+        profile="beginner",
+        niche="general",
+        detail_level="standard",
     )
 
     with pytest.raises(
         FormatGenerationContractError,
-        match=(
-            "no coinciden con los solicitados"
-        ),
+        match="no coinciden con los solicitados",
     ):
         asyncio.run(
-            service.generate_formats(
-                document_id="doc_123",
-                formats=(
-                    GeneratedFormatType.QUIZ,
-                    GeneratedFormatType.FLASHCARDS,
-                ),
-                profile="beginner",
-                niche="general",
-                detail_level="standard",
+            service.complete_generation(
+                attempts=tuple(
+                    attempts
+                )
             )
         )
 
-    assert len(
-        repository.formats
-    ) == 2
-
-    assert {
-        generated_format.format_type
-        for generated_format
-        in repository.formats
-    } == {
-        GeneratedFormatType.QUIZ,
-        GeneratedFormatType.FLASHCARDS,
-    }
+    assert len(repository.formats) == 2
 
     assert all(
         generated_format.status
@@ -634,35 +694,75 @@ def test_generate_formats_requires_all_requested_results() -> None:
     )
 
 
-def test_generate_formats_rejects_duplicate_request() -> None:
-    """No permite solicitar dos veces el mismo formato."""
-    service = FormatGenerationService(
-        document_repository=(
-            FakeDocumentRepository(
-                build_document(
-                    DocumentStatus.INDEXED
-                )
-            )
-        ),
-        generated_format_repository=(
-            FakeGeneratedFormatRepository()
-        ),
-        agents=FakeAgents(),
+def test_prepare_generation_rejects_duplicate_formats() -> None:
+    """No permite preparar dos veces el mismo formato."""
+    service, repository = build_service(
+        document=build_document(
+            DocumentStatus.INDEXED
+        )
     )
 
     with pytest.raises(
         ValueError,
         match="formatos duplicados",
     ):
+        service.prepare_generation(
+            document_id="doc_123",
+            formats=(
+                GeneratedFormatType.QUIZ,
+                GeneratedFormatType.QUIZ,
+            ),
+            profile="beginner",
+            niche="general",
+            detail_level="standard",
+        )
+
+    assert repository.formats == []
+
+
+def test_complete_generation_requires_processing_attempts() -> None:
+    """No permite ejecutar nuevamente un intento ya terminado."""
+    service, _ = build_service(
+        document=build_document(
+            DocumentStatus.INDEXED
+        )
+    )
+
+    attempts = service.prepare_generation(
+        document_id="doc_123",
+        formats=(
+            GeneratedFormatType.QUIZ,
+        ),
+        profile="beginner",
+        niche="general",
+        detail_level="standard",
+    )
+
+    processing = attempts[0]
+
+    invalid_attempt = GeneratedFormat(
+        format_id=processing.format_id,
+        document_id=processing.document_id,
+        format_type=processing.format_type,
+        status=GeneratedFormatStatus.FAILED,
+        generation_context=(
+            processing.generation_context
+        ),
+        content=None,
+        chunks_used=(),
+        error_message="Fallo previo.",
+        created_at=processing.created_at,
+        updated_at=processing.updated_at,
+    )
+
+    with pytest.raises(
+        FormatGenerationAttemptStateError,
+        match="processing",
+    ):
         asyncio.run(
-            service.generate_formats(
-                document_id="doc_123",
-                formats=(
-                    GeneratedFormatType.QUIZ,
-                    GeneratedFormatType.QUIZ,
-                ),
-                profile="beginner",
-                niche="general",
-                detail_level="standard",
+            service.complete_generation(
+                attempts=(
+                    invalid_attempt,
+                )
             )
         )

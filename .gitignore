@@ -14,3 +14,44 @@ __pycache__/
 # Variables de entorno y secretos
 .env
 .venv/
+
+# Retrieval V2 local benchmark
+.benchmark_chroma_v2/
+.venv-agentes/
+
+# Local Chroma stores used by Retrieval V2 experiments
+.benchmark_chroma_v2*/
+
+# Generated raw batches from Retrieval V2 ablation experiments
+Data_IA/data/evaluation/results/retrieval_v2_ablation/**/retrieval_*.json
+# Controlled format retrieval local Chroma indexes
+.format_corpus_chroma_md/
+.format_corpus_chroma_pdf/
+.format_corpus_chroma_txt/
+
+# Controlled format diagnostic Chroma indexes
+.format_diagnostic_chroma_md/
+.format_diagnostic_chroma_txt/
+.format_diagnostic_chroma_pdf/
+
+# Controlled format Retrieval V2 local Chroma indexes
+.format_corpus_chroma_v2_md/
+.format_corpus_chroma_v2_txt/
+.format_corpus_chroma_v2_pdf/
+
+# Controlled format Retrieval V2 trace indexes
+.format_trace_v2_md/
+.format_trace_v2_txt/
+.format_trace_v2_pdf/
+
+# Multiformat end-to-end validation Chroma indexes
+.multiformat_e2e_chroma_md/
+.multiformat_e2e_chroma_txt/
+.multiformat_e2e_chroma_pdf/
+Data_IA/data/format_corpus_v1/results/multiformat_end_to_end/md/
+Data_IA/data/format_corpus_v1/results/multiformat_end_to_end/txt/
+Data_IA/data/format_corpus_v1/results/multiformat_end_to_end/pdf/
+Data_IA/data/format_corpus_v1/results/multiformat_end_to_end/end_to_end_results.csv
+Data_IA/data/format_corpus_v1/results/multiformat_end_to_end/generated_format_summary.csv
+Data_IA/data/format_corpus_v1/results/multiformat_end_to_end/run_manifest.json
+Data_IA/data/format_corpus_v1/results/multiformat_end_to_end/source_pipeline_summary.csv

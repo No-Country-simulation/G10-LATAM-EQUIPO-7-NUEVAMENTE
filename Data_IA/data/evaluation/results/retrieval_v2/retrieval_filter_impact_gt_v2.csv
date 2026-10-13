@@ -1,0 +1,12 @@
+﻿case_id,document_id,categoria,root_cause_v1,filter_mode,recall_at_5_v1,recall_at_5_v2,precision_at_5_v1,precision_at_5_v2,delta_recall_at_5,delta_precision_at_5,improved
+BE-ES-001-Q02,BE-ES-001,Backend,RANKING_SEMANTICO,document_id,0.0,1.0,0.0,0.2,1.0,0.2,True
+BE-ES-002-Q04,BE-ES-002,Backend,ENTIDAD_LEXICAL,document_id,0.0,1.0,0.0,0.2,1.0,0.2,True
+CLD-ES-002-Q02,CLD-ES-002,Cloud / DevOps,AMBIGUEDAD_CONTEXTO,document_id,0.0,1.0,0.0,0.2,1.0,0.2,True
+CLD-ES-002-Q03,CLD-ES-002,Cloud / DevOps,COMPETENCIA_INTRADOCUMENTO,document_id,0.0,1.0,0.0,0.2,1.0,0.2,True
+DS-ES-001-Q04,DS-ES-001,Data Science,AMBIGUEDAD_CONTEXTO,document_id,0.0,1.0,0.0,0.2,1.0,0.2,True
+DS-ES-002-Q05,DS-ES-002,Data Science,AMBIGUEDAD_CONTEXTO,document_id,0.0,1.0,0.0,0.2,1.0,0.2,True
+FE-ES-001-Q03,FE-ES-001,Frontend,COMPETENCIA_INTRADOCUMENTO,document_id,0.0,1.0,0.0,0.2,1.0,0.2,True
+FE-ES-001-Q05,FE-ES-001,Frontend,RANKING_SEMANTICO,document_id,0.0,1.0,0.0,0.2,1.0,0.2,True
+FE-ES-002-Q03,FE-ES-002,Frontend,RANKING_SEMANTICO,document_id,0.0,1.0,0.0,0.2,1.0,0.2,True
+FE-ES-002-Q05,FE-ES-002,Frontend,PREGUNTA_INFERENCIAL,document_id,0.0,1.0,0.0,0.2,1.0,0.2,True
+AI-ES-001-Q05,AI-ES-001,IA,AMBIGUEDAD_CONTEXTO,document_id,0.0,1.0,0.0,0.2,1.0,0.2,True

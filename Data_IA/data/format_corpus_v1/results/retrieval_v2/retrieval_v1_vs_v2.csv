@@ -1,0 +1,151 @@
+case_id,document_id,category,format,query,v1_evidence_hit,v2_evidence_hit,v1_evidence_coverage,v2_evidence_coverage,delta_evidence_coverage,v1_reference_token_recall,v2_reference_token_recall,delta_reference_token_recall,change
+AI-ES-001-Q01,AI-ES-001,IA,md,¿Qué pretende introducir este módulo sobre inteligencia artificial?,True,True,0.5,0.5,0.0,1.0,1.0,0.0,unchanged_hit_coverage
+AI-ES-001-Q02,AI-ES-001,IA,md,¿Es obligatorio conocer aprendizaje automático antes de iniciar el módulo?,True,True,0.666667,0.666667,0.0,1.0,1.0,0.0,unchanged_hit_coverage
+AI-ES-001-Q03,AI-ES-001,IA,md,Menciona dos cargas de trabajo de IA tratadas en el módulo.,True,True,1.0,1.0,0.0,1.0,1.0,0.0,unchanged_hit_coverage
+AI-ES-001-Q04,AI-ES-001,IA,md,¿Qué tema del módulo aborda el uso ético o seguro de la IA?,True,True,1.0,1.0,0.0,1.0,1.0,0.0,unchanged_hit_coverage
+AI-ES-001-Q05,AI-ES-001,IA,md,¿Qué conocimiento previo puede ser útil antes de iniciar el módulo?,True,True,0.75,0.75,0.0,1.0,1.0,0.0,unchanged_hit_coverage
+AI-ES-002-Q01,AI-ES-002,IA,md,¿Qué conceptos principales de IA generativa aborda el módulo?,True,True,0.75,0.75,0.0,1.0,1.0,0.0,unchanged_hit_coverage
+AI-ES-002-Q02,AI-ES-002,IA,md,¿Qué debe poder explicar el estudiante sobre los LLM al finalizar?,True,True,0.666667,0.666667,0.0,1.0,1.0,0.0,unchanged_hit_coverage
+AI-ES-002-Q03,AI-ES-002,IA,md,¿Qué habilidad relacionada con prompts se espera desarrollar?,True,True,0.666667,0.666667,0.0,1.0,1.0,0.0,unchanged_hit_coverage
+AI-ES-002-Q04,AI-ES-002,IA,md,¿Qué conocimientos previos recomienda el módulo?,True,True,0.5,0.5,0.0,1.0,1.0,0.0,unchanged_hit_coverage
+AI-ES-002-Q05,AI-ES-002,IA,md,¿El módulo incluye agentes de IA?,True,True,0.5,0.5,0.0,1.0,1.0,0.0,unchanged_hit_coverage
+BE-ES-001-Q01,BE-ES-001,Backend,md,¿Qué clase se importa para crear una aplicación FastAPI?,True,True,1.0,1.0,0.0,1.0,1.0,0.0,unchanged_hit_coverage
+BE-ES-001-Q02,BE-ES-001,Backend,md,¿Qué representa la variable app en el ejemplo inicial?,True,True,0.5,0.5,0.0,1.0,1.0,0.0,unchanged_hit_coverage
+BE-ES-001-Q03,BE-ES-001,Backend,md,¿Qué indica el decorador @app.get('/')?,True,True,1.0,1.0,0.0,0.990099,0.990099,0.0,unchanged_hit_coverage
+BE-ES-001-Q04,BE-ES-001,Backend,md,¿Dónde se encuentra la documentación interactiva automática basada en Swagger UI?,True,True,1.0,1.0,0.0,0.918033,0.918033,0.0,unchanged_hit_coverage
+BE-ES-001-Q05,BE-ES-001,Backend,md,¿Qué archivo expone FastAPI automáticamente con el esquema OpenAPI en JSON?,True,True,1.0,1.0,0.0,1.0,1.0,0.0,unchanged_hit_coverage
+BE-ES-002-Q01,BE-ES-002,Backend,md,¿Qué aplicación se construye en el tutorial de Django?,True,True,1.0,1.0,0.0,1.0,1.0,0.0,unchanged_hit_coverage
+BE-ES-002-Q02,BE-ES-002,Backend,md,¿Qué dos partes tiene la aplicación de encuestas?,True,True,1.0,1.0,0.0,1.0,1.0,0.0,unchanged_hit_coverage
+BE-ES-002-Q03,BE-ES-002,Backend,md,¿Qué comando crea el proyecto mysite dentro de djangotutorial?,True,True,1.0,1.0,0.0,1.0,1.0,0.0,unchanged_hit_coverage
+BE-ES-002-Q04,BE-ES-002,Backend,md,¿Qué archivo contiene los ajustes o configuración del proyecto Django?,True,True,1.0,1.0,0.0,1.0,1.0,0.0,unchanged_hit_coverage
+BE-ES-002-Q05,BE-ES-002,Backend,md,¿Cuál es la diferencia entre un proyecto y una app en Django?,True,True,0.75,0.75,0.0,1.0,1.0,0.0,unchanged_hit_coverage
+DS-ES-001-Q01,DS-ES-001,Data Science,md,¿Qué habilidad relacionada con variables enseña el módulo?,True,True,0.666667,0.666667,0.0,1.0,1.0,0.0,unchanged_hit_coverage
+DS-ES-001-Q02,DS-ES-001,Data Science,md,¿Qué tipo de operaciones numéricas se practican?,True,True,1.0,1.0,0.0,1.0,1.0,0.0,unchanged_hit_coverage
+DS-ES-001-Q03,DS-ES-001,Data Science,md,¿Qué habilidad de conversión de datos se enseña?,True,True,0.5,0.5,0.0,1.0,1.0,0.0,unchanged_hit_coverage
+DS-ES-001-Q04,DS-ES-001,Data Science,md,¿Qué ejercicio práctico aparece en el módulo?,True,True,1.0,1.0,0.0,1.0,1.0,0.0,unchanged_hit_coverage
+DS-ES-001-Q05,DS-ES-001,Data Science,md,¿Qué aprenderá a almacenar y manipular el estudiante en este módulo?,True,True,1.0,1.0,0.0,1.0,1.0,0.0,unchanged_hit_coverage
+DS-ES-002-Q01,DS-ES-002,Data Science,md,¿Qué transformación general de los datos motiva el módulo?,True,True,1.0,1.0,0.0,1.0,1.0,0.0,unchanged_hit_coverage
+DS-ES-002-Q02,DS-ES-002,Data Science,md,¿Qué es uno de los conceptos fundamentales tratados?,True,True,1.0,1.0,0.0,1.0,1.0,0.0,unchanged_hit_coverage
+DS-ES-002-Q03,DS-ES-002,Data Science,md,¿Qué otro concepto de organización de datos se estudia?,True,True,1.0,1.0,0.0,1.0,1.0,0.0,unchanged_hit_coverage
+DS-ES-002-Q04,DS-ES-002,Data Science,md,¿Qué aspecto visual del análisis se incluye?,True,True,1.0,1.0,0.0,1.0,1.0,0.0,unchanged_hit_coverage
+DS-ES-002-Q05,DS-ES-002,Data Science,md,¿Qué requisito previo se indica?,True,True,1.0,1.0,0.0,1.0,1.0,0.0,unchanged_hit_coverage
+FE-ES-001-Q01,FE-ES-001,Frontend,md,¿Qué es HTML según el documento?,True,True,0.5,0.5,0.0,1.0,1.0,0.0,unchanged_hit_coverage
+FE-ES-001-Q02,FE-ES-001,Frontend,md,¿Qué conceptos básicos de HTML cubre el artículo?,True,True,1.0,1.0,0.0,1.0,1.0,0.0,unchanged_hit_coverage
+FE-ES-001-Q03,FE-ES-001,Frontend,md,¿Qué aprende el lector sobre los elementos HTML?,True,True,1.0,1.0,0.0,1.0,1.0,0.0,unchanged_hit_coverage
+FE-ES-001-Q04,FE-ES-001,Frontend,md,¿Qué aprende sobre una página HTML típica?,True,True,1.0,1.0,0.0,1.0,1.0,0.0,unchanged_hit_coverage
+FE-ES-001-Q05,FE-ES-001,Frontend,md,¿Qué puede hacer una etiqueta HTML con el contenido?,True,True,0.8,0.8,0.0,1.0,1.0,0.0,unchanged_hit_coverage
+FE-ES-002-Q01,FE-ES-002,Frontend,md,¿Qué tipos de estructuras de JavaScript se cubren explícitamente?,True,True,1.0,1.0,0.0,1.0,1.0,0.0,unchanged_hit_coverage
+FE-ES-002-Q02,FE-ES-002,Frontend,md,¿Qué conocimientos previos se recomiendan?,True,True,1.0,1.0,0.0,1.0,1.0,0.0,unchanged_hit_coverage
+FE-ES-002-Q03,FE-ES-002,Frontend,md,¿Para qué sirven los bucles en JavaScript?,True,True,0.666667,0.666667,0.0,1.0,1.0,0.0,unchanged_hit_coverage
+FE-ES-002-Q04,FE-ES-002,Frontend,md,¿Qué ejemplo de evento en una página web menciona el documento?,True,True,1.0,1.0,0.0,1.0,1.0,0.0,unchanged_hit_coverage
+FE-ES-002-Q05,FE-ES-002,Frontend,md,¿El módulo se limita únicamente a sintaxis básica?,True,True,1.0,1.0,0.0,1.0,1.0,0.0,unchanged_hit_coverage
+CLD-ES-001-Q01,CLD-ES-001,Cloud / DevOps,md,¿Qué es Kubernetes?,True,True,1.0,1.0,0.0,1.0,1.0,0.0,unchanged_hit_coverage
+CLD-ES-001-Q02,CLD-ES-001,Cloud / DevOps,md,¿Qué facilita Kubernetes?,True,True,1.0,1.0,0.0,1.0,1.0,0.0,unchanged_hit_coverage
+CLD-ES-001-Q03,CLD-ES-001,Cloud / DevOps,md,¿En qué año liberó Google el proyecto Kubernetes?,True,True,1.0,1.0,0.0,1.0,1.0,0.0,unchanged_hit_coverage
+CLD-ES-001-Q04,CLD-ES-001,Cloud / DevOps,md,¿En qué tipo de entorno se centra la administración de Kubernetes?,True,True,1.0,1.0,0.0,1.0,1.0,0.0,unchanged_hit_coverage
+CLD-ES-001-Q05,CLD-ES-001,Cloud / DevOps,md,Menciona dos formas de describir a Kubernetes según el documento.,False,False,0.333333,0.333333,0.0,0.557692,0.557692,0.0,unchanged_hit_coverage
+CLD-ES-002-Q01,CLD-ES-002,Cloud / DevOps,md,¿Cuál es el nivel de la ruta de aprendizaje sobre conceptos de la nube?,True,True,1.0,1.0,0.0,1.0,1.0,0.0,unchanged_hit_coverage
+CLD-ES-002-Q02,CLD-ES-002,Cloud / DevOps,md,¿Qué conocimientos previos se piden?,True,True,1.0,1.0,0.0,1.0,1.0,0.0,unchanged_hit_coverage
+CLD-ES-002-Q03,CLD-ES-002,Cloud / DevOps,md,¿Qué temas cubre el módulo 'Descripción de la informática en la nube'?,True,True,0.666667,0.666667,0.0,1.0,1.0,0.0,unchanged_hit_coverage
+CLD-ES-002-Q04,CLD-ES-002,Cloud / DevOps,md,¿Qué aborda el módulo sobre los servicios en la nube?,True,True,1.0,1.0,0.0,1.0,1.0,0.0,unchanged_hit_coverage
+CLD-ES-002-Q05,CLD-ES-002,Cloud / DevOps,md,¿Qué enseña la serie Introducción a la infraestructura en la nube?,True,True,1.0,1.0,0.0,1.0,1.0,0.0,unchanged_hit_coverage
+AI-ES-001-Q01,AI-ES-001,IA,txt,¿Qué pretende introducir este módulo sobre inteligencia artificial?,True,True,0.5,0.5,0.0,1.0,1.0,0.0,unchanged_hit_coverage
+AI-ES-001-Q02,AI-ES-001,IA,txt,¿Es obligatorio conocer aprendizaje automático antes de iniciar el módulo?,True,True,0.666667,0.666667,0.0,1.0,1.0,0.0,unchanged_hit_coverage
+AI-ES-001-Q03,AI-ES-001,IA,txt,Menciona dos cargas de trabajo de IA tratadas en el módulo.,True,True,1.0,1.0,0.0,1.0,1.0,0.0,unchanged_hit_coverage
+AI-ES-001-Q04,AI-ES-001,IA,txt,¿Qué tema del módulo aborda el uso ético o seguro de la IA?,True,True,1.0,1.0,0.0,1.0,1.0,0.0,unchanged_hit_coverage
+AI-ES-001-Q05,AI-ES-001,IA,txt,¿Qué conocimiento previo puede ser útil antes de iniciar el módulo?,True,True,0.75,0.75,0.0,1.0,1.0,0.0,unchanged_hit_coverage
+AI-ES-002-Q01,AI-ES-002,IA,txt,¿Qué conceptos principales de IA generativa aborda el módulo?,True,True,0.75,0.75,0.0,1.0,1.0,0.0,unchanged_hit_coverage
+AI-ES-002-Q02,AI-ES-002,IA,txt,¿Qué debe poder explicar el estudiante sobre los LLM al finalizar?,True,True,0.666667,0.666667,0.0,1.0,1.0,0.0,unchanged_hit_coverage
+AI-ES-002-Q03,AI-ES-002,IA,txt,¿Qué habilidad relacionada con prompts se espera desarrollar?,True,True,0.666667,0.666667,0.0,1.0,1.0,0.0,unchanged_hit_coverage
+AI-ES-002-Q04,AI-ES-002,IA,txt,¿Qué conocimientos previos recomienda el módulo?,True,True,0.5,0.5,0.0,1.0,1.0,0.0,unchanged_hit_coverage
+AI-ES-002-Q05,AI-ES-002,IA,txt,¿El módulo incluye agentes de IA?,True,True,0.5,0.5,0.0,1.0,1.0,0.0,unchanged_hit_coverage
+BE-ES-001-Q01,BE-ES-001,Backend,txt,¿Qué clase se importa para crear una aplicación FastAPI?,True,True,1.0,1.0,0.0,0.614865,0.614865,0.0,unchanged_hit_coverage
+BE-ES-001-Q02,BE-ES-001,Backend,txt,¿Qué representa la variable app en el ejemplo inicial?,True,True,0.5,0.5,0.0,0.602941,0.602941,0.0,unchanged_hit_coverage
+BE-ES-001-Q03,BE-ES-001,Backend,txt,¿Qué indica el decorador @app.get('/')?,True,True,1.0,1.0,0.0,0.990099,0.990099,0.0,unchanged_hit_coverage
+BE-ES-001-Q04,BE-ES-001,Backend,txt,¿Dónde se encuentra la documentación interactiva automática basada en Swagger UI?,True,True,1.0,1.0,0.0,0.901639,0.901639,0.0,unchanged_hit_coverage
+BE-ES-001-Q05,BE-ES-001,Backend,txt,¿Qué archivo expone FastAPI automáticamente con el esquema OpenAPI en JSON?,True,True,1.0,1.0,0.0,0.981481,0.981481,0.0,unchanged_hit_coverage
+BE-ES-002-Q01,BE-ES-002,Backend,txt,¿Qué aplicación se construye en el tutorial de Django?,True,True,1.0,1.0,0.0,1.0,1.0,0.0,unchanged_hit_coverage
+BE-ES-002-Q02,BE-ES-002,Backend,txt,¿Qué dos partes tiene la aplicación de encuestas?,True,True,1.0,1.0,0.0,1.0,1.0,0.0,unchanged_hit_coverage
+BE-ES-002-Q03,BE-ES-002,Backend,txt,¿Qué comando crea el proyecto mysite dentro de djangotutorial?,True,True,1.0,1.0,0.0,0.984615,0.984615,0.0,unchanged_hit_coverage
+BE-ES-002-Q04,BE-ES-002,Backend,txt,¿Qué archivo contiene los ajustes o configuración del proyecto Django?,True,True,1.0,1.0,0.0,0.981481,0.981481,0.0,unchanged_hit_coverage
+BE-ES-002-Q05,BE-ES-002,Backend,txt,¿Cuál es la diferencia entre un proyecto y una app en Django?,True,True,0.75,0.75,0.0,1.0,1.0,0.0,unchanged_hit_coverage
+DS-ES-001-Q01,DS-ES-001,Data Science,txt,¿Qué habilidad relacionada con variables enseña el módulo?,True,True,0.666667,0.666667,0.0,1.0,1.0,0.0,unchanged_hit_coverage
+DS-ES-001-Q02,DS-ES-001,Data Science,txt,¿Qué tipo de operaciones numéricas se practican?,True,True,1.0,1.0,0.0,1.0,1.0,0.0,unchanged_hit_coverage
+DS-ES-001-Q03,DS-ES-001,Data Science,txt,¿Qué habilidad de conversión de datos se enseña?,True,True,0.5,0.5,0.0,1.0,1.0,0.0,unchanged_hit_coverage
+DS-ES-001-Q04,DS-ES-001,Data Science,txt,¿Qué ejercicio práctico aparece en el módulo?,True,True,1.0,1.0,0.0,1.0,1.0,0.0,unchanged_hit_coverage
+DS-ES-001-Q05,DS-ES-001,Data Science,txt,¿Qué aprenderá a almacenar y manipular el estudiante en este módulo?,True,True,1.0,1.0,0.0,1.0,1.0,0.0,unchanged_hit_coverage
+DS-ES-002-Q01,DS-ES-002,Data Science,txt,¿Qué transformación general de los datos motiva el módulo?,True,True,1.0,1.0,0.0,1.0,1.0,0.0,unchanged_hit_coverage
+DS-ES-002-Q02,DS-ES-002,Data Science,txt,¿Qué es uno de los conceptos fundamentales tratados?,True,True,1.0,1.0,0.0,1.0,1.0,0.0,unchanged_hit_coverage
+DS-ES-002-Q03,DS-ES-002,Data Science,txt,¿Qué otro concepto de organización de datos se estudia?,True,True,1.0,1.0,0.0,1.0,1.0,0.0,unchanged_hit_coverage
+DS-ES-002-Q04,DS-ES-002,Data Science,txt,¿Qué aspecto visual del análisis se incluye?,True,True,1.0,1.0,0.0,1.0,1.0,0.0,unchanged_hit_coverage
+DS-ES-002-Q05,DS-ES-002,Data Science,txt,¿Qué requisito previo se indica?,True,True,1.0,1.0,0.0,1.0,1.0,0.0,unchanged_hit_coverage
+FE-ES-001-Q01,FE-ES-001,Frontend,txt,¿Qué es HTML según el documento?,False,False,0.0,0.0,0.0,0.411765,0.411765,0.0,unchanged_hit_coverage
+FE-ES-001-Q02,FE-ES-001,Frontend,txt,¿Qué conceptos básicos de HTML cubre el artículo?,True,True,1.0,1.0,0.0,1.0,1.0,0.0,unchanged_hit_coverage
+FE-ES-001-Q03,FE-ES-001,Frontend,txt,¿Qué aprende el lector sobre los elementos HTML?,True,True,1.0,1.0,0.0,1.0,1.0,0.0,unchanged_hit_coverage
+FE-ES-001-Q04,FE-ES-001,Frontend,txt,¿Qué aprende sobre una página HTML típica?,True,True,1.0,1.0,0.0,1.0,1.0,0.0,unchanged_hit_coverage
+FE-ES-001-Q05,FE-ES-001,Frontend,txt,¿Qué puede hacer una etiqueta HTML con el contenido?,True,True,0.6,0.6,0.0,0.988235,0.988235,0.0,unchanged_hit_coverage
+FE-ES-002-Q01,FE-ES-002,Frontend,txt,¿Qué tipos de estructuras de JavaScript se cubren explícitamente?,True,True,1.0,1.0,0.0,1.0,1.0,0.0,unchanged_hit_coverage
+FE-ES-002-Q02,FE-ES-002,Frontend,txt,¿Qué conocimientos previos se recomiendan?,True,True,1.0,1.0,0.0,1.0,1.0,0.0,unchanged_hit_coverage
+FE-ES-002-Q03,FE-ES-002,Frontend,txt,¿Para qué sirven los bucles en JavaScript?,True,True,0.666667,0.666667,0.0,1.0,1.0,0.0,unchanged_hit_coverage
+FE-ES-002-Q04,FE-ES-002,Frontend,txt,¿Qué ejemplo de evento en una página web menciona el documento?,True,True,1.0,1.0,0.0,1.0,1.0,0.0,unchanged_hit_coverage
+FE-ES-002-Q05,FE-ES-002,Frontend,txt,¿El módulo se limita únicamente a sintaxis básica?,True,True,1.0,1.0,0.0,1.0,1.0,0.0,unchanged_hit_coverage
+CLD-ES-001-Q01,CLD-ES-001,Cloud / DevOps,txt,¿Qué es Kubernetes?,True,True,1.0,1.0,0.0,1.0,1.0,0.0,unchanged_hit_coverage
+CLD-ES-001-Q02,CLD-ES-001,Cloud / DevOps,txt,¿Qué facilita Kubernetes?,True,True,1.0,1.0,0.0,1.0,1.0,0.0,unchanged_hit_coverage
+CLD-ES-001-Q03,CLD-ES-001,Cloud / DevOps,txt,¿En qué año liberó Google el proyecto Kubernetes?,True,True,1.0,1.0,0.0,1.0,1.0,0.0,unchanged_hit_coverage
+CLD-ES-001-Q04,CLD-ES-001,Cloud / DevOps,txt,¿En qué tipo de entorno se centra la administración de Kubernetes?,True,True,1.0,1.0,0.0,1.0,1.0,0.0,unchanged_hit_coverage
+CLD-ES-001-Q05,CLD-ES-001,Cloud / DevOps,txt,Menciona dos formas de describir a Kubernetes según el documento.,False,False,0.333333,0.333333,0.0,0.5,0.5,0.0,unchanged_hit_coverage
+CLD-ES-002-Q01,CLD-ES-002,Cloud / DevOps,txt,¿Cuál es el nivel de la ruta de aprendizaje sobre conceptos de la nube?,True,True,1.0,1.0,0.0,1.0,1.0,0.0,unchanged_hit_coverage
+CLD-ES-002-Q02,CLD-ES-002,Cloud / DevOps,txt,¿Qué conocimientos previos se piden?,True,True,1.0,1.0,0.0,1.0,1.0,0.0,unchanged_hit_coverage
+CLD-ES-002-Q03,CLD-ES-002,Cloud / DevOps,txt,¿Qué temas cubre el módulo 'Descripción de la informática en la nube'?,True,True,0.666667,0.666667,0.0,1.0,1.0,0.0,unchanged_hit_coverage
+CLD-ES-002-Q04,CLD-ES-002,Cloud / DevOps,txt,¿Qué aborda el módulo sobre los servicios en la nube?,True,True,1.0,1.0,0.0,1.0,1.0,0.0,unchanged_hit_coverage
+CLD-ES-002-Q05,CLD-ES-002,Cloud / DevOps,txt,¿Qué enseña la serie Introducción a la infraestructura en la nube?,True,True,1.0,1.0,0.0,1.0,1.0,0.0,unchanged_hit_coverage
+AI-ES-001-Q01,AI-ES-001,IA,pdf,¿Qué pretende introducir este módulo sobre inteligencia artificial?,True,True,0.5,0.5,0.0,1.0,1.0,0.0,unchanged_hit_coverage
+AI-ES-001-Q02,AI-ES-001,IA,pdf,¿Es obligatorio conocer aprendizaje automático antes de iniciar el módulo?,True,True,0.666667,0.666667,0.0,1.0,1.0,0.0,unchanged_hit_coverage
+AI-ES-001-Q03,AI-ES-001,IA,pdf,Menciona dos cargas de trabajo de IA tratadas en el módulo.,True,True,1.0,1.0,0.0,1.0,1.0,0.0,unchanged_hit_coverage
+AI-ES-001-Q04,AI-ES-001,IA,pdf,¿Qué tema del módulo aborda el uso ético o seguro de la IA?,True,True,1.0,1.0,0.0,1.0,1.0,0.0,unchanged_hit_coverage
+AI-ES-001-Q05,AI-ES-001,IA,pdf,¿Qué conocimiento previo puede ser útil antes de iniciar el módulo?,True,True,0.75,0.75,0.0,1.0,1.0,0.0,unchanged_hit_coverage
+AI-ES-002-Q01,AI-ES-002,IA,pdf,¿Qué conceptos principales de IA generativa aborda el módulo?,True,True,0.75,0.75,0.0,1.0,1.0,0.0,unchanged_hit_coverage
+AI-ES-002-Q02,AI-ES-002,IA,pdf,¿Qué debe poder explicar el estudiante sobre los LLM al finalizar?,True,True,0.666667,0.666667,0.0,1.0,1.0,0.0,unchanged_hit_coverage
+AI-ES-002-Q03,AI-ES-002,IA,pdf,¿Qué habilidad relacionada con prompts se espera desarrollar?,True,True,0.666667,0.666667,0.0,1.0,1.0,0.0,unchanged_hit_coverage
+AI-ES-002-Q04,AI-ES-002,IA,pdf,¿Qué conocimientos previos recomienda el módulo?,True,True,0.5,0.5,0.0,1.0,1.0,0.0,unchanged_hit_coverage
+AI-ES-002-Q05,AI-ES-002,IA,pdf,¿El módulo incluye agentes de IA?,True,True,0.5,0.5,0.0,1.0,1.0,0.0,unchanged_hit_coverage
+BE-ES-001-Q01,BE-ES-001,Backend,pdf,¿Qué clase se importa para crear una aplicación FastAPI?,True,True,1.0,1.0,0.0,0.682432,0.682432,0.0,unchanged_hit_coverage
+BE-ES-001-Q02,BE-ES-001,Backend,pdf,¿Qué representa la variable app en el ejemplo inicial?,True,True,0.5,0.5,0.0,0.838235,0.823529,-0.014706,unchanged_hit_coverage
+BE-ES-001-Q03,BE-ES-001,Backend,pdf,¿Qué indica el decorador @app.get('/')?,True,True,1.0,1.0,0.0,0.990099,0.990099,0.0,unchanged_hit_coverage
+BE-ES-001-Q04,BE-ES-001,Backend,pdf,¿Dónde se encuentra la documentación interactiva automática basada en Swagger UI?,True,True,1.0,1.0,0.0,0.983607,0.983607,0.0,unchanged_hit_coverage
+BE-ES-001-Q05,BE-ES-001,Backend,pdf,¿Qué archivo expone FastAPI automáticamente con el esquema OpenAPI en JSON?,True,True,1.0,1.0,0.0,0.981481,0.981481,0.0,unchanged_hit_coverage
+BE-ES-002-Q01,BE-ES-002,Backend,pdf,¿Qué aplicación se construye en el tutorial de Django?,True,True,1.0,1.0,0.0,1.0,1.0,0.0,unchanged_hit_coverage
+BE-ES-002-Q02,BE-ES-002,Backend,pdf,¿Qué dos partes tiene la aplicación de encuestas?,True,True,1.0,1.0,0.0,1.0,1.0,0.0,unchanged_hit_coverage
+BE-ES-002-Q03,BE-ES-002,Backend,pdf,¿Qué comando crea el proyecto mysite dentro de djangotutorial?,True,True,1.0,1.0,0.0,0.892308,0.892308,0.0,unchanged_hit_coverage
+BE-ES-002-Q04,BE-ES-002,Backend,pdf,¿Qué archivo contiene los ajustes o configuración del proyecto Django?,True,True,1.0,1.0,0.0,0.981481,0.981481,0.0,unchanged_hit_coverage
+BE-ES-002-Q05,BE-ES-002,Backend,pdf,¿Cuál es la diferencia entre un proyecto y una app en Django?,True,True,0.75,0.75,0.0,0.954023,0.954023,0.0,unchanged_hit_coverage
+DS-ES-001-Q01,DS-ES-001,Data Science,pdf,¿Qué habilidad relacionada con variables enseña el módulo?,True,True,0.666667,0.666667,0.0,1.0,1.0,0.0,unchanged_hit_coverage
+DS-ES-001-Q02,DS-ES-001,Data Science,pdf,¿Qué tipo de operaciones numéricas se practican?,True,True,1.0,1.0,0.0,1.0,1.0,0.0,unchanged_hit_coverage
+DS-ES-001-Q03,DS-ES-001,Data Science,pdf,¿Qué habilidad de conversión de datos se enseña?,True,True,0.5,0.5,0.0,1.0,1.0,0.0,unchanged_hit_coverage
+DS-ES-001-Q04,DS-ES-001,Data Science,pdf,¿Qué ejercicio práctico aparece en el módulo?,True,True,1.0,1.0,0.0,1.0,1.0,0.0,unchanged_hit_coverage
+DS-ES-001-Q05,DS-ES-001,Data Science,pdf,¿Qué aprenderá a almacenar y manipular el estudiante en este módulo?,True,True,1.0,1.0,0.0,1.0,1.0,0.0,unchanged_hit_coverage
+DS-ES-002-Q01,DS-ES-002,Data Science,pdf,¿Qué transformación general de los datos motiva el módulo?,True,True,1.0,1.0,0.0,1.0,1.0,0.0,unchanged_hit_coverage
+DS-ES-002-Q02,DS-ES-002,Data Science,pdf,¿Qué es uno de los conceptos fundamentales tratados?,True,True,1.0,1.0,0.0,1.0,1.0,0.0,unchanged_hit_coverage
+DS-ES-002-Q03,DS-ES-002,Data Science,pdf,¿Qué otro concepto de organización de datos se estudia?,True,True,1.0,1.0,0.0,1.0,1.0,0.0,unchanged_hit_coverage
+DS-ES-002-Q04,DS-ES-002,Data Science,pdf,¿Qué aspecto visual del análisis se incluye?,True,True,1.0,1.0,0.0,1.0,1.0,0.0,unchanged_hit_coverage
+DS-ES-002-Q05,DS-ES-002,Data Science,pdf,¿Qué requisito previo se indica?,True,True,1.0,1.0,0.0,1.0,1.0,0.0,unchanged_hit_coverage
+FE-ES-001-Q01,FE-ES-001,Frontend,pdf,¿Qué es HTML según el documento?,True,True,0.5,0.5,0.0,1.0,0.988235,-0.011765,unchanged_hit_coverage
+FE-ES-001-Q02,FE-ES-001,Frontend,pdf,¿Qué conceptos básicos de HTML cubre el artículo?,True,True,1.0,1.0,0.0,1.0,1.0,0.0,unchanged_hit_coverage
+FE-ES-001-Q03,FE-ES-001,Frontend,pdf,¿Qué aprende el lector sobre los elementos HTML?,True,True,1.0,1.0,0.0,1.0,1.0,0.0,unchanged_hit_coverage
+FE-ES-001-Q04,FE-ES-001,Frontend,pdf,¿Qué aprende sobre una página HTML típica?,True,True,1.0,1.0,0.0,1.0,1.0,0.0,unchanged_hit_coverage
+FE-ES-001-Q05,FE-ES-001,Frontend,pdf,¿Qué puede hacer una etiqueta HTML con el contenido?,True,True,0.8,0.8,0.0,0.988235,0.988235,0.0,unchanged_hit_coverage
+FE-ES-002-Q01,FE-ES-002,Frontend,pdf,¿Qué tipos de estructuras de JavaScript se cubren explícitamente?,True,True,1.0,1.0,0.0,1.0,1.0,0.0,unchanged_hit_coverage
+FE-ES-002-Q02,FE-ES-002,Frontend,pdf,¿Qué conocimientos previos se recomiendan?,True,True,1.0,1.0,0.0,1.0,1.0,0.0,unchanged_hit_coverage
+FE-ES-002-Q03,FE-ES-002,Frontend,pdf,¿Para qué sirven los bucles en JavaScript?,True,True,0.666667,0.666667,0.0,1.0,1.0,0.0,unchanged_hit_coverage
+FE-ES-002-Q04,FE-ES-002,Frontend,pdf,¿Qué ejemplo de evento en una página web menciona el documento?,True,True,1.0,1.0,0.0,1.0,1.0,0.0,unchanged_hit_coverage
+FE-ES-002-Q05,FE-ES-002,Frontend,pdf,¿El módulo se limita únicamente a sintaxis básica?,True,True,1.0,1.0,0.0,1.0,1.0,0.0,unchanged_hit_coverage
+CLD-ES-001-Q01,CLD-ES-001,Cloud / DevOps,pdf,¿Qué es Kubernetes?,True,True,1.0,1.0,0.0,1.0,1.0,0.0,unchanged_hit_coverage
+CLD-ES-001-Q02,CLD-ES-001,Cloud / DevOps,pdf,¿Qué facilita Kubernetes?,True,True,1.0,1.0,0.0,1.0,1.0,0.0,unchanged_hit_coverage
+CLD-ES-001-Q03,CLD-ES-001,Cloud / DevOps,pdf,¿En qué año liberó Google el proyecto Kubernetes?,True,True,1.0,1.0,0.0,1.0,1.0,0.0,unchanged_hit_coverage
+CLD-ES-001-Q04,CLD-ES-001,Cloud / DevOps,pdf,¿En qué tipo de entorno se centra la administración de Kubernetes?,True,True,1.0,1.0,0.0,1.0,1.0,0.0,unchanged_hit_coverage
+CLD-ES-001-Q05,CLD-ES-001,Cloud / DevOps,pdf,Menciona dos formas de describir a Kubernetes según el documento.,False,False,0.333333,0.333333,0.0,0.615385,0.615385,0.0,unchanged_hit_coverage
+CLD-ES-002-Q01,CLD-ES-002,Cloud / DevOps,pdf,¿Cuál es el nivel de la ruta de aprendizaje sobre conceptos de la nube?,True,True,1.0,1.0,0.0,1.0,1.0,0.0,unchanged_hit_coverage
+CLD-ES-002-Q02,CLD-ES-002,Cloud / DevOps,pdf,¿Qué conocimientos previos se piden?,True,True,1.0,1.0,0.0,1.0,1.0,0.0,unchanged_hit_coverage
+CLD-ES-002-Q03,CLD-ES-002,Cloud / DevOps,pdf,¿Qué temas cubre el módulo 'Descripción de la informática en la nube'?,True,True,0.666667,0.666667,0.0,1.0,1.0,0.0,unchanged_hit_coverage
+CLD-ES-002-Q04,CLD-ES-002,Cloud / DevOps,pdf,¿Qué aborda el módulo sobre los servicios en la nube?,True,True,1.0,1.0,0.0,1.0,1.0,0.0,unchanged_hit_coverage
+CLD-ES-002-Q05,CLD-ES-002,Cloud / DevOps,pdf,¿Qué enseña la serie Introducción a la infraestructura en la nube?,True,True,1.0,1.0,0.0,1.0,1.0,0.0,unchanged_hit_coverage

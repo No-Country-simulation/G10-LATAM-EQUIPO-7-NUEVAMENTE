@@ -96,6 +96,18 @@ class Settings(BaseSettings):
         gt=0,
     )
 
+    # --- Data/IA ---
+    DATA_IA_BASE_URL: str = (
+        "http://localhost:8002"
+    )
+    DATA_IA_EVALUATE_PATH: str = (
+        "/evaluate"
+    )
+    DATA_IA_TIMEOUT_SECONDS: float = Field(
+        default=60.0,
+        gt=0,
+    )
+
     @field_validator(
         "BACKEND_CORS_ORIGINS",
         mode="before",
@@ -128,6 +140,7 @@ class Settings(BaseSettings):
     @field_validator(
         "RAG_BASE_URL",
         "AGENTS_BASE_URL",
+        "DATA_IA_BASE_URL",
     )
     @classmethod
     def _validate_service_base_url(
@@ -155,6 +168,7 @@ class Settings(BaseSettings):
     @field_validator(
         "RAG_INDEX_PATH",
         "AGENTS_GENERATE_PATH",
+        "DATA_IA_EVALUATE_PATH",
     )
     @classmethod
     def _validate_service_path(

@@ -369,7 +369,256 @@ class FlashcardsContent:
         )
 
 
+@dataclass(frozen=True, slots=True)
+class TLDRContent:
+    """Resumen ejecutivo canónico alineado con Data/IA."""
+
+    title: str
+    summary: str
+    key_points: tuple[str, ...]
+    conclusion: str
+
+    def __post_init__(self) -> None:
+        if not self.title.strip():
+            raise ValueError(
+                "title no puede estar vacío."
+            )
+
+        if not self.summary.strip():
+            raise ValueError(
+                "summary no puede estar vacío."
+            )
+
+        if not self.conclusion.strip():
+            raise ValueError(
+                "conclusion no puede estar vacío."
+            )
+
+    def to_dict(self) -> dict[str, object]:
+        """Convierte TLDR al contrato JSON canónico."""
+        return {
+            "title": self.title,
+            "summary": self.summary,
+            "key_points": list(
+                self.key_points
+            ),
+            "conclusion": self.conclusion,
+        }
+
+    @classmethod
+    def from_dict(
+        cls,
+        data: dict[str, object],
+    ) -> "TLDRContent":
+        """Construye TLDR desde el contrato acordado con Data/IA."""
+        key_points = data.get(
+            "key_points",
+            [],
+        )
+
+        if not isinstance(
+            key_points,
+            list,
+        ):
+            raise ValueError(
+                "key_points debe ser una lista."
+            )
+
+        return cls(
+            title=str(
+                data["title"]
+            ),
+            summary=str(
+                data["summary"]
+            ),
+            key_points=tuple(
+                str(key_point)
+                for key_point
+                in key_points
+            ),
+            conclusion=str(
+                data["conclusion"]
+            ),
+        )
+
+
+@dataclass(frozen=True, slots=True)
+class VideoScriptScene:
+    """Escena individual del guion de video canónico."""
+
+    scene_id: str
+    title: str
+    visual_description: str
+    narration: str
+    duration_seconds: int = 0
+
+    def __post_init__(self) -> None:
+        if not self.scene_id.strip():
+            raise ValueError(
+                "scene_id no puede estar vacío."
+            )
+
+        if not self.title.strip():
+            raise ValueError(
+                "title no puede estar vacío."
+            )
+
+        if not self.visual_description.strip():
+            raise ValueError(
+                "visual_description no puede estar vacío."
+            )
+
+        if not self.narration.strip():
+            raise ValueError(
+                "narration no puede estar vacío."
+            )
+
+        if self.duration_seconds < 0:
+            raise ValueError(
+                "duration_seconds debe ser mayor o igual a 0."
+            )
+
+    def to_dict(self) -> dict[str, object]:
+        """Convierte una escena al contrato JSON canónico."""
+        return {
+            "scene_id": self.scene_id,
+            "title": self.title,
+            "visual_description": (
+                self.visual_description
+            ),
+            "narration": self.narration,
+            "duration_seconds": (
+                self.duration_seconds
+            ),
+        }
+
+    @classmethod
+    def from_dict(
+        cls,
+        data: dict[str, object],
+    ) -> "VideoScriptScene":
+        """Construye una escena desde JSON."""
+        return cls(
+            scene_id=str(
+                data["scene_id"]
+            ),
+            title=str(
+                data["title"]
+            ),
+            visual_description=str(
+                data["visual_description"]
+            ),
+            narration=str(
+                data["narration"]
+            ),
+            duration_seconds=int(
+                data.get(
+                    "duration_seconds",
+                    0,
+                )
+            ),
+        )
+
+
+@dataclass(frozen=True, slots=True)
+class VideoScriptContent:
+    """Guion de video canónico alineado con Data/IA."""
+
+    title: str
+    estimated_duration_minutes: int
+    scenes: tuple[
+        VideoScriptScene,
+        ...
+    ]
+
+    def __post_init__(self) -> None:
+        if not self.title.strip():
+            raise ValueError(
+                "title no puede estar vacío."
+            )
+
+        if self.estimated_duration_minutes < 0:
+            raise ValueError(
+                "estimated_duration_minutes debe ser "
+                "mayor o igual a 0."
+            )
+
+        if not self.scenes:
+            raise ValueError(
+                "scenes debe contener al menos una escena."
+            )
+
+    def to_dict(self) -> dict[str, object]:
+        """Convierte Video Script al contrato JSON canónico."""
+        return {
+            "title": self.title,
+            "estimated_duration_minutes": (
+                self.estimated_duration_minutes
+            ),
+            "scenes": [
+                scene.to_dict()
+                for scene in self.scenes
+            ],
+        }
+
+    @classmethod
+    def from_dict(
+        cls,
+        data: dict[str, object],
+    ) -> "VideoScriptContent":
+        """Construye Video Script desde el contrato de Data/IA."""
+        scenes = data.get(
+            "scenes"
+        )
+
+        if not isinstance(
+            scenes,
+            list,
+        ):
+            raise ValueError(
+                "scenes debe ser una lista."
+            )
+
+        parsed_scenes: list[
+            VideoScriptScene
+        ] = []
+
+        for index, scene in enumerate(
+            scenes
+        ):
+            if not isinstance(
+                scene,
+                dict,
+            ):
+                raise ValueError(
+                    f"scenes[{index}] debe ser un objeto."
+                )
+
+            parsed_scenes.append(
+                VideoScriptScene.from_dict(
+                    scene
+                )
+            )
+
+        return cls(
+            title=str(
+                data["title"]
+            ),
+            estimated_duration_minutes=int(
+                data.get(
+                    "estimated_duration_minutes",
+                    0,
+                )
+            ),
+            scenes=tuple(
+                parsed_scenes
+            ),
+        )
+
+
 GeneratedContent = (
     QuizContent
     | FlashcardsContent
+    | TLDRContent
+    | VideoScriptContent
 )

@@ -46,6 +46,21 @@ def _build_request(
     )
 
 
+def _learning_metadata_payload() -> dict[str, object]:
+    """Construye metadata pedagógica válida a nivel raíz."""
+    return {
+        "key_concepts": [
+            "BackendAPI",
+            "Orquestación",
+            "Persistencia",
+        ],
+        "prerequisites": [
+            "Fundamentos de APIs REST",
+        ],
+        "estimated_time_minutes": 15,
+    }
+
+
 def _success_response() -> dict[str, object]:
     """Construye una respuesta canónica válida de Agentes."""
     evidence = [
@@ -60,6 +75,9 @@ def _success_response() -> dict[str, object]:
 
     return {
         "document_id": "doc_123",
+        "learning_metadata": (
+            _learning_metadata_payload()
+        ),
         "results": [
             {
                 "format": "quiz",
@@ -173,8 +191,8 @@ def test_http_agents_adapter_sends_canonical_request() -> None:
     )
 
 
-def test_http_agents_adapter_maps_successful_formats() -> None:
-    """Mapea Quiz, Flashcards y evidencias al dominio Backend."""
+def test_http_agents_adapter_maps_successful_formats_and_metadata() -> None:
+    """Mapea formatos, evidencias y metadata pedagógica al dominio."""
 
     transport = httpx.MockTransport(
         lambda request: httpx.Response(
@@ -200,6 +218,25 @@ def test_http_agents_adapter_maps_successful_formats() -> None:
             assert (
                 result.document_id
                 == "doc_123"
+            )
+
+            assert (
+                result.learning_metadata.key_concepts
+                == (
+                    "BackendAPI",
+                    "Orquestación",
+                    "Persistencia",
+                )
+            )
+            assert (
+                result.learning_metadata.prerequisites
+                == (
+                    "Fundamentos de APIs REST",
+                )
+            )
+            assert (
+                result.learning_metadata.estimated_time_minutes
+                == 15
             )
 
             assert len(
@@ -244,10 +281,15 @@ def test_http_agents_adapter_maps_successful_formats() -> None:
 
 
 def test_http_agents_adapter_maps_no_results() -> None:
-    """Conserva no_results y su mensaje de error."""
+    """Conserva no_results y el fallback de metadata."""
 
     response_payload = {
         "document_id": "doc_123",
+        "learning_metadata": {
+            "key_concepts": [],
+            "prerequisites": [],
+            "estimated_time_minutes": 0,
+        },
         "results": [
             {
                 "format": "quiz",
@@ -306,6 +348,19 @@ def test_http_agents_adapter_maps_no_results() -> None:
                 "No se encontró contexto suficiente."
             )
 
+            assert (
+                result.learning_metadata.key_concepts
+                == ()
+            )
+            assert (
+                result.learning_metadata.prerequisites
+                == ()
+            )
+            assert (
+                result.learning_metadata.estimated_time_minutes
+                == 0
+            )
+
     asyncio.run(
         run_test()
     )
@@ -350,6 +405,46 @@ def test_http_agents_adapter_omits_optional_objective() -> None:
                     learning_objective=None
                 )
             )
+
+    asyncio.run(
+        run_test()
+    )
+
+
+def test_http_agents_adapter_rejects_missing_learning_metadata() -> None:
+    """Rechaza una respuesta 2xx que no cumple el contrato raíz."""
+
+    payload = _success_response()
+    payload.pop(
+        "learning_metadata"
+    )
+
+    transport = httpx.MockTransport(
+        lambda request: httpx.Response(
+            status_code=200,
+            json=payload,
+        )
+    )
+
+    async def run_test() -> None:
+        async with httpx.AsyncClient(
+            transport=transport,
+            base_url="http://agents.test",
+        ) as client:
+            adapter = HTTPAgentsAdapter(
+                client=client,
+                generate_path="/api/v1/generate",
+            )
+
+            with pytest.raises(
+                AgentsError,
+                match=(
+                    "respuesta de generación inválida"
+                ),
+            ):
+                await adapter.generate_formats(
+                    _build_request()
+                )
 
     asyncio.run(
         run_test()

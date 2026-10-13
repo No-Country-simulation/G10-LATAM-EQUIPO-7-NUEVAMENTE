@@ -13,6 +13,9 @@ from app.application.document_service import (
 from app.application.format_generation_service import (
     FormatGenerationService,
 )
+from app.application.format_regeneration_service import (
+    FormatRegenerationService,
+)
 from app.application.generated_format_query_service import (
     GeneratedFormatQueryService,
 )
@@ -62,6 +65,24 @@ def get_format_generation_service(
     if service is None:
         raise RuntimeError(
             "FormatGenerationService no fue inicializado."
+        )
+
+    return service
+
+
+def get_format_regeneration_service(
+    request: Request,
+) -> FormatRegenerationService:
+    """Obtiene el servicio de regeneración de formatos configurado."""
+    service = getattr(
+        request.app.state,
+        "format_regeneration_service",
+        None,
+    )
+
+    if service is None:
+        raise RuntimeError(
+            "FormatRegenerationService no fue inicializado."
         )
 
     return service

@@ -1,0 +1,43 @@
+﻿rank,chunk_id,document_id,vector_rank,bm25_rank,score,rrf_score,cross_score,matched_keywords,chunk_evidence_coverage,cumulative_matched_keywords,cumulative_evidence_coverage,threshold_reached,text
+1,CLD-ES-001_1_3,CLD-ES-001,7,4,,0.03055037313432836,5.01863956451416,,0.0,,0.0,False,"Además, el Plano de Control de Kubernetes usa las mismas APIs que usan los desarrolladores y usuarios finales.
+Los usuarios pueden escribir sus propios controladores, como por ejemplo un planificador o scheduler ,
+usando sus propias
+APIs desde una herramienta de línea de comandos .
+
+Este diseño ha permitido que otros sistemas sean construidos sobre Kubernetes.
+Lo que Kubernetes no es
+
+Kubernetes no es una Plataforma como Servicio (PaaS) convencional. Ya que
+Kubernetes opera a nivel del contenedor y no a nivel del hardware, ofrece
+algunas características que las PaaS también ofrecen, como deployments,
+escalado, balanceo de carga, registros y monitoreo. Dicho esto, Kubernetes
+no es monolítico y las soluciones que se ofrecen de forma predeterminada
+son opcionales e intercambiables."
+2,CLD-ES-001_1_4,CLD-ES-001,8,15,,0.02803921568627451,4.034707546234131,,0.0,,0.0,False,"Kubernetes ofrece los elementos esenciales para construir una plataforma
+para desarrolladores, preservando la elección del usuario y la flexibilidad
+en las partes más importantes."
+3,CLD-ES-001_1_2,CLD-ES-001,6,3,,0.031024531024531024,3.9100093841552734,,0.0,,0.0,False,"A pesar de que Kubernetes ya ofrece muchas funcionalidades, siempre hay nuevos
+escenarios que se benefician de nuevas características. Los flujos de trabajo
+de las aplicaciones pueden optimizarse para acelerar el tiempo de desarrollo.
+Una solución de orquestación propia puede ser suficiente al principio, pero suele requerir
+una automatización robusta cuando necesita escalar. Es por ello que Kubernetes fue diseñada como
+una plataforma: para poder construir un ecosistema de componentes y herramientas que hacen
+más fácil el desplegar, escalar y administrar aplicaciones.
+
+Las etiquetas, o Labels , le
+permiten a los usuarios organizar sus recursos como deseen. Las anotaciones, o Annotations , les permiten asignar información arbitraria a un recurso para
+facilitar sus flujos de trabajo y hacer más fácil a las herramientas administrativas inspeccionar el estado."
+4,CLD-ES-001_1_14,CLD-ES-001,4,7,,0.03055037313432836,3.5494258403778076,,0.0,,0.0,False,"El nombre Kubernetes proviene del griego y significa timonel o piloto . Es la raíz de gobernador y de cibernética . K8s es una abrevación que se obtiene al reemplazar las ocho letras ""ubernete"" con el número 8.
+¿Qué sigue?
+- ¿Estás listo para empezar ?
+- Para saber más, visita el resto de la documentación de Kubernetes .
+Comentarios
+
+¿Fue útil esta página?
+
+Gracias por la retroalimentacion. Si tienes una pregunta específica y respondible sobre cómo usar Kubernetes, hazla en Stack Overflow .
+Abre un issue en el Repositorio de GitHub si deseas reportar un problema o sugerir una mejora ."
+5,CLD-ES-001_1_7,CLD-ES-001,3,1,,0.032266458495966696,3.4622721672058105,contenedores,0.333333,contenedores,0.333333,False,"Además, Kubernetes no es un mero sistema de orquestación . De hecho, Kubernetes elimina la necesidad de orquestar. Orquestación se define como la ejecución de un flujo de trabajo definido: haz A, luego B y entonces C. Kubernetes está compuesto de un conjunto de procesos de control independientes y combinables entre si que llevan el estado actual hacia el estado deseado. No debería importar demasiado como llegar de A a C. No se requiere control centralizado y, como resultado, el sistema es más fácil de usar, más poderoso, robusto, resiliente y extensible.
+¿Por qué usar contenedores?
+
+¿Te preguntas las razones para usar contenedores?"

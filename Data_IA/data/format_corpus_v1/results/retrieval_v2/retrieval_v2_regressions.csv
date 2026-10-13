@@ -1,0 +1,1 @@
+case_id,document_id,category,format,query,v1_evidence_hit,v2_evidence_hit,v1_evidence_coverage,v2_evidence_coverage,delta_evidence_coverage,v1_reference_token_recall,v2_reference_token_recall,delta_reference_token_recall,change

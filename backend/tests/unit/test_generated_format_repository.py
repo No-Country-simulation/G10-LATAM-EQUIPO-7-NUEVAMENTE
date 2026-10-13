@@ -312,6 +312,30 @@ def test_repository_persists_and_restores_quiz(
         == "Comprender los conceptos principales."
     )
 
+def build_processing_format(
+    *,
+    format_id: str = "fmt_processing_1",
+    document_id: str = DOCUMENT_ID,
+    created_at: datetime | None = None,
+) -> GeneratedFormat:
+    """Construye un intento de generación en procesamiento."""
+    timestamp = (
+        created_at
+        or datetime.now(UTC)
+    )
+
+    return GeneratedFormat(
+        format_id=format_id,
+        document_id=document_id,
+        format_type=GeneratedFormatType.QUIZ,
+        status=GeneratedFormatStatus.PROCESSING,
+        generation_context=build_context(),
+        content=None,
+        chunks_used=(),
+        error_message=None,
+        created_at=timestamp,
+        updated_at=timestamp,
+    )
 
 def test_repository_finds_quiz_and_flashcards_by_document(
     tmp_path: Path,
@@ -561,3 +585,122 @@ def test_repository_rejects_unknown_document(
         repository.create(
             quiz
         )
+
+def test_repository_persists_processing_generation(
+    tmp_path: Path,
+) -> None:
+    """Persiste y reconstruye un intento processing."""
+    document_repository, repository = (
+        build_repositories(
+            tmp_path
+        )
+    )
+
+    document_repository.create(
+        build_document()
+    )
+
+    processing = build_processing_format()
+
+    repository.create(
+        processing
+    )
+
+    stored = repository.find_by_id(
+        processing.format_id
+    )
+
+    assert stored is not None
+
+    assert (
+        stored.format_id
+        == processing.format_id
+    )
+    assert (
+        stored.status
+        == GeneratedFormatStatus.PROCESSING
+    )
+    assert stored.content is None
+    assert stored.chunks_used == ()
+    assert stored.error_message is None
+
+
+def test_repository_updates_processing_generation_to_success(
+    tmp_path: Path,
+) -> None:
+    """Actualiza el mismo intento sin crear una segunda generación."""
+    document_repository, repository = (
+        build_repositories(
+            tmp_path
+        )
+    )
+
+    document_repository.create(
+        build_document()
+    )
+
+    processing = build_processing_format(
+        format_id="fmt_quiz_processing"
+    )
+
+    repository.create(
+        processing
+    )
+
+    successful_quiz = build_quiz(
+        format_id=processing.format_id,
+        created_at=processing.created_at,
+    )
+
+    completed = GeneratedFormat(
+        format_id=processing.format_id,
+        document_id=processing.document_id,
+        format_type=processing.format_type,
+        status=GeneratedFormatStatus.SUCCESS,
+        generation_context=(
+            processing.generation_context
+        ),
+        content=successful_quiz.content,
+        chunks_used=successful_quiz.chunks_used,
+        error_message=None,
+        created_at=processing.created_at,
+        updated_at=(
+            processing.updated_at
+            + timedelta(seconds=1)
+        ),
+    )
+
+    repository.update(
+        completed
+    )
+
+    stored = repository.find_by_id(
+        processing.format_id
+    )
+
+    assert stored is not None
+
+    assert (
+        stored.format_id
+        == processing.format_id
+    )
+    assert (
+        stored.status
+        == GeneratedFormatStatus.SUCCESS
+    )
+    assert isinstance(
+        stored.content,
+        QuizContent,
+    )
+
+    history = (
+        repository.find_by_document_id(
+            DOCUMENT_ID
+        )
+    )
+
+    assert len(history) == 1
+    assert (
+        history[0].format_id
+        == processing.format_id
+    )

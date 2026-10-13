@@ -188,8 +188,11 @@ def build_quiz(
         ),
         error_message=(
             None
-            if successful
-            else "No fue posible generar el Quiz."
+            if status in {
+                GeneratedFormatStatus.SUCCESS,
+                GeneratedFormatStatus.PROCESSING,
+            }
+            else "No fue posible generar el formato."
         ),
         created_at=timestamp,
         updated_at=timestamp,
@@ -247,8 +250,11 @@ def build_flashcards(
         ),
         error_message=(
             None
-            if successful
-            else "No fue posible generar Flashcards."
+            if status in {
+                GeneratedFormatStatus.SUCCESS,
+                GeneratedFormatStatus.PROCESSING,
+            }
+            else "No fue posible generar el formato."
         ),
         created_at=timestamp,
         updated_at=timestamp,
@@ -571,4 +577,150 @@ def test_query_selects_latest_successful_generation() -> None:
     assert (
         result.status
         == DocumentFormatsStatus.PARTIAL
+    )
+
+def test_query_returns_processing_when_formats_are_being_generated() -> None:
+    """Intentos activos exponen processing para polling de Frontend."""
+    service = build_service(
+        document=build_document(),
+        generated_formats=(
+            build_quiz(
+                status=(
+                    GeneratedFormatStatus.PROCESSING
+                )
+            ),
+            build_flashcards(
+                status=(
+                    GeneratedFormatStatus.PROCESSING
+                )
+            ),
+        ),
+    )
+
+    result = service.get_document_formats(
+        DOCUMENT_ID
+    )
+
+    assert (
+        result.status
+        == DocumentFormatsStatus.PROCESSING
+    )
+
+    assert {
+        generated_format.status
+        for generated_format
+        in result.formats
+    } == {
+        GeneratedFormatStatus.PROCESSING
+    }
+
+
+def test_query_returns_processing_when_one_format_is_still_active() -> None:
+    """El agregado sigue processing mientras quede un formato activo."""
+    service = build_service(
+        document=build_document(),
+        generated_formats=(
+            build_quiz(),
+            build_flashcards(
+                status=(
+                    GeneratedFormatStatus.PROCESSING
+                )
+            ),
+        ),
+    )
+
+    result = service.get_document_formats(
+        DOCUMENT_ID
+    )
+
+    assert (
+        result.status
+        == DocumentFormatsStatus.PROCESSING
+    )
+
+    statuses_by_type = {
+        generated_format.format_type:
+        generated_format.status
+        for generated_format
+        in result.formats
+    }
+
+    assert (
+        statuses_by_type[
+            GeneratedFormatType.QUIZ
+        ]
+        == GeneratedFormatStatus.SUCCESS
+    )
+
+    assert (
+        statuses_by_type[
+            GeneratedFormatType.FLASHCARDS
+        ]
+        == GeneratedFormatStatus.PROCESSING
+    )
+
+
+def test_query_prioritizes_active_processing_over_previous_success() -> None:
+    """Un nuevo intento activo se expone mientras conserva el éxito histórico."""
+    first_timestamp = datetime(
+        2026,
+        10,
+        6,
+        12,
+        0,
+        tzinfo=UTC,
+    )
+
+    successful_quiz = build_quiz(
+        format_id="fmt_quiz_success",
+        created_at=first_timestamp,
+    )
+
+    processing_quiz = build_quiz(
+        format_id="fmt_quiz_processing",
+        status=(
+            GeneratedFormatStatus.PROCESSING
+        ),
+        created_at=(
+            first_timestamp
+            + timedelta(minutes=5)
+        ),
+    )
+
+    service = build_service(
+        document=build_document(),
+        generated_formats=(
+            successful_quiz,
+            processing_quiz,
+            build_flashcards(),
+        ),
+    )
+
+    result = service.get_document_formats(
+        DOCUMENT_ID
+    )
+
+    assert (
+        result.status
+        == DocumentFormatsStatus.PROCESSING
+    )
+
+    current_quiz = next(
+        generated_format
+        for generated_format
+        in result.formats
+        if (
+            generated_format.format_type
+            == GeneratedFormatType.QUIZ
+        )
+    )
+
+    assert (
+        current_quiz.format_id
+        == "fmt_quiz_processing"
+    )
+
+    assert (
+        current_quiz.status
+        == GeneratedFormatStatus.PROCESSING
     )

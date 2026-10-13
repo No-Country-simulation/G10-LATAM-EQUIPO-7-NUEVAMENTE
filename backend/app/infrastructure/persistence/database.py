@@ -14,6 +14,7 @@ CREATE TABLE IF NOT EXISTS documents (
     size_bytes INTEGER NOT NULL,
     status TEXT NOT NULL,
     oci_object_name TEXT,
+    learning_metadata_json TEXT,
     created_at TEXT NOT NULL,
     updated_at TEXT NOT NULL
 );
@@ -28,13 +29,60 @@ CREATE TABLE IF NOT EXISTS generated_formats (
         CHECK (
             format_type IN (
                 'quiz',
-                'flashcards'
+                'flashcards',
+                'tldr',
+                'video_script'
             )
         ),
 
     status TEXT NOT NULL
         CHECK (
             status IN (
+                'processing',
+                'success',
+                'failed',
+                'no_results'
+            )
+        ),
+
+    content_json TEXT,
+    chunks_used_json TEXT NOT NULL DEFAULT '[]',
+
+    profile TEXT NOT NULL,
+    niche TEXT NOT NULL,
+    detail_level TEXT NOT NULL,
+    learning_objective TEXT,
+
+    error_message TEXT,
+
+    created_at TEXT NOT NULL,
+    updated_at TEXT NOT NULL,
+
+    FOREIGN KEY (document_id)
+        REFERENCES documents(document_id)
+        ON DELETE CASCADE
+);
+"""
+
+_GENERATED_FORMATS_MIGRATION_TABLE_SQL = """
+CREATE TABLE generated_formats_migrated (
+    format_id TEXT PRIMARY KEY,
+    document_id TEXT NOT NULL,
+
+    format_type TEXT NOT NULL
+        CHECK (
+            format_type IN (
+                'quiz',
+                'flashcards',
+                'tldr',
+                'video_script'
+            )
+        ),
+
+    status TEXT NOT NULL
+        CHECK (
+            status IN (
+                'processing',
                 'success',
                 'failed',
                 'no_results'
@@ -125,6 +173,14 @@ _SCHEMA_INDEXES_SQL = (
     """,
 )
 
+_REQUIRED_GENERATED_FORMAT_SCHEMA_TOKENS = (
+    "'processing'",
+    "'quiz'",
+    "'flashcards'",
+    "'tldr'",
+    "'video_script'",
+)
+
 
 class SQLiteDatabase:
     """Gestiona conexiones y creación del esquema SQLite."""
@@ -198,14 +254,18 @@ class SQLiteDatabase:
     def initialize(
         self,
     ) -> None:
-        """Crea todas las estructuras requeridas por BackendAPI."""
+        """Crea y actualiza las estructuras requeridas por BackendAPI."""
         with self.connect() as connection:
             connection.execute(
                 _DOCUMENTS_TABLE_SQL
             )
 
-            connection.execute(
-                _GENERATED_FORMATS_TABLE_SQL
+            self._ensure_generated_formats_schema(
+                connection
+            )
+
+            self._ensure_documents_schema(
+                connection
             )
 
             connection.execute(
@@ -218,3 +278,162 @@ class SQLiteDatabase:
                 connection.execute(
                     statement
                 )
+
+    @staticmethod
+    def _ensure_documents_schema(
+        connection: sqlite3.Connection,
+    ) -> None:
+        """Añade metadata pedagógica a bases creadas antes de Sprint 3."""
+        columns = {
+            row["name"]
+            for row in connection.execute(
+                "PRAGMA table_info(documents)"
+            ).fetchall()
+        }
+
+        if (
+            "learning_metadata_json"
+            not in columns
+        ):
+            connection.execute(
+                """
+                ALTER TABLE documents
+                ADD COLUMN learning_metadata_json TEXT
+                """
+            )
+
+    @staticmethod
+    def _ensure_generated_formats_schema(
+        connection: sqlite3.Connection,
+    ) -> None:
+        """Garantiza el CHECK vigente de estados y formatos.
+
+        SQLite no permite modificar directamente una restricción ``CHECK``.
+        Si la tabla existente no admite ``processing`` o cualquiera de los
+        cuatro formatos canónicos, se reconstruye dentro de una transacción
+        conservando todos los registros.
+
+        Esto cubre tanto bases antiguas de Sprint 2 como bases de Sprint 3
+        creadas cuando únicamente existían ``quiz`` y ``flashcards``.
+
+        Las claves foráneas se desactivan únicamente durante la
+        reconstrucción porque ``format_evaluations`` puede referenciar
+        la tabla que se reemplaza. Antes de confirmar la migración se
+        ejecuta ``foreign_key_check``.
+        """
+        schema_row = connection.execute(
+            """
+            SELECT sql
+            FROM sqlite_master
+            WHERE
+                type = 'table'
+                AND name = 'generated_formats'
+            """
+        ).fetchone()
+
+        if schema_row is None:
+            connection.execute(
+                _GENERATED_FORMATS_TABLE_SQL
+            )
+            return
+
+        schema_sql = (
+            schema_row["sql"] or ""
+        ).lower()
+
+        schema_is_current = all(
+            token in schema_sql
+            for token
+            in _REQUIRED_GENERATED_FORMAT_SCHEMA_TOKENS
+        )
+
+        if schema_is_current:
+            return
+
+        connection.execute(
+            "PRAGMA foreign_keys = OFF"
+        )
+
+        try:
+            connection.execute(
+                "BEGIN"
+            )
+
+            connection.execute(
+                """
+                DROP TABLE IF EXISTS
+                    generated_formats_migrated
+                """
+            )
+
+            connection.execute(
+                _GENERATED_FORMATS_MIGRATION_TABLE_SQL
+            )
+
+            connection.execute(
+                """
+                INSERT INTO generated_formats_migrated (
+                    format_id,
+                    document_id,
+                    format_type,
+                    status,
+                    content_json,
+                    chunks_used_json,
+                    profile,
+                    niche,
+                    detail_level,
+                    learning_objective,
+                    error_message,
+                    created_at,
+                    updated_at
+                )
+                SELECT
+                    format_id,
+                    document_id,
+                    format_type,
+                    status,
+                    content_json,
+                    chunks_used_json,
+                    profile,
+                    niche,
+                    detail_level,
+                    learning_objective,
+                    error_message,
+                    created_at,
+                    updated_at
+                FROM generated_formats
+                """
+            )
+
+            connection.execute(
+                "DROP TABLE generated_formats"
+            )
+
+            connection.execute(
+                """
+                ALTER TABLE generated_formats_migrated
+                RENAME TO generated_formats
+                """
+            )
+
+            violations = connection.execute(
+                "PRAGMA foreign_key_check"
+            ).fetchall()
+
+            if violations:
+                raise sqlite3.IntegrityError(
+                    "La migración de generated_formats "
+                    "produjo referencias inválidas."
+                )
+
+            connection.commit()
+
+        except Exception:
+            if connection.in_transaction:
+                connection.rollback()
+            raise
+
+        finally:
+            connection.execute(
+                "PRAGMA foreign_keys = ON"
+            )
