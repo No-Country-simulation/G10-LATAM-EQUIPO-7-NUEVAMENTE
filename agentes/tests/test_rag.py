@@ -96,8 +96,10 @@ def test_retriever_rejects_invalid_top_k(vector_store):
 
 def test_retrieve_for_evaluation_requires_case_id(vector_store):
     retriever = RetrieverService(vector_store)
-    with pytest.raises(ValueError):
-        retriever.retrieve_for_evaluation(case_id="", query="kubernetes")
+    # AHORA ESPERA EL JSON DE ERROR ESTRUCTURADO EN VEZ DEL ValueError
+    response = retriever.retrieve_for_evaluation(case_id="", query="kubernetes")
+    assert response["status"] == "error"
+    assert response["error"]["code"] == "INVALID_INPUT"
 
 
 def test_retrieve_for_evaluation_success_shape(vector_store):
