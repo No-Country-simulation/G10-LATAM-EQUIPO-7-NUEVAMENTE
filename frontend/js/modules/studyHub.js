@@ -286,22 +286,45 @@ export const studyHub = {
       return;
     }
 
+    // Formatos válidos que ya han tenido al menos un intento en este documento
+    const existingFormatKeys = ['quiz', 'flashcards', 'tldr', 'video_script'].filter(fmt => {
+      const entry = currentFormats[fmt];
+      return entry && (entry.format_id || entry.status || entry.content);
+    });
+
     let formatsToRegenerate = [];
 
     if (Array.isArray(explicitFormats) && explicitFormats.length > 0) {
+      // Validar si alguno de los formatos solicitados carece de intento previo en este documento
+      const missingPrior = explicitFormats.filter(fmt => {
+        const entry = currentFormats[fmt];
+        return !entry || (!entry.format_id && entry.status !== 'processing' && entry.status !== 'pending' && entry.status !== 'failed');
+      });
+
+      if (missingPrior.length > 0) {
+        notifyWarning(
+          'Generación Previa Requerida',
+          `El formato "${missingPrior.join(', ')}" no fue generado para este documento. Vuelve a subir el documento al catálogo para generar todos los formatos.`
+        );
+        return;
+      }
       formatsToRegenerate = explicitFormats;
     } else if (globalStatus === 'partial') {
-      // Comportamiento de conveniencia UX: reintentar formatos que presentaron fallo
-      ['quiz', 'flashcards', 'tldr', 'video_script'].forEach(fmt => {
+      // Reintentar los formatos que presentaron fallo entre los que existen
+      const candidates = existingFormatKeys.length > 0 ? existingFormatKeys : ['quiz', 'flashcards'];
+      candidates.forEach(fmt => {
         if (currentFormats[fmt]?.status === 'failed' || currentFormats[fmt]?.status === 'no_results') {
           formatsToRegenerate.push(fmt);
         }
       });
       if (formatsToRegenerate.length === 0) {
-        formatsToRegenerate = ['quiz', 'flashcards', 'tldr', 'video_script'];
+        formatsToRegenerate = candidates;
       }
     } else {
-      formatsToRegenerate = ['quiz', 'flashcards', 'tldr', 'video_script'];
+      // Regenerar todos los formatos que efectivamente existen en el documento
+      formatsToRegenerate = existingFormatKeys.length > 0
+        ? existingFormatKeys
+        : ['quiz', 'flashcards'];
     }
 
     this.isFetchingFormats = true;
@@ -347,6 +370,19 @@ export const studyHub = {
       if (err.status === 409 && (err.code === 'FORMAT_REGENERATION_IN_PROGRESS' || friendly.code === 'FORMAT_REGENERATION_IN_PROGRESS')) {
         notifyWarning(friendly.title, friendly.message);
         this.startPolling(doc.id);
+      } else if (err.status === 409 && (err.code === 'FORMAT_CONTEXT_NOT_FOUND' || friendly.code === 'FORMAT_CONTEXT_NOT_FOUND')) {
+        statusDialog.showError({
+          status: 409,
+          code: 'FORMAT_CONTEXT_NOT_FOUND',
+          title: 'Historial de Formato No Encontrado',
+          message: 'No existe una generación previa de este formato para este documento.',
+          details: [
+            friendly.message,
+            'Este documento fue procesado con una versión previa. Para generar los 4 formatos completos, sube nuevamente el archivo desde el Catálogo.'
+          ],
+          filename: doc.filename || doc.title
+        });
+        notifyWarning('Formato No Disponible', friendly.message);
       } else {
         statusDialog.showError({
           status: friendly.status,
