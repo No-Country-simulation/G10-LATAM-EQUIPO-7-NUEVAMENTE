@@ -107,10 +107,10 @@ def test_generate_endpoint_metadata_fallback(mock_answer, mock_extract):
     assert response.status_code == 200
     data = response.json()
 
-    # Validación 2: Comportamiento estricto de Fallback
+    # Validación 2: Comportamiento estricto de Fallback (Alineado con API Sprint 3)
     fallback_metadata = data["learning_metadata"]
-    assert fallback_metadata["key_concepts"] == []
-    assert fallback_metadata["prerequisites"] == []
+    assert fallback_metadata["key_concepts"] == ["Error al extraer conceptos"]
+    assert fallback_metadata["prerequisites"] == ["No se pudieron determinar"]
     assert fallback_metadata["estimated_time_minutes"] == 0
 
     # Verificamos que el formato no se rompió por culpa del fallo de los metadatos
