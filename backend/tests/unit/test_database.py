@@ -379,3 +379,115 @@ def test_database_migrates_generated_formats_to_processing_without_data_loss(
 
     # También debe ser idempotente.
     database.initialize()
+
+
+def test_database_creates_is_active_column_on_new_db(
+    tmp_path: Path,
+) -> None:
+    """Una base nueva debe incluir la columna is_active con DEFAULT 1."""
+    database_path = tmp_path / "new_db.db"
+    database = SQLiteDatabase(f"sqlite:///{database_path.as_posix()}")
+    database.initialize()
+
+    with database.connect() as connection:
+        columns = {
+            row["name"]: row
+            for row in connection.execute(
+                "PRAGMA table_info(documents)"
+            ).fetchall()
+        }
+
+        assert "is_active" in columns
+        assert columns["is_active"]["dflt_value"] == "1"
+        assert columns["is_active"]["notnull"] == 1
+
+
+def test_database_migrates_legacy_db_without_is_active(
+    tmp_path: Path,
+) -> None:
+    """Bases anteriores sin is_active se migran preservando is_active = 1 e idempotencia."""
+    database_path = tmp_path / "legacy_without_is_active.db"
+    connection = sqlite3.connect(database_path)
+
+    connection.execute(
+        """
+        CREATE TABLE documents (
+            document_id TEXT PRIMARY KEY,
+            original_filename TEXT NOT NULL,
+            sha256 TEXT NOT NULL UNIQUE,
+            content_type TEXT,
+            size_bytes INTEGER NOT NULL,
+            status TEXT NOT NULL,
+            oci_object_name TEXT,
+            learning_metadata_json TEXT,
+            created_at TEXT NOT NULL,
+            updated_at TEXT NOT NULL
+        )
+        """
+    )
+
+    connection.execute(
+        """
+        INSERT INTO documents (
+            document_id,
+            original_filename,
+            sha256,
+            content_type,
+            size_bytes,
+            status,
+            oci_object_name,
+            learning_metadata_json,
+            created_at,
+            updated_at
+        )
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        """,
+        (
+            "doc_existing",
+            "existing.pdf",
+            "e" * 64,
+            "application/pdf",
+            100,
+            "indexed",
+            "documents/doc_existing/original.pdf",
+            None,
+            "2026-10-01T12:00:00+00:00",
+            "2026-10-01T12:00:00+00:00",
+        ),
+    )
+
+    connection.commit()
+    connection.close()
+
+    database = SQLiteDatabase(f"sqlite:///{database_path.as_posix()}")
+    # Primera ejecución: aplica migración
+    database.initialize()
+
+    with database.connect() as connection:
+        columns = {
+            row["name"]
+            for row in connection.execute(
+                "PRAGMA table_info(documents)"
+            ).fetchall()
+        }
+        assert "is_active" in columns
+
+        row = connection.execute(
+            "SELECT is_active FROM documents WHERE document_id = ?",
+            ("doc_existing",),
+        ).fetchone()
+
+        assert row is not None
+        assert row["is_active"] == 1
+
+    # Segunda ejecución: confirma idempotencia
+    database.initialize()
+
+    with database.connect() as connection:
+        row = connection.execute(
+            "SELECT is_active FROM documents WHERE document_id = ?",
+            ("doc_existing",),
+        ).fetchone()
+
+        assert row is not None
+        assert row["is_active"] == 1

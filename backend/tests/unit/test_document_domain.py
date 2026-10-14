@@ -57,3 +57,37 @@ def test_document_rejects_invalid_sha256() -> None:
             content_type="application/pdf",
             size_bytes=10,
         )
+
+
+def test_document_starts_as_active() -> None:
+    """Un documento nuevo debe inicializarse activo por defecto."""
+    document = build_document()
+
+    assert document.is_active is True
+
+
+def test_document_deactivate_and_activate() -> None:
+    """deactivate y activate modifican únicamente is_active y updated_at."""
+    document = build_document()
+    document.update_status(DocumentStatus.STORED)
+    document.assign_oci_object("documents/doc_123/original.pdf")
+
+    initial_updated_at = document.updated_at
+
+    document.deactivate()
+
+    assert document.is_active is False
+    assert document.status == DocumentStatus.STORED
+    assert document.oci_object_name == "documents/doc_123/original.pdf"
+    assert document.learning_metadata is None
+    assert document.updated_at >= initial_updated_at
+
+    deactivated_updated_at = document.updated_at
+
+    document.activate()
+
+    assert document.is_active is True
+    assert document.status == DocumentStatus.STORED
+    assert document.oci_object_name == "documents/doc_123/original.pdf"
+    assert document.learning_metadata is None
+    assert document.updated_at >= deactivated_updated_at

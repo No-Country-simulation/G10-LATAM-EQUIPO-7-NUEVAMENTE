@@ -747,3 +747,65 @@ async def get_document(
     return _to_document_response(
         document
     )
+
+
+@router.patch(
+    "/{document_id}/deactivate",
+    status_code=status.HTTP_204_NO_CONTENT,
+    summary="Inactivar documento lógicamente",
+    description=(
+        "Inactiva lógicamente un documento para excluirlo "
+        "del listado de biblioteca sin eliminar su persistencia."
+    ),
+    responses={
+        204: {
+            "description": (
+                "Documento inactivado exitosamente o ya inactivo."
+            ),
+        },
+        404: {
+            "description": "Documento no encontrado.",
+        },
+        500: {
+            "description": (
+                "No fue posible actualizar la persistencia "
+                "del documento."
+            ),
+        },
+    },
+)
+async def deactivate_document(
+    document_id: str,
+    document_service: Annotated[
+        DocumentService,
+        Depends(get_document_service),
+    ],
+) -> Response:
+    """Inactiva lógicamente un documento existente."""
+    try:
+        document_service.deactivate_document(
+            document_id
+        )
+
+    except DocumentNotFoundError as exc:
+        raise APIHTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            code=ErrorCode.DOCUMENT_NOT_FOUND,
+            detail=str(exc),
+        ) from exc
+
+    except DocumentRepositoryError as exc:
+        raise APIHTTPException(
+            status_code=(
+                status.HTTP_500_INTERNAL_SERVER_ERROR
+            ),
+            code=ErrorCode.PERSISTENCE_ERROR,
+            detail=(
+                "No fue posible actualizar la persistencia "
+                "del documento."
+            ),
+        ) from exc
+
+    return Response(
+        status_code=status.HTTP_204_NO_CONTENT
+    )

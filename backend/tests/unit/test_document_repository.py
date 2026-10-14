@@ -1,4 +1,4 @@
-﻿"""Pruebas del repositorio SQLite de documentos."""
+"""Pruebas del repositorio SQLite de documentos."""
 
 import hashlib
 from pathlib import Path
@@ -209,3 +209,52 @@ def test_store_document_persists_id_and_oci_path(
         ]
         == file_content
     )
+
+
+def test_repository_preserves_is_active(
+    tmp_path: Path,
+) -> None:
+    """El repositorio SQLite debe persistir y actualizar is_active fielmente."""
+    repository = build_repository(tmp_path)
+    document = build_document()
+
+    # 1. create preserva is_active = True
+    repository.create(document)
+    stored = repository.find_by_id(document.document_id)
+    assert stored is not None
+    assert stored.is_active is True
+
+    # 2. update preserva is_active = False
+    document.deactivate()
+    repository.update(document)
+    stored_deactivated = repository.find_by_id(document.document_id)
+    assert stored_deactivated is not None
+    assert stored_deactivated.is_active is False
+
+    # 3. create con is_active = False
+    content_2 = b"Segundo doc"
+    doc_inactive = Document(
+        document_id="doc_inactive",
+        original_filename="inactive.pdf",
+        sha256=hashlib.sha256(content_2).hexdigest(),
+        content_type="application/pdf",
+        size_bytes=len(content_2),
+        is_active=False,
+    )
+    repository.create(doc_inactive)
+    stored_inactive = repository.find_by_id("doc_inactive")
+    assert stored_inactive is not None
+    assert stored_inactive.is_active is False
+
+    # 4. update a is_active = True
+    doc_inactive.activate()
+    repository.update(doc_inactive)
+    stored_reactivated = repository.find_by_id("doc_inactive")
+    assert stored_reactivated is not None
+    assert stored_reactivated.is_active is True
+
+    # 5. find_all conserva los valores de is_active
+    all_docs = repository.find_all()
+    status_map = {d.document_id: d.is_active for d in all_docs}
+    assert status_map["doc_123"] is False
+    assert status_map["doc_inactive"] is True
