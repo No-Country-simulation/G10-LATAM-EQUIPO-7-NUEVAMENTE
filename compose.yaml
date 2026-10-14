@@ -83,3 +83,6 @@ services:
 
     ports:
       - "8002:8002"
+
+    env_file:
+      - /opt/nuevamente/env/data-ia.env
