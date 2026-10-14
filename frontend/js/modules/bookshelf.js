@@ -797,24 +797,17 @@ export const bookshelf = {
     const topRib = document.createElement('div');
     topRib.className = 'spine-top-rib';
 
-    const titleSpan = document.createElement('span');
-    titleSpan.className = 'spine-title-vertical';
+    const titleEl = document.createElement('div');
+    titleEl.className = 'spine-title-vertical';
     const bookTitle = book.title || 'Documento';
-    titleSpan.textContent = bookTitle;
 
-    // Adaptación tipográfica dinámica para que el título entre completo en el lomo
-    const titleLen = bookTitle.length;
-    if (titleLen > 30) {
-      titleSpan.classList.add('title-long');
-    } else if (titleLen > 18) {
-      titleSpan.classList.add('title-medium');
-    }
+    this.formatSpineTitle(titleEl, bookTitle);
 
     const bottomRib = document.createElement('div');
     bottomRib.className = 'spine-bottom-rib';
 
     spine.appendChild(topRib);
-    spine.appendChild(titleSpan);
+    spine.appendChild(titleEl);
     spine.appendChild(bottomRib);
 
     spine.addEventListener('click', () => {
@@ -824,6 +817,62 @@ export const bookshelf = {
     return spine;
   },
 
+  /**
+   * Da formato al título del lomo: si es largo, lo divide de forma equilibrada
+   * en 2 líneas para permitir una tipografía más grande y legible (DOM Seguro).
+   */
+  formatSpineTitle(container, fullTitle) {
+    container.textContent = '';
+    const clean = (fullTitle || 'Documento').trim();
+
+    if (clean.length <= 18) {
+      const lineSpan = document.createElement('span');
+      lineSpan.className = 'spine-title-line';
+      lineSpan.textContent = clean;
+      container.appendChild(lineSpan);
+      return;
+    }
+
+    const words = clean.split(/\s+/);
+    if (words.length <= 1) {
+      const lineSpan = document.createElement('span');
+      lineSpan.className = 'spine-title-line';
+      lineSpan.textContent = clean;
+      container.appendChild(lineSpan);
+      return;
+    }
+
+    // Calcular el punto medio óptimo entre palabras
+    const midChar = Math.floor(clean.length / 2);
+    let accumulated = 0;
+    let splitIndex = 1;
+    let bestDiff = Infinity;
+
+    for (let i = 0; i < words.length - 1; i++) {
+      accumulated += words[i].length + (i > 0 ? 1 : 0);
+      const diff = Math.abs(accumulated - midChar);
+      if (diff < bestDiff) {
+        bestDiff = diff;
+        splitIndex = i + 1;
+      }
+    }
+
+    const part1 = words.slice(0, splitIndex).join(' ');
+    const part2 = words.slice(splitIndex).join(' ');
+
+    const line1 = document.createElement('span');
+    line1.className = 'spine-title-line';
+    line1.textContent = part1;
+
+    const line2 = document.createElement('span');
+    line2.className = 'spine-title-line';
+    line2.textContent = part2;
+
+    container.classList.add('spine-multiline');
+    container.appendChild(line1);
+    container.appendChild(line2);
+  },
+
   createUploadSlotSpine() {
     const spine = document.createElement('div');
     spine.className = 'book-spine book-spine-upload';
@@ -831,7 +880,10 @@ export const bookshelf = {
 
     spine.innerHTML = `
       <div class="spine-top-rib"></div>
-      <span class="spine-title-vertical">SUBIR NUEVO PDF</span>
+      <div class="spine-title-vertical spine-multiline">
+        <span class="spine-title-line">SUBIR NUEVO</span>
+        <span class="spine-title-line">DOCUMENTO</span>
+      </div>
       <div class="spine-bottom-rib"></div>
     `;
 
