@@ -599,14 +599,6 @@ export const bookshelf = {
       actionsContainer.className = 'catalog-card-actions';
       actionsContainer.style.cssText = 'display: flex; align-items: center; gap: 0.65rem; flex-shrink: 0;';
 
-      const quizPill = document.createElement('span');
-      quizPill.className = 'catalog-format-pill quiz-pill';
-      quizPill.textContent = 'Quiz';
-
-      const flashcardsPill = document.createElement('span');
-      flashcardsPill.className = 'catalog-format-pill flashcards-pill';
-      flashcardsPill.textContent = 'Flashcards';
-
       const btnStudy = document.createElement('button');
       btnStudy.type = 'button';
       btnStudy.className = 'btn-study-doc';
@@ -618,8 +610,6 @@ export const bookshelf = {
         this.selectBookAndStudy(book, 'flashcards');
       });
 
-      actionsContainer.appendChild(quizPill);
-      actionsContainer.appendChild(flashcardsPill);
       actionsContainer.appendChild(btnStudy);
 
       const btnInactivate = document.createElement('button');
