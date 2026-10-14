@@ -687,13 +687,18 @@
         </div>
 
         <div class="notebook-action-footer">
-          <button type="button" class="btn-close-notebook-shelf" id="btnCloseNotebookOverlay">
-            <span>Devolver al Estante</span>
-          </button>
-          <button type="button" class="btn-primary-action" id="btnDownloadOriginalDoc" style="background: rgba(255, 255, 255, 0.08); border: 1px solid var(--border-ui); color: var(--text-main);" title="Descargar documento original desde OCI">
-            <span>⬇ Descargar</span>
-          </button>
-          <button type="button" class="btn-primary-action" id="btnStartStudying">
+          <div class="notebook-action-left-group">
+            <button type="button" class="btn-close-notebook-shelf" id="btnCloseNotebookOverlay">
+              <span>Devolver al Estante</span>
+            </button>
+            <button type="button" class="btn-download-notebook" id="btnDownloadOriginalDoc" title="Descargar documento original desde el servidor">
+              <span>⬇ Descargar</span>
+            </button>
+            <button type="button" class="btn-inactivate-notebook" id="btnInactivateDoc" title="Inactivar o archivar este módulo de capacitación">
+              <span>🗑 Inactivar</span>
+            </button>
+          </div>
+          <button type="button" class="btn-primary-action btn-start-studying" id="btnStartStudying">
             <span>Iniciar Capacitación &rarr;</span>
           </button>
         </div>

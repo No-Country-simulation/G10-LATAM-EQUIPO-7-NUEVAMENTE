@@ -502,5 +502,59 @@ export const apiClient = {
       clearTimeout(timeoutId);
       throw wrapFetchError(err, 'No fue posible descargar el documento original desde el servidor.');
     }
+  },
+
+  /**
+   * Inactiva lógicamente un documento en el servidor (Punto 9 - Sprint 3/4)
+   * Preparado para el endpoint definitivo que está implementando BackendAPI (Óscar Muñoz)
+   * @param {string} documentId
+   */
+  async inactivateDocument(documentId) {
+    if (!documentId) {
+      throw new ApiError(400, { message: 'El identificador de documento es requerido para inactivar.' });
+    }
+
+    const endpoint = typeof CONFIG.API.ENDPOINTS.DOCUMENT_INACTIVATE === 'function'
+      ? CONFIG.API.ENDPOINTS.DOCUMENT_INACTIVATE(documentId)
+      : `/documents/${documentId}`;
+    const url = `${CONFIG.API.DEFAULT_BASE_URL}${CONFIG.API.V1_PREFIX}${endpoint}`;
+
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), CONFIG.API.TIMEOUT_MS || 30000);
+
+    try {
+      const response = await fetch(url, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ is_active: false, status: 'inactive' }),
+        signal: controller.signal
+      });
+
+      clearTimeout(timeoutId);
+
+      if (!response.ok) {
+        // Si el método PATCH no está disponible aún, intentar con DELETE como convención REST
+        if (response.status === 405) {
+          const deleteResponse = await fetch(url, {
+            method: 'DELETE',
+            signal: controller.signal
+          });
+          if (deleteResponse.ok) {
+            state.set({ isBackendConnected: true, lastConnectionCheck: Date.now() });
+            return await parseResponseBody(deleteResponse);
+          }
+        }
+        const errorBody = await parseResponseBody(response);
+        throw new ApiError(response.status, errorBody);
+      }
+
+      state.set({ isBackendConnected: true, lastConnectionCheck: Date.now() });
+      return await parseResponseBody(response);
+    } catch (err) {
+      clearTimeout(timeoutId);
+      throw wrapFetchError(err, 'No fue posible inactivar el documento en el servidor.');
+    }
   }
 };

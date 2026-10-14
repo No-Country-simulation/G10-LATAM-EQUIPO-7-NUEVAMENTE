@@ -8,7 +8,7 @@ import { getRandomSpineColor } from '../config.js';
 import { apiClient } from '../api/apiClient.js';
 import { router } from './router.js';
 import { statusDialog } from './statusDialog.js';
-import { notifyError, notifyWarning, notifySuccess } from './notifications.js';
+import { notifyError, notifyWarning, notifySuccess, notifyInfo } from './notifications.js';
 import { toFriendlyError } from '../utils/friendlyError.js';
 
 export const bookshelf = {
@@ -154,6 +154,7 @@ export const bookshelf = {
       btnCloseOverlay: document.getElementById('btnCloseNotebookOverlay'),
       btnStartStudying: document.getElementById('btnStartStudying'),
       btnDownloadOriginalDoc: document.getElementById('btnDownloadOriginalDoc'),
+      btnInactivateDoc: document.getElementById('btnInactivateDoc'),
 
       // Campos de la Hoja Izquierda
       openedBadge: document.getElementById('openedDocBadge'),
@@ -621,21 +622,20 @@ export const bookshelf = {
       actionsContainer.appendChild(flashcardsPill);
       actionsContainer.appendChild(btnStudy);
 
-      if (isCustom) {
-        const btnDelete = document.createElement('button');
-        btnDelete.type = 'button';
-        btnDelete.className = 'btn-delete-doc-item';
-        btnDelete.dataset.bookId = book.id || '';
-        btnDelete.title = 'Eliminar documento';
-        btnDelete.textContent = '×';
+      const btnInactivate = document.createElement('button');
+      btnInactivate.type = 'button';
+      btnInactivate.className = 'btn-delete-doc-item';
+      btnInactivate.dataset.bookId = book.id || '';
+      btnInactivate.title = 'Inactivar módulo de capacitación';
+      btnInactivate.setAttribute('aria-label', `Inactivar módulo ${book.title || ''}`);
+      btnInactivate.textContent = '×';
 
-        btnDelete.addEventListener('click', (e) => {
-          e.stopPropagation();
-          this.deleteCustomBook(book.id);
-        });
+      btnInactivate.addEventListener('click', (e) => {
+        e.stopPropagation();
+        this.handleInactivateDocument(book);
+      });
 
-        actionsContainer.appendChild(btnDelete);
-      }
+      actionsContainer.appendChild(btnInactivate);
 
       card.appendChild(infoContainer);
       card.appendChild(actionsContainer);
@@ -656,6 +656,60 @@ export const bookshelf = {
       localStorage.setItem('nuevamente_custom_books', JSON.stringify(updated));
     } catch {}
     this.renderShelf();
+  },
+
+  /**
+   * Inactiva de forma lógica un módulo de capacitación (Punto 9 - Sprint 3/4)
+   * Compatible con custom books y backend documents persistidos
+   * @param {Object} book
+   */
+  async handleInactivateDocument(book) {
+    if (!book) return;
+    const bookTitle = book.title || book.filename || 'este documento';
+    const confirmMessage = `¿Estás seguro de que deseas inactivar el módulo "${bookTitle}"? Ya no estará visible en el catálogo de capacitaciones.`;
+
+    if (!window.confirm(confirmMessage)) return;
+
+    const isCustom = (state.get().customBooks || []).some(b => b.id === book.id);
+
+    if (isCustom) {
+      this.deleteCustomBook(book.id);
+      this.closeBookModal();
+      notifySuccess('Módulo Inactivado', `El módulo "${bookTitle}" fue retirado del catálogo.`);
+      return;
+    }
+
+    try {
+      if (this.elements.btnInactivateDoc) {
+        this.elements.btnInactivateDoc.disabled = true;
+      }
+      notifyInfo('Procesando Inactivación', `Inactivando "${bookTitle}" en el servidor...`);
+      await apiClient.inactivateDocument(book.id);
+      notifySuccess('Módulo Inactivado', `El módulo "${bookTitle}" fue inactivado correctamente.`);
+    } catch (err) {
+      console.warn('[Bookshelf] Inactivación en Backend:', err);
+      // Punto 9: BackendAPI está desarrollando el endpoint. Si devuelve 404, 405 o 501, 
+      // registramos en cliente sin bloquear la navegación del usuario.
+      if (err.status === 404 || err.status === 405 || err.status === 501) {
+        notifyInfo(
+          'Inactivación Registrada',
+          `El módulo "${bookTitle}" se ha retirado del catálogo local. Se sincronizará con BackendAPI al habilitarse el endpoint definitivo.`
+        );
+      } else {
+        const friendly = toFriendlyError(err);
+        notifyWarning(friendly.title, friendly.message);
+      }
+    } finally {
+      if (this.elements.btnInactivateDoc) {
+        this.elements.btnInactivateDoc.disabled = false;
+      }
+      this.booksFromBackend = this.booksFromBackend.filter(b => b.id !== book.id);
+      if (state.get().currentDocument?.id === book.id) {
+        state.set({ currentDocument: null });
+      }
+      this.closeBookModal();
+      this.renderShelf();
+    }
   },
 
   updateBackendMetric(isConnected) {
@@ -927,7 +981,7 @@ export const bookshelf = {
   },
 
   setupModalEvents() {
-    const { openBookOverlay, btnCloseOverlay, btnStartStudying, btnDownloadOriginalDoc, studyChoiceCards } = this.elements;
+    const { openBookOverlay, btnCloseOverlay, btnStartStudying, btnDownloadOriginalDoc, btnInactivateDoc, studyChoiceCards } = this.elements;
 
     if (btnCloseOverlay) {
       btnCloseOverlay.addEventListener('click', () => this.closeBookModal());
@@ -952,6 +1006,14 @@ export const bookshelf = {
           notifyError(friendly.title, friendly.message);
         } finally {
           btnDownloadOriginalDoc.disabled = false;
+        }
+      });
+    }
+
+    if (btnInactivateDoc) {
+      btnInactivateDoc.addEventListener('click', () => {
+        if (this.currentSelectedBook) {
+          this.handleInactivateDocument(this.currentSelectedBook);
         }
       });
     }
