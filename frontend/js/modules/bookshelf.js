@@ -626,8 +626,8 @@ export const bookshelf = {
       btnInactivate.type = 'button';
       btnInactivate.className = 'btn-delete-doc-item';
       btnInactivate.dataset.bookId = book.id || '';
-      btnInactivate.title = 'Inactivar módulo de capacitación';
-      btnInactivate.setAttribute('aria-label', `Inactivar módulo ${book.title || ''}`);
+      btnInactivate.title = 'Eliminar módulo de capacitación';
+      btnInactivate.setAttribute('aria-label', `Eliminar módulo ${book.title || ''}`);
       btnInactivate.textContent = '×';
 
       btnInactivate.addEventListener('click', (e) => {
@@ -659,14 +659,14 @@ export const bookshelf = {
   },
 
   /**
-   * Inactiva de forma lógica un módulo de capacitación (Punto 9 - Sprint 3/4)
+   * Inactiva / elimina de forma lógica un módulo de capacitación (Punto 9 - Sprint 3/4)
    * Compatible con custom books y backend documents persistidos
    * @param {Object} book
    */
   async handleInactivateDocument(book) {
     if (!book) return;
     const bookTitle = book.title || book.filename || 'este documento';
-    const confirmMessage = `¿Estás seguro de que deseas inactivar el módulo "${bookTitle}"? Ya no estará visible en el catálogo de capacitaciones.`;
+    const confirmMessage = `¿Estás seguro de que deseas eliminar el módulo "${bookTitle}"? Ya no estará visible en el catálogo de capacitaciones.`;
 
     if (!window.confirm(confirmMessage)) return;
 
@@ -675,7 +675,7 @@ export const bookshelf = {
     if (isCustom) {
       this.deleteCustomBook(book.id);
       this.closeBookModal();
-      notifySuccess('Módulo Inactivado', `El módulo "${bookTitle}" fue retirado del catálogo.`);
+      notifySuccess('Módulo Eliminado', `El módulo "${bookTitle}" fue eliminado del catálogo.`);
       return;
     }
 
@@ -683,16 +683,16 @@ export const bookshelf = {
       if (this.elements.btnInactivateDoc) {
         this.elements.btnInactivateDoc.disabled = true;
       }
-      notifyInfo('Procesando Inactivación', `Inactivando "${bookTitle}" en el servidor...`);
+      notifyInfo('Procesando', `Eliminando "${bookTitle}" en el servidor...`);
       await apiClient.inactivateDocument(book.id);
-      notifySuccess('Módulo Inactivado', `El módulo "${bookTitle}" fue inactivado correctamente.`);
+      notifySuccess('Módulo Eliminado', `El módulo "${bookTitle}" fue eliminado correctamente.`);
     } catch (err) {
-      console.warn('[Bookshelf] Inactivación en Backend:', err);
+      console.warn('[Bookshelf] Inactivación/Eliminación en Backend:', err);
       // Punto 9: BackendAPI está desarrollando el endpoint. Si devuelve 404, 405 o 501, 
       // registramos en cliente sin bloquear la navegación del usuario.
       if (err.status === 404 || err.status === 405 || err.status === 501) {
         notifyInfo(
-          'Inactivación Registrada',
+          'Eliminación Registrada',
           `El módulo "${bookTitle}" se ha retirado del catálogo local. Se sincronizará con BackendAPI al habilitarse el endpoint definitivo.`
         );
       } else {
