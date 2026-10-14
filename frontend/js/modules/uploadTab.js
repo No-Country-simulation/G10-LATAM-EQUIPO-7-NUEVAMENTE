@@ -24,6 +24,7 @@ export const uploadTab = {
   currentPollingDocId: null,
   pollingIterations: 0,
   consecutivePollingErrors: 0,
+  isFetchingFormats: false,
 
   init() {
     this.bindElements();
@@ -712,6 +713,7 @@ export const uploadTab = {
     this.currentPollingDocId = docId;
     this.pollingIterations = 0;
     this.consecutivePollingErrors = 0;
+    this.isFetchingFormats = false;
 
     this.pollingTimer = setInterval(async () => {
       const s = state.get();
@@ -720,8 +722,12 @@ export const uploadTab = {
         return;
       }
 
+      // Evitar consultas simultáneas si una petición anterior sigue pendiente
+      if (this.isFetchingFormats) return;
+      this.isFetchingFormats = true;
+
       this.pollingIterations++;
-      if (this.pollingIterations > 60) {
+      if (this.pollingIterations > 30) {
         this.stopPolling();
         if (this.elements.pipelineLiveLog) {
           this.elements.pipelineLiveLog.textContent = 'El procesamiento de formatos continúa en segundo plano. Puedes consultarlos en el Centro de Estudio.';
@@ -814,8 +820,10 @@ export const uploadTab = {
             notifyWarning('Sondeo Pausado', 'No fue posible actualizar el estado de los formatos tras varios intentos.');
           }
         }
+      } finally {
+        this.isFetchingFormats = false;
       }
-    }, 3800);
+    }, 10000);
   },
 
   /**
@@ -829,6 +837,7 @@ export const uploadTab = {
     this.currentPollingDocId = null;
     this.pollingIterations = 0;
     this.consecutivePollingErrors = 0;
+    this.isFetchingFormats = false;
   },
 
   /**

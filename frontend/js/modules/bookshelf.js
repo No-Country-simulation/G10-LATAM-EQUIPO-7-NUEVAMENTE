@@ -675,30 +675,24 @@ export const bookshelf = {
       }
       notifyInfo('Procesando', `Eliminando "${bookTitle}" en el servidor...`);
       await apiClient.inactivateDocument(book.id);
-      notifySuccess('Módulo Eliminado', `El módulo "${bookTitle}" fue eliminado correctamente.`);
-    } catch (err) {
-      console.warn('[Bookshelf] Inactivación/Eliminación en Backend:', err);
-      // Punto 9: BackendAPI está desarrollando el endpoint. Si devuelve 404, 405 o 501, 
-      // registramos en cliente sin bloquear la navegación del usuario.
-      if (err.status === 404 || err.status === 405 || err.status === 501) {
-        notifyInfo(
-          'Eliminación Registrada',
-          `El módulo "${bookTitle}" se ha retirado del catálogo local. Se sincronizará con BackendAPI al habilitarse el endpoint definitivo.`
-        );
-      } else {
-        const friendly = toFriendlyError(err);
-        notifyWarning(friendly.title, friendly.message);
-      }
-    } finally {
-      if (this.elements.btnInactivateDoc) {
-        this.elements.btnInactivateDoc.disabled = false;
-      }
+
+      // Retirar del catálogo y actualizar UI ÚNICAMENTE cuando Backend confirme la operación
       this.booksFromBackend = this.booksFromBackend.filter(b => b.id !== book.id);
       if (state.get().currentDocument?.id === book.id) {
         state.set({ currentDocument: null });
       }
       this.closeBookModal();
       this.renderShelf();
+
+      notifySuccess('Módulo Eliminado', `El módulo "${bookTitle}" fue eliminado correctamente.`);
+    } catch (err) {
+      console.warn('[Bookshelf] Error al inactivar documento en Backend:', err);
+      const friendly = toFriendlyError(err);
+      notifyError(friendly.title || 'Error al Eliminar', friendly.message || 'No fue posible eliminar el módulo en el servidor.');
+    } finally {
+      if (this.elements.btnInactivateDoc) {
+        this.elements.btnInactivateDoc.disabled = false;
+      }
     }
   },
 

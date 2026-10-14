@@ -83,7 +83,7 @@ export const CONFIG = {
       DOCUMENT_DOWNLOAD: (id) => `/documents/${id}/download`,
       DOCUMENT_FORMATS: (id) => `/documents/${id}/formats`,
       DOCUMENT_REGENERATE: (id) => `/documents/${id}/formats/regenerate`,
-      DOCUMENT_INACTIVATE: (id) => `/documents/${id}`
+      DOCUMENT_INACTIVATE: (id) => `/documents/${id}/deactivate`
     },
     TIMEOUT_MS: resolveTimeoutMs(),
     PROCESSING_TIMEOUT_MS: 120000, // Timeout para almacenamiento OCI e indexación RAG síncrona (POST /documents)

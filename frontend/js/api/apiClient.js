@@ -505,8 +505,8 @@ export const apiClient = {
   },
 
   /**
-   * Inactiva lógicamente un documento en el servidor (Punto 9 - Sprint 3/4)
-   * Preparado para el endpoint definitivo que está implementando BackendAPI (Óscar Muñoz)
+   * Inactiva lógicamente un documento en el servidor (PR #89)
+   * Endpoint definitivo: PATCH /api/v1/documents/{document_id}/deactivate (204 No Content, sin body)
    * @param {string} documentId
    */
   async inactivateDocument(documentId) {
@@ -516,7 +516,7 @@ export const apiClient = {
 
     const endpoint = typeof CONFIG.API.ENDPOINTS.DOCUMENT_INACTIVATE === 'function'
       ? CONFIG.API.ENDPOINTS.DOCUMENT_INACTIVATE(documentId)
-      : `/documents/${documentId}`;
+      : `/documents/${documentId}/deactivate`;
     const url = `${CONFIG.API.DEFAULT_BASE_URL}${CONFIG.API.V1_PREFIX}${endpoint}`;
 
     const controller = new AbortController();
@@ -525,33 +525,18 @@ export const apiClient = {
     try {
       const response = await fetch(url, {
         method: 'PATCH',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({ is_active: false, status: 'inactive' }),
         signal: controller.signal
       });
 
       clearTimeout(timeoutId);
 
       if (!response.ok) {
-        // Si el método PATCH no está disponible aún, intentar con DELETE como convención REST
-        if (response.status === 405) {
-          const deleteResponse = await fetch(url, {
-            method: 'DELETE',
-            signal: controller.signal
-          });
-          if (deleteResponse.ok) {
-            state.set({ isBackendConnected: true, lastConnectionCheck: Date.now() });
-            return await parseResponseBody(deleteResponse);
-          }
-        }
         const errorBody = await parseResponseBody(response);
         throw new ApiError(response.status, errorBody);
       }
 
       state.set({ isBackendConnected: true, lastConnectionCheck: Date.now() });
-      return await parseResponseBody(response);
+      return response.status === 204 ? { success: true } : await parseResponseBody(response);
     } catch (err) {
       clearTimeout(timeoutId);
       throw wrapFetchError(err, 'No fue posible inactivar el documento en el servidor.');
