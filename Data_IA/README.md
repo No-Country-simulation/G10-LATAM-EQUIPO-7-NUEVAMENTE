@@ -16,6 +16,7 @@ describe en el [README de la raíz](../README.md).
 |---|---|
 | Responsabilidades y límites del módulo | [Alcance](#alcance) |
 | API, request, respuesta y formatos aceptados | [API de evaluación](#api-de-evaluación) |
+| Evaluation V2 y Semantic Evaluator | [Evaluation V2](#evaluation-v2) |
 | Criterios, versión del evaluator y veredicto | [Evaluación de calidad](#evaluación-de-calidad) |
 | Benchmark y análisis de retrieval | [Evaluación offline de retrieval](#evaluación-offline-de-retrieval) |
 | Corpus controlado para comparar formatos de archivo | [Validación multiformato](#validación-multiformato) |
@@ -38,6 +39,7 @@ Responsabilidades:
 - evaluación de relevancia, coherencia, adaptación didáctica e información
   respaldada;
 - rúbrica para aprobar, solicitar revisión o rechazar;
+- evaluación semántica estructurada en Evaluation V2;
 - mantenimiento reproducible de corpus, Ground Truth, métricas e informes.
 
 La evaluación de calidad no genera contenido ni vuelve a ejecutar retrieval.
@@ -50,7 +52,8 @@ La aplicación FastAPI se define en `data_ai/api/app.py`.
 | Método y ruta | Función |
 |---|---|
 | `GET /health` | Comprueba la disponibilidad del servicio. |
-| `POST /evaluate` | Valida y evalúa un formato educativo generado. |
+| `POST /evaluate` | Evaluación V1.1 compatible con el contrato actual de Backend. |
+| `POST /evaluate/v2` | Evaluation V2 con señales heurísticas y semánticas separadas. |
 
 `POST /evaluate` acepta `format` como discriminador y valida `generated_content`
 contra el esquema correspondiente. Los formatos definidos en el contrato son
@@ -70,14 +73,103 @@ duplicados y chunks que no pertenezcan al `document_id` de la solicitud. Los
 modelos completos y sus reglas están en
 [`data_ai/schemas/format_evaluation.py`](data_ai/schemas/format_evaluation.py).
 
-La respuesta contiene `document_id`, `format`, `status`, `scores`,
-`informacion_no_respaldada` y `observaciones`; también incluye las versiones de
-evaluator y rúbrica. Los estados posibles son `aprobado`,
-`requiere_revision` y `rechazado`.
+La respuesta de `POST /evaluate` contiene `document_id`, `format`, `status`,
+`scores`, `informacion_no_respaldada` y `observaciones`; también incluye las
+versiones de evaluator y rúbrica.
+
+Los estados posibles del contrato V1.1 son:
+
+- `aprobado`;
+- `requiere_revision`;
+- `rechazado`.
+
+### Evaluation V2
+
+`POST /evaluate/v2` introduce el contrato de evaluación de Sprint 4 sin
+reemplazar todavía el endpoint V1.1.
+
+La respuesta mantiene separadas las dos señales de evaluación:
+
+- `heuristic_scores`: scores producidos por el evaluator heurístico;
+- `semantic_evaluation`: resultado producido por el Semantic Evaluator.
+
+Dentro de `semantic_evaluation` se exponen:
+
+- `status`;
+- `scores`;
+- `observations`;
+- `recommendations`;
+- `unsupported_information`;
+- `error_code` y `error_message` cuando corresponde;
+- `model`;
+- `prompt_version`;
+- `latency_ms`.
+
+Las dimensiones semánticas evaluadas son:
+
+- `relevance`;
+- `coherence`;
+- `didactic_adaptation`;
+- `content_support`.
+
+Los scores heurísticos y semánticos no se ponderan ni combinan. Actualmente no
+existe un `final_score`, `combined_score` ni `weighted_score`.
+
+Mientras no exista una Decision Layer calibrada, el `verdict` global continúa
+derivándose exclusivamente del evaluator heurístico.
+
+Un resultado semántico exitoso no genera por sí solo un veredicto
+`approved`, `requires_revision` o `rejected`.
+
+Para la dimensión `content_support`, `chunks_used` es la única evidencia
+factual válida.
+
+`generation_context` puede utilizarse para evaluar relevancia y adaptación
+didáctica, pero no debe utilizarse como evidencia factual.
+
+#### Semantic Provider
+
+El Semantic Evaluator utiliza Gemini cuando están configuradas las siguientes
+variables de entorno:
+
+```env
+DATA_IA_GEMINI_API_KEY=
+DATA_IA_GEMINI_MODEL=
+```
+
+Cuando ambas variables están disponibles, Data/IA construye un
+`GeminiSemanticProvider`.
+
+Si falta cualquiera de las dos variables, utiliza
+`UnavailableSemanticProvider` como fallback controlado.
+
+En ese caso, `semantic_evaluation` devuelve:
+
+```text
+status = unavailable
+error_code = not_configured
+scores = null
+```
+
+Este fallback:
+
+- no fabrica scores semánticos;
+- no genera un error HTTP por falta de configuración;
+- no impide que la evaluación heurística continúe;
+- permite mantener operativo el contrato V2 aunque Gemini no esté configurado.
+
+Los errores técnicos del proveedor semántico se normalizan para mantenerlos
+separados de las decisiones de calidad del contenido.
+
+Los estados semánticos posibles son:
+
+- `success`;
+- `failed`;
+- `unavailable`.
 
 ## Evaluación de calidad
 
-El flujo de evaluación es:
+El flujo V1.1 de evaluación es:
 
 ```text
 POST /evaluate
@@ -88,25 +180,52 @@ POST /evaluate
   -> respuesta estructurada
 ```
 
+El flujo V2 agrega la evaluación semántica sin reemplazar el evaluador
+heurístico:
+
+```text
+POST /evaluate/v2
+  -> validación FastAPI / Pydantic
+  -> evaluación heurística
+  -> SemanticEvaluator
+      -> SemanticProvider
+          -> GeminiSemanticProvider
+          o
+          -> UnavailableSemanticProvider
+  -> Evaluation V2 Builder
+  -> respuesta estructurada
+```
+
 Se puntúan cuatro dimensiones, cada una de 1 a 5:
 
-| Dimensión | Criterio general |
-|---|---|
-| `relevancia` | Relación del contenido con la fuente y el contexto de aprendizaje. |
-| `coherencia` | Claridad, estructura y consistencia lógica. |
-| `adaptacion_didactica` | Adecuación al perfil y al nivel de detalle. |
-| `informacion_respaldada` | Grado de respaldo en los chunks recibidos. |
+| Dimensión V1.1 | Equivalente V2 | Criterio general |
+|---|---|---|
+| `relevancia` | `relevance` | Relación del contenido con la fuente y el contexto de aprendizaje. |
+| `coherencia` | `coherence` | Claridad, estructura y consistencia lógica. |
+| `adaptacion_didactica` | `didactic_adaptation` | Adecuación al perfil y al nivel de detalle. |
+| `informacion_respaldada` | `content_support` | Grado de respaldo en los chunks recibidos. |
 
-La detección de respaldo se aplica al contenido factual de cada formato. Por
-ejemplo, no trata los distractores del Quiz como afirmaciones factuales; en un
-resumen evalúa el resumen, los puntos clave y la conclusión, y en un guion de
-video evalúa la narración, no las instrucciones visuales.
+La detección de respaldo se aplica al contenido factual de cada formato.
 
-El evaluator actual es un baseline heurístico léxico (versión `1.1.0`), no un
-evaluador semántico avanzado. Normaliza mayúsculas y acentos y compara términos
-significativos con la evidencia. La versión de rúbrica actual es `1.0.0`.
+Por ejemplo:
 
-Reglas del veredicto:
+- en Quiz no se tratan los distractores como afirmaciones factuales;
+- en TLDR se evalúan resumen, puntos clave y conclusión;
+- en Video Script se evalúa la narración, no las instrucciones visuales;
+- en Flashcards se evalúa el contenido educativo de frente y reverso.
+
+Data/IA conserva el evaluator heurístico léxico V1.1 y añade en Evaluation V2
+un Semantic Evaluator independiente basado en LLM-as-a-Judge.
+
+Ambas señales permanecen separadas y todavía no se ponderan ni combinan.
+
+El evaluator heurístico continúa siendo la fuente del veredicto global mientras
+no exista una Decision Layer calibrada.
+
+La versión V1.1 normaliza mayúsculas y acentos y compara términos
+significativos con la evidencia.
+
+Reglas actuales del veredicto heurístico:
 
 - se **rechaza** si se detecta información no respaldada o algún score es
   menor o igual a 2;
@@ -119,10 +238,18 @@ La integración técnica de los cuatro formatos y la comparación de evaluator
 V1.0/V1.1 están documentadas en
 [Validación multiformato end-to-end](data/format_corpus_v1/results/multiformat_end_to_end/README.md).
 
+La especificación del evaluador semántico y del contrato V2 se encuentra en:
+
+- [`docs/evaluation_contract_v2.md`](docs/evaluation_contract_v2.md);
+- [`docs/evaluation_contract_v2_compatibility.md`](docs/evaluation_contract_v2_compatibility.md);
+- [`docs/semantic_rubric_v0_1.md`](docs/semantic_rubric_v0_1.md);
+- [`docs/semantic_schema_v0_1.md`](docs/semantic_schema_v0_1.md);
+- [`docs/sprint4_integration_decisions.md`](docs/sprint4_integration_decisions.md).
+
 ## Evaluación offline de retrieval
 
 Este benchmark mide el comportamiento del retrieval de Agentes; no forma
-parte de la búsqueda ejecutada por el endpoint `/evaluate`.
+parte de la búsqueda ejecutada por los endpoints `/evaluate` o `/evaluate/v2`.
 
 El conjunto de evaluación contiene corpus y Ground Truth versionados. Los
 artefactos congelados no deben sobrescribirse: cualquier cambio de corpus,
@@ -139,8 +266,11 @@ manifest que permita reproducir la corrida.
 | Ablation study y configuración recomendada | [`data/evaluation/results/retrieval_v2_ablation/README.md`](data/evaluation/results/retrieval_v2_ablation/README.md) |
 
 El benchmark calcula Recall@K y Precision@K y conserva resultados, manifests
-y análisis de error en `data/evaluation/results/`. Los notebooks de
-`notebooks/` documentan preparación de Ground Truth, evaluación y análisis.
+y análisis de error en `data/evaluation/results/`.
+
+Los notebooks de `notebooks/` documentan preparación de Ground Truth,
+evaluación y análisis.
+
 Las métricas solo son comparables cuando se usa el mismo corpus, versión de
 Ground Truth y configuración declarados en el manifest correspondiente.
 
@@ -151,16 +281,19 @@ runtime y sus cambios vigentes, consulta la documentación de
 ## Validación multiformato
 
 `data/format_corpus_v1/` contiene representaciones Markdown, TXT y PDF de un
-mismo corpus controlado. Permite estudiar el efecto del formato de entrada
-manteniendo constante el contenido semántico; es independiente del benchmark
-congelado de retrieval.
+mismo corpus controlado.
+
+Permite estudiar el efecto del formato de entrada manteniendo constante el
+contenido semántico; es independiente del benchmark congelado de retrieval.
 
 - [Descripción del corpus controlado](data/format_corpus_v1/README.md)
 - [Resultados de retrieval por formato](data/format_corpus_v1/results/retrieval_v2/README.md)
 - [Validación técnica end-to-end de 3 formatos fuente por 4 formatos generados](data/format_corpus_v1/results/multiformat_end_to_end/README.md)
 
 Los documentos fuente y sus versiones derivadas son datos experimentales, no
-guías de implementación. Para regenerar el corpus se utiliza
+guías de implementación.
+
+Para regenerar el corpus se utiliza
 `scripts/build_controlled_format_corpus.py`.
 
 ## Mapa del módulo
@@ -169,7 +302,7 @@ guías de implementación. Para regenerar el corpus se utiliza
 Data_IA/
 ├── data_ai/
 │   ├── api/             # Aplicación FastAPI
-│   ├── evaluation/      # Evaluator, reviewer, rúbrica y configuración
+│   ├── evaluation/      # Evaluators, providers, reviewer y rúbrica
 │   ├── loaders/         # Carga de resultados de retrieval
 │   ├── metrics/         # Métricas, reportes y análisis de error
 │   ├── schemas/         # Contratos de evaluación y retrieval
@@ -178,9 +311,10 @@ Data_IA/
 ├── data/
 │   ├── evaluation/      # Corpus, Ground Truth, manifests, entradas y resultados
 │   └── format_corpus_v1/# Corpus controlado para pruebas multiformato
-├── docs/contracts/      # Contratos documentados y versionados
+├── docs/                # Contratos, rúbricas y decisiones de integración
 ├── notebooks/           # Preparación, evaluación y análisis experimental
 ├── scripts/             # Generación de corpus y runners/diagnósticos
+├── .env.example         # Variables de entorno documentadas sin secretos
 ├── requirements.txt
 └── README.md
 ```
@@ -190,10 +324,15 @@ Puntos de entrada frecuentes:
 | Necesidad | Archivo o carpeta |
 |---|---|
 | Cambiar rutas HTTP | `data_ai/api/app.py` |
-| Cambiar esquemas de evaluación de formatos | `data_ai/schemas/format_evaluation.py` |
-| Cambiar evaluación de calidad | `data_ai/evaluation/quality_evaluator.py` |
+| Cambiar esquemas V1.1 | `data_ai/schemas/format_evaluation.py` |
+| Cambiar contrato V2 | `data_ai/schemas/evaluation_v2.py` |
+| Cambiar esquema semántico | `data_ai/schemas/semantic_evaluation.py` |
+| Cambiar evaluación heurística | `data_ai/evaluation/quality_evaluator.py` |
+| Cambiar Semantic Evaluator | `data_ai/evaluation/semantic_evaluator.py` |
+| Cambiar integración Gemini | `data_ai/evaluation/gemini_semantic_provider.py` |
+| Cambiar selección de provider | `data_ai/evaluation/semantic_provider_factory.py` |
 | Cambiar reglas del veredicto | `data_ai/evaluation/rubric.py` |
-| Cambiar carga/validación de resultados de retrieval | `data_ai/loaders/`, `data_ai/validators/` |
+| Cambiar carga/validación de retrieval | `data_ai/loaders/`, `data_ai/validators/` |
 | Cambiar métricas o reportes de retrieval | `data_ai/metrics/` |
 | Añadir o actualizar pruebas | `data_ai/tests/` |
 | Crear benchmarks reproducibles | `notebooks/`, `scripts/` y `data/evaluation/` |
@@ -218,14 +357,59 @@ source .venv/bin/activate
 pip install -r requirements.txt
 ```
 
+### Configuración opcional del Semantic Evaluator
+
+Para habilitar Gemini en Evaluation V2, configura:
+
+```env
+DATA_IA_GEMINI_API_KEY=<api-key>
+DATA_IA_GEMINI_MODEL=<modelo>
+```
+
+También existe un archivo de referencia sin secretos:
+
+```text
+Data_IA/.env.example
+```
+
+con:
+
+```env
+DATA_IA_GEMINI_API_KEY=
+DATA_IA_GEMINI_MODEL=
+```
+
+No deben almacenarse API keys reales en Git.
+
+En despliegue, Data/IA lee estas variables desde un archivo externo al
+repositorio:
+
+```text
+/opt/nuevamente/env/data-ia.env
+```
+
+El archivo real de despliegue debe contener:
+
+```env
+DATA_IA_GEMINI_API_KEY=<api-key-real>
+DATA_IA_GEMINI_MODEL=<modelo-configurado>
+```
+
+Este archivo debe existir en el servidor antes de ejecutar Docker Compose.
+
 ### Iniciar la API
 
 ```bash
 python -m uvicorn data_ai.api.app:app --reload --port 8000
 ```
 
-La documentación interactiva de FastAPI queda disponible en
-`http://127.0.0.1:8000/docs`.
+La documentación interactiva de FastAPI queda disponible en:
+
+```text
+http://127.0.0.1:8000/docs
+```
+
+En Docker, el servicio Data/IA utiliza el puerto `8002`.
 
 ### Ejecutar pruebas
 
@@ -236,9 +420,13 @@ python -m pytest data_ai/tests
 ### Ejecutar scripts y notebooks
 
 Los scripts de `scripts/` pueden ejecutarse desde la raíz del repositorio
-según la ruta indicada en cada uno. Los notebooks de `notebooks/` registran
-los parámetros, las versiones de los datos y el análisis asociado; antes de
-comparar resultados, verifica el manifest y no reemplaces salidas históricas.
+según la ruta indicada en cada uno.
+
+Los notebooks de `notebooks/` registran los parámetros, las versiones de los
+datos y el análisis asociado.
+
+Antes de comparar resultados, verifica el manifest correspondiente y no
+reemplaces salidas históricas.
 
 ## Documentación relacionada
 
@@ -247,3 +435,7 @@ comparar resultados, verifica el manifest y no reemplaces salidas históricas.
   de las evaluaciones recibidas.
 - [README del corpus controlado](data/format_corpus_v1/README.md): diseño y
   reproducibilidad de las entradas MD/TXT/PDF.
+- [Evaluation Contract V2](docs/evaluation_contract_v2.md): contrato público
+  de Evaluation V2.
+- [Semantic Rubric v0.1](docs/semantic_rubric_v0_1.md): criterios del
+  Semantic Evaluator.
