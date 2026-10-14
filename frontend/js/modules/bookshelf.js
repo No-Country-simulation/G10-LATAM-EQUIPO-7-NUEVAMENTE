@@ -160,8 +160,9 @@ export const bookshelf = {
       openedTitle: document.getElementById('openedDocTitle'),
       openedSummary: document.getElementById('openedDocSummary'),
       openedTime: document.getElementById('openedDocTime'),
-      openedSections: document.getElementById('openedDocSections'),
       openedLevel: document.getElementById('openedDocLevel'),
+      openedNiche: document.getElementById('openedDocNiche'),
+      openedDetail: document.getElementById('openedDocDetail'),
       openedChips: document.getElementById('openedDocChips'),
 
       // Opciones de Estudio de la Hoja Derecha
@@ -679,41 +680,67 @@ export const bookshelf = {
   },
 
   getShortDisciplineTag(discipline) {
-    if (!discipline) return 'MÓDULO';
+    if (!discipline) return 'DOC';
     const map = {
-      'Ingeniería de Software': 'SOFTWARE',
-      'Arquitectura de Software': 'SOFTWARE',
-      'Desarrollo Web & UX': 'DEV WEB',
-      'Ciencia de Datos': 'DATA SCI',
-      'Inteligencia Artificial': 'IA & DATA',
-      'Cloud & DevOps': 'DEVOPS',
+      'Ingeniería de Software': 'DEV',
+      'Arquitectura de Software': 'DEV',
+      'Desarrollo Web & UX': 'WEB',
+      'Ciencia de Datos': 'DATA',
+      'Inteligencia Artificial': 'IA',
+      'Cloud & DevOps': 'CLOUD',
       'Neurociencias & Medicina': 'NEURO',
-      'Ciencias Médicas & Biología': 'MEDICINA',
-      'Derecho & Ciberseguridad': 'LEYES',
-      'Ciencias Jurídicas & Derecho': 'DERECHO',
-      'Economía & Negocios': 'ECONOMÍA',
-      'Economía & Finanzas': 'FINANZAS',
-      'Biología & Genética': 'GENÉTICA',
-      'Ciberseguridad': 'SEGURIDAD',
-      'Humanidades & Filosofía': 'HISTORIA',
-      'Humanidades & Ciencias Sociales': 'HUMANID',
-      'Psicología & Neurociencia': 'PSICOLOGÍA',
-      'Física & Ciencias Exactas': 'FÍSICA',
-      'Ciencias Generales': 'CIENCIA',
-      'Ciencias & Disciplinas Generales': 'CIENCIA'
+      'Ciencias Médicas & Biología': 'MED',
+      'Derecho & Ciberseguridad': 'LEGAL',
+      'Ciencias Jurídicas & Derecho': 'DER',
+      'Economía & Negocios': 'ECON',
+      'Economía & Finanzas': 'FIN',
+      'Biología & Genética': 'BIO',
+      'Ciberseguridad': 'SEG',
+      'Humanidades & Filosofía': 'HUM',
+      'Humanidades & Ciencias Sociales': 'HUM',
+      'Psicología & Neurociencia': 'PSIC',
+      'Física & Ciencias Exactas': 'FÍS',
+      'Ciencias Generales': 'CIEN',
+      'Ciencias & Disciplinas Generales': 'CIEN',
+      'Educación & Pedagogía': 'EDU',
+      'Gestión & Liderazgo': 'GEST'
     };
     if (map[discipline]) return map[discipline];
     const firstWord = discipline.split(' ')[0].toUpperCase();
-    return firstWord.length > 8 ? firstWord.slice(0, 8) : firstWord;
+    return firstWord.length > 5 ? firstWord.slice(0, 5) : firstWord;
   },
 
   getLevelLabel(perfil) {
     const map = {
+      beginner: 'Inicial / Inducción',
       principiante: 'Inicial / Inducción',
+      intermediate: 'Operativo / Especialista',
       intermedio: 'Operativo / Especialista',
+      advanced: 'Avanzado / Liderazgo',
       avanzado: 'Avanzado / Liderazgo'
     };
     return map[(perfil || '').toLowerCase()] || 'Corporativo';
+  },
+
+  getNicheLabel(niche) {
+    const map = {
+      general: 'General',
+      backend: 'Tecnología & Software',
+      health: 'Seguridad & Bioseguridad',
+      legal: 'Legal & Compliance',
+      business: 'Finanzas & Negocios',
+      humanities: 'Recursos Humanos & Cultura'
+    };
+    return map[(niche || '').toLowerCase()] || 'General';
+  },
+
+  getDetailLabel(detailLevel) {
+    const map = {
+      detailed: 'Exhaustivo / Paso a paso',
+      standard: 'Estándar / Equilibrado',
+      concise: 'Sintético / Crítico'
+    };
+    return map[(detailLevel || '').toLowerCase()] || 'Estándar / Equilibrado';
   },
 
   createBookSpine(book) {
@@ -777,7 +804,7 @@ export const bookshelf = {
     this.currentSelectedBook = book;
     const {
       openBookOverlay, openedBadge, openedTitle, openedSummary,
-      openedTime, openedSections, openedLevel, openedChips
+      openedTime, openedLevel, openedNiche, openedDetail, openedChips
     } = this.elements;
 
     if (!openBookOverlay) return;
@@ -789,8 +816,9 @@ export const bookshelf = {
 
     const meta = book.metadatos || {};
     if (openedTime) openedTime.textContent = meta.tiempo_estudio || '10 min';
-    if (openedSections) openedSections.textContent = book.sections?.length || 1;
     if (openedLevel) openedLevel.textContent = this.getLevelLabel(meta.perfil);
+    if (openedNiche) openedNiche.textContent = this.getNicheLabel(meta.niche);
+    if (openedDetail) openedDetail.textContent = this.getDetailLabel(meta.detail_level);
 
     // Chips de conceptos clave de la primera sección (Renderizado seguro con textContent)
     if (openedChips) {
