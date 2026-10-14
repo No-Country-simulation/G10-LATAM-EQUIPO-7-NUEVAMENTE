@@ -285,6 +285,104 @@ class WrongDocumentAgents(
         )
 
 
+class PartialFailureAgents(
+    FakeAgents
+):
+    """Agentes falso que simula un 207: un formato ok y otro falló.
+
+    Representa lo que el adapter HTTP ya corregido devuelve ante un
+    éxito parcial real de Agentes: no lanza AgentsError, y cada
+    resultado conserva su propio status y su propia causa.
+    """
+
+    async def generate_formats(
+        self,
+        request: AgentGenerationInput,
+    ) -> AgentGenerationResult:
+        quiz = AgentGeneratedFormatResult(
+            format_type=GeneratedFormatType.QUIZ,
+            status=GeneratedFormatStatus.SUCCESS,
+            content=QuizContent(
+                title="Quiz de prueba",
+                instructions="Seleccione la respuesta correcta.",
+                questions=(
+                    QuizQuestion(
+                        question_id="q1",
+                        question="¿Qué es un microservicio?",
+                        options=(
+                            "Servicio independiente",
+                            "Base de datos",
+                        ),
+                        correct_answer="Servicio independiente",
+                        explanation=(
+                            "Es una unidad desplegable independiente."
+                        ),
+                    ),
+                ),
+            ),
+            chunks_used=(
+                ChunkEvidence(
+                    chunk_id="chunk_1",
+                    document_id=request.document_id,
+                    rank=1,
+                    score=0.93,
+                    text="Evidencia utilizada para el quiz.",
+                ),
+            ),
+        )
+
+        flashcards = AgentGeneratedFormatResult(
+            format_type=GeneratedFormatType.FLASHCARDS,
+            status=GeneratedFormatStatus.FAILED,
+            content=None,
+            chunks_used=(),
+            error_message=(
+                "Cuota de Gemini agotada. Intenta nuevamente más tarde."
+            ),
+        )
+
+        return AgentGenerationResult(
+            document_id=request.document_id,
+            results=(quiz, flashcards),
+        )
+
+
+class GlobalFailureAgents(
+    FakeAgents
+):
+    """Agentes falso que simula un fallo global (429/503/etc.) ya interpretado.
+
+    Representa lo que el adapter HTTP ya corregido devuelve cuando TODO
+    falló: no lanza AgentsError, y cada formato conserva su propia
+    causa real en lugar de un mensaje genérico compartido.
+    """
+
+    async def generate_formats(
+        self,
+        request: AgentGenerationInput,
+    ) -> AgentGenerationResult:
+        quiz = AgentGeneratedFormatResult(
+            format_type=GeneratedFormatType.QUIZ,
+            status=GeneratedFormatStatus.FAILED,
+            content=None,
+            chunks_used=(),
+            error_message="Cuota de Gemini agotada.",
+        )
+
+        flashcards = AgentGeneratedFormatResult(
+            format_type=GeneratedFormatType.FLASHCARDS,
+            status=GeneratedFormatStatus.FAILED,
+            content=None,
+            chunks_used=(),
+            error_message="Timeout al esperar la respuesta de Gemini.",
+        )
+
+        return AgentGenerationResult(
+            document_id=request.document_id,
+            results=(quiz, flashcards),
+        )
+
+
 class MissingFormatAgents(
     FakeAgents
 ):
@@ -600,6 +698,123 @@ def test_complete_generation_marks_same_attempts_failed_on_agents_error() -> Non
         for generated_format
         in repository.formats
     )
+
+
+def test_complete_generation_persists_partial_results_independently() -> None:
+    """Un éxito parcial no colapsa el formato ok ni genericiza el fallido.
+
+    Pin de contrato: esta lógica de persistir cada item de forma
+    independiente ya existía en el servicio y no la modifica este
+    cambio; lo que corrige el fix es que el adapter HTTP ahora
+    efectivamente le entrega al servicio un resultado así (en vez de
+    lanzar AgentsError) cuando Agentes responde 207.
+    """
+    service, repository = build_service(
+        document=build_document(
+            DocumentStatus.INDEXED
+        ),
+        agents=PartialFailureAgents(),
+    )
+
+    attempts = service.prepare_generation(
+        document_id="doc_123",
+        formats=(
+            GeneratedFormatType.QUIZ,
+            GeneratedFormatType.FLASHCARDS,
+        ),
+        profile="beginner",
+        niche="technology",
+        detail_level="detailed",
+    )
+
+    # No debe lanzar: un éxito parcial es un resultado válido, no una
+    # excepción de integración.
+    result = asyncio.run(
+        service.complete_generation(
+            attempts=tuple(attempts)
+        )
+    )
+
+    assert len(result) == 2
+
+    quiz = next(
+        generated_format
+        for generated_format in result
+        if generated_format.format_type == GeneratedFormatType.QUIZ
+    )
+    flashcards = next(
+        generated_format
+        for generated_format in result
+        if generated_format.format_type == GeneratedFormatType.FLASHCARDS
+    )
+
+    assert quiz.status == GeneratedFormatStatus.SUCCESS
+    assert isinstance(quiz.content, QuizContent)
+
+    assert flashcards.status == GeneratedFormatStatus.FAILED
+    assert flashcards.content is None
+    assert flashcards.error_message == (
+        "Cuota de Gemini agotada. Intenta nuevamente más tarde."
+    )
+
+
+def test_complete_generation_persists_distinct_causes_on_global_failure() -> None:
+    """Un fallo global conserva la causa real de cada formato, no un mensaje genérico compartido.
+
+    Pin de contrato a nivel de servicio (no ejercita el adapter HTTP real):
+    documenta que, cuando Agentes responde con un body válido aunque todo
+    haya fallado, el servicio NO debe tratarlo como AgentsError/fallo de
+    integración ni sobrescribir cada causa con un mensaje genérico
+    compartido. El test de regresión real del fix HTTP está en
+    test_http_agents_adapter_preserves_global_failure_causes.
+    """
+    service, repository = build_service(
+        document=build_document(
+            DocumentStatus.INDEXED
+        ),
+        agents=GlobalFailureAgents(),
+    )
+
+    attempts = service.prepare_generation(
+        document_id="doc_123",
+        formats=(
+            GeneratedFormatType.QUIZ,
+            GeneratedFormatType.FLASHCARDS,
+        ),
+        profile="beginner",
+        niche="general",
+        detail_level="standard",
+    )
+
+    # No debe lanzar FormatGenerationIntegrationError: Agentes respondió
+    # con un body válido (aunque todo haya fallado), no hubo un fallo de
+    # transporte/integración.
+    result = asyncio.run(
+        service.complete_generation(
+            attempts=tuple(attempts)
+        )
+    )
+
+    assert len(result) == 2
+    assert all(
+        generated_format.status == GeneratedFormatStatus.FAILED
+        for generated_format in result
+    )
+
+    quiz = next(
+        generated_format
+        for generated_format in result
+        if generated_format.format_type == GeneratedFormatType.QUIZ
+    )
+    flashcards = next(
+        generated_format
+        for generated_format in result
+        if generated_format.format_type == GeneratedFormatType.FLASHCARDS
+    )
+
+    assert quiz.error_message == "Cuota de Gemini agotada."
+    assert flashcards.error_message == "Timeout al esperar la respuesta de Gemini."
+    assert quiz.error_message != flashcards.error_message
 
 
 def test_complete_generation_marks_attempt_failed_on_wrong_document_id() -> None:
