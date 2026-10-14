@@ -794,25 +794,27 @@ export const bookshelf = {
     spine.setAttribute('data-book-id', book.id);
     spine.title = `${book.title} (${book.discipline})`;
 
-    const shortTag = this.getShortDisciplineTag(book.discipline);
-
     const topRib = document.createElement('div');
     topRib.className = 'spine-top-rib';
 
     const titleSpan = document.createElement('span');
     titleSpan.className = 'spine-title-vertical';
-    titleSpan.textContent = book.title || 'Documento';
+    const bookTitle = book.title || 'Documento';
+    titleSpan.textContent = bookTitle;
 
-    const codeSpan = document.createElement('span');
-    codeSpan.className = 'spine-code-tag';
-    codeSpan.textContent = shortTag;
+    // Adaptación tipográfica dinámica para que el título entre completo en el lomo
+    const titleLen = bookTitle.length;
+    if (titleLen > 30) {
+      titleSpan.classList.add('title-long');
+    } else if (titleLen > 18) {
+      titleSpan.classList.add('title-medium');
+    }
 
     const bottomRib = document.createElement('div');
     bottomRib.className = 'spine-bottom-rib';
 
     spine.appendChild(topRib);
     spine.appendChild(titleSpan);
-    spine.appendChild(codeSpan);
     spine.appendChild(bottomRib);
 
     spine.addEventListener('click', () => {
@@ -830,7 +832,6 @@ export const bookshelf = {
     spine.innerHTML = `
       <div class="spine-top-rib"></div>
       <span class="spine-title-vertical">SUBIR NUEVO PDF</span>
-      <span class="spine-code-tag">NUEVO</span>
       <div class="spine-bottom-rib"></div>
     `;
 
