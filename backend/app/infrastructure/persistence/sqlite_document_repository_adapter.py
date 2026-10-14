@@ -1,4 +1,4 @@
-﻿"""Adaptador SQLite para el puerto de persistencia de documentos."""
+"""Adaptador SQLite para el puerto de persistencia de documentos."""
 
 import sqlite3
 
@@ -42,10 +42,11 @@ class SQLiteDocumentRepositoryAdapter:
                         status,
                         oci_object_name,
                         learning_metadata_json,
+                        is_active,
                         created_at,
                         updated_at
                     )
-                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                     """,
                     (
                         record.document_id,
@@ -56,6 +57,7 @@ class SQLiteDocumentRepositoryAdapter:
                         record.status,
                         record.oci_object_name,
                         record.learning_metadata_json,
+                        1 if record.is_active else 0,
                         record.created_at,
                         record.updated_at,
                     ),
@@ -138,6 +140,7 @@ class SQLiteDocumentRepositoryAdapter:
                         status = ?,
                         oci_object_name = ?,
                         learning_metadata_json = ?,
+                        is_active = ?,
                         updated_at = ?
                     WHERE document_id = ?
                     """,
@@ -149,6 +152,7 @@ class SQLiteDocumentRepositoryAdapter:
                         record.status,
                         record.oci_object_name,
                         record.learning_metadata_json,
+                        1 if record.is_active else 0,
                         record.updated_at,
                         record.document_id,
                     ),

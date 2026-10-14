@@ -29,7 +29,7 @@
       </h1>
 
       <p class="portada-description">
-        Transforma manuales, normativas y documentación operativa en programas interactivos de capacitación para tus colaboradores. Evalúa competencias con <strong>Quizzes</strong>, refuerza conocimientos con <strong>Flashcards 3D</strong> y estructura capacitaciones efectivas con IA.
+        Transforma tu documentación corporativa en experiencias de aprendizaje con IA. Genera <strong>síntesis ejecutivas</strong>, <strong>tarjetas de refuerzo</strong>, <strong>guiones formativos</strong> y <strong>evaluaciones</strong> adaptadas a tu equipo.
       </p>
 
       <div class="portada-stats-pill-row">
@@ -209,9 +209,9 @@
         <div class="upload-hero-header">
           <div class="upload-hero-title-box">
             <span class="badge-pill badge-gold">Gestión de Contenido Corporativo</span>
-            <h2>Carga de Documentación y Generación de Capacitación</h2>
-            <p class="upload-subtitle">
-              Sube manuales de procesos, normativas internas, guías técnicas o políticas corporativas (en PDF, TXT o MD). El sistema generará automáticamente módulos de capacitación con evaluaciones, tarjetas de refuerzo y guías estructuradas para colaboradores.
+            <h2>Cargar Documento</h2>
+            <p class="upload-hero-subtitle">
+              Sube un archivo en PDF, TXT o MD para generar su módulo de capacitación con IA.
             </p>
           </div>
         </div>
@@ -256,47 +256,53 @@
             </div>
 
             <div class="parameters-stack">
-              <!-- Perfil (target_profile) -->
-              <div class="param-field">
-                <label for="paramPerfil" class="param-label">
-                  <strong>Nivel del Colaborador / Audiencia:</strong>
-                </label>
-                <select id="paramPerfil" class="custom-select">
-                  <option value="beginner">Inicial / Inducción: Conceptos base, lineamientos generales y tono accesible</option>
-                  <option value="intermediate" selected>Operativo / Especialista: Procedimientos clave, aplicación práctica y metodología</option>
-                  <option value="advanced">Avanzado / Liderazgo: Profundidad técnica, toma de decisiones y análisis crítico</option>
-                </select>
+              <div class="parameters-fields-grid">
+                <!-- Perfil (target_profile) -->
+                <div class="param-field">
+                  <label for="paramPerfil" class="param-label">
+                    <strong>Nivel del Colaborador / Audiencia:</strong>
+                  </label>
+                  <select id="paramPerfil" class="custom-select">
+                    <option value="beginner">Inicial / Inducción</option>
+                    <option value="intermediate" selected>Operativo / Especialista</option>
+                    <option value="advanced">Avanzado / Liderazgo</option>
+                  </select>
+                  <span class="param-hint-desc" id="hintParamPerfil">Procedimientos clave, aplicación práctica y metodología</span>
+                </div>
+
+                <!-- Nicho / Temática (niche_context) -->
+                <div class="param-field">
+                  <label for="paramNicho" class="param-label">
+                    <strong>Área Operativa / Departamento:</strong>
+                  </label>
+                  <select id="paramNicho" class="custom-select">
+                    <option value="general" selected>General (Detección Universal)</option>
+                    <option value="backend">Tecnología & Software</option>
+                    <option value="health">Seguridad & Bioseguridad</option>
+                    <option value="legal">Legal & Compliance</option>
+                    <option value="business">Finanzas & Negocios</option>
+                    <option value="humanities">Recursos Humanos & Cultura</option>
+                  </select>
+                  <span class="param-hint-desc" id="hintParamNicho">Detección universal del área según el contenido del documento</span>
+                </div>
+
+                <!-- Nivel de Detalle (detail_level) -->
+                <div class="param-field">
+                  <label for="paramDetailLevel" class="param-label">
+                    <strong>Nivel de Detalle del Entrenamiento:</strong>
+                  </label>
+                  <select id="paramDetailLevel" class="custom-select">
+                    <option value="detailed" selected>Exhaustivo / Paso a paso</option>
+                    <option value="standard">Estándar / Equilibrado</option>
+                    <option value="concise">Sintético / Crítico</option>
+                  </select>
+                  <span class="param-hint-desc" id="hintParamDetail">Paso a paso detallado para capacitación integral</span>
+                </div>
               </div>
 
-              <!-- Nicho / Temática (niche_context) -->
-              <div class="param-field">
-                <label for="paramNicho" class="param-label">
-                  <strong>Área Operativa / Departamento:</strong>
-                </label>
-                <select id="paramNicho" class="custom-select">
-                  <option value="general" selected>General / Detección universal del documento</option>
-                  <option value="backend">Tecnología, Infraestructura & Software</option>
-                  <option value="health">Seguridad Ocupacional, Salud & Bioseguridad</option>
-                  <option value="legal">Legal, Compliance & Normativas Regulatorias</option>
-                  <option value="business">Finanzas, Gestión & Operaciones de Negocio</option>
-                  <option value="humanities">Recursos Humanos, Talento & Cultura Organizacional</option>
-                </select>
-              </div>
-
-              <!-- Nivel de Detalle (detail_level) -->
-              <div class="param-field">
-                <label for="paramDetailLevel" class="param-label">
-                  <strong>Nivel de Detalle del Entrenamiento:</strong>
-                </label>
-                <select id="paramDetailLevel" class="custom-select">
-                  <option value="detailed" selected>Exhaustivo / Paso a paso detallado para capacitación integral</option>
-                  <option value="standard">Estándar / Cobertura equilibrada de competencias clave</option>
-                  <option value="concise">Sintético / Enfoque rápido en puntos críticos de control</option>
-                </select>
-              </div>
               <!-- Botón de Lanzamiento -->
-              <div style="margin-top: 0.75rem;">
-                <button type="button" class="btn-launch-rag" id="btnLanzarProcesamiento" style="width: 100%;">
+              <div class="launch-action-wrapper">
+                <button type="button" class="btn-launch-rag" id="btnLanzarProcesamiento">
                   <span>Generar Programa de Capacitación</span>
                 </button>
               </div>
@@ -443,10 +449,10 @@
 
         <!-- Pestañas de Modalidades Formativas (4 Salidas) -->
         <div class="format-tabs-bar" role="tablist">
-          <button type="button" class="format-tab-btn active" data-format="flashcards">Tarjetas de Refuerzo</button>
-          <button type="button" class="format-tab-btn" data-format="quiz">Evaluación (Quiz)</button>
-          <button type="button" class="format-tab-btn" data-format="video">Guion Formativo</button>
           <button type="button" class="format-tab-btn" data-format="sintesis">Síntesis Ejecutiva</button>
+          <button type="button" class="format-tab-btn active" data-format="flashcards">Tarjetas de Refuerzo</button>
+          <button type="button" class="format-tab-btn" data-format="video">Guion Formativo</button>
+          <button type="button" class="format-tab-btn" data-format="quiz">Evaluación (Quiz)</button>
         </div>
 
         <!-- Formato 1: Flashcards 3D (Refuerzo de Conocimientos) -->
@@ -528,16 +534,24 @@
             </button>
           </div>
           <div class="video-container">
-            <div class="video-mockup-player">
-              <div class="video-play-icon" id="videoPlayPreviewBtn" title="Vista previa del guion">&#9658;</div>
-              <h4 id="videoMockupTitle" style="font-size: 1.15rem; color: #ffffff;">Guion de Capacitación</h4>
-              <span class="badge-pill badge-cyan" id="videoDuration">4:30 min</span>
-            </div>
+            <!-- 1. Escenas y Estructura Didáctica (ARRIBA) -->
             <div class="video-script-box">
               <h4>Escenas y Estructura Didáctica</h4>
               <div class="video-scenes-list" id="videoScriptList">
                 <!-- Generado dinámicamente por videoGuide.js -->
               </div>
+            </div>
+
+            <!-- 2. Modal Referencial del Video (ABAJO) -->
+            <div class="video-mockup-player">
+              <div class="video-mockup-content">
+                <div class="video-play-icon" id="videoPlayPreviewBtn" title="Vista previa referencial del guion">&#9658;</div>
+                <div class="video-mockup-meta">
+                  <h4 id="videoMockupTitle" style="font-size: 1.1rem; color: #ffffff;">Guion de Capacitación</h4>
+                  <p class="video-mockup-desc">Estructura didáctica audiovisual generada para facilitadores y producción de video.</p>
+                </div>
+              </div>
+              <span class="badge-pill badge-cyan" id="videoDuration">4:30 min</span>
             </div>
           </div>
         </div>
@@ -609,8 +623,9 @@
 
         <div class="study-meta-box">
           <div>Tiempo estimado: <strong id="openedDocTime">10 min</strong></div>
-          <div>Módulos / Secciones: <strong id="openedDocSections">4</strong></div>
           <div>Nivel: <strong id="openedDocLevel">Operativo</strong></div>
+          <div>Área temática: <strong id="openedDocNiche">General</strong></div>
+          <div>Profundidad: <strong id="openedDocDetail">Estándar</strong></div>
         </div>
 
         <div>

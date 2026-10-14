@@ -1,4 +1,20 @@
-"""Orquestador de la evaluación de calidad del contenido generado."""
+"""Orquestador de la evaluación heurística de contenido generado.
+
+Este módulo coordina el evaluador heurístico V1.1 y la rúbrica
+de decisión legacy.
+
+Formatos soportados:
+- quiz
+- flashcards
+- tldr
+- video_script
+
+Este módulo todavía devuelve el contrato interno legacy
+EvaluacionReviewerContract.
+
+La migración al contrato Evaluation V2 se realiza en una capa
+independiente para mantener compatibilidad durante Sprint 4.
+"""
 
 from typing import List, Union
 
@@ -10,12 +26,16 @@ from data_ai.schemas.format_evaluation import (
     FlashcardsContent,
     GenerationContext,
     QuizContent,
+    TLDRContent,
+    VideoScriptContent,
 )
 
 
 GeneratedContent = Union[
     QuizContent,
     FlashcardsContent,
+    TLDRContent,
+    VideoScriptContent,
 ]
 
 
@@ -24,19 +44,32 @@ def evaluar_contenido(
     chunks_used: List[ChunkUsed],
     generation_context: GenerationContext,
 ) -> EvaluacionReviewerContract:
-    """
-    Evalúa un Quiz o conjunto de Flashcards.
+    """Evalúa un contenido educativo generado.
 
     Orquesta:
-    1. cálculo de scores de calidad;
+
+    1. cálculo de scores heurísticos;
     2. detección de información no respaldada;
-    3. cálculo del veredicto final.
+    3. cálculo del veredicto legacy.
+
+    Parameters
+    ----------
+    generated_content:
+        Contenido generado en uno de los cuatro formatos
+        soportados por Data/IA.
+
+    chunks_used:
+        Evidencia factual utilizada durante la generación.
+
+    generation_context:
+        Contexto pedagógico utilizado para adaptar el contenido.
 
     Returns
     -------
     EvaluacionReviewerContract
-        Resultado estructurado con status, scores,
-        informacion_no_respaldada y observaciones.
+        Resultado heurístico estructurado con status legacy,
+        scores, detección de información no respaldada y
+        observaciones.
     """
 
     scores, informacion_no_respaldada = evaluate(

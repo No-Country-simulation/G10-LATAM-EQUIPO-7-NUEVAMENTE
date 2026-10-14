@@ -88,6 +88,7 @@ def test_generate_endpoint_metadata_fallback(mock_answer, mock_extract):
     """
     Validación 2: Verifica que si la extracción de metadatos falla, 
     se devuelva el fallback por defecto y se sigan generando los formatos.
+    Ahora devuelve 207 (Multi-Status) porque es un fallo parcial controlado.
     """
     # Configuramos el mock para simular que Gemini falló sacando los metadatos
     mock_extract.return_value = FAILED_METADATA
@@ -104,13 +105,14 @@ def test_generate_endpoint_metadata_fallback(mock_answer, mock_extract):
     }
 
     response = client.post("/api/v1/generate", json=payload)
-    assert response.status_code == 200
+    # AHORA ESPERA 207 (Fallo parcial) en lugar de 200
+    assert response.status_code == 207
     data = response.json()
 
-    # Validación 2: Comportamiento estricto de Fallback
+    # Validación 2: Comportamiento estricto de Fallback (Alineado con API Sprint 3)
     fallback_metadata = data["learning_metadata"]
-    assert fallback_metadata["key_concepts"] == []
-    assert fallback_metadata["prerequisites"] == []
+    assert fallback_metadata["key_concepts"] == ["Error al extraer conceptos"]
+    assert fallback_metadata["prerequisites"] == ["No se pudieron determinar"]
     assert fallback_metadata["estimated_time_minutes"] == 0
 
     # Verificamos que el formato no se rompió por culpa del fallo de los metadatos

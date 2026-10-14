@@ -23,6 +23,7 @@ class Document:
         status: Estado actual dentro del flujo de procesamiento.
         oci_object_name: Identificador del objeto persistido en OCI.
         learning_metadata: Metadatos pedagógicos de la adaptación vigente.
+        is_active: Estado lógico de activación en biblioteca.
         created_at: Fecha de creación del registro.
         updated_at: Fecha de última modificación.
     """
@@ -36,6 +37,7 @@ class Document:
     status: DocumentStatus = DocumentStatus.RECEIVED
     oci_object_name: str | None = None
     learning_metadata: LearningMetadata | None = None
+    is_active: bool = True
 
     created_at: datetime = field(
         default_factory=lambda: datetime.now(UTC)
@@ -83,6 +85,16 @@ class Document:
     def clear_oci_object(self) -> None:
         """Retira la referencia al objeto OCI durante una compensación."""
         self.oci_object_name = None
+        self.updated_at = datetime.now(UTC)
+
+    def deactivate(self) -> None:
+        """Marca el documento como inactivo y actualiza su fecha de modificación."""
+        self.is_active = False
+        self.updated_at = datetime.now(UTC)
+
+    def activate(self) -> None:
+        """Marca el documento como activo y actualiza su fecha de modificación."""
+        self.is_active = True
         self.updated_at = datetime.now(UTC)
 
     def assign_learning_metadata(

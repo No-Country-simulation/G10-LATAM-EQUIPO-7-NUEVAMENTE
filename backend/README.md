@@ -3477,3 +3477,32 @@ polling hasta ready | partial | error
 ```
 
 El objetivo arquitectónico se mantiene: **Frontend conoce BackendAPI; BackendAPI orquesta; RAG/Agentes resuelve recuperación y generación; Data/IA evalúa calidad de contenido ya generado mediante un contrato desacoplado.**
+
+<!-- BEGIN SPRINT4_AGENT_REVISION_CONTRACT -->
+
+## Sprint 4 — Contrato de corrección pedagógica con Agentes
+
+El contrato de integración BackendAPI → Agentes para una corrección de formato
+está documentado en [`docs/contracts/agent_revision_contract.md`](docs/contracts/agent_revision_contract.md).
+
+- **Operación externa prevista:** `POST /api/v1/revise`, un formato por solicitud.
+- **Puerto interno:** `AgentRevisionPort.revise_format(AgentRevisionInput) -> AgentRevisionResult`.
+- **Adaptador:** `HTTPAgentRevisionAdapter`, con `httpx.AsyncClient` inyectado y ruta `/api/v1/revise` configurable en su constructor.
+- **Entrada:** contenido canónico vigente, `GenerationContext`, `ChunkEvidence` y feedback anidado de Evaluation V2.
+- **Salida:** estado, contenido corregido, evidencia completa o `ErrorDetail` estructurado.
+- **Separación:** el adaptador no decide nuevas revisiones, no evalúa ni persiste. Backend será el dueño del ciclo y del límite de una corrección pedagógica por formato.
+
+**Estado actual:** interfaz tipada y adaptador desarrollados, pero sin conectar todavía
+al ciclo automático de `AdaptationOrchestrationService`. El endpoint de Agentes aún
+debe publicarse. Los tests de contrato utilizan `httpx.MockTransport` y **no**
+sustituyen las pruebas E2E reales exigidas para cerrar la tarjeta.
+
+Para probar los archivos nuevos desde `backend/`:
+
+```powershell
+python -m ruff check .
+python -m pytest -q tests/unit/test_http_agent_revision_adapter.py
+python -m pytest -q
+```
+
+<!-- END SPRINT4_AGENT_REVISION_CONTRACT -->

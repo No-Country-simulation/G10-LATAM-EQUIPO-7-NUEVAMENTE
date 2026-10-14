@@ -1,191 +1,247 @@
-# NuevaMente — Frontend
+# NuevaMente - Frontend
 
-Aplicación web de NuevaMente construida con HTML, CSS y JavaScript ES modules.
-Vite proporciona el servidor de desarrollo y empaqueta los archivos estáticos
-para producción. La interfaz es una SPA ligera, sin framework de UI, y utiliza
-BackendAPI como única API de negocio.
+Este módulo corresponde al **Frontend** de la plataforma **NuevaMente** (Hackathon ONE · Grupo 10 · LATAM).
+Desarrollado en **JavaScript moderno (ES6 Modules), HTML5 y CSS3**, sin frameworks ni paso de build, bajo principios de arquitectura limpia y Responsabilidad Única (SRP), con diseño Glassmorphism y modo oscuro fijo.
 
-Para conocer el flujo global del producto, consulta el [README de la raíz](../README.md).
-Los contratos y la operación del servidor están en el [README de BackendAPI](../backend/README.md).
+---
 
-## Navegación
+## Cómo Ejecutar el Frontend Localmente
 
-| Si buscas… | Consulta… |
-|---|---|
-| Pantallas y capacidades visibles | [Experiencia de usuario](#experiencia-de-usuario) |
-| Módulos y responsabilidades de código | [Arquitectura del frontend](#arquitectura-del-frontend) |
-| Endpoints consumidos y ciclo de formatos | [Integración con BackendAPI](#integración-con-backendapi) |
-| Configurar la dirección de BackendAPI | [Configuración](#configuración) |
-| Ejecutar en desarrollo o producción | [Desarrollo y despliegue](#desarrollo-y-despliegue) |
+Debido al uso de módulos nativos ES6 (`import` / `export`), los navegadores requieren que los archivos se sirvan a través de un servidor web local (no funciona abriendo `index.html` directo con `file://`, por restricciones de CORS del navegador).
 
-## Experiencia de usuario
+Tienes cualquiera de estas 3 formas sencillas:
 
-La interfaz se organiza en tres vistas principales, más una portada de bienvenida:
-
-1. **Catálogo de capacitaciones:** consulta los documentos persistidos en
-   BackendAPI, permite buscarlos/filtrarlos, alterna entre vista de lista y
-   estantería interactiva, y muestra el detalle del documento.
-2. **Carga de documento:** acepta PDF, Markdown (`.md`) y TXT de hasta 10 MiB.
-   Permite elegir perfil, nicho y nivel de detalle antes de cargar.
-3. **Centro de capacitación:** presenta los cuatro formatos soportados por el
-   producto: Quiz (`quiz`), Flashcards (`flashcards`), Resumen (`tldr`) y Guion
-   formativo (`video_script`). También permite regenerar formatos y descargar
-   el archivo original.
-
-El contenido de los documentos, sus estados y los resultados educativos se
-obtienen de BackendAPI. El frontend no implementa una generación local ni un
-modo de datos mock.
-
-## Arquitectura del frontend
-
-```text
-index.html
-  ├── js/main.js                 Bootstrap e inicialización
-  ├── js/state.js                Estado observable compartido
-  ├── js/config.js               Configuración y endpoints
-  ├── js/api/apiClient.js        Cliente HTTP y normalización de errores
-  └── js/modules/
-      ├── router.js              Vistas principales
-      ├── portada.js             Portada de bienvenida
-      ├── bookshelf.js            Catálogo, búsqueda y detalle de documentos
-      ├── uploadTab.js            Selección, validación y carga de archivos
-      ├── studyHub.js             Estados, polling y regeneración
-      ├── flashcards.js           Vista de tarjetas
-      ├── quiz.js                 Vista de Quiz
-      ├── summary.js              Vista de resumen
-      ├── videoGuide.js           Vista de guion formativo
-      ├── statusDialog.js         Diálogo de estados y errores
-      ├── notifications.js        Notificaciones toast
-      └── utils/friendlyError.js  Mensajes de error para la interfaz
-```
-
-Los estilos están en `css/`; `css/main.css` reúne las hojas modulares. El estado
-observable conserva, entre otros datos, la vista activa, el documento
-seleccionado, los parámetros de adaptación, la conexión con BackendAPI y los
-formatos del documento actual.
-
-## Integración con BackendAPI
-
-El cliente `js/api/apiClient.js` consume estos endpoints bajo el prefijo
-`/api/v1`:
-
-| Método | Ruta | Uso |
-|---|---|---|
-| `GET` | `/health` | Verificación de conectividad al iniciar y cada 60 segundos. |
-| `GET` | `/documents` | Cargar documentos del catálogo. |
-| `POST` | `/documents` | Subir un archivo y solicitar su indexación. |
-| `GET` | `/documents/{document_id}` | Consultar metadata del documento. |
-| `GET` | `/documents/{document_id}/formats` | Consultar estados y formatos generados. |
-| `POST` | `/documents/{document_id}/formats/regenerate` | Regenerar uno o varios formatos. |
-| `GET` | `/documents/{document_id}/download` | Descargar el archivo original. |
-
-### Carga
-
-`POST /documents` envía `multipart/form-data` con:
-
-- `file`;
-- `profile`;
-- `niche`;
-- `detail_level`;
-- `learning_objective` cuando se proporciona.
-
-El navegador establece automáticamente el `Content-Type` y su `boundary`.
-Frontend no asigna `document_id`, formatos de salida ni chunks: BackendAPI
-identifica el documento, indexa y registra la generación de los cuatro formatos.
-La indexación ocurre antes de responder; la generación de formatos continúa en
-segundo plano. La respuesta de carga no incluye los contenidos generados.
-
-El cliente maneja como duplicado una respuesta HTTP `200` o `duplicate: true`;
-un documento nuevo normalmente se responde con `201`. Después de cargar, el
-Centro de capacitación consulta `/formats` para obtener resultados y estados.
-
-### Estados y actualización de formatos
-
-Los estados agregados consumidos por el frontend son `pending`, `processing`,
-`ready`, `partial` y `error`. Por formato, la interfaz contempla `pending`,
-`processing`, `success`, `failed` y `no_results`.
-
-Mientras la respuesta agregada sea `pending` o `processing`, el Centro de
-capacitación consulta `/formats` cada 3,5 segundos. Detiene el polling al
-alcanzar `ready`, `partial` o `error`, al cambiar de documento o al salir de esa
-vista; también lo pausa tras errores consecutivos.
-
-`ready` es el estado agregado calculado por BackendAPI, no una afirmación de
-que el frontend comprueba por sí solo los cuatro formatos. Para `partial` o
-`error`, la acción general permite reintentar; cada vista de formato también
-puede solicitar regeneración individual. La solicitud de regeneración envía
-JSON `{ "formats": [...] }` y recibe los identificadores de los nuevos intentos.
-
-### Errores y timeouts
-
-`ApiError` conserva status, código, mensaje y detalles del servidor. Los
-módulos convierten esos errores a mensajes de interfaz mediante
-`js/utils/friendlyError.js`, el diálogo de estado y las notificaciones.
-Los abortos por timeout se representan como HTTP `408`; errores de red
-actualizan el indicador de conexión.
-
-El timeout general es de 30 segundos por defecto. La carga y descarga usan el
-timeout de procesamiento, actualmente 120 segundos. El polling de formatos
-realiza nuevas consultas al endpoint; no mantiene una conexión en tiempo real.
-
-## Configuración
-
-La plantilla de variables está en `.env.example`:
-
-```dotenv
-VITE_API_BASE_URL=http://localhost:8000
-VITE_API_TIMEOUT_MS=30000
-```
-
-`VITE_API_BASE_URL` configura la URL base de BackendAPI. El frontend la resuelve
-con esta precedencia:
-
-1. variable de entorno Vite `VITE_API_BASE_URL`;
-2. `window.__ENV__.VITE_API_BASE_URL` si se inyecta en runtime;
-3. query string `?api=...` o `?backend=...`;
-4. valor guardado en `localStorage` (`nuevamente_backend_url`);
-5. mismo origen en despliegues que no sean `localhost` o `127.0.0.1`;
-6. fallback `http://localhost:8000`.
-
-El badge de BackendAPI en el encabezado permite cambiar la URL en el navegador.
-También se puede invocar `window.setBackendUrl(url)`; pasar una URL vacía elimina
-el valor guardado y vuelve a la resolución por defecto. Los cambios de URL
-requieren recargar la página.
-
-`VITE_API_TIMEOUT_MS` define el timeout general en milisegundos. El timeout de
-carga/descarga se configura en `js/config.js`.
-
-## Desarrollo y despliegue
-
-Ejecuta estos comandos desde `frontend/`:
-
+### Opción 1: Con Vite (Estándar recomendado)
+Abre tu terminal en la carpeta `frontend` y ejecuta:
 ```bash
-npm ci
+npm install
 npm run dev
 ```
+Vite iniciará el servidor de desarrollo en [http://localhost:3000](http://localhost:3000) con Hot Module Replacement (HMR).
 
-Vite sirve la aplicación en `http://localhost:3000` y abre el navegador. No
-abrir `index.html` directamente con `file://`: la aplicación usa módulos ES.
-
-Scripts disponibles:
-
-| Comando | Resultado |
-|---|---|
-| `npm run dev` | Servidor local de desarrollo. |
-| `npm run build` | Genera el sitio estático en `dist/`. |
-| `npm run preview` | Sirve localmente el build de `dist/` para revisión. |
-
-El `Dockerfile` construye la aplicación con Node 20 y la publica con Nginx.
-`VITE_API_BASE_URL` y `VITE_API_TIMEOUT_MS` se inyectan durante el build. El
-`nginx.conf` sirve la SPA y reenvía `/api/` al servicio `backend:8000`, con un
-límite de carga de 10 MiB. El build Docker espera el contexto de construcción
-en la raíz del repositorio.
-
-## Pruebas y calidad
-
-`package.json` define scripts para desarrollo, build y preview; no define un
-script de test ni de lint. Para validar el empaquetado de producción:
-
+### Opción 2: Con Python
+Abre tu terminal en la carpeta `frontend` y ejecuta:
 ```bash
-npm run build
+python -m http.server 3000
 ```
+
+### Opción 3: Con la extensión Live Server de VS Code
+1. Abre la carpeta `frontend` en Visual Studio Code.
+2. Haz clic derecho sobre `index.html`.
+3. Selecciona **"Open with Live Server"**.
+
+### Conexión con Backend (FastAPI)
+
+El Frontend está conectado exclusivamente al Backend real (FastAPI). La URL se desacopló completamente:
+- Se configura en el archivo `.env` mediante `VITE_API_BASE_URL` (ver `.env.example`).
+- Soporta configuración dinámica en caliente desde la interfaz haciendo clic en el badge **"Backend API"** del header.
+- Por defecto apunta a `http://localhost:8000` con timeout de 30 segundos.
+
+---
+
+## Arquitectura Modular de Carpetas
+
+```
+frontend/
+├── index.html                   # Orquestador de vistas SPA (Single Page Application)
+├── README.md                    # Este documento
+├── package.json                 # Scripts y dependencias de Vite.js
+├── vite.config.js               # Configuración del servidor de desarrollo Vite
+├── .env.example                 # Plantilla pública de variables de entorno
+├── css/
+│   ├── main.css                 # Importador central de hojas de estilo modulares
+│   ├── variables.css            # Tokens de diseño, Glassmorphism y paleta dorada/cyan
+│   ├── layout.css               # Header, navbar de pestañas principales y barra de estado
+│   ├── components.css           # Botones, badges, inputs, chips y notificaciones toast
+│   ├── bookshelf.css            # El Gran Librero 3D y el Cuaderno Abierto realista
+│   ├── upload-tab.css           # Vista de Carga de Documento, stepper y panel de pruebas
+│   ├── notebook.css             # Cuaderno Interactivo Dinámico (hojas, índice y lectura)
+│   ├── study-hub.css            # Centro de Estudio (Flashcards, Quiz, Video, Resumen)
+│   ├── portada.css              # Portada de bienvenida a pantalla completa
+│   └── modals.css               # Modales de utilidad y diálogo de estado del Backend
+└── js/
+    ├── config.js                # Configuración desacoplada (Vite .env, runtime y límites)
+    ├── state.js                 # Almacén de estado reactivo global (Store con Observable)
+    ├── main.js                  # Punto de entrada y montaje de la aplicación
+    ├── api/
+    │   └── apiClient.js         # Cliente HTTP fetch hacia el Backend (FastAPI real)
+    └── modules/
+        ├── router.js            # Enrutador de pestañas (Biblioteca, Carga, Centro de Estudio)
+        ├── portada.js           # Controlador de la portada de bienvenida y transición
+        ├── bookshelf.js         # Controlador del Librero 3D y el Cuaderno Abierto
+        ├── uploadTab.js         # Controlador de carga, parámetros y flujo real con el Backend
+        ├── notifications.js     # Sistema de notificaciones toast (éxito, error, advertencia)
+        ├── statusDialog.js      # Diálogo de estado tras cada respuesta del Backend
+        ├── notebook.js          # Renderizador del Cuaderno dinámico
+        ├── studyHub.js          # Orquestador del Centro de Estudio multi-formato
+        ├── flashcards.js        # Lógica de Flashcards, volteo y atajos de teclado
+        ├── quiz.js              # Lógica de Quiz interactivo con justificación pedagógica
+        ├── videoGuide.js        # Guion didáctico y tutorial adaptativo
+        └── summary.js           # Síntesis ejecutiva y términos clave
+```
+
+---
+
+## Flujo y Experiencia de Usuario
+
+1. **Portada de Bienvenida**
+   Vista de pantalla completa con el logo del proyecto. Un clic transiciona a la biblioteca.
+
+2. **La Biblioteca**
+   Estantería de libros interactivos en 3D. Al hacer clic en cualquiera, se despliega un cuaderno abierto con el detalle del documento (tiempo de lectura, cantidad de secciones, nivel) y las opciones de estudio disponibles.
+
+3. **Carga de Documento**
+   Zona de arrastrar y soltar para PDF, Markdown o TXT (hasta 10 MB). Selector de parámetros de adaptación pedagógica: perfil del estudiante, área temática y nivel de detalle (los 4 formatos se generan automáticamente en conjunto). Al procesar, un panel muestra el avance en tiempo real contra el Backend y notifica el resultado (documento guardado, duplicado detectado, o cualquier error) mediante un diálogo de estado y notificaciones toast.
+
+4. **Centro de Estudio**
+   - **Flashcards**: tarjetas con animación de volteo y pistas pedagógicas.
+   - **Quiz**: preguntas de autoevaluación con validación inmediata y justificación.
+   - **Tutorial**: guion pedagógico estructurado con marcas de tiempo.
+   - **Resumen**: síntesis ejecutiva con puntos clave y términos clave.
+
+---
+
+## Contrato de Integración Frontend ↔ Backend
+
+El Frontend está alineado con el contrato v1 cerrado y funcional del Backend.
+
+### 1. Carga y procesamiento del documento (POST /api/v1/documents)
+
+- **Endpoint:** `POST {BASE_URL}/api/v1/documents`
+- **Formato:** `multipart/form-data` (el navegador debe establecer el `boundary` de forma automática, sin header `Content-Type` manual).
+- **Campos del FormData:**
+  - `file`: Archivo binario (PDF, TXT o MD; máx. 10 MB) — *Obligatorio*
+  - `profile`: `beginner`, `intermediate`, `advanced` — *Obligatorio*
+  - `niche`: `general`, `backend`, `health`, `legal`, `business`, `humanities` — *Obligatorio*
+  - `detail_level`: Texto no vacío, por ejemplo `detailed`, `standard`, `concise` — *Obligatorio*
+  - `learning_objective`: Texto con el objetivo pedagógico — *Opcional*
+- **Front NO debe enviar:** `document_id`, `formats`, `output_format`, ni `chunks` (Backend los gestiona internamente).
+- **Nota arquitectónica:** El endpoint `/api/v1/adaptations` ya no está expuesto y Front no lo utiliza. Todo el pipeline de guardado en OCI, indexación RAG y generación de formatos (Quiz + Flashcards) se orquesta directamente en esta llamada.
+- **Respuesta (201 Created para nuevo / 200 OK para duplicado):**
+  ```json
+  {
+    "document_id": "doc_d5a19fdaae6944e6949f0a2a028db22c",
+    "filename": "documento.txt",
+    "status": "indexed",
+    "duplicate": false
+  }
+  ```
+  *(Nota de contrato: `POST /documents` actualmente no devuelve `formats`; su respuesta contiene `document_id`, `filename`, `status` y `duplicate`. Los formatos generados se obtienen mediante `GET /api/v1/documents/{document_id}/formats` al acceder al Centro de Estudio o abrir un libro desde La Biblioteca).*
+- **Errores:** `400` (vacío/inválido), `413` (>10 MB), `415` (no soportado), `422` (validación), `502` (fallo de persistencia OCI).
+
+### 3. Listar documentos para La Biblioteca (GET /api/v1/documents)
+
+- **Endpoint:** `GET {BASE_URL}/api/v1/documents`
+- **Content-Type:** `application/json`
+- **Respuesta (200 OK):** Soporta tanto array directo `[...]` como wrapper `{ "items": [...] }`.
+  ```json
+  [
+    {
+      "document_id": "doc_123",
+      "filename": "manual.pdf",
+      "status": "stored",
+      "size_bytes": 1048576,
+      "created_at": "2026-09-30T12:00:00Z",
+      "title": "Manual de Arquitectura",
+      "summary": "Resumen ejecutivo del documento analizado."
+    }
+  ]
+  ```
+
+### 4. Consultar detalle del documento (GET /api/v1/documents/{document_id})
+
+- **Endpoint:** `GET {BASE_URL}/api/v1/documents/{document_id}`
+- **Respuesta (200 OK):**
+  ```json
+  {
+    "document_id": "doc_123",
+    "filename": "manual.pdf",
+    "status": "indexed",
+    "content_type": "application/pdf",
+    "size_bytes": 1048576,
+    "created_at": "2026-09-30T12:00:00Z",
+    "updated_at": "2026-09-30T12:05:00Z",
+    "title": "Manual de Arquitectura",
+    "summary": "Resumen ejecutivo del documento analizado.",
+    "estimated_time": "10 min"
+  }
+  ```
+
+### 5. Consultar formatos generados (GET /api/v1/documents/{document_id}/formats)
+
+- **Endpoint:** `GET {BASE_URL}/api/v1/documents/{document_id}/formats`
+- **Respuesta (200 OK):** Contrato canónico acordado entre Backend, Agentes, Data/IA y Frontend.
+  ```json
+  {
+    "document_id": "doc_123",
+    "status": "ready",
+    "formats": {
+      "quiz": {
+        "format_id": "fmt_quiz_123",
+        "status": "success",
+        "content": {
+          "title": "Quiz de arquitectura de software",
+          "instructions": "Seleccione la respuesta correcta.",
+          "questions": [
+            {
+              "question_id": "q1",
+              "question": "¿Qué caracteriza a un microservicio?",
+              "options": [
+                "Despliegue independiente",
+                "Base de datos obligatoriamente compartida",
+                "Una única aplicación monolítica",
+                "Ausencia de interfaces"
+              ],
+              "correct_answer": "Despliegue independiente",
+              "explanation": "Un microservicio puede desplegarse y evolucionar de manera independiente."
+            }
+          ]
+        },
+        "error_message": null
+      },
+      "flashcards": {
+        "format_id": "fmt_flashcards_123",
+        "status": "success",
+        "content": {
+          "title": "Flashcards de arquitectura de software",
+          "instructions": "Revise cada concepto y su explicación.",
+          "cards": [
+            {
+              "card_id": "card_1",
+              "front": "Microservicio",
+              "back": "Servicio pequeño que puede desplegarse y evolucionar independientemente."
+            }
+          ]
+        },
+        "error_message": null
+      }
+    }
+  }
+  ```
+
+  - **Estados por formato:** `success`, `failed`, `no_results`.
+  - **Estados globales del endpoint:**
+    - `pending`: documento almacenado, adaptación aún no iniciada.
+    - `processing`: indexación o generación en curso.
+    - `ready`: Quiz y Flashcards disponibles.
+    - `partial`: al menos un formato exitoso.
+    - `error`: procesamiento o generación fallida.
+  - **Resolución didáctica:** En Frontend, `quiz.js` resuelve `correct_answer` tanto por texto exacto de la opción como por índice numérico; `flashcards.js` renderiza `content.cards` y mensajes pedagógicos ante fallos parciales o estados en proceso (`processing`).
+
+### Manejo de errores
+
+El cliente HTTP (`js/api/apiClient.js`) traduce las respuestas del Backend a mensajes legibles, desplegados mediante el diálogo de estado (`statusDialog.js`) y notificaciones toast (`notifications.js`). Códigos contemplados y probados: `200`, `201`, `400`, `404`, `408` (timeout de 120s para procesamiento RAG), `413` (límite 10 MB), `415`, `422`, `500`, `502` (error OCI), y `0` (Backend no disponible / fallo de red).
+
+---
+
+## Estado Actual de la Integración (Sprint 2)
+
+- **Carga y persistencia real en Backend y OCI (`POST /documents`):** ✅ **Funcional** (Tarea 1).
+- **Flujo de adaptación pedagógica integrado en `POST /documents`:** ✅ **Funcional** (Orquestación RAG + IA completada por el Backend en la carga).
+- **Límite máximo de 10 MB validado en cliente:** ✅ **Funcional** (Tarea 4).
+- **Manejo UX integral de códigos HTTP y errores:** ✅ **Funcional** (Tarea 5).
+- **Consulta y renderizado de la biblioteca (`GET /documents`):** ✅ **Funcional** (Tarea 6).
+- **Consulta de formatos del libro (`GET /documents/{id}/formats`):** ✅ **Funcional** (Tarea 7).
+- **Visualizador pedagógico de Quiz y Flashcards:** ✅ **Funcional** (Tarea 8).
+- **Configuración desacoplada y Vite.js (sin URL hardcodeada):** ✅ **Funcional** (Tarea 3).
+- **Modo único real (sin mocks):** ✅ **Completado**.
