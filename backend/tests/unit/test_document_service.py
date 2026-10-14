@@ -1,4 +1,4 @@
-﻿"""Pruebas unitarias de DocumentService."""
+"""Pruebas unitarias de DocumentService."""
 
 from pathlib import Path
 
@@ -445,3 +445,104 @@ def test_retrieve_document_handles_object_storage_error(
         persisted_document.status
         == DocumentStatus.STORED
     )
+
+
+def test_deactivate_document_success(tmp_path: Path) -> None:
+    """Inactivar un documento lo marca is_active = False sin modificar status."""
+    file_path = tmp_path / "manual.pdf"
+    file_path.write_bytes(b"contenido")
+
+    repository = FakeDocumentRepository()
+    service = DocumentService(repository)
+
+    reg = service.register_document(
+        local_path=file_path,
+        original_filename="manual.pdf",
+        content_type="application/pdf",
+        size_bytes=len(b"contenido"),
+    )
+    doc_id = reg.document.document_id
+
+    deactivated = service.deactivate_document(doc_id)
+    assert deactivated.is_active is False
+    assert deactivated.status == DocumentStatus.VALIDATED
+
+    # Comprueba persistencia en repositorio
+    stored = repository.find_by_id(doc_id)
+    assert stored is not None
+    assert stored.is_active is False
+
+
+def test_deactivate_document_idempotent(tmp_path: Path) -> None:
+    """Repetir deactivate_document sobre un documento ya inactivo es idempotente."""
+    file_path = tmp_path / "manual.pdf"
+    file_path.write_bytes(b"contenido")
+
+    repository = FakeDocumentRepository()
+    service = DocumentService(repository)
+
+    reg = service.register_document(
+        local_path=file_path,
+        original_filename="manual.pdf",
+        content_type="application/pdf",
+        size_bytes=len(b"contenido"),
+    )
+    doc_id = reg.document.document_id
+
+    first = service.deactivate_document(doc_id)
+    second = service.deactivate_document(doc_id)
+
+    assert first.is_active is False
+    assert second.is_active is False
+    assert first.document_id == second.document_id
+
+
+def test_deactivate_document_not_found() -> None:
+    """Intentar inactivar un documento inexistente lanza DocumentNotFoundError."""
+    repository = FakeDocumentRepository()
+    service = DocumentService(repository)
+
+    with pytest.raises(DocumentNotFoundError):
+        service.deactivate_document("doc_inexistente")
+
+
+def test_register_document_reactivates_inactive_duplicate(
+    tmp_path: Path,
+) -> None:
+    """Subir un archivo duplicado que estaba inactivo lo reactiva y reutiliza su document_id."""
+    file_path = tmp_path / "manual.pdf"
+    file_path.write_bytes(b"contenido reactivable")
+
+    repository = FakeDocumentRepository()
+    service = DocumentService(repository)
+
+    first_reg = service.register_document(
+        local_path=file_path,
+        original_filename="manual.pdf",
+        content_type="application/pdf",
+        size_bytes=len(b"contenido reactivable"),
+    )
+    doc_id = first_reg.document.document_id
+    assert first_reg.created is True
+    assert first_reg.document.is_active is True
+
+    # Inactivamos el documento
+    service.deactivate_document(doc_id)
+    assert repository.find_by_id(doc_id).is_active is False
+
+    # Volvemos a subir exactamente el mismo archivo
+    second_reg = service.register_document(
+        local_path=file_path,
+        original_filename="manual.pdf",
+        content_type="application/pdf",
+        size_bytes=len(b"contenido reactivable"),
+    )
+
+    assert second_reg.created is False
+    assert second_reg.document.document_id == doc_id
+    assert second_reg.document.is_active is True
+
+    # Persistencia debe reflejar la reactivación
+    stored = repository.find_by_id(doc_id)
+    assert stored is not None
+    assert stored.is_active is True

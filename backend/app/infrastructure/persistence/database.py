@@ -15,6 +15,7 @@ CREATE TABLE IF NOT EXISTS documents (
     status TEXT NOT NULL,
     oci_object_name TEXT,
     learning_metadata_json TEXT,
+    is_active INTEGER NOT NULL DEFAULT 1,
     created_at TEXT NOT NULL,
     updated_at TEXT NOT NULL
 );
@@ -299,6 +300,14 @@ class SQLiteDatabase:
                 """
                 ALTER TABLE documents
                 ADD COLUMN learning_metadata_json TEXT
+                """
+            )
+
+        if "is_active" not in columns:
+            connection.execute(
+                """
+                ALTER TABLE documents
+                ADD COLUMN is_active INTEGER NOT NULL DEFAULT 1
                 """
             )
 

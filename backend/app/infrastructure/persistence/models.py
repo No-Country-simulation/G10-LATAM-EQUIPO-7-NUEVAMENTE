@@ -45,6 +45,7 @@ class DocumentRecord:
     learning_metadata_json: str | None
     created_at: str
     updated_at: str
+    is_active: bool = True
 
     @classmethod
     def from_domain(
@@ -71,6 +72,7 @@ class DocumentRecord:
             ),
             created_at=document.created_at.isoformat(),
             updated_at=document.updated_at.isoformat(),
+            is_active=document.is_active,
         )
 
     @classmethod
@@ -92,6 +94,11 @@ class DocumentRecord:
             ],
             created_at=row["created_at"],
             updated_at=row["updated_at"],
+            is_active=(
+                bool(row["is_active"])
+                if "is_active" in tuple(row.keys())
+                else True
+            ),
         )
 
     def to_domain(
@@ -111,6 +118,7 @@ class DocumentRecord:
             learning_metadata=(
                 self._deserialize_learning_metadata()
             ),
+            is_active=self.is_active,
             created_at=datetime.fromisoformat(
                 self.created_at
             ),
