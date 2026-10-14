@@ -254,7 +254,7 @@ body {
   overflow-x: hidden;
   scroll-behavior: smooth;
   animation: fadeInView 0.25s ease forwards;
-  padding-bottom: 3.5rem;
+  padding-bottom: 2rem;
 }
 
 /* Scrollbar sutil y elegante que solo aparece cuando el contenido desborda */
@@ -296,19 +296,9 @@ body {
   }
 }
 
-/* Barra Inferior de Estado del Sistema */
+/* Barra Inferior de Estado del Sistema (Oculta: el estado vive en el badge superior del header) */
 .system-status-bar {
-  border-top: 1px solid var(--border-ui);
-  background: var(--surface-glass);
-  backdrop-filter: blur(8px);
-  padding: 0.5rem clamp(1rem, 2vw, 2rem);
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  font-size: 0.82rem;
-  color: var(--text-muted);
-  z-index: 50;
-  flex-shrink: 0;
+  display: none !important;
 }
 
 .status-indicator {

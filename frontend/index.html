@@ -534,16 +534,24 @@
             </button>
           </div>
           <div class="video-container">
-            <div class="video-mockup-player">
-              <div class="video-play-icon" id="videoPlayPreviewBtn" title="Vista previa del guion">&#9658;</div>
-              <h4 id="videoMockupTitle" style="font-size: 1.15rem; color: #ffffff;">Guion de Capacitación</h4>
-              <span class="badge-pill badge-cyan" id="videoDuration">4:30 min</span>
-            </div>
+            <!-- 1. Escenas y Estructura Didáctica (ARRIBA) -->
             <div class="video-script-box">
               <h4>Escenas y Estructura Didáctica</h4>
               <div class="video-scenes-list" id="videoScriptList">
                 <!-- Generado dinámicamente por videoGuide.js -->
               </div>
+            </div>
+
+            <!-- 2. Modal Referencial del Video (ABAJO) -->
+            <div class="video-mockup-player">
+              <div class="video-mockup-content">
+                <div class="video-play-icon" id="videoPlayPreviewBtn" title="Vista previa referencial del guion">&#9658;</div>
+                <div class="video-mockup-meta">
+                  <h4 id="videoMockupTitle" style="font-size: 1.1rem; color: #ffffff;">Guion de Capacitación</h4>
+                  <p class="video-mockup-desc">Estructura didáctica audiovisual generada para facilitadores y producción de video.</p>
+                </div>
+              </div>
+              <span class="badge-pill badge-cyan" id="videoDuration">4:30 min</span>
             </div>
           </div>
         </div>
