@@ -217,10 +217,46 @@ class AgentV1:
                 "document_description": None,
             }
 
-    def answer(self, query: str, document_id: str, formato: str, perfil: str, nicho: str, nivel: str, learning_objective: str = None, top_k: int = 5) -> dict:
-        chunks_usados = []
+    def _armar_prompt(self, formato: str, perfil: str, nicho: str, nivel: str,
+                      learning_objective: Optional[str], contexto: str, extra_instructions: str = "") -> str:
+        instruccion_base = PROMPTS_BASE.get(formato.lower(), "Genera un resumen estructurado.")
 
-        esquema_salida = ESQUEMAS_POR_FORMATO.get(formato.lower())
+        prompt_final = f"""
+            INSTRUCCIÓN PRINCIPAL:
+            {instruccion_base}
+
+            REGLAS DE ADAPTACIÓN:
+            - Perfil objetivo: {perfil}
+            - Nicho temático: {nicho}
+            - Nivel de detalle: {nivel}
+            """
+        if learning_objective:
+            prompt_final += f"- Objetivo de aprendizaje: {learning_objective}\n"
+
+        if extra_instructions:
+            prompt_final += f"""
+            INSTRUCCIONES DE REVISIÓN (prioritarias):
+            {extra_instructions}
+            """
+
+        prompt_final += f"""
+            Adapta el lenguaje y la complejidad estrictamente a este perfil.
+            Genera identificadores únicos (IDs) cortos y alfanuméricos para cada elemento cuando aplique (preguntas, tarjetas, escenas).
+
+            CONTEXTO RECUPERADO (Usa ÚNICA Y ESTRICTAMENTE esta información, no inventes datos externos):
+            {contexto}
+            """
+        return prompt_final
+
+    def generate_from_context(self, contexto: str, sources_used: list, formato: str, perfil: str,
+                              nicho: str, nivel: str, learning_objective: str = None,
+                              extra_instructions: str = "") -> dict:
+        """
+        Genera UN formato a partir de un contexto ya recuperado (no vuelve a buscar en el RAG).
+        Lo usa el Redactor del grafo: el Investigador recupera una vez y cada reescritura reutiliza
+        ese contexto. NUNCA lanza: devuelve status/content/sources_used/error_message/error.
+        """
+        esquema_salida = ESQUEMAS_POR_FORMATO.get((formato or "").lower())
         if esquema_salida is None:
             mensaje = f"Formato '{formato}' no soportado para generación."
             return {
@@ -231,6 +267,56 @@ class AgentV1:
                 "error": build_error("UNSUPPORTED_FORMAT", mensaje),
             }
 
+        if not (contexto or "").strip():
+            mensaje = "No se encontró contexto suficiente en el documento."
+            return {
+                "status": "no_results",
+                "content": None,
+                "sources_used": [],
+                "error_message": mensaje,
+                "error": build_error("NO_CONTEXT", mensaje),
+            }
+
+        fuentes = list(sources_used or [])
+        try:
+            prompt_final = self._armar_prompt(
+                formato, perfil, nicho, nivel, learning_objective, contexto, extra_instructions
+            )
+            texto_generado = _generate_and_parse(
+                prompt=prompt_final,
+                schema=esquema_salida,
+                temperature=0.2
+            )
+            return {
+                "status": "success",
+                "content": texto_generado,
+                "sources_used": fuentes,
+                "error_message": None,
+                "error": None,
+            }
+        except Exception as e:
+            logger.exception("generate_from_context falló (formato=%s)", formato)
+            return {
+                "status": "failed",
+                "content": None,
+                "sources_used": fuentes,
+                "error_message": f"Error crítico en el pipeline o generación con Gemini: {str(e)}",
+                "error": classify_exception(e),
+            }
+
+    def answer(self, query: str, document_id: str, formato: str, perfil: str, nicho: str, nivel: str,
+               learning_objective: str = None, top_k: int = 5, extra_instructions: str = "") -> dict:
+        if ESQUEMAS_POR_FORMATO.get(formato.lower()) is None:
+            mensaje = f"Formato '{formato}' no soportado para generación."
+            return {
+                "status": "failed",
+                "content": None,
+                "sources_used": [],
+                "error_message": mensaje,
+                "error": build_error("UNSUPPORTED_FORMAT", mensaje),
+            }
+
+        chunks_usados = []
         try:
             resultados = self.retriever.retrieve(query=query, top_k=top_k, metadata_filters={"document_id": document_id})
 
@@ -253,45 +339,8 @@ class AgentV1:
                     "score": getattr(res, "score", 0.0),
                     "text": res.text
                 })
-
-            instruccion_base = PROMPTS_BASE.get(formato.lower(), "Genera un resumen estructurado.")
-
-            prompt_final = f"""
-            INSTRUCCIÓN PRINCIPAL:
-            {instruccion_base}
-
-            REGLAS DE ADAPTACIÓN:
-            - Perfil objetivo: {perfil}
-            - Nicho temático: {nicho}
-            - Nivel de detalle: {nivel}
-            """
-            if learning_objective:
-                prompt_final += f"- Objetivo de aprendizaje: {learning_objective}\n"
-
-            prompt_final += f"""
-            Adapta el lenguaje y la complejidad estrictamente a este perfil.
-            Genera identificadores únicos (IDs) cortos y alfanuméricos para cada elemento cuando aplique (preguntas, tarjetas, escenas).
-
-            CONTEXTO RECUPERADO (Usa ÚNICA Y ESTRICTAMENTE esta información, no inventes datos externos):
-            {contexto_unificado}
-            """
-
-            texto_generado = _generate_and_parse(
-                prompt=prompt_final,
-                schema=esquema_salida,
-                temperature=0.2
-            )
-
-            return {
-                "status": "success",
-                "content": texto_generado,
-                "sources_used": chunks_usados,
-                "error_message": None,
-                "error": None,
-            }
-
         except Exception as e:
-            logger.exception("answer falló (formato=%s)", formato)
+            logger.exception("answer falló en la recuperación (formato=%s)", formato)
             return {
                 "status": "failed",
                 "content": None,
@@ -299,6 +348,17 @@ class AgentV1:
                 "error_message": f"Error crítico en el pipeline o generación con Gemini: {str(e)}",
                 "error": classify_exception(e),
             }
+
+        return self.generate_from_context(
+            contexto=contexto_unificado,
+            sources_used=chunks_usados,
+            formato=formato,
+            perfil=perfil,
+            nicho=nicho,
+            nivel=nivel,
+            learning_objective=learning_objective,
+            extra_instructions=extra_instructions,
+        )
 
     def answer_for_evaluation(self, case_id: str, query: str, top_k: int = 5, metadata_filters: dict = None) -> dict:
         return self.retriever.retrieve_for_evaluation(case_id=case_id, query=query, top_k=top_k, metadata_filters=metadata_filters)
