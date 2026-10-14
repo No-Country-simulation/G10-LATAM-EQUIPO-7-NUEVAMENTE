@@ -1,12 +1,15 @@
 /**
  * evaluatorMetrics.js
- * Módulo para visualización y auditoría de métricas del Agente Evaluador (Sprint 4).
- * Cumple con el contrato acordado entre Data/IA y BackendAPI:
- * - Veredicto canónico: 'approved' | 'requires_revision' | 'rejected'
- * - Puntuaciones separadas: 'heuristic_scores' y 'semantic_evaluation.scores' (sin final_score inventado)
- * - Observaciones pedagógicas ('observations') y Recomendaciones didácticas ('recommendations')
- * - Alertas de información no soportada ('unsupported_information')
- * - Transparencia de fallback cuando el evaluador semántico se degrada
+ * Módulo para visualización y auditoría de métricas del Agente Evaluador V2.
+ * Cumple con el contrato acordado de consenso entre Data/IA, BackendAPI y Frontend:
+ * - Veredicto canónico: 'approved' | 'requires_revision' | 'rejected' | null (sin veredicto / en evaluación)
+ * - Puntuaciones separadas: 'heuristic_scores' y 'semantic_evaluation.scores' en escala 1.0 a 5.0 (sin final_score inventado)
+ * - Cuatro dimensiones canónicas: 'relevance', 'coherence', 'didactic_adaptation', 'content_support'
+ * - Observaciones pedagógicas estructuradas ('observations': [{ dimension, severity, message, item_id }])
+ * - Recomendaciones didácticas estructuradas ('recommendations': [{ dimension, message, item_id }])
+ * - Información no respaldada ('unsupported_information': [{ claim, reason, item_id, related_chunk_ids }])
+ * - Manejo robusto de estados semánticos: 'success', 'unavailable' (error: not_configured), 'failed' (error: timeout u otro)
+ * - Soporte de ciclo de generación/corrección: visualización y navegación de intentos ('evaluations' array)
  * 
  * Reglas de Seguridad (AGENTS.md):
  * - Cero innerHTML con datos dinámicos. Renderizado seguro con textContent y createElement.
@@ -16,6 +19,9 @@
 export const evaluatorMetrics = {
   modalOverlay: null,
   activeFormatKey: null,
+  activeAttemptIndex: 0,
+  currentEvaluationsList: [],
+  currentFormatData: null,
 
   init() {
     this.ensureModalDom();
@@ -36,7 +42,7 @@ export const evaluatorMetrics = {
       overlay.setAttribute('aria-modal', 'true');
       overlay.setAttribute('aria-labelledby', 'evalModalTitle');
 
-      // Estructura estática limpia
+      // Estructura estática limpia (sin datos dinámicos)
       overlay.innerHTML = `
         <div class="evaluator-modal-card" id="evalModalCard">
           <div class="eval-modal-header">
@@ -49,6 +55,11 @@ export const evaluatorMetrics = {
           </div>
 
           <div class="eval-modal-body" id="evalModalBody">
+            <!-- Barra de Selección de Intentos del Ciclo (V2) -->
+            <div class="eval-cycle-bar" id="evalCycleBar" style="display: none;">
+              <!-- Botones de ciclo inyectados con DOM seguro -->
+            </div>
+
             <!-- Veredicto General -->
             <div class="eval-verdict-banner" id="evalVerdictBanner">
               <div class="verdict-icon-bubble" id="evalVerdictIcon">✓</div>
@@ -59,7 +70,7 @@ export const evaluatorMetrics = {
                 </div>
                 <p id="evalVerdictDesc" class="verdict-desc">El contenido cumple con los lineamientos de fidelidad y pertinencia.</p>
                 <div class="verdict-fallback-alert" id="evalFallbackAlert" style="display: none;">
-                  <span>⚠ Evaluación semántica no disponible; veredicto obtenido mediante reglas heurísticas (fallback controlado).</span>
+                  <span id="evalFallbackAlertText">⚠ Evaluación semántica no disponible; veredicto obtenido mediante reglas heurísticas (fallback controlado).</span>
                 </div>
               </div>
             </div>
@@ -118,10 +129,12 @@ export const evaluatorMetrics = {
 
             <!-- Metadatos Técnicos -->
             <div class="eval-footer-tech">
-              <span id="evalTechModel">Modelo: Gemini 2.0</span>
-              <span id="evalTechEvaluatorVer">Evaluador: v1.0.0</span>
-              <span id="evalTechRubricVer">Rúbrica: 2026.Q4</span>
-              <span id="evalTechLatency">Latencia: -- ms</span>
+              <span id="evalTechModel">Modelo: --</span>
+              <span id="evalTechEvaluatorVer">Evaluador: --</span>
+              <span id="evalTechRubricVer">Rúbrica: --</span>
+              <span id="evalTechLatency">Latencia: --</span>
+              <span id="evalTechFormatId">Formato: --</span>
+              <span id="evalTechEvalId">ID: --</span>
             </div>
           </div>
         </div>
@@ -177,8 +190,10 @@ export const evaluatorMetrics = {
       return;
     }
 
-    // Extraer datos de evaluación si vienen del Backend
-    const evaluation = formatData.evaluation || (formatData.verdict ? formatData : null);
+    // Extraer datos de evaluación según contrato V2
+    const evaluation = formatData.evaluation 
+      || (Array.isArray(formatData.evaluations) && formatData.evaluations.length > 0 ? formatData.evaluations[0] : null)
+      || (formatData.verdict ? formatData : null);
 
     // Crear botón del badge con API segura del DOM
     const badgeBtn = document.createElement('button');
@@ -192,8 +207,9 @@ export const evaluatorMetrics = {
     textSpan.className = 'eval-badge-text';
 
     if (evaluation) {
-      const verdict = (evaluation.verdict || 'approved').toLowerCase();
-      const isDegraded = evaluation.semantic_evaluation?.status === 'failed' || evaluation.semantic_evaluation?.status === 'unavailable';
+      const verdict = evaluation.verdict ? evaluation.verdict.toLowerCase() : null;
+      const semStatus = evaluation.semantic_evaluation?.status;
+      const isDegraded = semStatus === 'failed' || semStatus === 'unavailable';
 
       if (verdict === 'approved') {
         badgeBtn.classList.add('verdict-approved');
@@ -208,13 +224,15 @@ export const evaluatorMetrics = {
         textSpan.textContent = 'Calidad Observada (No Aprobado)';
         badgeBtn.title = 'El formato no superó la rúbrica mínima. Clic para auditar.';
       } else {
-        badgeBtn.classList.add('verdict-approved');
-        textSpan.textContent = 'Auditoría de Calidad';
+        // verdict === null
+        badgeBtn.classList.add('verdict-preview');
+        textSpan.textContent = semStatus === 'failed' ? 'Evaluación Incompleta' : 'En Evaluación Pedagógica';
+        badgeBtn.title = 'Evaluación técnica registrada sin veredicto definitivo. Clic para inspeccionar.';
       }
     } else {
-      // Estado de referencia / Contrato Sprint 4 mientras Backend despliega
+      // Estado informativo cuando evaluation es null (ej. tldr en phase evaluating)
       badgeBtn.classList.add('verdict-preview');
-      textSpan.textContent = 'Auditoría Pedagógica IA';
+      textSpan.textContent = 'En Evaluación Pedagógica';
       badgeBtn.title = 'Haz clic para auditar la evaluación de calidad de este formato.';
     }
 
@@ -236,12 +254,15 @@ export const evaluatorMetrics = {
   openModal(formatKey, evaluationData, formatData) {
     this.ensureModalDom();
     this.activeFormatKey = formatKey;
+    this.currentFormatData = formatData;
 
     const formatLabels = {
       flashcards: 'Tarjetas de Refuerzo (Memoria Activa)',
       quiz: 'Evaluación de Competencias (Quiz)',
       video: 'Guion Audiovisual Formativo (Video Script)',
-      sintesis: 'Síntesis Ejecutiva (TLDR)'
+      video_script: 'Guion Audiovisual Formativo (Video Script)',
+      sintesis: 'Síntesis Ejecutiva (TLDR)',
+      tldr: 'Síntesis Ejecutiva (TLDR)'
     };
 
     const friendlyFormatName = formatLabels[formatKey] || 'Formato Educativo';
@@ -252,11 +273,116 @@ export const evaluatorMetrics = {
       subtitleEl.textContent = `Formato: ${friendlyFormatName} · Agente Evaluador (Gemini Judge)`;
     }
 
-    // Si no viene evaluación de backend, armamos el benchmark representativo de Sprint 4
-    const evalData = evaluationData || this.getSampleEvaluation(formatKey);
+    // Resolver lista de evaluaciones del ciclo (V2)
+    let evaluationsList = [];
+    if (formatData?.evaluations && Array.isArray(formatData.evaluations) && formatData.evaluations.length > 0) {
+      evaluationsList = formatData.evaluations;
+    } else if (evaluationData) {
+      evaluationsList = [evaluationData];
+    } else {
+      // Benchmark representativo si Backend aún no emitió evaluación
+      evaluationsList = this.getSampleEvaluations(formatKey);
+    }
 
-    const verdict = (evalData.verdict || 'approved').toLowerCase();
-    const isDegraded = evalData.semantic_evaluation?.status === 'failed' || evalData.semantic_evaluation?.status === 'unavailable';
+    this.currentEvaluationsList = evaluationsList;
+    this.activeAttemptIndex = 0;
+
+    // Renderizar selector de intentos del ciclo si hay más de una evaluación
+    this.renderCycleSelector();
+
+    // Renderizar el intento seleccionado
+    const selectedEval = evaluationsList[this.activeAttemptIndex] || null;
+    this.renderAttempt(selectedEval, formatKey, formatData);
+
+    // Mostrar modal
+    if (this.modalOverlay) {
+      this.modalOverlay.style.display = 'flex';
+      this.modalOverlay.classList.add('active');
+    }
+  },
+
+  /**
+   * Renderiza el selector de ciclos/intentos de evaluación si existen múltiples intentos
+   */
+  renderCycleSelector() {
+    const cycleBar = document.getElementById('evalCycleBar');
+    if (!cycleBar) return;
+
+    cycleBar.textContent = ''; // Limpieza segura
+
+    const list = this.currentEvaluationsList || [];
+    if (list.length <= 1) {
+      cycleBar.style.display = 'none';
+      return;
+    }
+
+    cycleBar.style.display = 'flex';
+
+    const labelSpan = document.createElement('span');
+    labelSpan.className = 'eval-cycle-label';
+    labelSpan.textContent = 'Historial del Ciclo:';
+    cycleBar.appendChild(labelSpan);
+
+    const totalAttempts = list.length;
+    list.forEach((evalItem, index) => {
+      const btn = document.createElement('button');
+      btn.type = 'button';
+      btn.className = `eval-cycle-btn${index === this.activeAttemptIndex ? ' is-active' : ''}`;
+
+      const attemptNumber = totalAttempts - index;
+      const isLatest = index === 0;
+      const isInitial = index === totalAttempts - 1;
+
+      let suffix = '';
+      if (isLatest && totalAttempts > 1) {
+        suffix = ' (Actual - Corregido)';
+      } else if (isInitial) {
+        suffix = ' (Inicial)';
+      }
+
+      btn.textContent = `Intento ${attemptNumber}${suffix}`;
+
+      // Veredicto en miniatura
+      const v = (evalItem?.verdict || 'none').toLowerCase();
+      const dot = document.createElement('span');
+      dot.className = `eval-badge-dot`;
+      dot.style.marginLeft = '0.35rem';
+      if (v === 'approved') {
+        dot.style.background = '#10b981';
+      } else if (v === 'requires_revision') {
+        dot.style.background = '#f59e0b';
+      } else if (v === 'rejected') {
+        dot.style.background = '#ef4444';
+      } else {
+        dot.style.background = '#94a3b8';
+      }
+      btn.appendChild(dot);
+
+      btn.addEventListener('click', (e) => {
+        e.preventDefault();
+        this.activeAttemptIndex = index;
+        this.renderCycleSelector();
+        this.renderAttempt(list[index], this.activeFormatKey, this.currentFormatData);
+      });
+
+      cycleBar.appendChild(btn);
+    });
+  },
+
+  /**
+   * Puebla los datos de un intento específico de evaluación en el modal
+   */
+  renderAttempt(evalData, formatKey, formatData) {
+    // Si no hay evaluación disponible (ej. tldr en phase evaluating)
+    if (!evalData) {
+      this.renderEmptyAttempt(formatData);
+      return;
+    }
+
+    const verdict = evalData.verdict ? evalData.verdict.toLowerCase() : null;
+    const semEval = evalData.semantic_evaluation || {};
+    const semStatus = (semEval.status || '').toLowerCase();
+    const isDegraded = semStatus === 'failed' || semStatus === 'unavailable';
 
     // 1. Banner de Veredicto
     const bannerEl = document.getElementById('evalVerdictBanner');
@@ -265,9 +391,10 @@ export const evaluatorMetrics = {
     const badgeEl = document.getElementById('evalVerdictBadge');
     const descEl = document.getElementById('evalVerdictDesc');
     const fallbackAlertEl = document.getElementById('evalFallbackAlert');
+    const fallbackTextEl = document.getElementById('evalFallbackAlertText');
 
     if (bannerEl) {
-      bannerEl.className = `eval-verdict-banner is-${verdict}`;
+      bannerEl.className = `eval-verdict-banner is-${verdict || 'neutral'}`;
     }
 
     if (verdict === 'approved') {
@@ -278,7 +405,7 @@ export const evaluatorMetrics = {
         badgeEl.className = 'verdict-badge-tag tag-approved';
       }
       if (descEl) {
-        descEl.textContent = 'El agente evaluador determinó que el material cumple los estándares de claridad, nivel de dificultad y fidelidad documental.';
+        descEl.textContent = 'El agente evaluador determinó que el material cumple los estándares de fidelidad y pertinencia pedagógica.';
       }
     } else if (verdict === 'requires_revision') {
       if (iconEl) iconEl.textContent = '⚠';
@@ -290,7 +417,7 @@ export const evaluatorMetrics = {
       if (descEl) {
         descEl.textContent = 'El contenido es funcional pero presenta sugerencias de mejora o ajustes pedagógicos recomendados antes de su certificación final.';
       }
-    } else {
+    } else if (verdict === 'rejected') {
       if (iconEl) iconEl.textContent = '✕';
       if (titleEl) titleEl.textContent = 'Contenido No Aprobado';
       if (badgeEl) {
@@ -298,72 +425,137 @@ export const evaluatorMetrics = {
         badgeEl.className = 'verdict-badge-tag tag-rejected';
       }
       if (descEl) {
-        descEl.textContent = 'El material no alcanzó el umbral mínimo en la rúbrica evaluadora o presentó discrepancias facticas considerables.';
+        descEl.textContent = 'El material no alcanzó el umbral mínimo en la rúbrica evaluadora o presentó discrepancias fácticas considerables.';
+      }
+    } else {
+      // verdict === null
+      if (iconEl) iconEl.textContent = 'ℹ';
+      if (titleEl) titleEl.textContent = 'Evaluación Sin Veredicto Pedagógico';
+      if (badgeEl) {
+        badgeEl.textContent = 'SIN VEREDICTO';
+        badgeEl.className = 'verdict-badge-tag tag-neutral';
+      }
+      if (descEl) {
+        descEl.textContent = 'No se ha emitido una decisión pedagógica automática para este intento de generación.';
       }
     }
 
-    if (fallbackAlertEl) {
-      fallbackAlertEl.style.display = isDegraded ? 'block' : 'none';
+    // Mensaje de estado degradado / fallback
+    if (fallbackAlertEl && fallbackTextEl) {
+      if (semStatus === 'unavailable') {
+        fallbackAlertEl.style.display = 'block';
+        fallbackTextEl.textContent = `ℹ Evaluador semántico no configurado (${semEval.error_code || 'not_configured'}). Validación fundamentada en reglas heurísticas.`;
+      } else if (semStatus === 'failed') {
+        fallbackAlertEl.style.display = 'block';
+        fallbackTextEl.textContent = `⚠ Evaluación semántica no disponible (error: ${semEval.error_code || 'interrupción técnica'}). Conservando evaluación heurística si existe.`;
+      } else {
+        fallbackAlertEl.style.display = 'none';
+      }
     }
 
-    // 2. Scores Heurísticos (Reglas objetivas)
+    // 2. Scores Heurísticos (Escala 1.0 - 5.0)
     const heuristicListEl = document.getElementById('evalHeuristicList');
     if (heuristicListEl) {
       heuristicListEl.textContent = '';
-      const scores = evalData.heuristic_scores || {};
-      const scoreEntries = Object.entries(scores);
+      const scores = evalData.heuristic_scores;
 
-      if (scoreEntries.length === 0) {
+      if (!scores || Object.keys(scores).length === 0) {
         const emptyMsg = document.createElement('div');
         emptyMsg.className = 'eval-empty-note';
-        emptyMsg.textContent = 'Estructura técnica y reglas de esquema conformes (100%).';
+        emptyMsg.textContent = 'Sin puntuaciones heurísticas registradas en este intento.';
         heuristicListEl.appendChild(emptyMsg);
       } else {
-        scoreEntries.forEach(([key, val]) => {
-          heuristicListEl.appendChild(this.createScoreRow(key, val, 'cyan'));
+        Object.entries(scores).forEach(([key, val]) => {
+          if (val !== null && val !== undefined) {
+            const row = this.createScoreRow(key, val, 'cyan');
+            if (row) heuristicListEl.appendChild(row);
+          }
         });
       }
     }
 
-    // 3. Scores Semánticos (Gemini)
+    // 3. Scores Semánticos (Escala 1.0 - 5.0)
     const semanticListEl = document.getElementById('evalSemanticList');
     if (semanticListEl) {
       semanticListEl.textContent = '';
-      const semEval = evalData.semantic_evaluation || {};
 
-      if (isDegraded) {
-        const degradedNote = document.createElement('div');
-        degradedNote.className = 'eval-empty-note is-warning';
-        degradedNote.textContent = 'Evaluación semántica temporalmente degradada o en reintento.';
-        semanticListEl.appendChild(degradedNote);
+      if (semStatus === 'unavailable') {
+        const note = document.createElement('div');
+        note.className = 'eval-empty-note is-warning';
+        note.textContent = 'Evaluador semántico no configurado (scores no disponibles).';
+        semanticListEl.appendChild(note);
+      } else if (semStatus === 'failed') {
+        const note = document.createElement('div');
+        note.className = 'eval-empty-note is-warning';
+        note.textContent = `Evaluación semántica interrumpida (${semEval.error_code || 'timeout'}).`;
+        semanticListEl.appendChild(note);
       } else {
-        const semScores = semEval.scores || {};
-        const semEntries = Object.entries(semScores);
-
-        if (semEntries.length === 0) {
+        const semScores = semEval.scores;
+        if (!semScores || Object.keys(semScores).length === 0) {
           const emptyMsg = document.createElement('div');
           emptyMsg.className = 'eval-empty-note';
-          emptyMsg.textContent = 'Evaluación cualitativa conforme.';
+          emptyMsg.textContent = 'Sin puntuaciones semánticas registradas.';
           semanticListEl.appendChild(emptyMsg);
         } else {
-          semEntries.forEach(([key, val]) => {
-            semanticListEl.appendChild(this.createScoreRow(key, val, 'gold'));
+          Object.entries(semScores).forEach(([key, val]) => {
+            if (val !== null && val !== undefined) {
+              const row = this.createScoreRow(key, val, 'gold');
+              if (row) semanticListEl.appendChild(row);
+            }
           });
         }
       }
     }
 
-    // 4. Observaciones Pedagógicas
+    // 4. Observaciones Pedagógicas (Estructuradas V2)
     const obsListEl = document.getElementById('evalObsList');
     const obsSectionEl = document.getElementById('evalObsSection');
-    const observations = evalData.semantic_evaluation?.observations || [];
+    const observations = semEval.observations || [];
 
     if (obsListEl) {
       obsListEl.textContent = '';
       if (Array.isArray(observations) && observations.length > 0) {
         observations.forEach(obs => {
           const li = document.createElement('li');
-          li.textContent = obs;
+          li.className = 'eval-obs-item';
+
+          if (typeof obs === 'object' && obs !== null) {
+            const metaRow = document.createElement('div');
+            metaRow.className = 'eval-obs-meta';
+
+            if (obs.severity) {
+              const sevTag = document.createElement('span');
+              sevTag.className = `eval-pill eval-pill-${obs.severity.toLowerCase()}`;
+              sevTag.textContent = obs.severity.toUpperCase();
+              metaRow.appendChild(sevTag);
+            }
+
+            if (obs.dimension) {
+              const dimTag = document.createElement('span');
+              dimTag.className = 'eval-pill eval-pill-dimension';
+              dimTag.textContent = this.formatMetricName(obs.dimension);
+              metaRow.appendChild(dimTag);
+            }
+
+            if (obs.item_id) {
+              const itemTag = document.createElement('span');
+              itemTag.className = 'eval-pill eval-pill-itemid';
+              itemTag.textContent = `Reactivo: ${obs.item_id}`;
+              metaRow.appendChild(itemTag);
+            }
+
+            const msgP = document.createElement('p');
+            msgP.className = 'eval-obs-msg';
+            msgP.textContent = obs.message || '';
+
+            if (metaRow.children.length > 0) {
+              li.appendChild(metaRow);
+            }
+            li.appendChild(msgP);
+          } else {
+            li.textContent = String(obs);
+          }
+
           obsListEl.appendChild(li);
         });
         if (obsSectionEl) obsSectionEl.style.display = 'block';
@@ -372,17 +564,48 @@ export const evaluatorMetrics = {
       }
     }
 
-    // 5. Recomendaciones Didácticas
+    // 5. Recomendaciones Didácticas (Estructuradas V2)
     const recsListEl = document.getElementById('evalRecsList');
     const recsSectionEl = document.getElementById('evalRecsSection');
-    const recommendations = evalData.semantic_evaluation?.recommendations || [];
+    const recommendations = semEval.recommendations || [];
 
     if (recsListEl) {
       recsListEl.textContent = '';
       if (Array.isArray(recommendations) && recommendations.length > 0) {
         recommendations.forEach(rec => {
           const li = document.createElement('li');
-          li.textContent = rec;
+          li.className = 'eval-rec-item';
+
+          if (typeof rec === 'object' && rec !== null) {
+            const metaRow = document.createElement('div');
+            metaRow.className = 'eval-rec-meta';
+
+            if (rec.dimension) {
+              const dimTag = document.createElement('span');
+              dimTag.className = 'eval-pill eval-pill-dimension';
+              dimTag.textContent = this.formatMetricName(rec.dimension);
+              metaRow.appendChild(dimTag);
+            }
+
+            if (rec.item_id) {
+              const itemTag = document.createElement('span');
+              itemTag.className = 'eval-pill eval-pill-itemid';
+              itemTag.textContent = `Reactivo: ${rec.item_id}`;
+              metaRow.appendChild(itemTag);
+            }
+
+            const msgP = document.createElement('p');
+            msgP.className = 'eval-rec-msg';
+            msgP.textContent = rec.message || '';
+
+            if (metaRow.children.length > 0) {
+              li.appendChild(metaRow);
+            }
+            li.appendChild(msgP);
+          } else {
+            li.textContent = String(rec);
+          }
+
           recsListEl.appendChild(li);
         });
         if (recsSectionEl) recsSectionEl.style.display = 'block';
@@ -391,17 +614,67 @@ export const evaluatorMetrics = {
       }
     }
 
-    // 6. Información Sin Respaldo Factual (Alucinaciones / Chunks)
+    // 6. Información Sin Respaldo Factual (Factualidad / Chunks)
     const unsupportedCardEl = document.getElementById('evalUnsupportedCard');
     const unsupportedListEl = document.getElementById('evalUnsupportedList');
-    const unsupportedInfo = evalData.semantic_evaluation?.unsupported_information || [];
+    const unsupportedInfo = semEval.unsupported_information || [];
 
     if (unsupportedListEl && unsupportedCardEl) {
       unsupportedListEl.textContent = '';
       if (Array.isArray(unsupportedInfo) && unsupportedInfo.length > 0) {
         unsupportedInfo.forEach(item => {
           const li = document.createElement('li');
-          li.textContent = item;
+          li.className = 'eval-unsupported-item';
+
+          if (typeof item === 'object' && item !== null) {
+            const claimDiv = document.createElement('div');
+            claimDiv.className = 'unsupported-claim-row';
+            const claimLabel = document.createElement('strong');
+            claimLabel.textContent = 'Afirmación:';
+            const claimText = document.createElement('span');
+            claimText.textContent = item.claim || '';
+            claimDiv.appendChild(claimLabel);
+            claimDiv.appendChild(claimText);
+            li.appendChild(claimDiv);
+
+            if (item.reason) {
+              const reasonDiv = document.createElement('div');
+              reasonDiv.className = 'unsupported-reason-row';
+              const reasonLabel = document.createElement('strong');
+              reasonLabel.textContent = 'Motivo:';
+              const reasonText = document.createElement('span');
+              reasonText.textContent = item.reason;
+              reasonDiv.appendChild(reasonLabel);
+              reasonDiv.appendChild(reasonText);
+              li.appendChild(reasonDiv);
+            }
+
+            if (item.item_id || (Array.isArray(item.related_chunk_ids) && item.related_chunk_ids.length > 0)) {
+              const metaDiv = document.createElement('div');
+              metaDiv.className = 'unsupported-meta-row';
+
+              if (item.item_id) {
+                const itemSpan = document.createElement('span');
+                itemSpan.className = 'eval-pill eval-pill-itemid';
+                itemSpan.textContent = `Reactivo: ${item.item_id}`;
+                metaDiv.appendChild(itemSpan);
+              }
+
+              if (Array.isArray(item.related_chunk_ids)) {
+                item.related_chunk_ids.forEach(cid => {
+                  const chunkSpan = document.createElement('span');
+                  chunkSpan.className = 'eval-pill eval-pill-chunk';
+                  chunkSpan.textContent = `Chunk: ${cid}`;
+                  metaDiv.appendChild(chunkSpan);
+                });
+              }
+
+              li.appendChild(metaDiv);
+            }
+          } else {
+            li.textContent = String(item);
+          }
+
           unsupportedListEl.appendChild(li);
         });
         unsupportedCardEl.style.display = 'block';
@@ -411,22 +684,75 @@ export const evaluatorMetrics = {
     }
 
     // 7. Metadatos Técnicos
-    const semEval = evalData.semantic_evaluation || {};
     const modelEl = document.getElementById('evalTechModel');
     const evalVerEl = document.getElementById('evalTechEvaluatorVer');
     const rubricVerEl = document.getElementById('evalTechRubricVer');
     const latencyEl = document.getElementById('evalTechLatency');
+    const formatIdEl = document.getElementById('evalTechFormatId');
+    const evalIdEl = document.getElementById('evalTechEvalId');
 
     if (modelEl) modelEl.textContent = `Modelo: ${semEval.model || 'Gemini 2.0 (LLM-as-a-Judge)'}`;
-    if (evalVerEl) evalVerEl.textContent = `Evaluador: ${evalData.evaluator_version || 'v1.0.0'}`;
-    if (rubricVerEl) rubricVerEl.textContent = `Rúbrica: ${evalData.rubric_version || '2026.Q4'}`;
-    if (latencyEl) latencyEl.textContent = `Latencia: ${semEval.latency_ms ? semEval.latency_ms + ' ms' : '1.2s'}`;
+    if (evalVerEl) evalVerEl.textContent = `Evaluador: ${evalData.evaluator_version || '2.0.0'}`;
+    if (rubricVerEl) rubricVerEl.textContent = `Rúbrica: ${evalData.rubric_version || '2.0.0'}`;
+    if (latencyEl) latencyEl.textContent = `Latencia: ${semEval.latency_ms ? semEval.latency_ms + ' ms' : '--'}`;
+    if (formatIdEl) formatIdEl.textContent = `Formato: ${evalData.format_id || '--'}`;
+    if (evalIdEl) evalIdEl.textContent = `ID: ${evalData.evaluation_id || '--'}`;
+  },
 
-    // Mostrar modal
-    if (this.modalOverlay) {
-      this.modalOverlay.style.display = 'flex';
-      this.modalOverlay.classList.add('active');
+  /**
+   * Vista informativa cuando un formato todavía no posee evaluación (ej. tldr)
+   */
+  renderEmptyAttempt(formatData) {
+    const bannerEl = document.getElementById('evalVerdictBanner');
+    const iconEl = document.getElementById('evalVerdictIcon');
+    const titleEl = document.getElementById('evalVerdictTitle');
+    const badgeEl = document.getElementById('evalVerdictBadge');
+    const descEl = document.getElementById('evalVerdictDesc');
+    const fallbackAlertEl = document.getElementById('evalFallbackAlert');
+
+    if (bannerEl) bannerEl.className = 'eval-verdict-banner is-neutral';
+    if (iconEl) iconEl.textContent = 'ℹ';
+    if (titleEl) titleEl.textContent = 'Evaluación en Proceso / Sin Veredicto';
+    if (badgeEl) {
+      badgeEl.textContent = 'SIN VEREDICTO';
+      badgeEl.className = 'verdict-badge-tag tag-neutral';
     }
+    if (descEl) {
+      descEl.textContent = 'El Agente Evaluador aún no ha emitido una evaluación técnica ni pedagógica para este formato.';
+    }
+    if (fallbackAlertEl) fallbackAlertEl.style.display = 'none';
+
+    const heuristicListEl = document.getElementById('evalHeuristicList');
+    if (heuristicListEl) {
+      heuristicListEl.textContent = '';
+      const note = document.createElement('div');
+      note.className = 'eval-empty-note';
+      note.textContent = 'Puntuaciones heurísticas pendientes de ejecución.';
+      heuristicListEl.appendChild(note);
+    }
+
+    const semanticListEl = document.getElementById('evalSemanticList');
+    if (semanticListEl) {
+      semanticListEl.textContent = '';
+      const note = document.createElement('div');
+      note.className = 'eval-empty-note';
+      note.textContent = 'Evaluación semántica pendiente.';
+      semanticListEl.appendChild(note);
+    }
+
+    const obsSectionEl = document.getElementById('evalObsSection');
+    if (obsSectionEl) obsSectionEl.style.display = 'none';
+
+    const recsSectionEl = document.getElementById('evalRecsSection');
+    if (recsSectionEl) recsSectionEl.style.display = 'none';
+
+    const unsupportedCardEl = document.getElementById('evalUnsupportedCard');
+    if (unsupportedCardEl) unsupportedCardEl.style.display = 'none';
+
+    const formatIdEl = document.getElementById('evalTechFormatId');
+    const evalIdEl = document.getElementById('evalTechEvalId');
+    if (formatIdEl) formatIdEl.textContent = `Formato: ${formatData?.format_id || '--'}`;
+    if (evalIdEl) evalIdEl.textContent = 'ID: --';
   },
 
   closeModal() {
@@ -437,20 +763,28 @@ export const evaluatorMetrics = {
   },
 
   /**
-   * Crea una fila de métrica segura con barra de progreso
+   * Crea una fila de métrica segura con barra de progreso en escala 1.0 a 5.0
    */
   createScoreRow(metricKey, rawValue, themeColor = 'cyan') {
+    if (rawValue === null || rawValue === undefined) return null;
+
     const row = document.createElement('div');
     row.className = 'eval-metric-row';
 
-    // Normalizar valor numérico (soporta escala 0-100 o 0-1)
-    let numeric = typeof rawValue === 'number' ? rawValue : parseFloat(rawValue) || 0;
-    if (numeric > 0 && numeric <= 1) {
-      numeric = Math.round(numeric * 100);
+    // Normalizar valor numérico (soporta escala 1.0 a 5.0 acordada, o 0 a 100 de compatibilidad)
+    let numeric = typeof rawValue === 'number' ? rawValue : parseFloat(rawValue);
+    if (isNaN(numeric)) return null;
+
+    let percentage = 0;
+    let displayVal = '';
+
+    if (numeric <= 5.0) {
+      percentage = Math.min(100, Math.max(0, Math.round((numeric / 5.0) * 100)));
+      displayVal = `${numeric % 1 === 0 ? numeric : numeric.toFixed(1)} / 5.0`;
     } else {
-      numeric = Math.round(numeric);
+      percentage = Math.min(100, Math.max(0, Math.round(numeric)));
+      displayVal = `${percentage}%`;
     }
-    numeric = Math.min(100, Math.max(0, numeric));
 
     const labelWrap = document.createElement('div');
     labelWrap.className = 'metric-label-wrap';
@@ -461,7 +795,7 @@ export const evaluatorMetrics = {
 
     const valSpan = document.createElement('span');
     valSpan.className = 'metric-value';
-    valSpan.textContent = `${numeric}%`;
+    valSpan.textContent = displayVal;
 
     labelWrap.appendChild(nameSpan);
     labelWrap.appendChild(valSpan);
@@ -471,7 +805,7 @@ export const evaluatorMetrics = {
 
     const fillDiv = document.createElement('div');
     fillDiv.className = `metric-bar-fill fill-${themeColor}`;
-    fillDiv.style.width = `${numeric}%`;
+    fillDiv.style.width = `${percentage}%`;
 
     trackDiv.appendChild(fillDiv);
     row.appendChild(labelWrap);
@@ -481,10 +815,16 @@ export const evaluatorMetrics = {
   },
 
   /**
-   * Limpia nombres técnicos de métricas a etiquetas pedagógicas legibles
+   * Mapea las 4 dimensiones canónicas acordadas en V2 y legacy
    */
   formatMetricName(key) {
+    if (!key) return '';
     const dictionary = {
+      relevance: 'Relevancia',
+      coherence: 'Coherencia',
+      didactic_adaptation: 'Adaptación Didáctica',
+      content_support: 'Soporte Documental',
+      // Soporte retrocompatible
       format_compliance: 'Cumplimiento de Formato',
       schema_validation: 'Validación de Esquema',
       length_check: 'Extensión y Balance',
@@ -492,116 +832,165 @@ export const evaluatorMetrics = {
       structure_integrity: 'Integridad Estructural',
       pedagogical_clarity: 'Claridad Didáctica',
       depth_level: 'Profundidad Conceptual',
-      factual_alignment: 'Fidelidad al Documento',
-      relevance: 'Pertinencia Operativa',
-      distractor_quality: 'Calidad de Distractores',
-      feedback_usefulness: 'Utilidad del Feedback'
+      factual_alignment: 'Fidelidad al Documento'
     };
 
     if (dictionary[key]) return dictionary[key];
 
-    // Formatear snake_case a Title Case
     return key
       .replace(/_/g, ' ')
       .replace(/\b\w/g, l => l.toUpperCase());
   },
 
   /**
-   * Muestra de referencia con el contrato estricto acordado para Sprint 4
+   * Colección de evaluaciones del último ciclo basada estrictamente en el mock de consenso V2
    */
-  getSampleEvaluation(formatKey) {
+  getSampleEvaluations(formatKey) {
     if (formatKey === 'quiz') {
-      return {
-        verdict: 'approved',
-        heuristic_scores: {
-          format_compliance: 100,
-          question_count: 95,
-          structure_integrity: 90
-        },
-        semantic_evaluation: {
-          status: 'success',
-          scores: {
-            pedagogical_clarity: 92,
-            factual_alignment: 96,
-            distractor_quality: 88,
-            feedback_usefulness: 94
+      return [
+        {
+          evaluation_id: 'eval_quiz_002',
+          format_id: 'fmt_quiz_corrected',
+          created_at: '2026-10-14T18:12:00+00:00',
+          verdict: 'approved',
+          heuristic_scores: {
+            relevance: 5,
+            coherence: 5,
+            didactic_adaptation: 4,
+            content_support: 5
           },
-          observations: [
-            'Las preguntas evalúan directamente los procedimientos críticos descritos en el documento.',
-            'Cada alternativa incorrecta incluye justificación técnica clara basada en la normativa interna.'
-          ],
-          recommendations: [
-            'Aprovechar las preguntas 3 y 4 en talleres grupales para debatir casos de borde.',
-            'Reforzar la retroalimentación en las opciones con distractores cercanos.'
-          ],
-          unsupported_information: [],
-          model: 'gemini-2.0-flash',
-          prompt_version: 'v1.4',
-          latency_ms: 1380
+          semantic_evaluation: {
+            status: 'success',
+            scores: {
+              relevance: 4.8,
+              coherence: 4.9,
+              didactic_adaptation: 4.3,
+              content_support: 4.9
+            },
+            observations: [],
+            recommendations: [],
+            unsupported_information: [],
+            error_code: null,
+            error_message: null,
+            model: 'semantic-provider (Gemini 2.0)',
+            prompt_version: 'v0.1',
+            latency_ms: 875
+          },
+          evaluator_version: '2.0.0',
+          rubric_version: '2.0.0'
         },
-        evaluator_version: 'v1.0.0',
-        rubric_version: '2026.Q4'
-      };
+        {
+          evaluation_id: 'eval_quiz_001',
+          format_id: 'fmt_quiz_initial',
+          created_at: '2026-10-14T18:10:00+00:00',
+          verdict: 'requires_revision',
+          heuristic_scores: {
+            relevance: 4,
+            coherence: 4,
+            didactic_adaptation: 2,
+            content_support: 4
+          },
+          semantic_evaluation: {
+            status: 'success',
+            scores: {
+              relevance: 4.2,
+              coherence: 4.3,
+              didactic_adaptation: 2.5,
+              content_support: 4.1
+            },
+            observations: [
+              {
+                dimension: 'didactic_adaptation',
+                severity: 'high',
+                message: 'La explicación asume conceptos avanzados para el perfil inicial.',
+                item_id: 'q1'
+              }
+            ],
+            recommendations: [
+              {
+                dimension: 'didactic_adaptation',
+                message: 'Explicar primero los conceptos básicos y simplificar la pregunta.',
+                item_id: 'q1'
+              }
+            ],
+            unsupported_information: [
+              {
+                claim: 'REST exige un protocolo propietario.',
+                reason: 'Los chunks utilizados no respaldan esa afirmación.',
+                item_id: 'q1',
+                related_chunk_ids: ['chunk_001']
+              }
+            ],
+            error_code: null,
+            error_message: null,
+            model: 'semantic-provider (Gemini 2.0)',
+            prompt_version: 'v0.1',
+            latency_ms: 860
+          },
+          evaluator_version: '2.0.0',
+          rubric_version: '2.0.0'
+        }
+      ];
     }
 
     if (formatKey === 'flashcards') {
-      return {
-        verdict: 'approved',
-        heuristic_scores: {
-          format_compliance: 100,
-          length_check: 92,
-          structure_integrity: 95
-        },
-        semantic_evaluation: {
-          status: 'success',
-          scores: {
-            pedagogical_clarity: 94,
-            factual_alignment: 98,
-            depth_level: 90
+      return [
+        {
+          evaluation_id: 'eval_flashcards_001',
+          format_id: 'fmt_flashcards_001',
+          created_at: '2026-10-14T18:11:00+00:00',
+          verdict: 'approved',
+          heuristic_scores: {
+            relevance: 4,
+            coherence: 4,
+            didactic_adaptation: 4,
+            content_support: 4
           },
-          observations: [
-            'Conceptos sintéticos ideales para memoria activa y repaso espaciado.',
-            'Pistas de refuerzo orientadas a la aplicación en campo.'
-          ],
-          recommendations: [
-            'Realizar 2 rondas de repaso espaciado durante la primera semana de inducción.'
-          ],
-          unsupported_information: [],
-          model: 'gemini-2.0-flash',
-          prompt_version: 'v1.4',
-          latency_ms: 1150
-        },
-        evaluator_version: 'v1.0.0',
-        rubric_version: '2026.Q4'
-      };
+          semantic_evaluation: {
+            status: 'unavailable',
+            scores: null,
+            observations: [],
+            recommendations: [],
+            unsupported_information: [],
+            error_code: 'not_configured',
+            error_message: null,
+            model: null,
+            prompt_version: null,
+            latency_ms: null
+          },
+          evaluator_version: '2.0.0',
+          rubric_version: '2.0.0'
+        }
+      ];
     }
 
-    return {
-      verdict: 'approved',
-      heuristic_scores: {
-        format_compliance: 95,
-        structure_integrity: 90
-      },
-      semantic_evaluation: {
-        status: 'success',
-        scores: {
-          pedagogical_clarity: 90,
-          factual_alignment: 94,
-          relevance: 91
-        },
-        observations: [
-          'Estructura didáctica balanceada y alineada a los objetivos operativos de la capacitación.'
-        ],
-        recommendations: [
-          'Complementar la lectura con el quiz interactivo para validar retención.'
-        ],
-        unsupported_information: [],
-        model: 'gemini-2.0-flash',
-        prompt_version: 'v1.4',
-        latency_ms: 1220
-      },
-      evaluator_version: 'v1.0.0',
-      rubric_version: '2026.Q4'
-    };
+    if (formatKey === 'video' || formatKey === 'video_script') {
+      return [
+        {
+          evaluation_id: 'eval_video_001',
+          format_id: 'fmt_video_001',
+          created_at: '2026-10-14T18:13:00+00:00',
+          verdict: null,
+          heuristic_scores: null,
+          semantic_evaluation: {
+            status: 'failed',
+            scores: null,
+            observations: [],
+            recommendations: [],
+            unsupported_information: [],
+            error_code: 'timeout',
+            error_message: null,
+            model: null,
+            prompt_version: null,
+            latency_ms: null
+          },
+          evaluator_version: '2.0.0',
+          rubric_version: '2.0.0'
+        }
+      ];
+    }
+
+    // tldr / sintesis -> ciclo sin evaluación emitida
+    return [];
   }
 };

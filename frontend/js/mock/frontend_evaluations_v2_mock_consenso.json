@@ -1,0 +1,298 @@
+{
+  "document_id": "doc_123",
+  "status": "ready",
+  "formats": {
+    "quiz": {
+      "format_id": "fmt_quiz_corrected",
+      "status": "success",
+      "phase": "completed",
+      "content": {
+        "title": "Fundamentos de APIs REST",
+        "instructions": "Selecciona una respuesta.",
+        "questions": [
+          {
+            "question_id": "q1",
+            "question": "¿Para qué se utiliza HTTP GET?",
+            "options": [
+              "Recuperar un recurso",
+              "Eliminar un recurso",
+              "Reiniciar un servidor",
+              "Crear una base de datos"
+            ],
+            "correct_answer": "Recuperar un recurso",
+            "explanation": "GET se utiliza normalmente para consultar recursos."
+          }
+        ]
+      },
+      "error_message": null,
+      "evaluation": {
+        "evaluation_id": "eval_quiz_002",
+        "format_id": "fmt_quiz_corrected",
+        "created_at": "2026-10-14T18:12:00+00:00",
+        "verdict": "approved",
+        "heuristic_scores": {
+          "relevance": 5,
+          "coherence": 5,
+          "didactic_adaptation": 4,
+          "content_support": 5
+        },
+        "semantic_evaluation": {
+          "status": "success",
+          "scores": {
+            "relevance": 4.8,
+            "coherence": 4.9,
+            "didactic_adaptation": 4.3,
+            "content_support": 4.9
+          },
+          "observations": [],
+          "recommendations": [],
+          "unsupported_information": [],
+          "error_code": null,
+          "error_message": null,
+          "model": "semantic-provider",
+          "prompt_version": "v0.1",
+          "latency_ms": 875
+        },
+        "evaluator_version": "2.0.0",
+        "rubric_version": "2.0.0"
+      },
+      "evaluations": [
+        {
+          "evaluation_id": "eval_quiz_002",
+          "format_id": "fmt_quiz_corrected",
+          "created_at": "2026-10-14T18:12:00+00:00",
+          "verdict": "approved",
+          "heuristic_scores": {
+            "relevance": 5,
+            "coherence": 5,
+            "didactic_adaptation": 4,
+            "content_support": 5
+          },
+          "semantic_evaluation": {
+            "status": "success",
+            "scores": {
+              "relevance": 4.8,
+              "coherence": 4.9,
+              "didactic_adaptation": 4.3,
+              "content_support": 4.9
+            },
+            "observations": [],
+            "recommendations": [],
+            "unsupported_information": [],
+            "error_code": null,
+            "error_message": null,
+            "model": "semantic-provider",
+            "prompt_version": "v0.1",
+            "latency_ms": 875
+          },
+          "evaluator_version": "2.0.0",
+          "rubric_version": "2.0.0"
+        },
+        {
+          "evaluation_id": "eval_quiz_001",
+          "format_id": "fmt_quiz_initial",
+          "created_at": "2026-10-14T18:10:00+00:00",
+          "verdict": "requires_revision",
+          "heuristic_scores": {
+            "relevance": 4,
+            "coherence": 4,
+            "didactic_adaptation": 2,
+            "content_support": 4
+          },
+          "semantic_evaluation": {
+            "status": "success",
+            "scores": {
+              "relevance": 4.2,
+              "coherence": 4.3,
+              "didactic_adaptation": 2.5,
+              "content_support": 4.1
+            },
+            "observations": [
+              {
+                "dimension": "didactic_adaptation",
+                "severity": "high",
+                "message": "La explicación asume conceptos avanzados para el perfil inicial.",
+                "item_id": "q1"
+              }
+            ],
+            "recommendations": [
+              {
+                "dimension": "didactic_adaptation",
+                "message": "Explicar primero los conceptos básicos y simplificar la pregunta.",
+                "item_id": "q1"
+              }
+            ],
+            "unsupported_information": [
+              {
+                "claim": "REST exige un protocolo propietario.",
+                "reason": "Los chunks utilizados no respaldan esa afirmación.",
+                "item_id": "q1",
+                "related_chunk_ids": [
+                  "chunk_001"
+                ]
+              }
+            ],
+            "error_code": null,
+            "error_message": null,
+            "model": "semantic-provider",
+            "prompt_version": "v0.1",
+            "latency_ms": 860
+          },
+          "evaluator_version": "2.0.0",
+          "rubric_version": "2.0.0"
+        }
+      ]
+    },
+    "flashcards": {
+      "format_id": "fmt_flashcards_001",
+      "status": "success",
+      "phase": "completed",
+      "content": {
+        "title": "Conceptos REST",
+        "instructions": "Repasa los conceptos.",
+        "cards": [
+          {
+            "card_id": "c1",
+            "front": "HTTP GET",
+            "back": "Solicitud para recuperar un recurso."
+          }
+        ]
+      },
+      "error_message": null,
+      "evaluation": {
+        "evaluation_id": "eval_flashcards_001",
+        "format_id": "fmt_flashcards_001",
+        "created_at": "2026-10-14T18:11:00+00:00",
+        "verdict": "approved",
+        "heuristic_scores": {
+          "relevance": 4,
+          "coherence": 4,
+          "didactic_adaptation": 4,
+          "content_support": 4
+        },
+        "semantic_evaluation": {
+          "status": "unavailable",
+          "scores": null,
+          "observations": [],
+          "recommendations": [],
+          "unsupported_information": [],
+          "error_code": "not_configured",
+          "error_message": null,
+          "model": null,
+          "prompt_version": null,
+          "latency_ms": null
+        },
+        "evaluator_version": "2.0.0",
+        "rubric_version": "2.0.0"
+      },
+      "evaluations": [
+        {
+          "evaluation_id": "eval_flashcards_001",
+          "format_id": "fmt_flashcards_001",
+          "created_at": "2026-10-14T18:11:00+00:00",
+          "verdict": "approved",
+          "heuristic_scores": {
+            "relevance": 4,
+            "coherence": 4,
+            "didactic_adaptation": 4,
+            "content_support": 4
+          },
+          "semantic_evaluation": {
+            "status": "unavailable",
+            "scores": null,
+            "observations": [],
+            "recommendations": [],
+            "unsupported_information": [],
+            "error_code": "not_configured",
+            "error_message": null,
+            "model": null,
+            "prompt_version": null,
+            "latency_ms": null
+          },
+          "evaluator_version": "2.0.0",
+          "rubric_version": "2.0.0"
+        }
+      ]
+    },
+    "tldr": {
+      "format_id": "fmt_tldr_001",
+      "status": "success",
+      "phase": "evaluating",
+      "content": {
+        "title": "Resumen de REST",
+        "summary": "REST organiza el acceso a recursos mediante una interfaz uniforme.",
+        "key_points": [
+          "Los recursos se identifican mediante URI.",
+          "Las operaciones se expresan con métodos HTTP."
+        ],
+        "conclusion": "Una API REST organiza la interacción entre cliente y servidor."
+      },
+      "error_message": null,
+      "evaluation": null,
+      "evaluations": []
+    },
+    "video_script": {
+      "format_id": "fmt_video_001",
+      "status": "success",
+      "phase": "completed",
+      "content": {
+        "title": "Introducción a REST",
+        "estimated_duration_minutes": 1,
+        "scenes": [
+          {
+            "scene_id": "scene_1",
+            "title": "Recursos y métodos",
+            "visual_description": "Representar una petición HTTP a un servidor.",
+            "narration": "Las APIs REST operan sobre recursos.",
+            "duration_seconds": 45
+          }
+        ]
+      },
+      "error_message": null,
+      "evaluation": {
+        "evaluation_id": "eval_video_001",
+        "format_id": "fmt_video_001",
+        "created_at": "2026-10-14T18:13:00+00:00",
+        "verdict": null,
+        "heuristic_scores": null,
+        "semantic_evaluation": {
+          "status": "failed",
+          "scores": null,
+          "observations": [],
+          "recommendations": [],
+          "unsupported_information": [],
+          "error_code": "timeout",
+          "error_message": null,
+          "model": null,
+          "prompt_version": null,
+          "latency_ms": null
+        },
+        "evaluator_version": "2.0.0",
+        "rubric_version": "2.0.0"
+      },
+      "evaluations": [
+        {
+          "evaluation_id": "eval_video_001",
+          "format_id": "fmt_video_001",
+          "created_at": "2026-10-14T18:13:00+00:00",
+          "verdict": null,
+          "heuristic_scores": null,
+          "semantic_evaluation": {
+            "status": "failed",
+            "scores": null,
+            "observations": [],
+            "recommendations": [],
+            "unsupported_information": [],
+            "error_code": "timeout",
+            "error_message": null,
+            "model": null,
+            "prompt_version": null,
+            "latency_ms": null
+          },
+          "evaluator_version": "2.0.0",
+          "rubric_version": "2.0.0"
+        }
+      ]
+    }
+  }
+}
