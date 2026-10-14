@@ -355,8 +355,22 @@ body {
   }
 }
 
-/* Fallback responsive para pantallas móviles o de baja altura */
-@media (max-width: 768px), (max-height: 600px) {
+/* Monitores grandes de escritorio (24"+ / Full HD y superiores) */
+@media (min-width: 1600px) {
+  .app-header {
+    padding: 0.75rem clamp(2rem, 3.5vw, 4rem);
+  }
+  .header-brand-logo {
+    height: 42px;
+  }
+  .nav-tab-btn {
+    padding: 0.58rem 1.35rem;
+    font-size: 0.94rem;
+  }
+}
+
+/* Adaptación para notebooks compactas (1366x768, 1440x900) y baja altura vertical */
+@media (max-width: 768px), (max-height: 680px) {
   body {
     height: auto;
     min-height: 100vh;
@@ -364,8 +378,10 @@ body {
   }
   .app-container {
     overflow: visible;
+    min-height: 0;
   }
   .tab-view {
     overflow: visible;
+    min-height: 0;
   }
 }
