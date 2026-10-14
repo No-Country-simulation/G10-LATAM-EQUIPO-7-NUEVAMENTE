@@ -9,8 +9,8 @@ from data_ai.evaluation.reviewer import evaluar_contenido
 from data_ai.evaluation.semantic_evaluator import (
     SemanticEvaluator,
 )
-from data_ai.evaluation.unavailable_semantic_provider import (
-    UnavailableSemanticProvider,
+from data_ai.evaluation.semantic_provider_factory import (
+    build_semantic_provider,
 )
 from data_ai.schemas.evaluation_v2 import (
     EvaluationResponseV2,
@@ -78,15 +78,22 @@ def evaluate_format_v2(
 ) -> EvaluationResponseV2:
     """Evalúa contenido utilizando el flujo interno Evaluation V2.
 
-    Mientras no exista un provider semántico real configurado,
-    SemanticEvaluator utiliza UnavailableSemanticProvider.
+    El provider semántico se selecciona mediante configuración externa.
 
-    Esto permite exponer el contrato V2 sin fabricar scores
-    semánticos ni afectar el endpoint V1.1.
+    Si están configuradas:
+
+        DATA_IA_GEMINI_API_KEY
+        DATA_IA_GEMINI_MODEL
+
+    se utiliza GeminiSemanticProvider.
+
+    Si falta configuración mínima, se utiliza
+    UnavailableSemanticProvider como fallback controlado,
+    sin fabricar scores semánticos ni afectar el endpoint V1.1.
     """
 
     semantic_evaluator = SemanticEvaluator(
-        UnavailableSemanticProvider()
+        build_semantic_provider()
     )
 
     return evaluate_content_v2(

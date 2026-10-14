@@ -154,3 +154,92 @@ def test_evaluate_v1_remains_available():
 
     assert "heuristic_scores" not in body
     assert "semantic_evaluation" not in body
+    
+def test_evaluate_v2_uses_unavailable_fallback_without_env(
+    monkeypatch,
+):
+    monkeypatch.delenv(
+        "DATA_IA_GEMINI_API_KEY",
+        raising=False,
+    )
+    monkeypatch.delenv(
+        "DATA_IA_GEMINI_MODEL",
+        raising=False,
+    )
+
+    response = client.post(
+        "/evaluate/v2",
+        json=_payload(),
+    )
+
+    assert response.status_code == 200
+
+    body = response.json()
+
+    assert (
+        body["semantic_evaluation"]["status"]
+        == "unavailable"
+    )
+
+    assert (
+        body["semantic_evaluation"]["error_code"]
+        == "not_configured"
+    )
+
+
+def test_evaluate_v2_uses_provider_factory(
+    monkeypatch,
+):
+    from data_ai.api import app as app_module
+
+    class FakeProvider:
+        provider_name = "fake"
+        model_name = "fake-model"
+
+        def generate_structured(
+            self,
+            *,
+            system_prompt,
+            user_prompt,
+        ):
+            return {
+                "scores": {
+                    "relevance": 4.5,
+                    "coherence": 4.5,
+                    "didactic_adaptation": 4.0,
+                    "content_support": 4.5,
+                },
+                "observations": [],
+                "recommendations": [],
+                "unsupported_information": [],
+            }
+
+    monkeypatch.setattr(
+        app_module,
+        "build_semantic_provider",
+        lambda: FakeProvider(),
+    )
+
+    response = client.post(
+        "/evaluate/v2",
+        json=_payload(),
+    )
+
+    assert response.status_code == 200
+
+    body = response.json()
+
+    assert (
+        body["semantic_evaluation"]["status"]
+        == "success"
+    )
+
+    assert (
+        body["semantic_evaluation"]["model"]
+        == "fake-model"
+    )
+
+    assert (
+        body["semantic_evaluation"]["scores"]
+        is not None
+    )
