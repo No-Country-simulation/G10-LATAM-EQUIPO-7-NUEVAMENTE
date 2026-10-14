@@ -160,8 +160,9 @@ export const bookshelf = {
       openedTitle: document.getElementById('openedDocTitle'),
       openedSummary: document.getElementById('openedDocSummary'),
       openedTime: document.getElementById('openedDocTime'),
-      openedSections: document.getElementById('openedDocSections'),
       openedLevel: document.getElementById('openedDocLevel'),
+      openedNiche: document.getElementById('openedDocNiche'),
+      openedDetail: document.getElementById('openedDocDetail'),
       openedChips: document.getElementById('openedDocChips'),
 
       // Opciones de Estudio de la Hoja Derecha
@@ -711,11 +712,35 @@ export const bookshelf = {
 
   getLevelLabel(perfil) {
     const map = {
+      beginner: 'Inicial / Inducción',
       principiante: 'Inicial / Inducción',
+      intermediate: 'Operativo / Especialista',
       intermedio: 'Operativo / Especialista',
+      advanced: 'Avanzado / Liderazgo',
       avanzado: 'Avanzado / Liderazgo'
     };
     return map[(perfil || '').toLowerCase()] || 'Corporativo';
+  },
+
+  getNicheLabel(niche) {
+    const map = {
+      general: 'General',
+      backend: 'Tecnología & Software',
+      health: 'Seguridad & Bioseguridad',
+      legal: 'Legal & Compliance',
+      business: 'Finanzas & Negocios',
+      humanities: 'Recursos Humanos & Cultura'
+    };
+    return map[(niche || '').toLowerCase()] || 'General';
+  },
+
+  getDetailLabel(detailLevel) {
+    const map = {
+      detailed: 'Exhaustivo / Paso a paso',
+      standard: 'Estándar / Equilibrado',
+      concise: 'Sintético / Crítico'
+    };
+    return map[(detailLevel || '').toLowerCase()] || 'Estándar / Equilibrado';
   },
 
   createBookSpine(book) {
@@ -779,7 +804,7 @@ export const bookshelf = {
     this.currentSelectedBook = book;
     const {
       openBookOverlay, openedBadge, openedTitle, openedSummary,
-      openedTime, openedSections, openedLevel, openedChips
+      openedTime, openedLevel, openedNiche, openedDetail, openedChips
     } = this.elements;
 
     if (!openBookOverlay) return;
@@ -791,8 +816,9 @@ export const bookshelf = {
 
     const meta = book.metadatos || {};
     if (openedTime) openedTime.textContent = meta.tiempo_estudio || '10 min';
-    if (openedSections) openedSections.textContent = book.sections?.length || 1;
     if (openedLevel) openedLevel.textContent = this.getLevelLabel(meta.perfil);
+    if (openedNiche) openedNiche.textContent = this.getNicheLabel(meta.niche);
+    if (openedDetail) openedDetail.textContent = this.getDetailLabel(meta.detail_level);
 
     // Chips de conceptos clave de la primera sección (Renderizado seguro con textContent)
     if (openedChips) {

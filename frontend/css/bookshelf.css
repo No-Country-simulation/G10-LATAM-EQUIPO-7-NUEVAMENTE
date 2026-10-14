@@ -967,7 +967,7 @@
   border-radius: 12px;
   padding: clamp(0.5rem, 1vh, 0.8rem) clamp(0.75rem, 1.2vw, 1rem);
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  grid-template-columns: repeat(2, 1fr);
   gap: 0.5rem;
   font-size: clamp(0.72rem, 0.95vh, 0.8rem);
   color: #475569;
