@@ -205,10 +205,45 @@ export const uploadTab = {
   },
 
   setupParamListeners() {
+    const hintPerfil = document.getElementById('hintParamPerfil');
+    const hintNicho = document.getElementById('hintParamNicho');
+    const hintDetail = document.getElementById('hintParamDetail');
+
+    const profileHints = {
+      beginner: 'Inducción básica, fundamentos conceptuales y glosario esencial',
+      intermediate: 'Procedimientos clave, aplicación práctica y metodología',
+      advanced: 'Casos complejos, toma de decisiones estratégicas y liderazgo'
+    };
+
+    const nicheHints = {
+      general: 'Detección universal del área según el contenido del documento',
+      backend: 'Arquitectura, ingeniería de software, DevOps y sistemas',
+      health: 'Protocolos de seguridad, prevención y bioseguridad',
+      legal: 'Normativa, contratos, compliance regulatorio y riesgos',
+      business: 'Finanzas corporativas, KPIs comerciales y gestión',
+      humanities: 'Gestión del talento, comunicación y cultura organizacional'
+    };
+
+    const detailHints = {
+      detailed: 'Paso a paso detallado para capacitación integral',
+      standard: 'Equilibrio entre visión general y conceptos clave',
+      concise: 'Resumen sintético ultracompacto para repaso rápido'
+    };
+
     const updateParams = () => {
       const profile = this.elements.paramPerfil?.value || 'intermediate';
       const niche = this.elements.paramNicho?.value || 'general';
       const detail_level = this.elements.paramDetailLevel?.value || 'detailed';
+
+      if (hintPerfil && profileHints[profile]) {
+        hintPerfil.textContent = profileHints[profile];
+      }
+      if (hintNicho && nicheHints[niche]) {
+        hintNicho.textContent = nicheHints[niche];
+      }
+      if (hintDetail && detailHints[detail_level]) {
+        hintDetail.textContent = detailHints[detail_level];
+      }
 
       state.set({
         adaptationParams: {

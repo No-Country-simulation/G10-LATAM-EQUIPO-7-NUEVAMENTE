@@ -324,7 +324,7 @@
 }
 
 /* Adaptación para pantallas de PC con baja altura vertical (1366x768, 1440x900, monitores 17" y laptops) */
-@media (max-height: 780px) and (min-width: 769px) {
+@media (max-height: 800px) and (min-width: 769px) {
   .welcome-portada {
     padding: 0.75rem;
   }

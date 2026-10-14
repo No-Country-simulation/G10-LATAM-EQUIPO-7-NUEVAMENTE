@@ -254,6 +254,7 @@ body {
   overflow-x: hidden;
   scroll-behavior: smooth;
   animation: fadeInView 0.25s ease forwards;
+  padding-bottom: 3.5rem;
 }
 
 /* Scrollbar sutil y elegante que solo aparece cuando el contenido desborda */
@@ -307,6 +308,7 @@ body {
   font-size: 0.82rem;
   color: var(--text-muted);
   z-index: 50;
+  flex-shrink: 0;
 }
 
 .status-indicator {
@@ -369,8 +371,8 @@ body {
   }
 }
 
-/* Adaptación para notebooks compactas (1366x768, 1440x900) y baja altura vertical */
-@media (max-width: 768px), (max-height: 680px) {
+/* Adaptación para dispositivos móviles (teléfonos y tablets en vertical) */
+@media (max-width: 768px) {
   body {
     height: auto;
     min-height: 100vh;
@@ -383,5 +385,23 @@ body {
   .tab-view {
     overflow: visible;
     min-height: 0;
+  }
+}
+
+/* Adaptación para PC de escritorio y laptops compactas (1366x768, 1440x900, monitores 17") */
+@media (min-width: 769px) and (max-height: 800px) {
+  .app-header {
+    padding: 0.35rem 1.25rem;
+  }
+  .header-brand-logo {
+    height: 32px;
+  }
+  .nav-tab-btn {
+    padding: 0.35rem 0.85rem;
+    font-size: 0.82rem;
+  }
+  .system-status-bar {
+    padding: 0.35rem 1.25rem;
+    font-size: 0.78rem;
   }
 }

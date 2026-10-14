@@ -679,32 +679,34 @@ export const bookshelf = {
   },
 
   getShortDisciplineTag(discipline) {
-    if (!discipline) return 'MÓDULO';
+    if (!discipline) return 'DOC';
     const map = {
-      'Ingeniería de Software': 'SOFTWARE',
-      'Arquitectura de Software': 'SOFTWARE',
-      'Desarrollo Web & UX': 'DEV WEB',
-      'Ciencia de Datos': 'DATA SCI',
-      'Inteligencia Artificial': 'IA & DATA',
-      'Cloud & DevOps': 'DEVOPS',
+      'Ingeniería de Software': 'DEV',
+      'Arquitectura de Software': 'DEV',
+      'Desarrollo Web & UX': 'WEB',
+      'Ciencia de Datos': 'DATA',
+      'Inteligencia Artificial': 'IA',
+      'Cloud & DevOps': 'CLOUD',
       'Neurociencias & Medicina': 'NEURO',
-      'Ciencias Médicas & Biología': 'MEDICINA',
-      'Derecho & Ciberseguridad': 'LEYES',
-      'Ciencias Jurídicas & Derecho': 'DERECHO',
-      'Economía & Negocios': 'ECONOMÍA',
-      'Economía & Finanzas': 'FINANZAS',
-      'Biología & Genética': 'GENÉTICA',
-      'Ciberseguridad': 'SEGURIDAD',
-      'Humanidades & Filosofía': 'HISTORIA',
-      'Humanidades & Ciencias Sociales': 'HUMANID',
-      'Psicología & Neurociencia': 'PSICOLOGÍA',
-      'Física & Ciencias Exactas': 'FÍSICA',
-      'Ciencias Generales': 'CIENCIA',
-      'Ciencias & Disciplinas Generales': 'CIENCIA'
+      'Ciencias Médicas & Biología': 'MED',
+      'Derecho & Ciberseguridad': 'LEGAL',
+      'Ciencias Jurídicas & Derecho': 'DER',
+      'Economía & Negocios': 'ECON',
+      'Economía & Finanzas': 'FIN',
+      'Biología & Genética': 'BIO',
+      'Ciberseguridad': 'SEG',
+      'Humanidades & Filosofía': 'HUM',
+      'Humanidades & Ciencias Sociales': 'HUM',
+      'Psicología & Neurociencia': 'PSIC',
+      'Física & Ciencias Exactas': 'FÍS',
+      'Ciencias Generales': 'CIEN',
+      'Ciencias & Disciplinas Generales': 'CIEN',
+      'Educación & Pedagogía': 'EDU',
+      'Gestión & Liderazgo': 'GEST'
     };
     if (map[discipline]) return map[discipline];
     const firstWord = discipline.split(' ')[0].toUpperCase();
-    return firstWord.length > 8 ? firstWord.slice(0, 8) : firstWord;
+    return firstWord.length > 5 ? firstWord.slice(0, 5) : firstWord;
   },
 
   getLevelLabel(perfil) {

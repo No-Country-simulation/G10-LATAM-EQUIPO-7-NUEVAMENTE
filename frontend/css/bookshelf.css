@@ -7,7 +7,7 @@
 .library-view-container {
   width: 100%;
   max-width: 1560px;
-  margin: auto;
+  margin: 0 auto;
   min-height: min-content;
   position: relative;
   display: flex;
@@ -15,7 +15,7 @@
   align-items: stretch; /* Ambas cajas tienen exactamente la misma altura y simetría */
   justify-content: center;
   gap: clamp(1.2rem, 2vw, 2.4rem);
-  padding: clamp(0.75rem, 1.8vh, 1.5rem) clamp(1rem, 2.5vw, 2.5rem) clamp(1.2rem, 2.5vh, 2rem);
+  padding: clamp(0.75rem, 1.8vh, 1.5rem) clamp(1rem, 2.5vw, 2.5rem) 3.5rem;
 }
 
 /* Encabezado del Librero (Tarjeta Lateral Glassmorphic de igual altura que el estante) */
@@ -386,31 +386,122 @@
   .library-view-container {
     flex-direction: row;
     gap: 1rem;
-    padding: 0.75rem 1rem;
+    padding: 0.65rem 1rem 3.5rem;
     align-items: stretch;
   }
   .library-hero-header {
-    flex: 0 0 clamp(260px, 22vw, 300px);
-    width: clamp(260px, 22vw, 300px);
-    padding: 1.25rem 1rem;
-    gap: 0.85rem;
+    flex: 0 0 clamp(250px, 22vw, 290px);
+    width: clamp(250px, 22vw, 290px);
+    padding: 1.1rem 0.95rem;
+    gap: 0.75rem;
   }
   .library-hero-title .library-title-prefix {
-    font-size: 1.45rem;
+    font-size: 1.35rem;
   }
   .library-hero-logo {
-    height: 60px;
+    height: 52px;
   }
   .library-hero-subtitle {
-    font-size: 0.82rem;
+    font-size: 0.8rem;
     line-height: 1.35;
   }
+  .library-action-buttons {
+    gap: 0.45rem;
+  }
+  .btn-library-action {
+    padding: 0.45rem 0.85rem;
+    font-size: 0.82rem;
+  }
   .bookshelf-rack {
-    padding: 1rem 0.75rem;
+    padding: 0.85rem 0.85rem;
+    gap: 0.85rem;
+  }
+  .shelf-row {
+    min-height: 180px;
+    padding: 0 0.85rem 15px;
+    gap: 0.6rem;
+  }
+  .shelf-plank {
+    height: 15px;
   }
   .book-spine {
-    width: clamp(52px, 4.2vw, 64px);
-    height: clamp(195px, 24vh, 235px);
+    width: clamp(50px, 4.2vw, 62px);
+    height: clamp(160px, 20vh, 185px);
+    padding: 0.6rem 0.25rem 0.5rem;
+  }
+  .book-spine:nth-child(2n) { height: clamp(155px, 19.5vh, 178px); width: clamp(48px, 4vw, 58px); }
+  .book-spine:nth-child(3n) { height: clamp(168px, 21vh, 192px); width: clamp(52px, 4.4vw, 64px); }
+  .book-spine:nth-child(5n) { height: clamp(158px, 20vh, 182px); width: clamp(49px, 4.1vw, 60px); }
+  .spine-title-vertical {
+    font-size: 0.74rem;
+    max-height: 115px;
+  }
+  .spine-code-tag {
+    font-size: 0.6rem;
+    padding: 0.1rem 0.22rem;
+  }
+}
+
+/* Pantallas de PC y laptops con baja altura vertical (max-height: 800px) */
+@media (max-height: 800px) and (min-width: 769px) {
+  .library-view-container {
+    padding: 0.45rem 1rem 3.5rem;
+    gap: 0.75rem;
+  }
+  .library-hero-header {
+    padding: 0.85rem 0.85rem;
+    gap: 0.55rem;
+    border-radius: 20px;
+  }
+  .library-hero-top {
+    gap: 0.35rem;
+  }
+  .library-hero-badge {
+    font-size: 0.7rem;
+    padding: 0.2rem 0.65rem;
+  }
+  .library-hero-logo {
+    height: 44px;
+  }
+  .library-hero-subtitle {
+    font-size: 0.76rem;
+    line-height: 1.28;
+  }
+  .library-action-buttons {
+    gap: 0.35rem;
+  }
+  .btn-library-action {
+    padding: 0.4rem 0.75rem;
+    font-size: 0.78rem;
+  }
+  .bookshelf-rack {
+    padding: 0.7rem 0.8rem 0.5rem;
+    gap: 0.7rem;
+    border-radius: 20px;
+  }
+  .shelf-row {
+    min-height: 170px;
+    padding: 0 0.8rem 13px;
+    gap: 0.55rem;
+  }
+  .shelf-plank {
+    height: 13px;
+  }
+  .book-spine {
+    width: 52px;
+    height: 154px;
+    padding: 0.5rem 0.2rem 0.4rem;
+  }
+  .book-spine:nth-child(2n) { height: 148px; width: 50px; }
+  .book-spine:nth-child(3n) { height: 160px; width: 54px; }
+  .book-spine:nth-child(5n) { height: 152px; width: 51px; }
+  .spine-title-vertical {
+    font-size: 0.7rem;
+    max-height: 105px;
+  }
+  .spine-code-tag {
+    font-size: 0.58rem;
+    padding: 0.08rem 0.2rem;
   }
 }
 

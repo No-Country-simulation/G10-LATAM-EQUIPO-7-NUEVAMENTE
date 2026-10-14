@@ -6,11 +6,11 @@
 .study-view-container {
   width: 100%;
   max-width: 1040px;
-  margin: auto;
+  margin: 0 auto;
   min-height: min-content;
   display: flex;
   flex-direction: column;
-  padding: clamp(0.75rem, 1.5vh, 1.5rem) clamp(1rem, 2vw, 2rem) clamp(1.5rem, 3vh, 2.5rem);
+  padding: clamp(0.75rem, 1.5vh, 1.5rem) clamp(1rem, 2vw, 2rem) 3.5rem;
   gap: clamp(0.6rem, 1.2vh, 1.1rem);
 }
 
@@ -886,32 +886,32 @@
 }
 
 /* Adaptación para pantallas de PC con baja altura vertical (1366x768, 1440x900, 17" y laptops) */
-@media (max-height: 760px) and (min-width: 769px) {
+@media (max-height: 800px) and (min-width: 769px) {
   .study-view-container {
-    padding: 0.65rem 1.25rem 1.25rem;
-    gap: 0.65rem;
+    padding: 0.55rem 1.25rem 4rem;
+    gap: 0.55rem;
   }
   .study-hub-header {
-    padding: 0.5rem 1.2rem;
+    padding: 0.45rem 1.1rem;
   }
   .study-topic-title {
-    font-size: 1.3rem;
+    font-size: 1.25rem;
   }
   .flashcard-wrapper {
-    height: clamp(210px, 28vh, 255px);
+    height: clamp(200px, 26vh, 240px);
   }
   .card-face {
-    padding: 0.85rem 1.4rem;
+    padding: 0.75rem 1.25rem;
   }
   .card-question {
-    font-size: 1.18rem;
+    font-size: 1.12rem;
   }
   .card-dialog-controls {
-    margin-top: 0.4rem;
+    margin-top: 0.35rem;
   }
   .quiz-container {
-    padding: 0.85rem 1.35rem;
-    gap: 0.6rem;
+    padding: 0.75rem 1.25rem;
+    gap: 0.55rem;
   }
 }
 

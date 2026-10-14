@@ -6,11 +6,11 @@
 .upload-tab-container {
   max-width: 1060px;
   width: 100%;
-  margin: auto;
+  margin: 0 auto;
   min-height: min-content;
   display: flex;
   flex-direction: column;
-  padding: clamp(0.75rem, 1.5vh, 1.5rem) clamp(1rem, 2vw, 2rem) clamp(1.5rem, 3vh, 2.5rem);
+  padding: clamp(0.75rem, 1.5vh, 1.5rem) clamp(1rem, 2vw, 2rem) 3.5rem;
   gap: clamp(1rem, 1.8vh, 1.6rem);
 }
 
@@ -357,8 +357,18 @@
   box-shadow: 0 0 0 3px rgba(245, 158, 11, 0.18);
 }
 
+.param-hint-desc {
+  font-size: 0.76rem;
+  color: #94a3b8;
+  line-height: 1.35;
+  margin-top: 0.25rem;
+  display: block;
+  min-height: 1.8em;
+}
+
 .launch-action-wrapper {
-  margin-top: 0.4rem;
+  margin-top: 0.6rem;
+  margin-bottom: 1.25rem;
   display: flex;
   justify-content: center;
 }
@@ -643,27 +653,72 @@
 }
 
 /* Adaptación para pantallas de PC con baja altura vertical (1366x768, 1440x900, 17" y laptops) */
-@media (max-height: 760px) and (min-width: 769px) {
+@media (max-height: 800px) and (min-width: 769px) {
   .upload-tab-container {
-    padding: 0.65rem 1.25rem 1.25rem;
-    gap: 0.85rem;
+    padding: 0.5rem 1.25rem 4.5rem;
+    gap: 0.65rem;
   }
   .upload-hero-header {
-    padding: 0.45rem 1.2rem;
+    padding: 0.35rem 1.1rem;
+  }
+  .upload-hero-title-box h2 {
+    font-size: 1.3rem;
+    margin-bottom: 0.1rem;
+  }
+  .upload-hero-subtitle {
+    font-size: 0.8rem;
+    line-height: 1.3;
   }
   .upload-panel-card {
-    padding: 0.85rem 1.4rem;
-    gap: 0.75rem;
+    padding: 0.7rem 1.25rem;
+    gap: 0.55rem;
+  }
+  .panel-title-row h3 {
+    font-size: 0.96rem;
+  }
+  .panel-title-hint {
+    font-size: 0.75rem;
   }
   .file-dropzone-large {
-    min-height: 140px;
-    padding: 1.25rem 1.2rem;
+    min-height: 110px;
+    padding: 0.85rem 1rem;
   }
   .dropzone-icon-large {
-    font-size: 1.8rem;
+    font-size: 1.55rem;
+    margin-bottom: 0.2rem;
+  }
+  .file-dropzone-large h3 {
+    font-size: 0.92rem;
+  }
+  .file-dropzone-large p {
+    font-size: 0.78rem;
   }
   .parameters-stack {
+    gap: 0.55rem;
+  }
+  .parameters-fields-grid {
     gap: 0.75rem;
+  }
+  .param-label {
+    font-size: 0.8rem;
+  }
+  .parameters-stack select,
+  .custom-select {
+    padding: 0.5rem 0.75rem;
+    font-size: 0.82rem;
+  }
+  .param-hint-desc {
+    font-size: 0.72rem;
+    min-height: 1.5em;
+  }
+  .launch-action-wrapper {
+    margin-top: 0.25rem;
+    margin-bottom: 0.5rem;
+  }
+  .launch-action-wrapper .btn-launch-rag {
+    max-width: 440px;
+    padding: 0.75rem 1.8rem;
+    font-size: 0.96rem;
   }
 }
 
