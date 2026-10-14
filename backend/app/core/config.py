@@ -91,6 +91,7 @@ class Settings(BaseSettings):
     AGENTS_GENERATE_PATH: str = (
         "/api/v1/generate"
     )
+    AGENTS_REVISE_PATH: str = "/api/v1/revise"
     AGENTS_TIMEOUT_SECONDS: float = Field(
         default=60.0,
         gt=0,
@@ -168,6 +169,7 @@ class Settings(BaseSettings):
     @field_validator(
         "RAG_INDEX_PATH",
         "AGENTS_GENERATE_PATH",
+        "AGENTS_REVISE_PATH",
         "DATA_IA_EVALUATE_PATH",
     )
     @classmethod

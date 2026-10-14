@@ -26,6 +26,9 @@ from app.application.format_generation_service import (
 from app.application.format_regeneration_service import (
     FormatRegenerationService,
 )
+from app.application.format_revision_service import (
+    FormatRevisionService,
+)
 from app.application.generated_format_query_service import (
     GeneratedFormatQueryService,
 )
@@ -40,6 +43,9 @@ from app.core.exceptions import (
     register_exception_handlers,
 )
 from app.core.logging import setup_logging
+from app.infrastructure.integrations.http_agent_revision_adapter import (
+    HTTPAgentRevisionAdapter,
+)
 from app.infrastructure.integrations.http_agents_adapter import (
     HTTPAgentsAdapter,
 )
@@ -150,6 +156,11 @@ async def lifespan(
             ),
         )
 
+        agent_revision_adapter = HTTPAgentRevisionAdapter(
+            client=agents_http_client,
+            revise_path=settings.AGENTS_REVISE_PATH,
+        )
+
         data_ia_adapter = HTTPDataIAAdapter(
             client=data_ia_http_client,
             evaluate_path=(
@@ -191,6 +202,11 @@ async def lifespan(
                 ),
                 data_ia=data_ia_adapter,
             )
+        )
+
+        format_revision_service = FormatRevisionService(
+            generated_format_repository=generated_format_repository,
+            agent_revision=agent_revision_adapter,
         )
 
         format_regeneration_service = (
@@ -245,6 +261,10 @@ async def lifespan(
 
         app.state.format_evaluation_service = (
             format_evaluation_service
+        )
+
+        app.state.format_revision_service = (
+            format_revision_service
         )
 
         app.state.format_regeneration_service = (

@@ -3506,3 +3506,55 @@ python -m pytest -q
 ```
 
 <!-- END SPRINT4_AGENT_REVISION_CONTRACT -->
+
+---
+
+### Sprint 4 — Solicitud al Agente Revisor (BackendAPI #69)
+
+La revisión correctiva se solicita desde `FormatRevisionService`, un caso de uso que
+accede a una generación persistida mediante `GeneratedFormatRepositoryPort` y
+usa `AgentRevisionPort` para delegar la operación externa. La implementación
+HTTP (`HTTPAgentRevisionAdapter`) se encuentra exclusivamente en
+`app/infrastructure/integrations/`. El servicio se inicializa en el `lifespan`
+de FastAPI y se deja disponible en `app.state.format_revision_service` para la
+orquestación de los próximos incrementos.
+
+**Configuración:**
+
+```env
+AGENTS_BASE_URL=http://localhost:8001
+AGENTS_REVISE_PATH=/api/v1/revise
+AGENTS_TIMEOUT_SECONDS=60
+```
+
+`FormatRevisionService.request_revision(format_id, feedback)` recupera el
+contenido canónico, el contexto pedagógico y la evidencia completa del formato
+original. Requiere que la fuente exista y tenga estado `success`, contenido y
+`chunks_used`; recibe un `RevisionFeedback` negativo y accionable según el
+contrato de Sprint 4, construye un `AgentRevisionInput`, solicita **una**
+revisión mediante `AgentRevisionPort` y comprueba la identidad de la respuesta.
+
+Los errores de transporte y de contrato se traducen a
+`FormatRevisionIntegrationError`. Una respuesta `failed` o `no_results` se
+conserva como resultado terminal, sin reemplazar el contenido existente.
+La solicitud es una operación puntual: **no persiste otra versión, no consume
+ni administra reintentos, no invoca Data/IA y no modifica los estados agregados
+que ve Frontend**. Estas responsabilidades corresponden a las siguientes
+tarjetas de BackendAPI.
+
+La existencia del puerto no activa automáticamente `/revise` en las cargas y
+regeneraciones actuales. La evaluación sigue usando `/evaluate` (V1.1) hasta
+que se incorpore el mapeo de Evaluation V2. El endpoint de Agentes
+`POST /api/v1/revise` y el E2E real siguen pendientes de integración.
+
+Pruebas del incremento:
+
+```powershell
+python -m ruff check .
+python -m pytest -q
+```
+
+Las pruebas de integración locales utilizan un transporte HTTP simulado para
+validar la composición servicio → puerto → adaptador. **No constituyen un E2E
+real**, que requiere el endpoint desplegado del equipo Agentes y un formato
+previamente generado con evaluación V2.
