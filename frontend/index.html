@@ -457,6 +457,13 @@
 
         <!-- Formato 1: Flashcards 3D (Refuerzo de Conocimientos) -->
         <div class="format-view active" id="viewFormatFlashcards">
+          <div class="format-header-bar">
+            <span class="topic-badge-pill" id="flashcardsCounterBadge">Tarjetas de Refuerzo (Memoria Activa)</span>
+            <div class="format-header-actions" id="flashcardsHeaderActions">
+              <span class="evaluator-badge-slot" id="evalBadgeFlashcards"></span>
+              <button type="button" class="btn-regen-format" id="btnRegenFlashcards" title="Solicitar un nuevo conjunto de tarjetas de memorización a la IA">↻ Nuevas Tarjetas</button>
+            </div>
+          </div>
           <div class="flashcard-wrapper">
             <div class="flashcard" id="currentCard">
               <!-- Cara Frontal (Concepto / Pregunta Operativa) -->
@@ -499,7 +506,6 @@
             <span class="card-counter-indicator" id="cardCounter">Tarjeta 1 de 1</span>
             <button type="button" class="control-btn" id="btnFlipCard">Voltear</button>
             <button type="button" class="control-btn" id="btnNextCard">&rarr; Siguiente</button>
-            <button type="button" class="control-btn btn-regen-format" id="btnRegenFlashcards" title="Solicitar un nuevo conjunto de tarjetas de memorización a la IA">↻ Nuevas Tarjetas</button>
           </div>
         </div>
 
@@ -508,9 +514,12 @@
           <div class="quiz-container">
             <div class="quiz-header-bar">
               <span class="topic-badge-pill" id="quizCounterBadge">Evaluación Interactiva</span>
-              <button type="button" class="btn-regen-format" id="btnRegenQuiz" title="Generar un nuevo cuestionario con preguntas diferentes a la IA">
-                ↻ Cambiar Quiz / Nuevas Preguntas
-              </button>
+              <div class="format-header-actions" id="quizHeaderActions">
+                <span class="evaluator-badge-slot" id="evalBadgeQuiz"></span>
+                <button type="button" class="btn-regen-format" id="btnRegenQuiz" title="Generar un nuevo cuestionario con preguntas diferentes a la IA">
+                  ↻ Cambiar Quiz / Nuevas Preguntas
+                </button>
+              </div>
             </div>
             <h4 class="quiz-question-title" id="quizQuestionText">Cargando evaluación de competencias...</h4>
             <div class="quiz-options-list" id="quizOptionsList">
@@ -529,9 +538,12 @@
         <div class="format-view" id="viewFormatVideo">
           <div class="format-header-bar">
             <span class="topic-badge-pill" id="videoCounterBadge">Guion Audiovisual Formativo</span>
-            <button type="button" class="btn-regen-format" id="btnRegenVideo" title="Generar un nuevo guion didáctico para facilitadores">
-              ↻ Regenerar Guion
-            </button>
+            <div class="format-header-actions" id="videoHeaderActions">
+              <span class="evaluator-badge-slot" id="evalBadgeVideo"></span>
+              <button type="button" class="btn-regen-format" id="btnRegenVideo" title="Generar un nuevo guion didáctico para facilitadores">
+                ↻ Regenerar Guion
+              </button>
+            </div>
           </div>
           <div class="video-container">
             <!-- 1. Escenas y Estructura Didáctica (ARRIBA) -->
@@ -560,9 +572,12 @@
         <div class="format-view" id="viewFormatSintesis">
           <div class="format-header-bar">
             <span class="topic-badge-pill" id="sintesisCounterBadge">Síntesis Ejecutiva (TLDR)</span>
-            <button type="button" class="btn-regen-format" id="btnRegenSintesis" title="Generar una nueva síntesis ejecutiva del documento">
-              ↻ Regenerar Síntesis
-            </button>
+            <div class="format-header-actions" id="sintesisHeaderActions">
+              <span class="evaluator-badge-slot" id="evalBadgeSintesis"></span>
+              <button type="button" class="btn-regen-format" id="btnRegenSintesis" title="Generar una nueva síntesis ejecutiva del documento">
+                ↻ Regenerar Síntesis
+              </button>
+            </div>
           </div>
           <div class="sintesis-container">
             <div class="sintesis-card">
@@ -687,13 +702,16 @@
         </div>
 
         <div class="notebook-action-footer">
-          <button type="button" class="btn-close-notebook-shelf" id="btnCloseNotebookOverlay">
+          <button type="button" class="btn-close-notebook-shelf" id="btnCloseNotebookOverlay" title="Devolver libro al estante">
             <span>Devolver al Estante</span>
           </button>
-          <button type="button" class="btn-primary-action" id="btnDownloadOriginalDoc" style="background: rgba(255, 255, 255, 0.08); border: 1px solid var(--border-ui); color: var(--text-main);" title="Descargar documento original desde OCI">
+          <button type="button" class="btn-download-notebook" id="btnDownloadOriginalDoc" title="Descargar documento original desde el servidor">
             <span>⬇ Descargar</span>
           </button>
-          <button type="button" class="btn-primary-action" id="btnStartStudying">
+          <button type="button" class="btn-inactivate-notebook" id="btnInactivateDoc" title="Eliminar este módulo de capacitación">
+            <span>🗑 Eliminar</span>
+          </button>
+          <button type="button" class="btn-primary-action btn-start-studying" id="btnStartStudying" title="Iniciar sesión de capacitación">
             <span>Iniciar Capacitación &rarr;</span>
           </button>
         </div>

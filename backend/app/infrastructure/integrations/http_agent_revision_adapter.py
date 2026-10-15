@@ -58,6 +58,8 @@ class _RevisionHTTPResponse(BaseModel):
     model_config = ConfigDict(extra="ignore")
 
     document_id: str = Field(min_length=1)
+    revision_id: str | None = None
+    original_format_id: str | None = None
     format: GeneratedFormatType
     status: GeneratedFormatStatus
     content: dict[str, object] | None = None
@@ -141,12 +143,25 @@ class HTTPAgentRevisionAdapter:
         if context.learning_objective is not None:
             generation_context["learning_objective"] = context.learning_objective
 
-        return {
+        common = {
             "document_id": request.document_id,
             "format": request.format_type.value,
-            "current_content": request.current_content.to_dict(),
             "generation_context": generation_context,
             "chunks_used": [chunk.to_dict() for chunk in request.chunks_used],
+        }
+        if request.revision_id is not None:
+            # Contrato interoperable acordado por BackendAPI.
+            return {
+                **common,
+                "revision_id": request.revision_id,
+                "original_format_id": request.original_format_id,
+                "previous_content": request.current_content.to_dict(),
+                "evaluator_response": request.evaluator_response,
+            }
+        # Compatibilidad del puerto con pruebas directas anteriores.
+        return {
+            **common,
+            "current_content": request.current_content.to_dict(),
             "feedback": asdict(request.feedback),
         }
 
@@ -159,6 +174,11 @@ class HTTPAgentRevisionAdapter:
         """Impide aceptar estados, HTTP o identidades contradictorios."""
         if body.document_id != request.document_id or body.format != request.format_type:
             raise ValueError("Identidad de revisión diferente a la solicitada.")
+        if request.revision_id is not None and (
+            body.revision_id != request.revision_id
+            or body.original_format_id != request.original_format_id
+        ):
+            raise ValueError("Identificadores de revisión incorrectos o ausentes.")
         if response.status_code == 207:
             raise ValueError("/revise es una operación atómica: no admite HTTP 207.")
         if response.status_code == 200 and body.status != GeneratedFormatStatus.SUCCESS:

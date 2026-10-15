@@ -34,10 +34,34 @@ class AgentRevisionInput:
     generation_context: GenerationContext
     chunks_used: tuple[ChunkEvidence, ...]
     feedback: RevisionFeedback
+    # Campos opcionales para compatibilidad con consumidores previos
+    # del puerto. El flujo automático siempre suministra los tres.
+    revision_id: str | None = None
+    original_format_id: str | None = None
+    evaluator_response: dict[str, object] | None = None
 
     def __post_init__(self) -> None:
         if not self.document_id.strip():
             raise ValueError("document_id es obligatorio.")
+        v2_fields = (
+            self.revision_id, self.original_format_id, self.evaluator_response
+        )
+        if any(field is not None for field in v2_fields):
+            if not all(field is not None for field in v2_fields):
+                raise ValueError("La solicitud V2 requiere IDs y evaluator_response.")
+            if not isinstance(self.revision_id, str) or not self.revision_id.strip():
+                raise ValueError("revision_id debe ser no vacío.")
+            if (not isinstance(self.original_format_id, str)
+                    or not self.original_format_id.strip()):
+                raise ValueError("original_format_id debe ser no vacío.")
+            if self.revision_id == self.original_format_id:
+                raise ValueError("Una versión no puede revisarse a sí misma.")
+            if not isinstance(self.evaluator_response, dict):
+                raise ValueError("evaluator_response debe ser objeto JSON.")
+            if self.evaluator_response.get("document_id") != self.document_id:
+                raise ValueError("Evaluación de otro documento.")
+            if self.evaluator_response.get("format") != self.format_type.value:
+                raise ValueError("Evaluación de otro formato.")
         expected_content_types = {
             GeneratedFormatType.QUIZ: QuizContent,
             GeneratedFormatType.FLASHCARDS: FlashcardsContent,

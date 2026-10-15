@@ -266,6 +266,7 @@ class GeneratedFormatResponse(BaseSchema):
     format_id: str = Field(
         min_length=1,
     )
+    revision_of_format_id: str | None = None
     status: GeneratedFormatStatus
     content: GeneratedContentResponse | None = None
     error_message: str | None = None
@@ -326,6 +327,7 @@ class GeneratedFormatResponse(BaseSchema):
 
         return cls(
             format_id=generated_format.format_id,
+            revision_of_format_id=generated_format.revision_of_format_id,
             status=generated_format.status,
             content=response_content,
             error_message=generated_format.error_message,

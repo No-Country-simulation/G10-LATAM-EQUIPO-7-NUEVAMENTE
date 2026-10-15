@@ -92,6 +92,8 @@ class _AgentGenerationHTTPResponse(BaseModel):
     document_id: str
     learning_metadata: _LearningMetadataHTTPResponse
     results: list[_GeneratedFormatHTTPResult]
+    document_title: str | None = None
+    document_description: str | None = None
 
 
 class HTTPAgentsAdapter:
@@ -232,6 +234,12 @@ class HTTPAgentsAdapter:
                 payload_response
                 .learning_metadata
                 .to_domain()
+            ),
+            document_title=(
+                payload_response.document_title
+            ),
+            document_description=(
+                payload_response.document_description
             ),
         )
 

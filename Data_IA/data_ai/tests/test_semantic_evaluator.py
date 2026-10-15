@@ -22,6 +22,7 @@ from data_ai.evaluation.semantic_provider import (
     SemanticProviderExecutionError,
     SemanticProviderNotConfiguredError,
     SemanticProviderTimeoutError,
+    SemanticProviderInvalidOutputError, # <--- AGREGAMOS ESTE IMPORT
 )
 
 
@@ -562,6 +563,27 @@ def test_semantic_evaluator_maps_provider_execution_error():
 # Invalid output
 # ============================================================
 
+def test_semantic_evaluator_maps_provider_invalid_output_error():
+    provider = FakeSemanticProvider(
+        error=SemanticProviderInvalidOutputError(
+            "Gemini returned invalid structured output.",
+            provider="gemini",
+            model="gemini-test",
+        ),
+    )
+
+    evaluator = SemanticEvaluator(provider)
+
+    result = evaluator.evaluate(
+        content_format="tldr",
+        generated_content=_generated_content(),
+        generation_context=_generation_context(),
+        chunks_used=_chunks_used(),
+    )
+
+    assert result.status == "failed"
+    assert result.scores is None
+    assert result.error_code == "invalid_output"
 
 def test_semantic_evaluator_maps_missing_scores_to_invalid_output():
     provider = FakeSemanticProvider(

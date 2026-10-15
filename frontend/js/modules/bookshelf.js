@@ -8,7 +8,7 @@ import { getRandomSpineColor } from '../config.js';
 import { apiClient } from '../api/apiClient.js';
 import { router } from './router.js';
 import { statusDialog } from './statusDialog.js';
-import { notifyError, notifyWarning, notifySuccess } from './notifications.js';
+import { notifyError, notifyWarning, notifySuccess, notifyInfo } from './notifications.js';
 import { toFriendlyError } from '../utils/friendlyError.js';
 
 export const bookshelf = {
@@ -154,6 +154,7 @@ export const bookshelf = {
       btnCloseOverlay: document.getElementById('btnCloseNotebookOverlay'),
       btnStartStudying: document.getElementById('btnStartStudying'),
       btnDownloadOriginalDoc: document.getElementById('btnDownloadOriginalDoc'),
+      btnInactivateDoc: document.getElementById('btnInactivateDoc'),
 
       // Campos de la Hoja Izquierda
       openedBadge: document.getElementById('openedDocBadge'),
@@ -598,14 +599,6 @@ export const bookshelf = {
       actionsContainer.className = 'catalog-card-actions';
       actionsContainer.style.cssText = 'display: flex; align-items: center; gap: 0.65rem; flex-shrink: 0;';
 
-      const quizPill = document.createElement('span');
-      quizPill.className = 'catalog-format-pill quiz-pill';
-      quizPill.textContent = 'Quiz';
-
-      const flashcardsPill = document.createElement('span');
-      flashcardsPill.className = 'catalog-format-pill flashcards-pill';
-      flashcardsPill.textContent = 'Flashcards';
-
       const btnStudy = document.createElement('button');
       btnStudy.type = 'button';
       btnStudy.className = 'btn-study-doc';
@@ -617,25 +610,22 @@ export const bookshelf = {
         this.selectBookAndStudy(book, 'flashcards');
       });
 
-      actionsContainer.appendChild(quizPill);
-      actionsContainer.appendChild(flashcardsPill);
       actionsContainer.appendChild(btnStudy);
 
-      if (isCustom) {
-        const btnDelete = document.createElement('button');
-        btnDelete.type = 'button';
-        btnDelete.className = 'btn-delete-doc-item';
-        btnDelete.dataset.bookId = book.id || '';
-        btnDelete.title = 'Eliminar documento';
-        btnDelete.textContent = '×';
+      const btnInactivate = document.createElement('button');
+      btnInactivate.type = 'button';
+      btnInactivate.className = 'btn-delete-doc-item';
+      btnInactivate.dataset.bookId = book.id || '';
+      btnInactivate.title = 'Eliminar módulo de capacitación';
+      btnInactivate.setAttribute('aria-label', `Eliminar módulo ${book.title || ''}`);
+      btnInactivate.textContent = '×';
 
-        btnDelete.addEventListener('click', (e) => {
-          e.stopPropagation();
-          this.deleteCustomBook(book.id);
-        });
+      btnInactivate.addEventListener('click', (e) => {
+        e.stopPropagation();
+        this.handleInactivateDocument(book);
+      });
 
-        actionsContainer.appendChild(btnDelete);
-      }
+      actionsContainer.appendChild(btnInactivate);
 
       card.appendChild(infoContainer);
       card.appendChild(actionsContainer);
@@ -656,6 +646,54 @@ export const bookshelf = {
       localStorage.setItem('nuevamente_custom_books', JSON.stringify(updated));
     } catch {}
     this.renderShelf();
+  },
+
+  /**
+   * Inactiva / elimina de forma lógica un módulo de capacitación (Punto 9 - Sprint 3/4)
+   * Compatible con custom books y backend documents persistidos
+   * @param {Object} book
+   */
+  async handleInactivateDocument(book) {
+    if (!book) return;
+    const bookTitle = book.title || book.filename || 'este documento';
+    const confirmMessage = `¿Estás seguro de que deseas eliminar el módulo "${bookTitle}"? Ya no estará visible en el catálogo de capacitaciones.`;
+
+    if (!window.confirm(confirmMessage)) return;
+
+    const isCustom = (state.get().customBooks || []).some(b => b.id === book.id);
+
+    if (isCustom) {
+      this.deleteCustomBook(book.id);
+      this.closeBookModal();
+      notifySuccess('Módulo Eliminado', `El módulo "${bookTitle}" fue eliminado del catálogo.`);
+      return;
+    }
+
+    try {
+      if (this.elements.btnInactivateDoc) {
+        this.elements.btnInactivateDoc.disabled = true;
+      }
+      notifyInfo('Procesando', `Eliminando "${bookTitle}" en el servidor...`);
+      await apiClient.inactivateDocument(book.id);
+
+      // Retirar del catálogo y actualizar UI ÚNICAMENTE cuando Backend confirme la operación
+      this.booksFromBackend = this.booksFromBackend.filter(b => b.id !== book.id);
+      if (state.get().currentDocument?.id === book.id) {
+        state.set({ currentDocument: null });
+      }
+      this.closeBookModal();
+      this.renderShelf();
+
+      notifySuccess('Módulo Eliminado', `El módulo "${bookTitle}" fue eliminado correctamente.`);
+    } catch (err) {
+      console.warn('[Bookshelf] Error al inactivar documento en Backend:', err);
+      const friendly = toFriendlyError(err);
+      notifyError(friendly.title || 'Error al Eliminar', friendly.message || 'No fue posible eliminar el módulo en el servidor.');
+    } finally {
+      if (this.elements.btnInactivateDoc) {
+        this.elements.btnInactivateDoc.disabled = false;
+      }
+    }
   },
 
   updateBackendMetric(isConnected) {
@@ -750,25 +788,20 @@ export const bookshelf = {
     spine.setAttribute('data-book-id', book.id);
     spine.title = `${book.title} (${book.discipline})`;
 
-    const shortTag = this.getShortDisciplineTag(book.discipline);
-
     const topRib = document.createElement('div');
     topRib.className = 'spine-top-rib';
 
-    const titleSpan = document.createElement('span');
-    titleSpan.className = 'spine-title-vertical';
-    titleSpan.textContent = book.title || 'Documento';
+    const titleEl = document.createElement('div');
+    titleEl.className = 'spine-title-vertical';
+    const bookTitle = book.title || 'Documento';
 
-    const codeSpan = document.createElement('span');
-    codeSpan.className = 'spine-code-tag';
-    codeSpan.textContent = shortTag;
+    this.formatSpineTitle(titleEl, bookTitle);
 
     const bottomRib = document.createElement('div');
     bottomRib.className = 'spine-bottom-rib';
 
     spine.appendChild(topRib);
-    spine.appendChild(titleSpan);
-    spine.appendChild(codeSpan);
+    spine.appendChild(titleEl);
     spine.appendChild(bottomRib);
 
     spine.addEventListener('click', () => {
@@ -778,6 +811,62 @@ export const bookshelf = {
     return spine;
   },
 
+  /**
+   * Da formato al título del lomo: si es largo, lo divide de forma equilibrada
+   * en 2 líneas para permitir una tipografía más grande y legible (DOM Seguro).
+   */
+  formatSpineTitle(container, fullTitle) {
+    container.textContent = '';
+    const clean = (fullTitle || 'Documento').trim();
+
+    if (clean.length <= 18) {
+      const lineSpan = document.createElement('span');
+      lineSpan.className = 'spine-title-line';
+      lineSpan.textContent = clean;
+      container.appendChild(lineSpan);
+      return;
+    }
+
+    const words = clean.split(/\s+/);
+    if (words.length <= 1) {
+      const lineSpan = document.createElement('span');
+      lineSpan.className = 'spine-title-line';
+      lineSpan.textContent = clean;
+      container.appendChild(lineSpan);
+      return;
+    }
+
+    // Calcular el punto medio óptimo entre palabras
+    const midChar = Math.floor(clean.length / 2);
+    let accumulated = 0;
+    let splitIndex = 1;
+    let bestDiff = Infinity;
+
+    for (let i = 0; i < words.length - 1; i++) {
+      accumulated += words[i].length + (i > 0 ? 1 : 0);
+      const diff = Math.abs(accumulated - midChar);
+      if (diff < bestDiff) {
+        bestDiff = diff;
+        splitIndex = i + 1;
+      }
+    }
+
+    const part1 = words.slice(0, splitIndex).join(' ');
+    const part2 = words.slice(splitIndex).join(' ');
+
+    const line1 = document.createElement('span');
+    line1.className = 'spine-title-line';
+    line1.textContent = part1;
+
+    const line2 = document.createElement('span');
+    line2.className = 'spine-title-line';
+    line2.textContent = part2;
+
+    container.classList.add('spine-multiline');
+    container.appendChild(line1);
+    container.appendChild(line2);
+  },
+
   createUploadSlotSpine() {
     const spine = document.createElement('div');
     spine.className = 'book-spine book-spine-upload';
@@ -785,8 +874,10 @@ export const bookshelf = {
 
     spine.innerHTML = `
       <div class="spine-top-rib"></div>
-      <span class="spine-title-vertical">SUBIR NUEVO PDF</span>
-      <span class="spine-code-tag">NUEVO</span>
+      <div class="spine-title-vertical spine-multiline">
+        <span class="spine-title-line">SUBIR NUEVO</span>
+        <span class="spine-title-line">DOCUMENTO</span>
+      </div>
       <div class="spine-bottom-rib"></div>
     `;
 
@@ -835,8 +926,8 @@ export const bookshelf = {
     // Mostrar modal
     openBookOverlay.style.display = 'flex';
 
-    // Diagrama C: Consulta GET /documents/{id} para validar y enriquecer metadata
-    if (book.id && !book.id.startsWith('mock_')) {
+    // Consulta GET /documents/{id} para validar y enriquecer metadata
+    if (book.id) {
       apiClient.getDocumentById(book.id).then(docDetail => {
         if (docDetail) {
           if (docDetail.filename && !book.title) {
@@ -900,6 +991,11 @@ export const bookshelf = {
             prereqsContainer.style.display = 'none';
           }
 
+          if (docDetail.title && openedTitle) {
+            openedTitle.textContent = docDetail.title;
+            book.title = docDetail.title;
+          }
+
           if (docDetail.summary && openedSummary) {
             openedSummary.textContent = docDetail.summary;
             book.description = docDetail.summary;
@@ -927,7 +1023,7 @@ export const bookshelf = {
   },
 
   setupModalEvents() {
-    const { openBookOverlay, btnCloseOverlay, btnStartStudying, btnDownloadOriginalDoc, studyChoiceCards } = this.elements;
+    const { openBookOverlay, btnCloseOverlay, btnStartStudying, btnDownloadOriginalDoc, btnInactivateDoc, studyChoiceCards } = this.elements;
 
     if (btnCloseOverlay) {
       btnCloseOverlay.addEventListener('click', () => this.closeBookModal());
@@ -952,6 +1048,14 @@ export const bookshelf = {
           notifyError(friendly.title, friendly.message);
         } finally {
           btnDownloadOriginalDoc.disabled = false;
+        }
+      });
+    }
+
+    if (btnInactivateDoc) {
+      btnInactivateDoc.addEventListener('click', () => {
+        if (this.currentSelectedBook) {
+          this.handleInactivateDocument(this.currentSelectedBook);
         }
       });
     }

@@ -11,6 +11,7 @@ import { flashcards } from './flashcards.js';
 import { quiz } from './quiz.js';
 import { videoGuide } from './videoGuide.js';
 import { summary } from './summary.js';
+import { evaluatorMetrics } from './evaluatorMetrics.js';
 import { statusDialog } from './statusDialog.js';
 import { notifyError, notifyWarning, notifySuccess } from './notifications.js';
 import { toFriendlyError } from '../utils/friendlyError.js';
@@ -31,6 +32,7 @@ export const studyHub = {
     quiz.init();
     videoGuide.init();
     summary.init();
+    evaluatorMetrics.init();
 
     // Escuchar cambios de estado
     state.subscribe((s) => {
@@ -184,6 +186,7 @@ export const studyHub = {
       }
 
       if (this.isFetchingFormats) return;
+      this.isFetchingFormats = true;
 
       try {
         const formatsResponse = await apiClient.getDocumentFormats(docId);
@@ -248,8 +251,10 @@ export const studyHub = {
             notifyWarning('Sondeo Pausado', 'No fue posible actualizar el estado tras varios intentos. Puedes reintentar cuando el servidor esté accesible.');
           }
         }
+      } finally {
+        this.isFetchingFormats = false;
       }
-    }, 3500);
+    }, 10000);
   },
 
   /**
@@ -262,6 +267,7 @@ export const studyHub = {
     }
     this.currentPollingDocId = null;
     this.consecutivePollingErrors = 0;
+    this.isFetchingFormats = false;
   },
 
   /**
@@ -428,6 +434,10 @@ export const studyHub = {
       quiz.render(null);
       videoGuide.render(null);
       summary.render(null);
+      evaluatorMetrics.render('flashcards', null);
+      evaluatorMetrics.render('quiz', null);
+      evaluatorMetrics.render('video', null);
+      evaluatorMetrics.render('sintesis', null);
       return;
     }
 
@@ -519,6 +529,12 @@ export const studyHub = {
       || (globalStatus === 'processing' || globalStatus === 'pending' || globalStatus === 'loading' ? { status: globalStatus === 'pending' ? 'pending' : 'processing' } : null)
       || (globalStatus === 'error' ? { status: 'failed', errorMessage: 'No fue posible generar la Síntesis Ejecutiva.' } : null);
     summary.render(summaryData);
+
+    // 5. Auditoría de Métricas del Agente Evaluador por Formato (Sprint 4)
+    evaluatorMetrics.render('flashcards', flashcardsData);
+    evaluatorMetrics.render('quiz', quizData);
+    evaluatorMetrics.render('video', videoData);
+    evaluatorMetrics.render('sintesis', summaryData);
   },
 
   /**
@@ -555,7 +571,7 @@ export const studyHub = {
         notifySuccess('Formatos Listos', 'Materiales de capacitación disponibles.');
 
         // Recuperar metadatos pedagógicos del documento si aún no están en memoria (PR #63)
-        if (!doc.learning_metadata && doc.id && !doc.id.startsWith('mock_')) {
+        if (!doc.learning_metadata && doc.id) {
           apiClient.getDocumentById(doc.id).then(docDetail => {
             if (docDetail?.learning_metadata) {
               const s = state.get();

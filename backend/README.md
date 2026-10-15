@@ -3478,31 +3478,372 @@ polling hasta ready | partial | error
 
 El objetivo arquitectónico se mantiene: **Frontend conoce BackendAPI; BackendAPI orquesta; RAG/Agentes resuelve recuperación y generación; Data/IA evalúa calidad de contenido ya generado mediante un contrato desacoplado.**
 
-<!-- BEGIN SPRINT4_AGENT_REVISION_CONTRACT -->
+<!-- BEGIN BACKENDAPI_SPRINT4_2026 -->
 
-## Sprint 4 — Contrato de corrección pedagógica con Agentes
+---
 
-El contrato de integración BackendAPI → Agentes para una corrección de formato
-está documentado en [`docs/contracts/agent_revision_contract.md`](docs/contracts/agent_revision_contract.md).
+## Sprint 4 — Orquestación de revisión pedagógica y Evaluation V2
 
-- **Operación externa prevista:** `POST /api/v1/revise`, un formato por solicitud.
-- **Puerto interno:** `AgentRevisionPort.revise_format(AgentRevisionInput) -> AgentRevisionResult`.
-- **Adaptador:** `HTTPAgentRevisionAdapter`, con `httpx.AsyncClient` inyectado y ruta `/api/v1/revise` configurable en su constructor.
-- **Entrada:** contenido canónico vigente, `GenerationContext`, `ChunkEvidence` y feedback anidado de Evaluation V2.
-- **Salida:** estado, contenido corregido, evidencia completa o `ErrorDetail` estructurado.
-- **Separación:** el adaptador no decide nuevas revisiones, no evalúa ni persiste. Backend será el dueño del ciclo y del límite de una corrección pedagógica por formato.
+> **Estado de implementación en BackendAPI.** Esta sección actualiza los
+> apartados históricos de evaluación (`/evaluate` V1.1) y la llamada aislada
+> al revisor. La configuración vigente para el nuevo flujo usa
+> `DATA_IA_EVALUATE_PATH=/evaluate/v2`. La corrección automática permanece
+> **deshabilitada por defecto** hasta completar la integración y las pruebas
+> extremo a extremo con los servicios reales. Las pruebas locales se realizaron
+> con SQLite y transporte HTTP simulado; no constituyen una certificación E2E.
 
-**Estado actual:** interfaz tipada y adaptador desarrollados, pero sin conectar todavía
-al ciclo automático de `AdaptationOrchestrationService`. El endpoint de Agentes aún
-debe publicarse. Los tests de contrato utilizan `httpx.MockTransport` y **no**
-sustituyen las pruebas E2E reales exigidas para cerrar la tarjeta.
+### Responsabilidades y límites
 
-Para probar los archivos nuevos desde `backend/`:
+BackendAPI es el orquestador de producto. Agentes genera y corrige formatos;
+Data/IA produce evaluaciones pedagógicas. No se invoca Data/IA directamente
+desde Agentes. Los casos de uso y adaptadores de BackendAPI se mantienen
+separados por capa (`application`, `domain`, `ports`, `infrastructure`, `api`).
+
+```text
+Generación inicial mediante Agentes
+    ↓
+GeneratedFormat original (success) + chunks_used → SQLite
+    ↓
+FormatEvaluationService → Data/IA POST /evaluate/v2
+    ↓
+Evaluación V2 persistida → decisión de BackendAPI
+    ├── approved / verdict null / sin feedback accionable
+    │       └── conservar generación sin corregir
+    └── requires_revision / rejected + feedback accionable
+            ↓
+        reservar revisión processing en SQLite
+            ↓
+        POST Agentes /api/v1/revise
+            ↓
+        persistir versión corregida (success / failed / no_results)
+            ↓  si success
+        Data/IA POST /evaluate/v2 → persistir reevaluación
+            ↓
+        reconstruir snapshot educativo terminal en OCI
+```
+
+La **regeneración manual** (`POST /api/v1/documents/{document_id}/formats/regenerate`)
+crea un nuevo ciclo de generación a petición del usuario y no debe confundirse
+con la **corrección automática** motivada por una evaluación negativa.
+
+### Evaluación de formatos V2
+
+`FormatEvaluationService` reutiliza `DataIAPort` y `HTTPDataIAAdapter`. Para la
+ruta `/evaluate/v2`, el adaptador valida el contrato semántico y heurístico con
+`http_data_ia_v2_mapper.py` y conserva los resultados en `format_evaluations`:
+
+| Campo | Descripción |
+|---|---|
+| `verdict` | `approved`, `requires_revision`, `rejected` o `null` |
+| `heuristic_scores` | Cuatro dimensiones de calidad de 1.0 a 5.0, si existen |
+| `semantic_evaluation` | Estado (`success`, `failed`, `unavailable`), puntajes, observaciones, recomendaciones, información sin respaldo y error técnico |
+| `evaluator_version`, `rubric_version` | Versiones de evaluador y rúbrica |
+
+La ruta V2 es independiente del formato histórico de `/evaluate` V1.1. La
+persistencia permite consultar evaluaciones antiguas y nuevas. Un fallo de
+Data/IA **no transforma** un `GeneratedFormat.success` en `failed`. El estado
+`verdict=null` no se interpreta como una aprobación ni como un rechazo.
+
+### Historial de generaciones, correcciones y evaluaciones
+
+Endpoint público de BackendAPI:
+
+```http
+GET /api/v1/documents/{document_id}/formats/{format_type}/history
+```
+
+`FormatRevisionHistoryService` devuelve ciclos independientes: cada ciclo
+contiene su **generación original**, su **corrección opcional** y las
+**evaluaciones asociadas a cada versión**. La evaluación vigente del ciclo
+pertenece a la versión corregida, si existe; nunca se reutiliza la puntuación
+de otro ciclo ni se atribuye una evaluación original a su corrección.
+
+`GeneratedFormat.revision_of_format_id` vincula la corrección con su versión
+original. SQLite conserva el contenido original y sus evidencias y aplica una
+restricción `UNIQUE` parcial sobre `revision_of_format_id`. Esta restricción
+impide más de una corrección por raíz, también ante concurrencia. No se
+permiten referencias a otra identidad de documento, otro tipo de formato ni
+revisiones encadenadas.
+
+### Decisión y orquestación de una única corrección
+
+`AdaptationOrchestrationService` evalúa cada resultado generado que está listo
+para evaluación. Si `AUTO_REVISION_ENABLED=true`, delega a
+`FormatAutoRevisionService` la decisión, la reserva del nuevo intento, la
+solicitud de corrección y la reevaluación posterior.
+
+**Reglas de negocio:**
+
+1. La corrección solo aplica a una generación raíz exitosa con contenido,
+   contexto pedagógico y `chunks_used` válidos.
+2. Se requiere una evaluación V2 con `verdict=requires_revision` o
+   `verdict=rejected` y hallazgos accionables. `approved`, `null` y evaluaciones
+   V1.1 no producen corrección automática.
+3. Antes de llamar a Agentes se registra un intento independiente con estado
+   `processing` e identificador `revision_id`.
+4. Una versión corregida **no solicita una segunda corrección**. Como máximo
+   se realiza una corrección pedagógica por generación raíz.
+5. Ante éxito se persiste la versión y se intenta una nueva evaluación V2.
+   Ante fallo de reevaluación se conserva la corrección `success`, sin fabricar
+   un veredicto aprobado.
+6. Ante fallos HTTP o de contrato del revisor se conserva la generación
+   original. El intento de revisión registra su estado y error terminal.
+7. Política inicial: **una llamada HTTP por revisión reservada y cero
+   reintentos automáticos de transporte**. No se reenvían timeouts hasta que
+   Agentes demuestre deduplicación por `revision_id`.
+
+### Contrato HTTP BackendAPI → Agentes, revisión V2
+
+Ruta externa consumida exclusivamente por BackendAPI:
+
+```http
+POST /api/v1/revise
+Content-Type: application/json
+```
+
+El request transporta las siguientes propiedades canónicas:
+
+```json
+{
+  "revision_id": "fmt_rev_abc123",
+  "original_format_id": "fmt_tldr_001",
+  "document_id": "doc_123",
+  "format": "tldr",
+  "generation_context": {
+    "profile": "intermediate",
+    "niche": "backend",
+    "detail_level": "detailed",
+    "learning_objective": "Comprender APIs"
+  },
+  "previous_content": {
+    "title": "Resumen original",
+    "summary": "Contenido anterior",
+    "key_points": ["Primer concepto"],
+    "conclusion": "Conclusión original"
+  },
+  "chunks_used": [
+    {
+      "chunk_id": "chunk_1",
+      "document_id": "doc_123",
+      "rank": 1,
+      "score": 0.9,
+      "text": "Evidencia documental recuperada"
+    }
+  ],
+  "evaluator_response": {
+    "document_id": "doc_123",
+    "format": "tldr",
+    "verdict": "requires_revision",
+    "heuristic_scores": {
+      "relevance": 4.0,
+      "coherence": 3.0,
+      "didactic_adaptation": 2.0,
+      "content_support": 4.0
+    },
+    "semantic_evaluation": {
+      "status": "unavailable",
+      "scores": null,
+      "observations": [],
+      "recommendations": [{
+        "dimension": "didactic_adaptation",
+        "message": "Simplificar el contenido",
+        "item_id": null
+      }],
+      "unsupported_information": [],
+      "error_code": "not_configured",
+      "error_message": null,
+      "model": null,
+      "prompt_version": null,
+      "latency_ms": null
+    },
+    "evaluator_version": "2.0",
+    "rubric_version": "2.0"
+  }
+}
+```
+
+El `evaluator_response` preserva estructura y valores tipados de la evaluación
+V2 persistida; no garantiza conservar byte por byte el JSON HTTP original.
+El campo `previous_content` debe cumplir el contrato canónico del tipo de
+formato, no contener una estructura genérica. Las evidencias de entrada se
+llaman `chunks_used`; la respuesta de Agentes debe utilizar `sources_used`.
+
+Respuesta exitosa (los datos de ejemplo ilustran la estructura):
+
+```json
+{
+  "revision_id": "fmt_rev_abc123",
+  "original_format_id": "fmt_tldr_001",
+  "document_id": "doc_123",
+  "format": "tldr",
+  "status": "success",
+  "content": {
+    "title": "Resumen corregido",
+    "summary": "Contenido revisado",
+    "key_points": ["Concepto aclarado"],
+    "conclusion": "Conclusión revisada"
+  },
+  "sources_used": [
+    {
+      "chunk_id": "chunk_1",
+      "document_id": "doc_123",
+      "rank": 1,
+      "score": 0.9,
+      "text": "Evidencia documental recuperada"
+    }
+  ],
+  "execution_time_seconds": 1.25,
+  "error_message": null,
+  "error": null
+}
+```
+
+En respuestas `failed`, `content=null`, se conserva la identidad de la
+revisión y el campo `error` puede contener `code`, `message`, `retryable`,
+`http_status`, `upstream_status` y `provider`. El status HTTP debe ser coherente
+con `error.http_status`. `HTTPAgentRevisionAdapter` valida el documento, tipo
+y ambos identificadores y no reemplaza el original ante respuestas
+incompatibles.
+
+**Idempotencia:** Backend utiliza la misma identidad de reserva como
+`revision_id`; Agentes debe garantizar deduplicación del procesamiento antes
+de permitir reintentos técnicos. Solo transmitir un identificador no ofrece
+por sí mismo esa garantía.
+
+### Otros contratos públicos de BackendAPI incorporados en Sprint 4
+
+- `PATCH /api/v1/documents/{document_id}/deactivate` aplica **inactivación
+  lógica** del documento para la biblioteca; no equivale a borrar el archivo
+  original de OCI ni sus registros históricos.
+- `GET /api/v1/documents/{document_id}` expone `title` y `summary` como campos
+  opcionales procedentes de `document_title` y `document_description` de la
+  generación de Agentes. Pueden permanecer en `null` si Agentes todavía no
+  devuelve los valores. El backend los persiste sin reemplazar silenciosamente
+  metadatos enriquecidos útiles ya existentes.
+
+### Recuperación operativa de revisiones interrumpidas
+
+Una caída abrupta después de crear la reserva puede dejar una revisión en
+`processing` sin resultado terminal. La recuperación del Sprint 4 se implementa
+sin una cola de trabajos y **no intenta completar ni volver a invocar al LLM**.
+
+Capas y responsabilidades:
+
+| Componente | Responsabilidad |
+|---|---|
+| `StaleRevisionRecoveryService` | Selección temporal y ejecución de la política |
+| `StaleRevisionRecoveryPort` | Contrato abstracto de búsqueda y transición |
+| `SQLiteStaleRevisionRecoveryAdapter` | Consulta y cambio transaccional de revisiones antiguas |
+| `app.operations.recover_stale_revisions` | Interfaz CLI explícita, independiente de FastAPI |
+| `SQLiteGeneratedFormatRepositoryAdapter` | Protección contra escrituras tardías sobre revisiones terminales |
+
+Inspección sin modificar datos (desde `backend/`):
+
+```powershell
+python -m app.operations.recover_stale_revisions --database-url sqlite:///storage/nuevamente.db --older-than-minutes 60
+```
+
+Para cerrar los intentos obsoletos, **primero debe detenerse cualquier
+trabajador de generación o revisión, verificarse un respaldo de SQLite y
+confirmarse que no hay solicitudes pendientes**:
+
+```powershell
+python -m app.operations.recover_stale_revisions --database-url sqlite:///storage/nuevamente.db --older-than-minutes 60 --apply --acknowledge-workers-stopped
+```
+
+La CLI presenta `candidates`, `recovered_ids`, `cutoff` y `applied` en JSON.
+La vista previa es el comportamiento predeterminado. La operación afecta solo
+revisiones con `revision_of_format_id IS NOT NULL`, `status=processing` y
+`updated_at` anterior al umbral. Cambia `processing → failed`, mantiene intacta
+la raíz y **no libera** una segunda corrección de la misma raíz. La transición
+se protege transaccionalmente; una respuesta tardía del revisor no puede
+restablecer `success` sobre una revisión que ya llegó a `failed`.
+
+Esta es una **reconciliación manual de revisiones**, no una cola durable ni
+una recuperación automática de generaciones o regeneraciones iniciales.
+El flag `--acknowledge-workers-stopped` declara una confirmación operativa;
+no comprueba por sí mismo que todos los procesos hayan terminado.
+
+### Configuración de Sprint 4
+
+Tomar los valores de `backend/.env.example` y ajustar URLs a cada entorno:
+
+```env
+AGENTS_REVISE_PATH=/api/v1/revise
+AUTO_REVISION_ENABLED=false
+DATA_IA_EVALUATE_PATH=/evaluate/v2
+```
+
+`AGENTS_BASE_URL`, `AGENTS_TIMEOUT_SECONDS`, `DATA_IA_BASE_URL` y
+`DATA_IA_TIMEOUT_SECONDS` conservan su configuración independiente. Dejar
+`AUTO_REVISION_ENABLED=false` hasta validar el endpoint real de Agentes y el
+recorrido completo. La operación de recuperación de estados es manual y no se
+activa al iniciar la aplicación.
+
+### Pruebas y validación
+
+**Pruebas automatizadas locales** (desde `backend/`):
 
 ```powershell
 python -m ruff check .
-python -m pytest -q tests/unit/test_http_agent_revision_adapter.py
+python -m pytest -q tests/unit/test_revision_cycle.py
+python -m pytest -q tests/unit/test_agent_revision_v2_contract.py
+python -m pytest -q tests/integration/test_revision_flow_v2_sqlite.py
+python -m pytest -q tests/integration/test_stale_revision_recovery.py
 python -m pytest -q
+git diff --check
 ```
 
-<!-- END SPRINT4_AGENT_REVISION_CONTRACT -->
+La suite cubre persistencia/historial SQLite, identidades del contrato,
+resultados `approved`, `requires_revision`, `rejected` y `null`, limitación de
+correcciones, manejo de respuestas incompatibles, timeout, errores del
+proveedor, caída de reevaluación, snapshot OCI mediante doble de prueba y
+recuperación transaccional de estados `processing` obsoletos. El transporte
+HTTP se simula con `httpx.MockTransport` y no representa comunicación real
+entre servicios.
+
+**Pendientes de validación conjunta:**
+
+1. Publicación y verificación de `POST /api/v1/revise` en Agentes, incluido
+   `sources_used` e idempotencia por `revision_id`.
+2. Disponibilidad y contrato V2 real de Data/IA para generación y reevaluación.
+3. Flujo E2E real BackendAPI → Agentes → Data/IA → Frontend, con OCI y SQLite.
+4. Confirmación por Producto/QA de qué versión exponer cuando el último
+   `success` técnico de una corrección resulte `rejected` o no disponga de
+   evaluación. La selección actual favorece el éxito técnico más reciente,
+   **no** garantiza que la versión esté pedagógicamente aprobada.
+5. Activación deliberada del flag y verificación de errores en un entorno de
+   integración controlado.
+
+### Mapa de componentes añadidos en Sprint 4
+
+```text
+backend/app/
+├── api/v1/endpoints/format_revision_history.py
+├── application/
+│   ├── format_revision_service.py
+│   ├── format_revision_history_service.py
+│   ├── format_evaluation_feedback_mapper.py
+│   ├── revision_contract_v2.py
+│   ├── format_auto_revision_service.py
+│   └── stale_revision_recovery_service.py
+├── operations/
+│   └── recover_stale_revisions.py
+├── ports/
+│   ├── agent_revision_port.py
+│   └── stale_revision_recovery_port.py
+├── infrastructure/
+│   ├── integrations/http_agent_revision_adapter.py
+│   └── persistence/sqlite_stale_revision_recovery_adapter.py
+└── schemas/revision_cycle.py
+
+backend/tests/
+├── unit/
+│   ├── test_revision_cycle.py
+│   └── test_agent_revision_v2_contract.py
+└── integration/
+    ├── test_revision_flow_v2_sqlite.py
+    └── test_stale_revision_recovery.py
+```
+
+<!-- END BACKENDAPI_SPRINT4_2026 -->

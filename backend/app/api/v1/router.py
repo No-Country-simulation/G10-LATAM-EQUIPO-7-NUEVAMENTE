@@ -5,6 +5,7 @@ from fastapi import APIRouter
 from app.api.v1.endpoints import (
     documents,
     format_regeneration,
+    format_revision_history,
     health,
 )
 
@@ -15,3 +16,4 @@ api_router.include_router(documents.router)
 api_router.include_router(
     format_regeneration.router
 )
+api_router.include_router(format_revision_history.router)

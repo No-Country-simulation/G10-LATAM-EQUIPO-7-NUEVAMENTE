@@ -1,0 +1,5 @@
+calibration_id,source_case_id,document_id,category,format,variant,target_dimension,semantic_status,semantic_relevance,semantic_coherence,semantic_didactic_adaptation,semantic_content_support,observations_count,recommendations_count,unsupported_information_count,error_code,model,prompt_version,latency_ms
+CAL-V1-001,AI-ES-001-Q01,AI-ES-001,IA,quiz,clean_reference,all,success,4.0,5.0,4.0,5.0,1,1,0,,gemini-3.8-flash,semantic-evaluator-v0.1,13989
+CAL-V1-005,BE-ES-001-Q01,BE-ES-001,Backend,flashcards,clean_reference,all,failed,,,,,0,0,0,provider_error,gemini-3.8-flash,semantic-evaluator-v0.1,416
+CAL-V1-009,DS-ES-001-Q01,DS-ES-001,Data Science,tldr,clean_reference,all,success,5.0,5.0,5.0,5.0,0,0,0,,gemini-3.8-flash,semantic-evaluator-v0.1,5996
+CAL-V1-013,FE-ES-001-Q01,FE-ES-001,Frontend,video_script,clean_reference,all,failed,,,,,0,0,0,provider_error,gemini-3.8-flash,semantic-evaluator-v0.1,1516

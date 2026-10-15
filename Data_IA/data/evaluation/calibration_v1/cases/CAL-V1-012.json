@@ -1,0 +1,39 @@
+{
+  "calibration_id": "CAL-V1-012",
+  "source_case_id": "DS-ES-002-Q05",
+  "document_id": "DS-ES-002",
+  "category": "Data Science",
+  "variant": "low_relevance",
+  "target_dimension": "relevance",
+  "perturbation_design": "Está totalmente respaldado, pero no responde al objetivo del caso sobre el requisito previo de informática.",
+  "evaluation_request": {
+    "document_id": "DS-ES-002",
+    "format": "flashcards",
+    "generated_content": {
+      "title": "Conceptos del módulo de análisis de datos",
+      "instructions": "Repasa los conceptos principales.",
+      "cards": [
+        {
+          "card_id": "c1",
+          "front": "¿Qué conceptos fundamentales trata el módulo?",
+          "back": "Agregación de datos, agrupación de datos y visualizaciones de datos."
+        }
+      ]
+    },
+    "generation_context": {
+      "profile": "beginner",
+      "niche": "general",
+      "detail_level": "medium",
+      "learning_objective": "Identificar el requisito previo indicado para el módulo de análisis de datos."
+    },
+    "chunks_used": [
+      {
+        "chunk_id": "DS-ES-002_CH_001",
+        "document_id": "DS-ES-002",
+        "rank": 1,
+        "score": 1.0,
+        "text": "# Introducción al análisis de datos\n\n- Módulo\n- 7 Unidades\n\nLa conversión de datos sin procesar en información útil es esencial para los usuarios profesionales. En este módulo, se tratan los conceptos fundamentales de la agregación de datos y la agrupación de datos.\n\n## Objetivos de aprendizaje\n\nAl final de este módulo, podrá:\n- Describir la agregación de datos.\n- Describir la agrupación de datos.\n- Describir visualizaciones de datos.\n\n## Requisitos previos\n\n- Debe estar familiarizado con la terminología y los conceptos básicos relacionados con la informática."
+      }
+    ]
+  }
+}

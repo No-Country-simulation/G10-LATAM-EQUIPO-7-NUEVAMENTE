@@ -13,3 +13,6 @@ env/
 
 # Jupyter
 .ipynb_checkpoints/
+
+# Scripts de prueba locales(lz)
+script_prueba_gemini.py

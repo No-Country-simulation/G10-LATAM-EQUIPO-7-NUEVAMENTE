@@ -239,6 +239,9 @@ def test_http_agents_adapter_maps_successful_formats_and_metadata() -> None:
                 == 15
             )
 
+            assert result.document_title is None
+            assert result.document_description is None
+
             assert len(
                 result.results
             ) == 2
@@ -749,6 +752,50 @@ def test_http_agents_adapter_translates_timeout() -> None:
                 await adapter.generate_formats(
                     _build_request()
                 )
+
+    asyncio.run(
+        run_test()
+    )
+
+
+def test_http_agents_adapter_maps_document_title_and_description() -> None:
+    """Propaga document_title/document_description cuando Agentes los envía."""
+
+    response_payload = _success_response()
+    response_payload["document_title"] = "Fundamentos de BackendAPI"
+    response_payload["document_description"] = (
+        "Resumen breve generado por Agentes."
+    )
+
+    transport = httpx.MockTransport(
+        lambda request: httpx.Response(
+            status_code=200,
+            json=response_payload,
+        )
+    )
+
+    async def run_test() -> None:
+        async with httpx.AsyncClient(
+            transport=transport,
+            base_url="http://agents.test",
+        ) as client:
+            adapter = HTTPAgentsAdapter(
+                client=client,
+                generate_path="/api/v1/generate",
+            )
+
+            result = await adapter.generate_formats(
+                _build_request()
+            )
+
+            assert (
+                result.document_title
+                == "Fundamentos de BackendAPI"
+            )
+            assert (
+                result.document_description
+                == "Resumen breve generado por Agentes."
+            )
 
     asyncio.run(
         run_test()

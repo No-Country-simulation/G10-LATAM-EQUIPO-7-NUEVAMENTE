@@ -20,6 +20,11 @@ import {
 export const uploadTab = {
   elements: {},
   currentActiveStep: null,
+  pollingTimer: null,
+  currentPollingDocId: null,
+  pollingIterations: 0,
+  consecutivePollingErrors: 0,
+  isFetchingFormats: false,
 
   init() {
     this.bindElements();
@@ -28,6 +33,13 @@ export const uploadTab = {
     this.setupExecution();
     this.setupResolverActions();
     this.syncInitialState();
+
+    // Detener polling automáticamente si el usuario navega fuera de la pestaña de carga
+    state.subscribe((s) => {
+      if (s.activeTab !== 'upload') {
+        this.stopPolling();
+      }
+    });
   },
 
   bindElements() {
@@ -350,8 +362,7 @@ export const uploadTab = {
         filename: uploadResult.filename || selectedFile.name,
         httpStatus: uploadResult.httpStatus || (uploadResult.isDuplicate ? 200 : 201),
         duplicate: Boolean(uploadResult.isDuplicate),
-        status: uploadResult.status || 'indexed',
-        isMock: false
+        status: uploadResult.status || 'indexed'
       });
 
       // Paso 2: Indexación y embeddings RAG completados por Backend
@@ -575,6 +586,9 @@ export const uploadTab = {
       });
     }
 
+    // Iniciar sondeo reactivo de formatos en segundo plano
+    this.startPolling(procDoc.id);
+
     // Mostrar panel de resolución de formatos
     if (this.elements.resultBoxContainer) {
       this.elements.resultBoxContainer.style.display = 'flex';
@@ -638,6 +652,7 @@ export const uploadTab = {
   },
 
   clearFile() {
+    this.stopPolling();
     state.set({ selectedFile: null });
     this.elements.selectedFileCard.style.display = 'none';
     this.elements.dropArea.style.display = 'flex';
@@ -645,6 +660,7 @@ export const uploadTab = {
   },
 
   resetStepperUI() {
+    this.stopPolling();
     const steps = [this.elements.stepOci, this.elements.stepChroma, this.elements.stepGen, this.elements.stepCritic];
     const lines = [this.elements.line1, this.elements.line2, this.elements.line3];
 
@@ -680,6 +696,185 @@ export const uploadTab = {
     if (this.elements.pipelineLiveLog) {
       this.elements.pipelineLiveLog.textContent = logText;
     }
+  },
+
+  /**
+   * Inicia el sondeo periódico de formatos en la pantalla de carga (cada 3.8s)
+   * Detiene automáticamente ante estados terminales ('ready', 'partial', 'error'),
+   * al cambiar de pestaña o al alcanzar el límite de iteraciones / fallos consecutivos.
+   */
+  startPolling(docId) {
+    if (this.pollingTimer && this.currentPollingDocId === docId) {
+      return;
+    }
+
+    this.stopPolling();
+    this.currentPollingDocId = docId;
+    this.pollingIterations = 0;
+    this.consecutivePollingErrors = 0;
+    this.isFetchingFormats = false;
+
+    this.pollingTimer = setInterval(async () => {
+      const s = state.get();
+      if (s.activeTab !== 'upload' || (s.currentDocId && s.currentDocId !== docId)) {
+        this.stopPolling();
+        return;
+      }
+
+      // Evitar consultas simultáneas si una petición anterior sigue pendiente
+      if (this.isFetchingFormats) return;
+      this.isFetchingFormats = true;
+
+      this.pollingIterations++;
+      if (this.pollingIterations > 30) {
+        this.stopPolling();
+        if (this.elements.pipelineLiveLog) {
+          this.elements.pipelineLiveLog.textContent = 'El procesamiento de formatos continúa en segundo plano. Puedes consultarlos en el Centro de Estudio.';
+        }
+        return;
+      }
+
+      try {
+        const formatsResponse = await apiClient.getDocumentFormats(docId);
+        this.consecutivePollingErrors = 0;
+
+        const resolvedFormats = formatsResponse?.formats || formatsResponse;
+        const globalStatus = formatsResponse?.status || (resolvedFormats ? 'ready' : 'empty');
+
+        // Sincronizar en el estado global para consistencia con Study Hub
+        state.set({
+          studyHub: {
+            ...state.get().studyHub,
+            formats: resolvedFormats,
+            formatsStatus: globalStatus
+          }
+        });
+
+        // Actualizar visualmente las tarjetas de formatos en la pantalla de carga
+        this.updateResolverCardsUI(resolvedFormats, globalStatus);
+
+        if (globalStatus === 'ready' || globalStatus === 'partial' || globalStatus === 'error') {
+          this.stopPolling();
+
+          if (globalStatus === 'ready') {
+            if (this.elements.pipelineStatusBadge) {
+              this.elements.pipelineStatusBadge.textContent = 'Formatos Listos (100%)';
+              this.elements.pipelineStatusBadge.style.background = 'rgba(16, 185, 129, 0.2)';
+              this.elements.pipelineStatusBadge.style.color = '#34d399';
+            }
+            if (this.elements.pipelineLiveLog) {
+              this.elements.pipelineLiveLog.textContent = '¡Formatos pedagógicos generados con éxito! Todos los módulos están listos para estudiar.';
+            }
+            notifySuccess('Formatos Listos', '¡Todos los formatos pedagógicos ya están disponibles!');
+
+            // Refrescar metadatos pedagógicos del documento
+            apiClient.getDocumentById(docId).then(docDetail => {
+              if (docDetail?.learning_metadata) {
+                const current = state.get();
+                if (current.currentDocument?.id === docId) {
+                  state.set({
+                    currentDocument: {
+                      ...current.currentDocument,
+                      learning_metadata: docDetail.learning_metadata,
+                      key_concepts: docDetail.learning_metadata.key_concepts || current.currentDocument.key_concepts,
+                      prerequisites: docDetail.learning_metadata.prerequisites || current.currentDocument.prerequisites,
+                      estimated_time_minutes: docDetail.learning_metadata.estimated_time_minutes ?? current.currentDocument.estimated_time_minutes,
+                      summary: docDetail.summary || current.currentDocument.summary
+                    }
+                  });
+                }
+              }
+            }).catch(() => {});
+
+          } else if (globalStatus === 'partial') {
+            if (this.elements.pipelineStatusBadge) {
+              this.elements.pipelineStatusBadge.textContent = 'Generación Parcial (207)';
+              this.elements.pipelineStatusBadge.style.background = 'rgba(245, 158, 11, 0.2)';
+              this.elements.pipelineStatusBadge.style.color = 'var(--accent-gold)';
+            }
+            if (this.elements.pipelineLiveLog) {
+              this.elements.pipelineLiveLog.textContent = 'Algunos formatos se generaron con éxito y otros presentaron fallo. Puedes revisarlos o reintentarlos en el Centro de Estudio.';
+            }
+            notifyWarning('Formatos Parciales', 'Algunos formatos están listos y otros presentaron fallo. Puedes revisarlos en el Centro de Estudio.');
+
+          } else if (globalStatus === 'error') {
+            if (this.elements.pipelineStatusBadge) {
+              this.elements.pipelineStatusBadge.textContent = 'Error en Formatos';
+              this.elements.pipelineStatusBadge.style.background = 'rgba(239, 68, 68, 0.2)';
+              this.elements.pipelineStatusBadge.style.color = 'var(--accent-red)';
+            }
+            if (this.elements.pipelineLiveLog) {
+              this.elements.pipelineLiveLog.textContent = 'No fue posible completar la generación de formatos. Podrás reintentarlos desde el Centro de Estudio.';
+            }
+            notifyError('Fallo en Formatos', 'No se pudieron generar los formatos pedagógicos.');
+          }
+        }
+      } catch (err) {
+        this.consecutivePollingErrors = (this.consecutivePollingErrors || 0) + 1;
+        console.warn(`[UploadTab Polling] Error al consultar formatos (${this.consecutivePollingErrors}/3):`, err.message);
+
+        if (err.status === 404 || err.status === 400 || this.consecutivePollingErrors >= 3) {
+          this.stopPolling();
+          if (this.consecutivePollingErrors >= 3) {
+            notifyWarning('Sondeo Pausado', 'No fue posible actualizar el estado de los formatos tras varios intentos.');
+          }
+        }
+      } finally {
+        this.isFetchingFormats = false;
+      }
+    }, 10000);
+  },
+
+  /**
+   * Detiene el sondeo reactivo y limpia el timer
+   */
+  stopPolling() {
+    if (this.pollingTimer) {
+      clearInterval(this.pollingTimer);
+      this.pollingTimer = null;
+    }
+    this.currentPollingDocId = null;
+    this.pollingIterations = 0;
+    this.consecutivePollingErrors = 0;
+    this.isFetchingFormats = false;
+  },
+
+  /**
+   * Actualiza el estado visual de cada tarjeta de formato en el panel de resolución de la pantalla de carga
+   * Seguridad: Uso exclusivo de textContent y estilos, sin innerHTML.
+   */
+  updateResolverCardsUI(formats, globalStatus) {
+    if (!this.elements.resolverFormatCards || !formats) return;
+
+    this.elements.resolverFormatCards.forEach(card => {
+      const targetFormat = card.getAttribute('data-resolve-format');
+      const descSpan = card.querySelector('.resolver-text span');
+      if (!descSpan) return;
+
+      let fmtKey = targetFormat;
+      if (targetFormat === 'video') fmtKey = 'video_script';
+      if (targetFormat === 'sintesis') fmtKey = 'tldr';
+
+      const fmtData = formats[fmtKey] || formats[targetFormat];
+      const status = fmtData?.status || (globalStatus === 'ready' ? 'success' : 'processing');
+
+      if (status === 'success' || status === 'ready') {
+        if (targetFormat === 'flashcards') descSpan.textContent = '✓ Listo para estudiar · Memoria activa';
+        else if (targetFormat === 'quiz') descSpan.textContent = '✓ Listo para estudiar · Evaluación activa';
+        else if (targetFormat === 'video') descSpan.textContent = '✓ Listo para estudiar · Guion audiovisual';
+        else if (targetFormat === 'sintesis') descSpan.textContent = '✓ Listo para estudiar · Síntesis ejecutiva';
+        descSpan.style.color = '#34d399';
+      } else if (status === 'failed' || status === 'no_results' || status === 'error') {
+        descSpan.textContent = '⚠ Falló la generación · Reintentar en Hub';
+        descSpan.style.color = 'var(--accent-red)';
+      } else {
+        if (targetFormat === 'flashcards') descSpan.textContent = 'Tarjetas de refuerzo · Generando en segundo plano...';
+        else if (targetFormat === 'quiz') descSpan.textContent = 'Evaluación de competencias · Generando en segundo plano...';
+        else if (targetFormat === 'video') descSpan.textContent = 'Guion audiovisual · Generando en segundo plano...';
+        else if (targetFormat === 'sintesis') descSpan.textContent = 'Síntesis ejecutiva · Generando en segundo plano...';
+        descSpan.style.color = 'var(--accent-gold)';
+      }
+    });
   },
 
   wait(ms) {

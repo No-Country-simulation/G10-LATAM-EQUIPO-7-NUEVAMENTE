@@ -187,7 +187,6 @@ export const statusDialog = {
     httpStatus = 201,
     duplicate = false,
     status = 'indexed',
-    isMock = false,
     durationMs = 7000
   }) {
     this.ensureDomElements();
@@ -220,7 +219,6 @@ export const statusDialog = {
       <span class="status-badge ${isNew ? 'badge-http-201' : 'badge-http-200'}">
         HTTP ${httpStatus}: ${isNew ? 'NUEVO DOCUMENTO' : 'DUPLICADO EXISTENTE'}
       </span>
-      ${isMock ? '<span class="status-badge badge-mock">MODO DEMO</span>' : ''}
     `;
 
     title.textContent = isNew
@@ -455,129 +453,6 @@ export const statusDialog = {
       }, 190);
     } else {
       overlay.style.display = 'none';
-    }
-  },
-
-  /**
-   * Simulador rápido de estados para presentación / demo
-   */
-  triggerDemoStatus(statusCode) {
-    const demoDocId = `doc_demo_${Math.random().toString(36).substring(2, 9)}`;
-    const demoFileName = 'manual_arquitectura_cloud.pdf';
-
-    switch (statusCode) {
-      case 201:
-        this.showStored({
-          documentId: demoDocId,
-          ociId: `documents/${demoDocId}/original.pdf`,
-          filename: demoFileName,
-          httpStatus: 201,
-          duplicate: false,
-          isMock: true
-        });
-        break;
-      case 200:
-        this.showStored({
-          documentId: 'doc_existente_9a8b7c',
-          ociId: 'documents/doc_existente_9a8b7c/original.pdf',
-          filename: demoFileName,
-          httpStatus: 200,
-          duplicate: true,
-          isMock: true
-        });
-        break;
-      case 400:
-        this.showError({
-          status: 400,
-          code: 'BAD_REQUEST',
-          message: 'El documento no puede estar vacío o tiene una estructura corrupta.',
-          details: ['Tamaño del archivo recibido: 0 bytes', 'Validador: document_validator.py'],
-          filename: 'vacio.txt'
-        });
-        break;
-      case 404:
-        this.showError({
-          status: 404,
-          code: 'DOCUMENT_NOT_FOUND',
-          message: 'No existe el documento doc_inexistente en el repositorio.',
-          details: ['document_id solicitado: doc_inexistente'],
-          filename: demoFileName
-        });
-        break;
-      case 413:
-        this.showError({
-          status: 413,
-          code: 'FILE_TOO_LARGE',
-          message: 'El archivo supera el tamaño máximo permitido de 10 MB.',
-          details: ['Tamaño recibido: 18.4 MB', 'Límite configurado: settings.MAX_UPLOAD_SIZE_MB = 10'],
-          filename: 'video_conferencia_pesada.pdf'
-        });
-        break;
-      case 415:
-        this.showError({
-          status: 415,
-          code: 'UNSUPPORTED_MEDIA_TYPE',
-          message: 'Formato o MIME type no soportado. Se admiten archivos PDF, Markdown (.md) y TXT.',
-          details: ['MIME detectado: application/x-msdownload', 'Extensión: .exe'],
-          filename: 'instalador.exe'
-        });
-        break;
-      case 422:
-        this.showError({
-          status: 422,
-          code: 'REQUEST_VALIDATION_ERROR',
-          message: 'Error de validación en los parámetros de la solicitud.',
-          details: [
-            { field: 'body.file', message: 'Field required' },
-            { field: 'body.target_profile', message: 'Value must be one of: beginner, intermediate, advanced' }
-          ],
-          filename: demoFileName
-        });
-        break;
-      case 502:
-        this.showError({
-          status: 502,
-          code: 'OCI_STORAGE_ERROR',
-          message: 'El documento fue registrado, pero no pudo almacenarse en OCI Object Storage.',
-          details: [
-            'Proveedor: OCIObjectStorage',
-            'Bucket: nuevamente-storage',
-            'Causa: Timeout de conexión con endpoint de Oracle Cloud'
-          ],
-          filename: demoFileName
-        });
-        break;
-      case 0:
-        this.showError({
-          status: 0,
-          code: 'CONNECTION_REFUSED',
-          message: 'No se pudo conectar con el servidor Backend. Verifica que el servicio esté iniciado y accesible.',
-          details: [
-            'Servicio backend no disponible en la dirección configurada.',
-            'Verifica que el servicio backend esté activo y accesible.'
-          ],
-          filename: demoFileName
-        });
-        break;
-      case 408:
-        this.showError({
-          status: 408,
-          code: 'REQUEST_TIMEOUT',
-          message: 'Tiempo de espera agotado al comunicarse con el backend (Timeout de 120s).',
-          details: ['La operación tardó más tiempo del límite configurado (120 s para procesamiento RAG).'],
-          filename: demoFileName
-        });
-        break;
-      case 500:
-      default:
-        this.showError({
-          status: 500,
-          code: 'INTERNAL_SERVER_ERROR',
-          message: 'Ocurrió un error inesperado al procesar el archivo en el servidor.',
-          details: ['Excepción no controlada en el servicio de persistencia.'],
-          filename: demoFileName
-        });
-        break;
     }
   },
 

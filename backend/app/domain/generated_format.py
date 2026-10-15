@@ -134,6 +134,7 @@ class GeneratedFormat:
     content: GeneratedContent | None = None
     chunks_used: tuple[ChunkEvidence, ...] = ()
     error_message: str | None = None
+    revision_of_format_id: str | None = None
 
     created_at: datetime = field(
         default_factory=lambda: datetime.now(UTC)
@@ -152,6 +153,13 @@ class GeneratedFormat:
             raise ValueError(
                 "document_id no puede estar vacío."
             )
+
+        if self.revision_of_format_id is not None:
+            if (not isinstance(self.revision_of_format_id, str)
+                    or not self.revision_of_format_id.strip()):
+                raise ValueError("revision_of_format_id debe ser una cadena no vacía.")
+            if self.revision_of_format_id == self.format_id:
+                raise ValueError("Un formato no puede ser revisión de sí mismo.")
 
         self._validate_processing_contract()
         self._validate_success_contract()

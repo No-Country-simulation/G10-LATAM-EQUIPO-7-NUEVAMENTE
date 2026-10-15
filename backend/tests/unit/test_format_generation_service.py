@@ -981,3 +981,86 @@ def test_complete_generation_requires_processing_attempts() -> None:
                 )
             )
         )
+
+
+class FakeAgentsWithDocumentMetadata(FakeAgents):
+    """Agentes falso que además devuelve document_title/description."""
+
+    async def generate_formats(
+        self,
+        request: AgentGenerationInput,
+    ) -> AgentGenerationResult:
+        result = await super().generate_formats(
+            request
+        )
+
+        return AgentGenerationResult(
+            document_id=result.document_id,
+            results=result.results,
+            learning_metadata=(
+                result.learning_metadata
+            ),
+            document_title="Título devuelto por Agentes",
+            document_description=(
+                "Descripción devuelta por Agentes."
+            ),
+        )
+
+
+def test_complete_generation_persists_document_title_and_description() -> (
+    None
+):
+    """Traslada document_title/description de Agentes al documento."""
+    document = build_document(
+        DocumentStatus.INDEXED
+    )
+
+    document_repository = FakeDocumentRepository(
+        document
+    )
+
+    service = FormatGenerationService(
+        document_repository=document_repository,
+        generated_format_repository=(
+            FakeGeneratedFormatRepository()
+        ),
+        agents=FakeAgentsWithDocumentMetadata(),
+    )
+
+    attempts = service.prepare_generation(
+        document_id="doc_123",
+        formats=(
+            GeneratedFormatType.QUIZ,
+            GeneratedFormatType.FLASHCARDS,
+        ),
+        profile="beginner",
+        niche="technology",
+        detail_level="detailed",
+        learning_objective=(
+            "Comprender microservicios."
+        ),
+    )
+
+    asyncio.run(
+        service.complete_generation(
+            attempts=tuple(
+                attempts
+            )
+        )
+    )
+
+    persisted_document = (
+        document_repository.find_by_id(
+            "doc_123"
+        )
+    )
+
+    assert persisted_document is not None
+    assert (
+        persisted_document.document_title
+        == "Título devuelto por Agentes"
+    )
+    assert (
+        persisted_document.document_description
+        == "Descripción devuelta por Agentes."
+    )

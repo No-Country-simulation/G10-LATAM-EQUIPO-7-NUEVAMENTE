@@ -54,13 +54,22 @@ class ErrorInfo(TypedDict):
 
 class ReviewFeedback(TypedDict, total=False):
     """
-    Veredicto del Revisor (Evaluador Semántico de Data). El router del lazo solo necesita
-    `approved`; el resto le sirve al Redactor para corregir. Acordar este formato con Data.
+    Veredicto del Revisor, derivado de la respuesta V2 del Evaluador Semántico de Data/IA.
+    El router del lazo solo necesita `approved`; el resto le sirve al Redactor para corregir
+    y a Backend para auditar.
     """
     approved: bool
-    score: Optional[float]
-    issues: List[str]
-    suggestions: List[str]
+    verdict: Optional[str]                 # approved | requires_revision | rejected (None si no hubo evaluación)
+    score: Optional[float]                 # promedio 1-5 de las cuatro dimensiones
+    scores: Optional[Dict[str, float]]     # relevance, coherence, didactic_adaptation, content_support
+    issues: List[str]                      # observaciones + información sin respaldo, ya redactadas en español
+    suggestions: List[str]                 # recomendaciones, ya redactadas
+    # False cuando la aprobación NO vino del evaluador (servicio caído, timeout, respuesta o petición
+    # inválida, verdict null o sin URL configurada): se aprobó "por defecto". Permite auditar esos casos.
+    reviewed: bool
+    evaluator_error: Optional[str]
+    evaluator_version: Optional[str]
+    rubric_version: Optional[str]
 
 
 class FormatOutcome(TypedDict):
@@ -91,6 +100,7 @@ class AgentState(TypedDict, total=False):
     # 2. Investigador: se ejecuta una sola vez y lo comparten todos los formatos
     retrieved_context: str
     sources_used: List[Dict[str, Any]]
+    retrieval_error: Optional[ErrorInfo]  # si el Investigador falló o no halló contenido: los formatos cierran con este error
     document_title: Optional[str]
     document_description: Optional[str]
     learning_metadata: Optional[Dict[str, Any]]
@@ -122,6 +132,7 @@ class FormatState(TypedDict, total=False):
     learning_objective: Optional[str]
     retrieved_context: str
     sources_used: List[Dict[str, Any]]
+    retrieval_error: Optional[ErrorInfo]
     max_revisions: int
     started_at: float
 
@@ -178,6 +189,7 @@ def new_agent_state(
         "max_revisions": max_revisions,
         "retrieved_context": "",
         "sources_used": [],
+        "retrieval_error": None,
         "document_title": None,
         "document_description": None,
         "learning_metadata": None,
@@ -199,6 +211,7 @@ def new_format_state(state: AgentState, formato: str) -> FormatState:
         "learning_objective": state.get("learning_objective"),
         "retrieved_context": state.get("retrieved_context", ""),
         "sources_used": list(state.get("sources_used", [])),
+        "retrieval_error": state.get("retrieval_error"),
         "max_revisions": state.get("max_revisions", DEFAULT_MAX_REVISIONS),
         "started_at": time.time(),
         "current_content": None,

@@ -1,0 +1,37 @@
+{
+  "calibration_id": "CAL-V1-016",
+  "source_case_id": "FE-ES-002-Q04",
+  "document_id": "FE-ES-002",
+  "category": "Frontend",
+  "variant": "poor_didactic_adaptation",
+  "target_dimension": "didactic_adaptation",
+  "perturbation_design": "Mantiene el ejemplo de click y respuesta, pero lo formula con jerga de runtime, paradigma reactivo y desacoplamiento.",
+  "evaluation_request": {
+    "document_id": "FE-ES-002",
+    "format": "tldr",
+    "generated_content": {
+      "title": "Semántica reactiva de eventos en JavaScript",
+      "summary": "Los eventos constituyen ocurrencias observables del runtime cuya notificación habilita mecanismos reactivos de respuesta.",
+      "key_points": [
+        "Una interacción de click sobre un botón puede actuar como disparador de una rutina de respuesta.",
+        "La reacción asociada puede materializar información en un elemento de interfaz."
+      ],
+      "conclusion": "El paradigma dirigido por eventos desacopla la ocurrencia notificable de la lógica reactiva que procesa dicha señal."
+    },
+    "generation_context": {
+      "profile": "beginner",
+      "niche": "general",
+      "detail_level": "medium",
+      "learning_objective": null
+    },
+    "chunks_used": [
+      {
+        "chunk_id": "FE-ES-002_CH_006",
+        "document_id": "FE-ES-002",
+        "rank": 1,
+        "score": 1.0,
+        "text": "Los eventos son acciones u ocurrencias que aparecen durante la ejecución del programa, y que son reportadas por el sistema, de forma que se pueda responder a los eventos de la forma deseada. Por ejemplo, si un usuario hace un click en un botón de una página web, puede que se quiera que ese evento inicie una acción en el que se muestre cierta información en un cuadro de información. En este último artículo se presentarán y describirán los conceptos necesarios con respecto a los eventos, y como funcionan en un navegador."
+      }
+    ]
+  }
+}

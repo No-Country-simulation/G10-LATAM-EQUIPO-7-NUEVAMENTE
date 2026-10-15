@@ -502,5 +502,44 @@ export const apiClient = {
       clearTimeout(timeoutId);
       throw wrapFetchError(err, 'No fue posible descargar el documento original desde el servidor.');
     }
+  },
+
+  /**
+   * Inactiva lógicamente un documento en el servidor (PR #89)
+   * Endpoint definitivo: PATCH /api/v1/documents/{document_id}/deactivate (204 No Content, sin body)
+   * @param {string} documentId
+   */
+  async inactivateDocument(documentId) {
+    if (!documentId) {
+      throw new ApiError(400, { message: 'El identificador de documento es requerido para inactivar.' });
+    }
+
+    const endpoint = typeof CONFIG.API.ENDPOINTS.DOCUMENT_INACTIVATE === 'function'
+      ? CONFIG.API.ENDPOINTS.DOCUMENT_INACTIVATE(documentId)
+      : `/documents/${documentId}/deactivate`;
+    const url = `${CONFIG.API.DEFAULT_BASE_URL}${CONFIG.API.V1_PREFIX}${endpoint}`;
+
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), CONFIG.API.TIMEOUT_MS || 30000);
+
+    try {
+      const response = await fetch(url, {
+        method: 'PATCH',
+        signal: controller.signal
+      });
+
+      clearTimeout(timeoutId);
+
+      if (!response.ok) {
+        const errorBody = await parseResponseBody(response);
+        throw new ApiError(response.status, errorBody);
+      }
+
+      state.set({ isBackendConnected: true, lastConnectionCheck: Date.now() });
+      return response.status === 204 ? { success: true } : await parseResponseBody(response);
+    } catch (err) {
+      clearTimeout(timeoutId);
+      throw wrapFetchError(err, 'No fue posible inactivar el documento en el servidor.');
+    }
   }
 };

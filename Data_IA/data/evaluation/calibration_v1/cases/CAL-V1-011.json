@@ -1,0 +1,46 @@
+{
+  "calibration_id": "CAL-V1-011",
+  "source_case_id": "DS-ES-002-Q02",
+  "document_id": "DS-ES-002",
+  "category": "Data Science",
+  "variant": "low_coherence",
+  "target_dimension": "coherence",
+  "perturbation_design": "Conserva la respuesta correcta pero la explicación es circular, entrecortada y mal organizada.",
+  "evaluation_request": {
+    "document_id": "DS-ES-002",
+    "format": "quiz",
+    "generated_content": {
+      "title": "Agregación de datos",
+      "instructions": "Selecciona la respuesta correcta.",
+      "questions": [
+        {
+          "question_id": "q1",
+          "question": "¿Qué concepto fundamental trata el módulo?",
+          "options": [
+            "La agregación de datos.",
+            "La agrupación de datos.",
+            "Las visualizaciones de datos.",
+            "Los conceptos básicos de informática."
+          ],
+          "correct_answer": "La agregación de datos.",
+          "explanation": "Agregación de datos. El módulo la describe. Datos agregados, agregación; también agrupa y visualiza. La respuesta es agregación porque agregación es el concepto preguntado."
+        }
+      ]
+    },
+    "generation_context": {
+      "profile": "beginner",
+      "niche": "general",
+      "detail_level": "medium",
+      "learning_objective": null
+    },
+    "chunks_used": [
+      {
+        "chunk_id": "DS-ES-002_CH_001",
+        "document_id": "DS-ES-002",
+        "rank": 1,
+        "score": 1.0,
+        "text": "# Introducción al análisis de datos\n\n- Módulo\n- 7 Unidades\n\nLa conversión de datos sin procesar en información útil es esencial para los usuarios profesionales. En este módulo, se tratan los conceptos fundamentales de la agregación de datos y la agrupación de datos.\n\n## Objetivos de aprendizaje\n\nAl final de este módulo, podrá:\n- Describir la agregación de datos.\n- Describir la agrupación de datos.\n- Describir visualizaciones de datos.\n\n## Requisitos previos\n\n- Debe estar familiarizado con la terminología y los conceptos básicos relacionados con la informática."
+      }
+    ]
+  }
+}
