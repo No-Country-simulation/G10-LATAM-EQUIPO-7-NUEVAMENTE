@@ -1,0 +1,16 @@
+calibration_id,source_case_id,document_id,category,format,variant,target_dimension,semantic_status,semantic_relevance,semantic_coherence,semantic_didactic_adaptation,semantic_content_support,unsupported_information_count,observations_count,recommendations_count,error_code,error_message,attempts,model,prompt_version,latency_ms_last_attempt
+CAL-V1-002,AI-ES-001-Q05,AI-ES-001,IA,flashcards,poor_didactic_adaptation,didactic_adaptation,success,4.0,4.5,1.5,4.8,0,1,1,,,1,gemini-3.8-flash,semantic-evaluator-v0.1,10219
+CAL-V1-003,AI-ES-002-Q03,AI-ES-002,IA,tldr,low_coherence,coherence,success,2.0,1.5,1.5,5.0,0,3,3,,,1,gemini-3.8-flash,semantic-evaluator-v0.1,15898
+CAL-V1-004,AI-ES-002-Q05,AI-ES-002,IA,video_script,unsupported_claim,content_support,success,4.0,4.0,4.0,2.0,1,1,1,,,1,gemini-3.8-flash,semantic-evaluator-v0.1,10798
+CAL-V1-006,BE-ES-001-Q03,BE-ES-001,Backend,tldr,unsupported_claim,content_support,success,4.0,4.5,4.5,2.5,1,1,1,,,2,gemini-3.8-flash,semantic-evaluator-v0.1,30195
+CAL-V1-007,BE-ES-002-Q03,BE-ES-002,Backend,video_script,low_relevance,relevance,success,1.5,5.0,3.5,5.0,0,1,1,,,1,gemini-3.8-flash,semantic-evaluator-v0.1,9090
+CAL-V1-008,BE-ES-002-Q05,BE-ES-002,Backend,quiz,poor_didactic_adaptation,didactic_adaptation,failed,,,,,0,0,0,provider_error,"Gemini provider request failed. (provider=gemini, model=gemini-3.8-flash)",3,gemini-3.8-flash,semantic-evaluator-v0.1,390
+CAL-V1-010,DS-ES-001-Q05,DS-ES-001,Data Science,video_script,poor_didactic_adaptation,didactic_adaptation,success,4.5,4.5,1.5,4.0,0,1,1,,,1,gemini-3.8-flash,semantic-evaluator-v0.1,38228
+CAL-V1-011,DS-ES-002-Q02,DS-ES-002,Data Science,quiz,low_coherence,coherence,success,3.0,2.0,2.0,3.0,1,4,3,,,1,gemini-3.8-flash,semantic-evaluator-v0.1,28357
+CAL-V1-012,DS-ES-002-Q05,DS-ES-002,Data Science,flashcards,low_relevance,relevance,success,1.5,4.5,3.0,4.0,1,2,1,,,1,gemini-3.8-flash,semantic-evaluator-v0.1,24894
+CAL-V1-014,FE-ES-001-Q05,FE-ES-001,Frontend,quiz,unsupported_claim,content_support,success,5.0,5.0,4.8,3.0,1,1,1,,,1,gemini-3.8-flash,semantic-evaluator-v0.1,47073
+CAL-V1-015,FE-ES-002-Q01,FE-ES-002,Frontend,flashcards,low_coherence,coherence,success,2.5,2.5,2.0,5.0,0,3,2,,,1,gemini-3.8-flash,semantic-evaluator-v0.1,25677
+CAL-V1-016,FE-ES-002-Q04,FE-ES-002,Frontend,tldr,poor_didactic_adaptation,didactic_adaptation,success,4.0,5.0,2.0,3.5,1,2,2,,,1,gemini-3.8-flash,semantic-evaluator-v0.1,50277
+CAL-V1-018,CLD-ES-001-Q05,CLD-ES-001,Cloud / DevOps,flashcards,unsupported_claim,content_support,success,4.5,4.0,4.5,2.5,1,2,1,,,2,gemini-3.8-flash,semantic-evaluator-v0.1,72473
+CAL-V1-019,CLD-ES-002-Q03,CLD-ES-002,Cloud / DevOps,tldr,low_relevance,relevance,success,2.0,5.0,3.0,5.0,0,2,2,,,3,gemini-3.8-flash,semantic-evaluator-v0.1,106772
+CAL-V1-020,CLD-ES-002-Q05,CLD-ES-002,Cloud / DevOps,video_script,low_coherence,coherence,failed,,,,,0,0,0,provider_error,"Gemini provider request failed. (provider=gemini, model=gemini-3.8-flash)",3,gemini-3.8-flash,semantic-evaluator-v0.1,196
