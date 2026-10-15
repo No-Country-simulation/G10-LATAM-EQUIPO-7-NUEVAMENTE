@@ -25,6 +25,7 @@ from app.application.format_revision_service import (
     RevisionSourceNotFoundError,
     RevisionSourceNotReadyError,
 )
+from app.application.revision_contract_v2 import build_evaluator_response_v2
 from app.domain.enums import GeneratedFormatStatus
 from app.domain.format_evaluation import FormatEvaluation
 from app.domain.generated_format import GeneratedFormat
@@ -88,6 +89,13 @@ class FormatAutoRevisionService:
         if feedback is None:
             return None
 
+        # Validar el contrato ANTES de crear una reserva en SQLite.
+        evaluator_response = build_evaluator_response_v2(
+            document_id=original.document_id,
+            format_type=original.format_type,
+            evaluation=evaluation,
+        )
+
         history = self._formats.find_by_document_id(original.document_id)
         if any(item.revision_of_format_id == original.format_id for item in history):
             return None
@@ -107,6 +115,8 @@ class FormatAutoRevisionService:
             agent_result = await self._revisor.request_revision(
                 format_id=original.format_id,
                 feedback=feedback,
+                revision_id=reservation.format_id,
+                evaluator_response=evaluator_response,
             )
         except (
             FormatRevisionIntegrationError,
