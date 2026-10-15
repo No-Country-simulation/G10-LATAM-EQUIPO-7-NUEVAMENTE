@@ -52,6 +52,7 @@ services:
 
     depends_on:
       - backend
+      - landing
 
     ports:
       - "80:80"
@@ -86,3 +87,9 @@ services:
 
     env_file:
       - /opt/nuevamente/env/data-ia.env
+  landing:
+    image: nginx:1.27-alpine
+    container_name: nuevamente-landing
+    restart: unless-stopped
+    volumes:
+        - ./landing:/usr/share/nginx/html:ro
