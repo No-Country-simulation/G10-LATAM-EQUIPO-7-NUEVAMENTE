@@ -279,8 +279,11 @@ export const evaluatorMetrics = {
       evaluationsList = formatData.evaluations;
     } else if (evaluationData) {
       evaluationsList = [evaluationData];
+    } else if (formatData) {
+      // Formato real devuelto por Backend sin evaluación emitida (evaluation: null, evaluations: [])
+      evaluationsList = [];
     } else {
-      // Benchmark representativo si Backend aún no emitió evaluación
+      // Benchmark representativo solo si se invoca la vista en seco sin formatData
       evaluationsList = this.getSampleEvaluations(formatKey);
     }
 
