@@ -34,7 +34,7 @@ python -m http.server 3000
 
 El Frontend está conectado exclusivamente al Backend real (FastAPI). La URL se desacopló completamente:
 - Se configura en el archivo `.env` mediante `VITE_API_BASE_URL` (ver `.env.example`).
-- Soporta configuración dinámica en caliente desde la interfaz haciendo clic en el badge **"Backend API"** del header.
+- Muestra el estado de conectividad en tiempo real a través del badge **"Backend API"** del header.
 - Por defecto apunta a `http://localhost:8000` con timeout de 30 segundos.
 
 ---

@@ -426,7 +426,7 @@ export const notebook = {
       studyHub: {
         ...state.get().studyHub,
         activeSectionId: sectionId,
-        activeFormat: 'flashcards',
+        activeFormat: 'sintesis',
         currentCardIndex: 0,
         isFlipped: false
       }
