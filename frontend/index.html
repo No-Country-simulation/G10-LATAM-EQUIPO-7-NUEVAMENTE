@@ -381,18 +381,18 @@
               <span></span> <strong>Selecciona cómo deseas capacitar a tu equipo:</strong>
             </label>
             <div class="resolver-format-grid">
+              <button type="button" class="btn-resolver-card" data-resolve-format="sintesis">
+                <span class="resolver-icon"></span>
+                <div class="resolver-text">
+                  <strong>Síntesis Ejecutiva</strong>
+                  <span>Resumen clave para consulta rápida</span>
+                </div>
+              </button>
               <button type="button" class="btn-resolver-card" data-resolve-format="flashcards">
                 <span class="resolver-icon"></span>
                 <div class="resolver-text">
                   <strong>Tarjetas de Refuerzo</strong>
                   <span>Memoria activa y conceptos clave</span>
-                </div>
-              </button>
-              <button type="button" class="btn-resolver-card" data-resolve-format="quiz">
-                <span class="resolver-icon"></span>
-                <div class="resolver-text">
-                  <strong>Evaluación de Competencias</strong>
-                  <span>Validación con justificación técnica</span>
                 </div>
               </button>
               <button type="button" class="btn-resolver-card" data-resolve-format="video">
@@ -402,11 +402,11 @@
                   <span>Estructura didáctica para facilitadores</span>
                 </div>
               </button>
-              <button type="button" class="btn-resolver-card" data-resolve-format="sintesis">
+              <button type="button" class="btn-resolver-card" data-resolve-format="quiz">
                 <span class="resolver-icon"></span>
                 <div class="resolver-text">
-                  <strong>Síntesis Ejecutiva</strong>
-                  <span>Resumen clave para consulta rápida</span>
+                  <strong>Evaluación de Competencias</strong>
+                  <span>Validación con justificación técnica</span>
                 </div>
               </button>
             </div>
@@ -644,7 +644,7 @@
         </div>
 
         <div>
-          <span style="font-size: 0.74rem; font-weight: 700; color: var(--text-muted); text-transform: uppercase; display: block; margin-bottom: 0.4rem;">
+          <span class="opened-doc-section-label">
             Competencias Clave del Módulo:
           </span>
           <div class="concept-chips" id="openedDocChips">
@@ -653,10 +653,10 @@
         </div>
 
         <div id="openedDocPrereqsContainer" style="display: none; margin-top: 0.5rem;">
-          <span style="font-size: 0.74rem; font-weight: 700; color: var(--text-muted); text-transform: uppercase; display: block; margin-bottom: 0.35rem;">
+          <span class="opened-doc-section-label">
             Prerrequisitos Recomendados:
           </span>
-          <ul id="openedDocPrereqsList" style="padding-left: 1.1rem; font-size: 0.82rem; color: var(--text-secondary); margin: 0; line-height: 1.45;">
+          <ul id="openedDocPrereqsList" class="opened-doc-prereqs-list">
             <!-- Inyectado dinámicamente por bookshelf.js -->
           </ul>
         </div>
@@ -671,18 +671,18 @@
         </div>
 
         <div class="study-options-mini-grid">
+          <button type="button" class="btn-study-choice-card" data-study-format="sintesis">
+            <span class="choice-icon"></span>
+            <div class="choice-info">
+              <strong>Síntesis Ejecutiva</strong>
+              <span>Resumen operativo</span>
+            </div>
+          </button>
           <button type="button" class="btn-study-choice-card" data-study-format="flashcards">
             <span class="choice-icon"></span>
             <div class="choice-info">
               <strong>Tarjetas de Refuerzo</strong>
               <span>Memoria activa y conceptos</span>
-            </div>
-          </button>
-          <button type="button" class="btn-study-choice-card" data-study-format="quiz">
-            <span class="choice-icon"></span>
-            <div class="choice-info">
-              <strong>Evaluación (Quiz)</strong>
-              <span>Validación de competencias</span>
             </div>
           </button>
           <button type="button" class="btn-study-choice-card" data-study-format="video">
@@ -692,11 +692,11 @@
               <span>Estructura de capacitación</span>
             </div>
           </button>
-          <button type="button" class="btn-study-choice-card" data-study-format="sintesis">
+          <button type="button" class="btn-study-choice-card" data-study-format="quiz">
             <span class="choice-icon"></span>
             <div class="choice-info">
-              <strong>Síntesis Ejecutiva</strong>
-              <span>Resumen operativo</span>
+              <strong>Evaluación (Quiz)</strong>
+              <span>Validación de competencias</span>
             </div>
           </button>
         </div>

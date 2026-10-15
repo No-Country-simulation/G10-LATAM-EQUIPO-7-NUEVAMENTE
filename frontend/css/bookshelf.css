@@ -985,8 +985,8 @@
 .opened-doc-summary {
   font-size: clamp(0.78rem, 1.1vh, 0.9rem);
   line-height: 1.5;
-  color: #334155;
-  font-weight: 500;
+  color: #1e293b;
+  font-weight: 600;
 }
 
 .study-meta-box {
@@ -998,13 +998,69 @@
   grid-template-columns: repeat(2, 1fr);
   gap: 0.5rem;
   font-size: clamp(0.72rem, 0.95vh, 0.8rem);
-  color: #475569;
+  color: #334155;
+  font-weight: 600;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
 }
 
 .study-meta-box strong {
   color: #0f172a;
+  font-weight: 800;
+}
+
+/* Títulos de sección en la hoja del libro abierto */
+.opened-doc-section-label {
+  font-size: 0.74rem;
+  font-weight: 800;
+  color: #1e293b;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  display: block;
+  margin-bottom: 0.4rem;
+}
+
+/* Lista de prerrequisitos con alto contraste sobre pergamino */
+.opened-doc-prereqs-list {
+  padding-left: 1.15rem;
+  font-size: 0.82rem;
+  color: #1e293b;
+  font-weight: 600;
+  margin: 0;
+  line-height: 1.5;
+}
+
+.opened-doc-prereqs-list li {
+  color: #1e293b;
+  margin-bottom: 0.25rem;
+}
+
+.opened-doc-prereqs-list li::marker {
+  color: #b45309;
+  font-size: 0.9em;
+}
+
+/* Chips de competencias clave dentro de la hoja de libro con alto contraste */
+.notebook-page-left .concept-chip {
+  background: #ffffff;
+  color: #0369a1;
+  border: 1px solid rgba(14, 116, 144, 0.4);
   font-weight: 700;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+}
+
+/* Badges temáticos en hojas de pergamino */
+.notebook-page-left .badge-gold {
+  background: rgba(180, 83, 9, 0.12);
+  color: #78350f;
+  border-color: rgba(180, 83, 9, 0.35);
+  font-weight: 800;
+}
+
+.notebook-page-right .badge-green {
+  background: rgba(5, 150, 105, 0.12);
+  color: #065f46;
+  border-color: rgba(5, 150, 105, 0.35);
+  font-weight: 800;
 }
 
 @media (max-width: 480px) {
@@ -1055,8 +1111,8 @@
 
 .study-choice-header p {
   font-size: 0.85rem;
-  color: #64748b;
-  font-weight: 500;
+  color: #334155;
+  font-weight: 600;
 }
 
 /* Grilla de las 4 Opciones de Estudio en el Cuaderno */
@@ -1107,7 +1163,7 @@
 
 .choice-info span {
   font-size: 0.72rem;
-  color: #5c4e42;
+  color: #334155;
   font-weight: 600;
 }
 

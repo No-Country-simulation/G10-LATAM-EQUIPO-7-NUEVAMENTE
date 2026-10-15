@@ -757,6 +757,9 @@ export const uploadTab = {
           this.stopPolling();
 
           if (globalStatus === 'ready') {
+            this.setStepCompleted(this.elements.stepGen, this.elements.line3);
+            this.setStepCompleted(this.elements.stepCritic);
+
             if (this.elements.pipelineStatusBadge) {
               this.elements.pipelineStatusBadge.textContent = 'Formatos Listos (100%)';
               this.elements.pipelineStatusBadge.style.background = 'rgba(16, 185, 129, 0.2)';
@@ -787,6 +790,9 @@ export const uploadTab = {
             }).catch(() => {});
 
           } else if (globalStatus === 'partial') {
+            this.setStepCompleted(this.elements.stepGen, this.elements.line3);
+            this.setStepCompleted(this.elements.stepCritic);
+
             if (this.elements.pipelineStatusBadge) {
               this.elements.pipelineStatusBadge.textContent = 'Generación Parcial (207)';
               this.elements.pipelineStatusBadge.style.background = 'rgba(245, 158, 11, 0.2)';
@@ -798,6 +804,8 @@ export const uploadTab = {
             notifyWarning('Formatos Parciales', 'Algunos formatos están listos y otros presentaron fallo. Puedes revisarlos en el Centro de Estudio.');
 
           } else if (globalStatus === 'error') {
+            this.setStepFailed(this.elements.stepGen, 'No fue posible completar la generación de formatos.');
+
             if (this.elements.pipelineStatusBadge) {
               this.elements.pipelineStatusBadge.textContent = 'Error en Formatos';
               this.elements.pipelineStatusBadge.style.background = 'rgba(239, 68, 68, 0.2)';
