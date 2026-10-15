@@ -1,0 +1,37 @@
+{
+  "calibration_id": "CAL-V1-019",
+  "source_case_id": "CLD-ES-002-Q03",
+  "document_id": "CLD-ES-002",
+  "category": "Cloud / DevOps",
+  "variant": "low_relevance",
+  "target_dimension": "relevance",
+  "perturbation_design": "Contenido respaldado y coherente, pero desplaza el foco desde los temas del módulo hacia requisitos previos e introducción a Azure.",
+  "evaluation_request": {
+    "document_id": "CLD-ES-002",
+    "format": "tldr",
+    "generated_content": {
+      "title": "Antes de comenzar con Azure",
+      "summary": "La ruta indica como requisito previo contar con conocimientos básicos de términos y conceptos de TI.",
+      "key_points": [
+        "Se mencionan conocimientos básicos de TI como requisito previo.",
+        "La sección también presenta opciones para comenzar con Azure."
+      ],
+      "conclusion": "El foco aquí está en la preparación previa del estudiante antes de avanzar en la ruta."
+    },
+    "generation_context": {
+      "profile": "beginner",
+      "niche": "general",
+      "detail_level": "medium",
+      "learning_objective": "Identificar los temas que cubre el módulo Descripción de la informática en la nube."
+    },
+    "chunks_used": [
+      {
+        "chunk_id": "CLD-ES-002_CH_003",
+        "document_id": "CLD-ES-002",
+        "rank": 1,
+        "score": 1.0,
+        "text": "## Requisitos previos\n\n- Conocimientos básicos sobre los términos y conceptos de TI\n\n## Introducción a Azure\n\nElija la cuenta de Azure adecuada para usted. Pague a medida que habla o pruebe Azure gratis durante 30 días. Regístrese.\n\n## Módulos en esta ruta de aprendizaje\n\nEn este módulo se presenta la informática en la nube. Trata aspectos como los conceptos de la nube, los modelos de implementación y la comprensión de la responsabilidad compartida en la nube.\n\nEn este módulo se presentan las ventajas que la informática en la nube puede ofrecerle a usted o su organización."
+      }
+    ]
+  }
+}
