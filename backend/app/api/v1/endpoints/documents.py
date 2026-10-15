@@ -171,6 +171,8 @@ def _to_document_response(
         status=document.status,
         content_type=document.content_type,
         size_bytes=document.size_bytes,
+        title=document.document_title,
+        summary=document.document_description,
         created_at=document.created_at,
         updated_at=document.updated_at,
         learning_metadata=learning_metadata,

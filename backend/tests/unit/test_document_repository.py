@@ -258,3 +258,35 @@ def test_repository_preserves_is_active(
     status_map = {d.document_id: d.is_active for d in all_docs}
     assert status_map["doc_123"] is False
     assert status_map["doc_inactive"] is True
+
+
+def test_repository_persists_and_updates_document_title_and_description(
+    tmp_path: Path,
+) -> None:
+    """Round-trip real de document_title/document_description en SQLite."""
+    repository = build_repository(tmp_path)
+    document = build_document()
+
+    repository.create(document)
+
+    stored = repository.find_by_id(document.document_id)
+    assert stored is not None
+    assert stored.document_title is None
+    assert stored.document_description is None
+
+    stored.assign_document_title_description(
+        document_title="Fundamentos de microservicios",
+        document_description="Resumen breve del documento.",
+    )
+    repository.update(stored)
+
+    updated = repository.find_by_id(document.document_id)
+    assert updated is not None
+    assert (
+        updated.document_title
+        == "Fundamentos de microservicios"
+    )
+    assert (
+        updated.document_description
+        == "Resumen breve del documento."
+    )

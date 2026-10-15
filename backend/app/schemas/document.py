@@ -47,6 +47,18 @@ class DocumentListItemResponse(DocumentBaseResponse):
         ge=0,
         description="Tamaño del documento en bytes.",
     )
+    title: str | None = Field(
+        default=None,
+        description=(
+            "Título enriquecido del documento cuando esté disponible."
+        ),
+    )
+    summary: str | None = Field(
+        default=None,
+        description=(
+            "Resumen breve del documento cuando esté disponible."
+        ),
+    )
     created_at: datetime
     updated_at: datetime
 
@@ -97,18 +109,6 @@ class LearningMetadataResponse(BaseSchema):
 class DocumentResponse(DocumentListItemResponse):
     """Información pública detallada de un documento."""
 
-    title: str | None = Field(
-        default=None,
-        description=(
-            "Título enriquecido del documento cuando esté disponible."
-        ),
-    )
-    summary: str | None = Field(
-        default=None,
-        description=(
-            "Resumen breve del documento cuando esté disponible."
-        ),
-    )
     learning_metadata: (
         LearningMetadataResponse | None
     ) = Field(

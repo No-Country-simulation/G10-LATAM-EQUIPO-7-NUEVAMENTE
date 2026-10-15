@@ -70,6 +70,8 @@ class AgentGenerationResult:
     learning_metadata: LearningMetadata = field(
         default_factory=LearningMetadata.empty
     )
+    document_title: str | None = None
+    document_description: str | None = None
 
 
 class AgentsPort(Protocol):
