@@ -20,12 +20,13 @@ export const portada = {
       welcomePortada: document.getElementById('welcomePortada'),
       portadaCard: document.getElementById('portadaCard'),
       btnEnterLibrary: document.getElementById('btnEnterLibrary'),
+      btnLandingAccess: document.getElementById('btnLandingAccess'),
       brandHeader: document.getElementById('brandHeader')
     };
   },
 
   setupEvents() {
-    const { welcomePortada, portadaCard, btnEnterLibrary, brandHeader } = this.elements;
+    const { welcomePortada, portadaCard, btnEnterLibrary, btnLandingAccess, brandHeader } = this.elements;
     if (!welcomePortada) return;
 
     // Al hacer clic en el botón principal de ingreso
@@ -33,6 +34,13 @@ export const portada = {
       btnEnterLibrary.addEventListener('click', (e) => {
         e.stopPropagation();
         this.enterLibrary();
+      });
+    }
+
+    // Al hacer clic en el botón de la landing, evitar activar la apertura de la biblioteca
+    if (btnLandingAccess) {
+      btnLandingAccess.addEventListener('click', (e) => {
+        e.stopPropagation();
       });
     }
 
