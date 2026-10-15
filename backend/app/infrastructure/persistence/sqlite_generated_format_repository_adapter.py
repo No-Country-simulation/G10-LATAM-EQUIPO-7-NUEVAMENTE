@@ -190,7 +190,7 @@ class SQLiteGeneratedFormatRepositoryAdapter:
                         "de un intento de generación existente."
                     )
 
-                connection.execute(
+                cursor = connection.execute(
                     """
                     UPDATE generated_formats
                     SET
@@ -204,6 +204,7 @@ class SQLiteGeneratedFormatRepositoryAdapter:
                         error_message = ?,
                         updated_at = ?
                     WHERE format_id = ?
+                      AND (revision_of_format_id IS NULL OR status = 'processing')
                     """,
                     (
                         record.status,
@@ -218,6 +219,11 @@ class SQLiteGeneratedFormatRepositoryAdapter:
                         record.format_id,
                     ),
                 )
+                if cursor.rowcount != 1:
+                    raise GeneratedFormatRepositoryError(
+                        "La revisión ya tiene estado terminal y no puede "
+                        "recibir una respuesta tardía."
+                    )
 
         except (
             GeneratedFormatNotFoundError,
