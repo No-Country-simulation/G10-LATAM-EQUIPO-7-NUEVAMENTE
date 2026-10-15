@@ -24,6 +24,7 @@ from app.api.adaptation_execution import (
 from app.api.dependencies import (
     get_adaptation_orchestration_service,
     get_document_service,
+    get_format_revision_history_service,
     get_generated_format_query_service,
     get_object_storage,
     get_temporary_storage,
@@ -31,12 +32,20 @@ from app.api.dependencies import (
 from app.application.adaptation_orchestration_service import (
     AdaptationOrchestrationService,
 )
+from app.application.current_cycle_evaluations_service import (
+    CurrentCycleEvaluationsService,
+)
 from app.application.document_service import (
     DocumentNotFoundError,
     DocumentNotStoredError,
     DocumentRetrievalError,
     DocumentService,
     DocumentStorageError,
+)
+from app.application.format_revision_history_service import (
+    FormatRevisionHistoryService,
+    RevisionHistoryDocumentNotFoundError,
+    RevisionHistoryInconsistentError,
 )
 from app.application.generated_format_query_service import (
     GeneratedFormatQueryDocumentNotFoundError,
@@ -48,6 +57,9 @@ from app.core.http_exceptions import APIHTTPException
 from app.domain.document import Document
 from app.ports.document_repository_port import (
     DocumentRepositoryError,
+)
+from app.ports.format_evaluation_repository_port import (
+    FormatEvaluationRepositoryError,
 )
 from app.ports.generated_format_repository_port import (
     GeneratedFormatRepositoryError,
@@ -540,6 +552,10 @@ async def get_document_formats(
             get_generated_format_query_service
         ),
     ],
+    revision_history_service: Annotated[
+        FormatRevisionHistoryService,
+        Depends(get_format_revision_history_service),
+    ],
 ) -> DocumentFormatsResponse:
     """Consulta los formatos pedagógicos de un documento."""
     try:
@@ -549,9 +565,16 @@ async def get_document_formats(
                 document_id
             )
         )
+        cycle_evaluations = CurrentCycleEvaluationsService(
+            revision_history_service
+        ).get_for_formats(
+            document_id=document_id,
+            formats=result.formats,
+        )
 
     except (
-        GeneratedFormatQueryDocumentNotFoundError
+        GeneratedFormatQueryDocumentNotFoundError,
+        RevisionHistoryDocumentNotFoundError,
     ) as exc:
         raise APIHTTPException(
             status_code=(
@@ -564,6 +587,8 @@ async def get_document_formats(
     except (
         DocumentRepositoryError,
         GeneratedFormatRepositoryError,
+        FormatEvaluationRepositoryError,
+        RevisionHistoryInconsistentError,
     ) as exc:
         raise APIHTTPException(
             status_code=(
@@ -581,7 +606,10 @@ async def get_document_formats(
             generated_format.format_type: (
                 GeneratedFormatResponse
                 .from_domain(
-                    generated_format
+                    generated_format,
+                    cycle_evaluations=cycle_evaluations[
+                        generated_format.format_type
+                    ],
                 )
             )
             for generated_format
