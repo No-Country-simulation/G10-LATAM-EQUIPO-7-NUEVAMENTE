@@ -1460,3 +1460,182 @@
   color: #64748b;
   font-family: monospace;
 }
+
+/* Selector de Ciclos e Intentos de Evaluación (V2) */
+.eval-cycle-bar {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.45rem 0.65rem;
+  background: rgba(0, 0, 0, 0.35);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 10px;
+  overflow-x: auto;
+}
+
+.eval-cycle-label {
+  font-size: 0.72rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: #94a3b8;
+  margin-right: 0.3rem;
+  white-space: nowrap;
+}
+
+.eval-cycle-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.35rem 0.75rem;
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  color: #cbd5e1;
+  font-size: 0.78rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all var(--transition-fast);
+  white-space: nowrap;
+}
+
+.eval-cycle-btn:hover {
+  background: rgba(255, 255, 255, 0.1);
+  color: #ffffff;
+}
+
+.eval-cycle-btn.is-active {
+  background: rgba(245, 158, 11, 0.16);
+  border-color: rgba(245, 158, 11, 0.5);
+  color: #fef08a;
+  box-shadow: 0 0 10px rgba(245, 158, 11, 0.2);
+}
+
+/* Estado NEUTRAL / SIN VEREDICTO */
+.eval-verdict-banner.is-neutral {
+  background: rgba(100, 116, 139, 0.12);
+  border-color: rgba(100, 116, 139, 0.35);
+}
+.eval-verdict-banner.is-neutral .verdict-icon-bubble {
+  background: rgba(100, 116, 139, 0.25);
+  color: #94a3b8;
+}
+
+.tag-neutral {
+  background: rgba(100, 116, 139, 0.2);
+  color: #cbd5e1;
+  border: 1px solid rgba(100, 116, 139, 0.4);
+}
+
+/* Pills de Metadatos de Observaciones / Recomendaciones (V2) */
+.eval-obs-item, .eval-rec-item {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+  padding: 0.35rem 0;
+}
+
+.eval-obs-meta, .eval-rec-meta {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  flex-wrap: wrap;
+}
+
+.eval-pill {
+  font-size: 0.68rem;
+  font-weight: 700;
+  padding: 0.1rem 0.45rem;
+  border-radius: 4px;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+}
+
+.eval-pill-high {
+  background: rgba(239, 68, 68, 0.2);
+  color: #f87171;
+  border: 1px solid rgba(239, 68, 68, 0.4);
+}
+
+.eval-pill-medium {
+  background: rgba(245, 158, 11, 0.2);
+  color: #fbbf24;
+  border: 1px solid rgba(245, 158, 11, 0.4);
+}
+
+.eval-pill-low {
+  background: rgba(100, 116, 139, 0.2);
+  color: #94a3b8;
+  border: 1px solid rgba(100, 116, 139, 0.4);
+}
+
+.eval-pill-dimension {
+  background: rgba(6, 182, 212, 0.15);
+  color: #67e8f9;
+  border: 1px solid rgba(6, 182, 212, 0.35);
+  text-transform: none;
+}
+
+.eval-pill-itemid {
+  background: rgba(148, 163, 184, 0.12);
+  color: #cbd5e1;
+  border: 1px solid rgba(148, 163, 184, 0.25);
+  font-family: monospace;
+}
+
+.eval-pill-chunk {
+  background: rgba(217, 70, 239, 0.15);
+  color: #e879f9;
+  border: 1px solid rgba(217, 70, 239, 0.35);
+  font-family: monospace;
+}
+
+.eval-obs-msg, .eval-rec-msg {
+  margin: 0;
+  color: #cbd5e1;
+  line-height: 1.45;
+}
+
+/* Items de Información No Soportada (V2) */
+.eval-unsupported-item {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  padding: 0.45rem 0;
+  border-bottom: 1px solid rgba(239, 68, 68, 0.18);
+}
+.eval-unsupported-item:last-child {
+  border-bottom: none;
+}
+
+.unsupported-claim-row, .unsupported-reason-row {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+}
+
+.unsupported-claim-row strong, .unsupported-reason-row strong {
+  color: #fca5a5;
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.unsupported-claim-row span {
+  color: #ffffff;
+  font-weight: 600;
+}
+
+.unsupported-reason-row span {
+  color: #fecaca;
+  font-size: 0.82rem;
+}
+
+.unsupported-meta-row {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  flex-wrap: wrap;
+  margin-top: 0.15rem;
+}
+
