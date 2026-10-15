@@ -51,6 +51,8 @@ app = FastAPI(title="NuevaMente - API de Agentes")
 
 FORMATOS_SOPORTADOS = ["quiz", "flashcards", "tldr", "video_script"]
 
+# Caché en memoria para garantizar idempotencia en el endpoint /revise
+_revision_cache: Dict[str, Dict[str, Any]] = {}
 
 def _metadata_fallback() -> Dict[str, Any]:
     return {
@@ -118,7 +120,7 @@ def _normalizar_feedback_revision(
 # ==========================================
 class GenerateRequest(BaseModel):
     document_id: str = Field(..., min_length=1)
-    formats: List[str] = Field(default_factory=list)  # Eliminado min_length=1 para pasar los tests
+    formats: List[str] = Field(default_factory=list)
     profile: str = Field(..., min_length=1)
     niche: str = Field(..., min_length=1)
     detail_level: str = Field(..., min_length=1)
@@ -158,7 +160,7 @@ class GenerateResponse(BaseModel):
 
 
 # ==========================================
-# CONTRATOS DE REVISIÓN (Sprint 4)
+# CONTRATOS DE REVISIÓN (SPRINT 4)
 # ==========================================
 class GenerationContext(BaseModel):
     profile: str
@@ -312,10 +314,11 @@ async def index_document(document_id: str = Form(...), file: UploadFile = File(.
             if os.path.exists(tmp_path):
                 os.remove(tmp_path)
 
+        titulo_crudo = file.filename or document_id
         return {
             "document_id": document_id,
             "status": "indexed",
-            "document_title": file.filename or document_id,
+            "document_title": titulo_crudo,
             "chunks_indexed": len(chunks),
         }
     except Exception as e:
@@ -422,10 +425,12 @@ def generate_formats(payload: GenerateRequest):
         # 3. ESTADO GLOBAL
         overall_status, http_status = evaluar_resultado_global(exitosas, errores)
 
+        titulo_crudo = meta.get("document_title")
+
         cuerpo = {
             "document_id": payload.document_id,
             "overall_status": overall_status,
-            "document_title": meta.get("document_title"),
+            "document_title": titulo_crudo,
             "document_description": meta.get("document_description"),
             "execution_time_seconds": round(time.perf_counter() - inicio, 3),
             "learning_metadata": learning_metadata,
@@ -455,32 +460,58 @@ def generate_formats(payload: GenerateRequest):
 )
 def revise_format(payload: ReviseRequest):
     inicio = time.perf_counter()
+    
+    # 1. IDEMPOTENCIA: Verificar si ya procesamos este revision_id
+    if payload.revision_id in _revision_cache:
+        logger.info("Idempotencia: devolviendo respuesta cacheada para %s", payload.revision_id)
+        cached = _revision_cache[payload.revision_id]
+        return JSONResponse(status_code=cached["status_code"], content=cached["content"])
+
+    # Helper para guardar en caché antes de retornar
+    def _cache_and_return(status_code: int, content: dict):
+        _revision_cache[payload.revision_id] = {"status_code": status_code, "content": content}
+        return JSONResponse(status_code=status_code, content=content)
+
     try:
         if payload.format not in FORMATOS_SOPORTADOS:
             raise ValueError(f"El formato '{payload.format}' no está soportado.")
 
-        # 1. Obtener contexto RAG (unir chunks_used o consultar vector store)
+        # 2. OBTENER CONTEXTO RAG (Fix Fallback con interfaz real de retrieve)
         textos_chunks = [c.get("text", "") for c in payload.chunks_used if isinstance(c, dict) and c.get("text")]
         retrieved_context = "\n\n".join(textos_chunks).strip()
-
         fuentes_usadas = payload.chunks_used
+
         if not retrieved_context:
             query = f"Conceptos principales de {payload.generation_context.niche}"
-            retrieval_res = agent.retriever.retrieve(query=query, document_id=payload.document_id)
-            retrieved_context = retrieval_res.get("context", "")
-            fuentes_usadas = retrieval_res.get("sources", payload.chunks_used)
+            retrieval_res = agent.retriever.retrieve(
+                query=query,
+                top_k=5,
+                metadata_filters={"document_id": payload.document_id}
+            )
+            
+            textos = []
+            fuentes_usadas = []
+            for r in retrieval_res:
+                if hasattr(r, "text"):
+                    textos.append(r.text)
+                    fuentes_usadas.append(r.model_dump() if hasattr(r, "model_dump") else r.__dict__)
+                elif isinstance(r, dict):
+                    textos.append(r.get("text", ""))
+                    fuentes_usadas.append(r)
+                    
+            retrieved_context = "\n\n".join(textos).strip()
 
         if not retrieved_context:
             raise ValueError(f"No se encontró contexto indexado para el documento '{payload.document_id}'.")
 
-        # 2. Normalizar feedback para el contrato del Redactor
+        # 3. Normalizar feedback para el contrato del Redactor
         feedback_normalizado = _normalizar_feedback_revision(
             payload.evaluator_response,
             document_id=payload.document_id,
             formato=payload.format,
         )
 
-        # 3. Construir FormatState estricto para LangGraph
+        # 4. Construir FormatState estricto para LangGraph
         initial_format_state = {
             "format": payload.format,
             "document_id": payload.document_id,
@@ -501,11 +532,11 @@ def revise_format(payload: ReviseRequest):
             "outcome": None,
         }
 
-        # 4. Invocar Subgrafo de Corrección pasándole la instancia del agente
+        # 5. Invocar Subgrafo de Corrección pasándole la instancia del agente
         subgrafo = compilar_subgrafo_formato(agent)
         final_state = subgrafo.invoke(initial_format_state)
 
-        # 5. Extraer el resultado real del nodo_finalizar
+        # 6. Extraer el resultado real del nodo_finalizar
         outcome: Optional[Dict[str, Any]] = final_state.get("outcome")
         corrected_content = None
         error_outcome = None
@@ -515,7 +546,6 @@ def revise_format(payload: ReviseRequest):
             error_outcome = outcome.get("error")
 
         if not corrected_content and not error_outcome:
-            # Fallback en caso de que el estado devuelva current_content directo
             corrected_content = final_state.get("current_content")
 
         if not corrected_content and not error_outcome:
@@ -538,7 +568,7 @@ def revise_format(payload: ReviseRequest):
             }
             respuesta_validada = ReviseResponse.model_validate(cuerpo_error)
             http_code = error_outcome.get("http_status", 500)
-            return JSONResponse(status_code=http_code, content=respuesta_validada.model_dump(mode="json"))
+            return _cache_and_return(http_code, respuesta_validada.model_dump(mode="json"))
 
         cuerpo_exito = {
             "revision_id": payload.revision_id,
@@ -554,7 +584,7 @@ def revise_format(payload: ReviseRequest):
         }
         
         respuesta_validada = ReviseResponse.model_validate(cuerpo_exito)
-        return JSONResponse(status_code=200, content=respuesta_validada.model_dump(mode="json"))
+        return _cache_and_return(200, respuesta_validada.model_dump(mode="json"))
 
     except Exception as e:
         logger.exception("Error en /revise (revision_id=%s)", payload.revision_id)
@@ -576,7 +606,7 @@ def revise_format(payload: ReviseRequest):
         
         respuesta_validada = ReviseResponse.model_validate(cuerpo_error)
         http_code = error_detail.get("http_status", 500) if isinstance(error_detail, dict) else 500
-        return JSONResponse(status_code=http_code, content=respuesta_validada.model_dump(mode="json"))
+        return _cache_and_return(http_code, respuesta_validada.model_dump(mode="json"))
 
 
 # ==========================================
