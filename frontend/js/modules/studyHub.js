@@ -571,7 +571,7 @@ export const studyHub = {
         notifySuccess('Formatos Listos', 'Materiales de capacitación disponibles.');
 
         // Recuperar metadatos pedagógicos del documento si aún no están en memoria (PR #63)
-        if (!doc.learning_metadata && doc.id && !doc.id.startsWith('mock_')) {
+        if (!doc.learning_metadata && doc.id) {
           apiClient.getDocumentById(doc.id).then(docDetail => {
             if (docDetail?.learning_metadata) {
               const s = state.get();
