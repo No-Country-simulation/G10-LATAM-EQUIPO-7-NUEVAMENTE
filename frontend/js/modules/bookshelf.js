@@ -926,8 +926,8 @@ export const bookshelf = {
     // Mostrar modal
     openBookOverlay.style.display = 'flex';
 
-    // Diagrama C: Consulta GET /documents/{id} para validar y enriquecer metadata
-    if (book.id && !book.id.startsWith('mock_')) {
+    // Consulta GET /documents/{id} para validar y enriquecer metadata
+    if (book.id) {
       apiClient.getDocumentById(book.id).then(docDetail => {
         if (docDetail) {
           if (docDetail.filename && !book.title) {

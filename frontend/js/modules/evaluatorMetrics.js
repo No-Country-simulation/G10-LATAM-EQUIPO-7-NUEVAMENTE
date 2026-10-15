@@ -273,18 +273,12 @@ export const evaluatorMetrics = {
       subtitleEl.textContent = `Formato: ${friendlyFormatName} · Agente Evaluador (Gemini Judge)`;
     }
 
-    // Resolver lista de evaluaciones del ciclo (V2)
+    // Resolver lista de evaluaciones del ciclo (V2) exclusivamente desde Backend
     let evaluationsList = [];
     if (formatData?.evaluations && Array.isArray(formatData.evaluations) && formatData.evaluations.length > 0) {
       evaluationsList = formatData.evaluations;
     } else if (evaluationData) {
       evaluationsList = [evaluationData];
-    } else if (formatData) {
-      // Formato real devuelto por Backend sin evaluación emitida (evaluation: null, evaluations: [])
-      evaluationsList = [];
-    } else {
-      // Benchmark representativo solo si se invoca la vista en seco sin formatData
-      evaluationsList = this.getSampleEvaluations(formatKey);
     }
 
     this.currentEvaluationsList = evaluationsList;
@@ -843,157 +837,6 @@ export const evaluatorMetrics = {
     return key
       .replace(/_/g, ' ')
       .replace(/\b\w/g, l => l.toUpperCase());
-  },
-
-  /**
-   * Colección de evaluaciones del último ciclo basada estrictamente en el mock de consenso V2
-   */
-  getSampleEvaluations(formatKey) {
-    if (formatKey === 'quiz') {
-      return [
-        {
-          evaluation_id: 'eval_quiz_002',
-          format_id: 'fmt_quiz_corrected',
-          created_at: '2026-10-14T18:12:00+00:00',
-          verdict: 'approved',
-          heuristic_scores: {
-            relevance: 5,
-            coherence: 5,
-            didactic_adaptation: 4,
-            content_support: 5
-          },
-          semantic_evaluation: {
-            status: 'success',
-            scores: {
-              relevance: 4.8,
-              coherence: 4.9,
-              didactic_adaptation: 4.3,
-              content_support: 4.9
-            },
-            observations: [],
-            recommendations: [],
-            unsupported_information: [],
-            error_code: null,
-            error_message: null,
-            model: 'semantic-provider (Gemini 2.0)',
-            prompt_version: 'v0.1',
-            latency_ms: 875
-          },
-          evaluator_version: '2.0.0',
-          rubric_version: '2.0.0'
-        },
-        {
-          evaluation_id: 'eval_quiz_001',
-          format_id: 'fmt_quiz_initial',
-          created_at: '2026-10-14T18:10:00+00:00',
-          verdict: 'requires_revision',
-          heuristic_scores: {
-            relevance: 4,
-            coherence: 4,
-            didactic_adaptation: 2,
-            content_support: 4
-          },
-          semantic_evaluation: {
-            status: 'success',
-            scores: {
-              relevance: 4.2,
-              coherence: 4.3,
-              didactic_adaptation: 2.5,
-              content_support: 4.1
-            },
-            observations: [
-              {
-                dimension: 'didactic_adaptation',
-                severity: 'high',
-                message: 'La explicación asume conceptos avanzados para el perfil inicial.',
-                item_id: 'q1'
-              }
-            ],
-            recommendations: [
-              {
-                dimension: 'didactic_adaptation',
-                message: 'Explicar primero los conceptos básicos y simplificar la pregunta.',
-                item_id: 'q1'
-              }
-            ],
-            unsupported_information: [
-              {
-                claim: 'REST exige un protocolo propietario.',
-                reason: 'Los chunks utilizados no respaldan esa afirmación.',
-                item_id: 'q1',
-                related_chunk_ids: ['chunk_001']
-              }
-            ],
-            error_code: null,
-            error_message: null,
-            model: 'semantic-provider (Gemini 2.0)',
-            prompt_version: 'v0.1',
-            latency_ms: 860
-          },
-          evaluator_version: '2.0.0',
-          rubric_version: '2.0.0'
-        }
-      ];
-    }
-
-    if (formatKey === 'flashcards') {
-      return [
-        {
-          evaluation_id: 'eval_flashcards_001',
-          format_id: 'fmt_flashcards_001',
-          created_at: '2026-10-14T18:11:00+00:00',
-          verdict: 'approved',
-          heuristic_scores: {
-            relevance: 4,
-            coherence: 4,
-            didactic_adaptation: 4,
-            content_support: 4
-          },
-          semantic_evaluation: {
-            status: 'unavailable',
-            scores: null,
-            observations: [],
-            recommendations: [],
-            unsupported_information: [],
-            error_code: 'not_configured',
-            error_message: null,
-            model: null,
-            prompt_version: null,
-            latency_ms: null
-          },
-          evaluator_version: '2.0.0',
-          rubric_version: '2.0.0'
-        }
-      ];
-    }
-
-    if (formatKey === 'video' || formatKey === 'video_script') {
-      return [
-        {
-          evaluation_id: 'eval_video_001',
-          format_id: 'fmt_video_001',
-          created_at: '2026-10-14T18:13:00+00:00',
-          verdict: null,
-          heuristic_scores: null,
-          semantic_evaluation: {
-            status: 'failed',
-            scores: null,
-            observations: [],
-            recommendations: [],
-            unsupported_information: [],
-            error_code: 'timeout',
-            error_message: null,
-            model: null,
-            prompt_version: null,
-            latency_ms: null
-          },
-          evaluator_version: '2.0.0',
-          rubric_version: '2.0.0'
-        }
-      ];
-    }
-
-    // tldr / sintesis -> ciclo sin evaluación emitida
-    return [];
   }
 };
+
