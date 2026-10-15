@@ -457,7 +457,7 @@ export const studyHub = {
     }
 
     // Actualizar Pestañas y Vistas
-    const currentFormat = hubState.activeFormat || 'flashcards';
+    const currentFormat = hubState.activeFormat || 'sintesis';
 
     this.elements.formatTabs.forEach(btn => {
       if (btn.getAttribute('data-format') === currentFormat) {

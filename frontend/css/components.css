@@ -172,13 +172,14 @@
 }
 
 .concept-chip {
-  background: rgba(6, 182, 212, 0.1);
-  color: var(--accent-cyan);
-  border: 1px solid rgba(6, 182, 212, 0.25);
+  background: rgba(245, 158, 11, 0.12);
+  color: var(--accent-gold);
+  border: 1px solid rgba(245, 158, 11, 0.35);
   padding: 0.25rem 0.65rem;
   border-radius: 8px;
   font-size: 0.76rem;
-  font-weight: 600;
+  font-weight: 700;
+  transition: all var(--transition-fast);
 }
 
 /* ==========================================================================

@@ -59,7 +59,7 @@ const internalState = {
     activeSectionId: null,
     formats: null, // Formatos cargados desde GET /documents/{id}/formats
     formatsStatus: 'idle', // 'idle' | 'pending' | 'processing' | 'ready' | 'partial' | 'error'
-    activeFormat: 'flashcards', // 'flashcards', 'quiz', 'video', 'sintesis'
+    activeFormat: 'sintesis', // 'sintesis', 'flashcards', 'video', 'quiz'
     currentCardIndex: 0,
     isFlipped: false
   },
