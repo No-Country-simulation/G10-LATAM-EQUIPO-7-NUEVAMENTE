@@ -991,6 +991,11 @@ export const bookshelf = {
             prereqsContainer.style.display = 'none';
           }
 
+          if (docDetail.title && openedTitle) {
+            openedTitle.textContent = docDetail.title;
+            book.title = docDetail.title;
+          }
+
           if (docDetail.summary && openedSummary) {
             openedSummary.textContent = docDetail.summary;
             book.description = docDetail.summary;

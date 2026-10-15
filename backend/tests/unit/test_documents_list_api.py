@@ -157,10 +157,13 @@ def test_list_documents_returns_processed_documents(
         assert "created_at" in document
         assert "updated_at" in document
 
-        # GET /documents continúa exponiendo únicamente
-        # metadata de biblioteca.
-        assert "title" not in document
-        assert "summary" not in document
+        # GET /documents expone title/summary para la estantería
+        # (null mientras Agentes no haya enriquecido el documento),
+        # pero no el resto de la metadata detallada.
+        assert "title" in document
+        assert "summary" in document
+        assert document["title"] is None
+        assert document["summary"] is None
         assert "estimated_time" not in document
         assert "formats_status" not in document
         assert "formats" not in document
