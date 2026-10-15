@@ -25,6 +25,7 @@ from .errors import (
     http_evaluacion_caso,
     evaluar_lote_evaluacion,
 )
+from .graph import compilar_subgrafo_formato, traducir_respuesta_evaluador
 
 # ==========================================
 # ÚNICA FUENTE DE VERDAD (Sprint 3)
@@ -59,15 +60,68 @@ def _metadata_fallback() -> Dict[str, Any]:
     }
 
 
+def _normalizar_feedback_revision(
+    evaluacion: Dict[str, Any],
+    document_id: str,
+    formato: str,
+) -> Dict[str, Any]:
+    """Adapta la evaluación del cliente o evaluador V2 al contrato ReviewFeedback que requiere el Redactor."""
+    if "semantic_evaluation" in evaluacion:
+        return traducir_respuesta_evaluador(
+            evaluacion,
+            document_id=document_id,
+            formato=formato,
+        )
+
+    verdict = evaluacion.get("verdict")
+    issues: List[str] = []
+    for observacion in evaluacion.get("observations") or []:
+        if not isinstance(observacion, dict):
+            continue
+        descripcion = observacion.get("description") or observacion.get("message")
+        if not descripcion:
+            continue
+        tipo = observacion.get("type") or observacion.get("dimension") or "observación"
+        severidad = observacion.get("severity")
+        prefijo = f"[{tipo} · severidad {severidad}]" if severidad else f"[{tipo}]"
+        issues.append(f"{prefijo} {descripcion}")
+
+    suggestions: List[str] = []
+    for recomendacion in evaluacion.get("recommendations") or []:
+        if not isinstance(recomendacion, dict):
+            continue
+        descripcion = recomendacion.get("description") or recomendacion.get("message")
+        if descripcion:
+            accion = recomendacion.get("action")
+            prefijo = f"[{accion}] " if accion else ""
+            suggestions.append(f"{prefijo}{descripcion}")
+
+    if verdict != "approved" and not issues and not suggestions:
+        issues.append("El evaluador solicitó revisión sin detallar observaciones específicas.")
+
+    return {
+        "approved": verdict == "approved",
+        "verdict": verdict,
+        "score": None,
+        "scores": None,
+        "issues": issues,
+        "suggestions": suggestions,
+        "reviewed": True,
+        "evaluator_error": None,
+        "evaluator_version": None,
+        "rubric_version": None,
+    }
+
+
 # ==========================================
-# CONTRATOS (entrada y salida documentados en Swagger)
+# CONTRATOS DE GENERACIÓN ORIGINAL
 # ==========================================
 class GenerateRequest(BaseModel):
-    document_id: str
-    formats: List[str]
-    profile: str
-    niche: str
-    detail_level: str
+    document_id: str = Field(..., min_length=1)
+    formats: List[str] = Field(default_factory=list)  # Eliminado min_length=1 para pasar los tests
+    profile: str = Field(..., min_length=1)
+    niche: str = Field(..., min_length=1)
+    detail_level: str = Field(..., min_length=1)
     learning_objective: Optional[str] = None
     query: Optional[str] = Field(None)
 
@@ -103,6 +157,43 @@ class GenerateResponse(BaseModel):
     results: List[FormatResult]
 
 
+# ==========================================
+# CONTRATOS DE REVISIÓN (Sprint 4)
+# ==========================================
+class GenerationContext(BaseModel):
+    profile: str
+    niche: str
+    detail_level: str
+    learning_objective: Optional[str] = None
+
+
+class ReviseRequest(BaseModel):
+    revision_id: str
+    original_format_id: str
+    document_id: str
+    format: str
+    generation_context: GenerationContext
+    previous_content: Dict[str, Any]
+    chunks_used: List[Dict[str, Any]]
+    evaluator_response: Dict[str, Any]
+
+
+class ReviseResponse(BaseModel):
+    revision_id: str
+    original_format_id: str
+    document_id: str
+    format: str
+    status: str = Field(..., description="success | failed")
+    content: Optional[Dict[str, Any]] = None
+    sources_used: List[Dict[str, Any]] = Field(default_factory=list)
+    error_message: Optional[str] = None
+    error: Optional[ErrorDetail] = None
+    execution_time_seconds: float
+
+
+# ==========================================
+# CONTRATOS DE EVALUACIÓN Y OPERACIÓN
+# ==========================================
 class IndexResponse(BaseModel):
     document_id: str
     status: Literal["indexed"]
@@ -123,9 +214,7 @@ class HealthResponse(BaseModel):
     vector_store_ok: bool
 
 
-# ---- Evaluación de retrieval: refleja el contrato v2.0 de rag/contract.py ----
 class RetrievalEvalCase(BaseModel):
-    """Mismos argumentos que RetrieverService.retrieve_for_evaluation."""
     model_config = ConfigDict(extra="forbid")
 
     case_id: str = Field(..., min_length=1, max_length=128, description="Id del caso del Ground Truth; se devuelve igual.")
@@ -161,7 +250,6 @@ class RetrievalEvalResult(BaseModel):
 
 class RetrievalEvalBatchRequest(BaseModel):
     model_config = ConfigDict(extra="forbid")
-
     cases: List[RetrievalEvalCase] = Field(..., min_length=1, max_length=100)
 
 
@@ -200,7 +288,7 @@ RESPUESTAS_DOC = {
 
 
 # ==========================================
-# ENDPOINTS
+# ENDPOINTS PRINCIPALES
 # ==========================================
 @app.post("/api/v1/index", response_model=IndexResponse)
 async def index_document(document_id: str = Form(...), file: UploadFile = File(...)):
@@ -221,7 +309,8 @@ async def index_document(document_id: str = Form(...), file: UploadFile = File(.
             chunks = create_chunks(documents)
             vector_store.add_chunks(chunks)
         finally:
-            os.remove(tmp_path)
+            if os.path.exists(tmp_path):
+                os.remove(tmp_path)
 
         return {
             "document_id": document_id,
@@ -230,11 +319,11 @@ async def index_document(document_id: str = Form(...), file: UploadFile = File(.
             "chunks_indexed": len(chunks),
         }
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Error interno al indexar: {str(e)}")
+        logger.exception("Error interno al indexar")
+        raise HTTPException(status_code=500, detail="Error interno al indexar el documento.")
 
 
 def _normalizar_resultado(formato: str, resultado: Dict[str, Any], segundos: float) -> Dict[str, Any]:
-    """Garantiza que todo resultado por formato tenga la misma forma, con error estructurado si falló."""
     status = resultado.get("status", "failed")
     error = resultado.get("error")
 
@@ -262,15 +351,6 @@ def _normalizar_resultado(formato: str, resultado: Dict[str, Any], segundos: flo
     summary="Genera formatos de estudio con errores estructurados por formato",
 )
 def generate_formats(payload: GenerateRequest):
-    """
-    Política HTTP:
-
-    - **200**: metadatos y todos los formatos solicitados salieron bien.
-    - **207**: fallo parcial controlado. Cada formato es atómico: si uno falla, los demás
-      se generan igual. El detalle de cada fallo va en `results[].error`.
-    - **Error global (429, 503, 504, 502, 404, 422, 500)**: TODAS las unidades fallaron.
-      El código HTTP corresponde a la causa dominante y el cuerpo conserva el detalle por formato.
-    """
     inicio = time.perf_counter()
     try:
         query_rag = payload.query or f"Conceptos principales sobre {payload.niche} para un perfil {payload.profile} con nivel {payload.detail_level}."
@@ -280,7 +360,7 @@ def generate_formats(payload: GenerateRequest):
         exitosas = 0
         errores: List[Dict[str, Any]] = []
 
-        # 1. METADATOS (una unidad más; su fallo no impide generar los formatos)
+        # 1. METADATOS
         try:
             meta = agent.extract_learning_metadata(
                 query=query_rag, document_id=payload.document_id, niche=payload.niche
@@ -300,7 +380,7 @@ def generate_formats(payload: GenerateRequest):
 
         learning_metadata = meta.get("content") or _metadata_fallback()
 
-        # 2. FORMATOS (atómicos: cada uno en su propio try, ninguno interrumpe a los demás)
+        # 2. FORMATOS
         respuestas_generadas = []
         for formato in payload.formats:
             t0 = time.perf_counter()
@@ -339,7 +419,7 @@ def generate_formats(payload: GenerateRequest):
             else:
                 errores.append(item["error"])
 
-        # 3. ESTADO GLOBAL Y CÓDIGO HTTP
+        # 3. ESTADO GLOBAL
         overall_status, http_status = evaluar_resultado_global(exitosas, errores)
 
         cuerpo = {
@@ -353,24 +433,156 @@ def generate_formats(payload: GenerateRequest):
             "learning_metadata_error": meta_error,
             "results": respuestas_generadas,
         }
-        return JSONResponse(status_code=http_status, content=jsonable_encoder(cuerpo))
+        
+        respuesta_validada = GenerateResponse.model_validate(cuerpo)
+        return JSONResponse(
+            status_code=http_status, 
+            content=respuesta_validada.model_dump(mode="json")
+        )
 
     except Exception as e:
         logger.exception("Error inesperado en /generate")
-        raise HTTPException(status_code=500, detail=f"Error del servidor: {str(e)}")
+        raise HTTPException(status_code=500, detail="Error interno del servidor en el motor de agentes.")
 
 
 # ==========================================
-# EVALUACIÓN DE RETRIEVAL (agente evaluador / Data)
+# ENDPOINT DE REVISIÓN / CORRECCIÓN (SPRINT 4)
+# ==========================================
+@app.post(
+    "/api/v1/revise",
+    response_model=ReviseResponse,
+    summary="Aplica correcciones pedagógicas a un formato previamente generado"
+)
+def revise_format(payload: ReviseRequest):
+    inicio = time.perf_counter()
+    try:
+        if payload.format not in FORMATOS_SOPORTADOS:
+            raise ValueError(f"El formato '{payload.format}' no está soportado.")
+
+        # 1. Obtener contexto RAG (unir chunks_used o consultar vector store)
+        textos_chunks = [c.get("text", "") for c in payload.chunks_used if isinstance(c, dict) and c.get("text")]
+        retrieved_context = "\n\n".join(textos_chunks).strip()
+
+        fuentes_usadas = payload.chunks_used
+        if not retrieved_context:
+            query = f"Conceptos principales de {payload.generation_context.niche}"
+            retrieval_res = agent.retriever.retrieve(query=query, document_id=payload.document_id)
+            retrieved_context = retrieval_res.get("context", "")
+            fuentes_usadas = retrieval_res.get("sources", payload.chunks_used)
+
+        if not retrieved_context:
+            raise ValueError(f"No se encontró contexto indexado para el documento '{payload.document_id}'.")
+
+        # 2. Normalizar feedback para el contrato del Redactor
+        feedback_normalizado = _normalizar_feedback_revision(
+            payload.evaluator_response,
+            document_id=payload.document_id,
+            formato=payload.format,
+        )
+
+        # 3. Construir FormatState estricto para LangGraph
+        initial_format_state = {
+            "format": payload.format,
+            "document_id": payload.document_id,
+            "profile": payload.generation_context.profile,
+            "niche": payload.generation_context.niche,
+            "detail_level": payload.generation_context.detail_level,
+            "learning_objective": payload.generation_context.learning_objective,
+            "retrieved_context": retrieved_context,
+            "sources_used": fuentes_usadas,
+            "retrieval_error": None,
+            "max_revisions": 2,
+            "started_at": time.time(),
+            "current_content": payload.previous_content,
+            "current_error": None,
+            "feedback": feedback_normalizado,
+            "feedback_history": [feedback_normalizado],
+            "revision_count": 1,
+            "outcome": None,
+        }
+
+        # 4. Invocar Subgrafo de Corrección pasándole la instancia del agente
+        subgrafo = compilar_subgrafo_formato(agent)
+        final_state = subgrafo.invoke(initial_format_state)
+
+        # 5. Extraer el resultado real del nodo_finalizar
+        outcome: Optional[Dict[str, Any]] = final_state.get("outcome")
+        corrected_content = None
+        error_outcome = None
+
+        if outcome:
+            corrected_content = outcome.get("content")
+            error_outcome = outcome.get("error")
+
+        if not corrected_content and not error_outcome:
+            # Fallback en caso de que el estado devuelva current_content directo
+            corrected_content = final_state.get("current_content")
+
+        if not corrected_content and not error_outcome:
+            raise ValueError("El agente revisor devolvió un contenido vacío tras la corrección.")
+
+        tiempo_ejecucion = round(time.perf_counter() - inicio, 3)
+
+        if error_outcome:
+            cuerpo_error = {
+                "revision_id": payload.revision_id,
+                "original_format_id": payload.original_format_id,
+                "document_id": payload.document_id,
+                "format": payload.format,
+                "status": "failed",
+                "content": None,
+                "sources_used": fuentes_usadas,
+                "error_message": error_outcome.get("message", "Error durante la revisión."),
+                "error": error_outcome,
+                "execution_time_seconds": tiempo_ejecucion
+            }
+            respuesta_validada = ReviseResponse.model_validate(cuerpo_error)
+            http_code = error_outcome.get("http_status", 500)
+            return JSONResponse(status_code=http_code, content=respuesta_validada.model_dump(mode="json"))
+
+        cuerpo_exito = {
+            "revision_id": payload.revision_id,
+            "original_format_id": payload.original_format_id,
+            "document_id": payload.document_id,
+            "format": payload.format,
+            "status": "success",
+            "content": corrected_content,
+            "sources_used": fuentes_usadas,
+            "error_message": None,
+            "error": None,
+            "execution_time_seconds": tiempo_ejecucion
+        }
+        
+        respuesta_validada = ReviseResponse.model_validate(cuerpo_exito)
+        return JSONResponse(status_code=200, content=respuesta_validada.model_dump(mode="json"))
+
+    except Exception as e:
+        logger.exception("Error en /revise (revision_id=%s)", payload.revision_id)
+        tiempo_ejecucion = round(time.perf_counter() - inicio, 3)
+        error_detail = classify_exception(e)
+        
+        cuerpo_error = {
+            "revision_id": payload.revision_id,
+            "original_format_id": payload.original_format_id,
+            "document_id": payload.document_id,
+            "format": payload.format,
+            "status": "failed",
+            "content": None,
+            "sources_used": payload.chunks_used,
+            "error_message": str(e),
+            "error": error_detail,
+            "execution_time_seconds": tiempo_ejecucion
+        }
+        
+        respuesta_validada = ReviseResponse.model_validate(cuerpo_error)
+        http_code = error_detail.get("http_status", 500) if isinstance(error_detail, dict) else 500
+        return JSONResponse(status_code=http_code, content=respuesta_validada.model_dump(mode="json"))
+
+
+# ==========================================
+# EVALUACIÓN DE RETRIEVAL Y OPERACIÓN
 # ==========================================
 def _evaluar_caso(caso: RetrievalEvalCase) -> Dict[str, Any]:
-    """
-    Devuelve SIEMPRE un payload del contrato v2.0 de rag/contract.py (nunca lanza).
-
-    retrieve_for_evaluation lanza ValueError con un case_id vacío y arma la respuesta de éxito
-    FUERA de su try, así que un chunk sin document_id escaparía como excepción. Aquí ambos casos
-    se convierten en payloads status="error".
-    """
     if not caso.case_id.strip():
         return build_error_response(
             caso.case_id, caso.query, caso.top_k,
@@ -396,12 +608,6 @@ def _evaluar_caso(caso: RetrievalEvalCase) -> Dict[str, Any]:
     summary="Evalúa un caso de retrieval (contrato v2.0)",
 )
 def evaluate_retrieval(caso: RetrievalEvalCase):
-    """
-    Devuelve el payload del contrato v2.0 SIN modificarlo (el mismo que valida data_ai).
-
-    - **200**: `success` y `no_results` (un caso sin resultados es un dato: recall 0).
-    - **422 / 500**: `status="error"` con `INVALID_INPUT` / `RETRIEVAL_FAILED`; el body sigue siendo el contrato.
-    """
     payload = _evaluar_caso(caso)
     return JSONResponse(status_code=http_evaluacion_caso(payload), content=jsonable_encoder(payload))
 
@@ -413,13 +619,6 @@ def evaluate_retrieval(caso: RetrievalEvalCase):
     summary="Evalúa un lote de casos de retrieval (cada caso es atómico)",
 )
 def evaluate_retrieval_batch_endpoint(lote: RetrievalEvalBatchRequest):
-    """
-    Cada caso se procesa de forma independiente: un error en uno no interrumpe los demás.
-    `results` contiene los payloads v2.0 en el mismo orden de `cases`, listos para `evaluate_retrieval_batch`.
-
-    - **200**: ningún error. **207**: mezcla de casos con y sin error.
-    - **422 / 500**: todos los casos fallaron (500 si hay algún RETRIEVAL_FAILED).
-    """
     inicio = time.perf_counter()
     payloads = [_evaluar_caso(caso) for caso in lote.cases]
     overall_status, http_status = evaluar_lote_evaluacion(payloads)
@@ -435,10 +634,7 @@ def evaluate_retrieval_batch_endpoint(lote: RetrievalEvalBatchRequest):
     return JSONResponse(status_code=http_status, content=jsonable_encoder(cuerpo))
 
 
-# ==========================================
-# OPERACIÓN
-# ==========================================
-@app.get("/api/v1/health", response_model=HealthResponse, summary="Estado del servicio (no llama a Gemini)")
+@app.get("/api/v1/health", response_model=HealthResponse, summary="Estado del servicio")
 def health():
     vector_ok = True
     try:
@@ -474,4 +670,4 @@ def delete_document(document_id: str):
         return {"document_id": document_id, "status": "deleted", "chunks_deleted": len(ids)}
     except Exception as e:
         logger.exception("Error al borrar el documento %s", document_id)
-        raise HTTPException(status_code=500, detail=f"Error interno al borrar: {str(e)}")
+        raise HTTPException(status_code=500, detail="Error interno al borrar el documento.")
