@@ -58,6 +58,8 @@ class FormatRevisionService:
         *,
         format_id: str,
         feedback: RevisionFeedback,
+        revision_id: str | None = None,
+        evaluator_response: dict[str, object] | None = None,
     ) -> AgentRevisionResult:
         """Solicita una sola revisión del formato identificado.
 
@@ -87,7 +89,12 @@ class FormatRevisionService:
                 f"No existe el formato generado {format_id}."
             )
 
-        request = self._build_request(original=original, feedback=feedback)
+        request = self._build_request(
+            original=original,
+            feedback=feedback,
+            revision_id=revision_id,
+            evaluator_response=evaluator_response,
+        )
         try:
             result = await self._agent_revision.revise_format(request)
         except AgentRevisionError as exc:
@@ -111,6 +118,8 @@ class FormatRevisionService:
         *,
         original: GeneratedFormat,
         feedback: RevisionFeedback,
+        revision_id: str | None = None,
+        evaluator_response: dict[str, object] | None = None,
     ) -> AgentRevisionInput:
         """Construye el contrato interno sin depender del proveedor HTTP."""
         if not original.is_evaluation_ready or original.content is None:
@@ -126,4 +135,9 @@ class FormatRevisionService:
             generation_context=original.generation_context,
             chunks_used=original.chunks_used,
             feedback=feedback,
+            revision_id=revision_id,
+            original_format_id=(
+                original.format_id if revision_id is not None else None
+            ),
+            evaluator_response=evaluator_response,
         )
