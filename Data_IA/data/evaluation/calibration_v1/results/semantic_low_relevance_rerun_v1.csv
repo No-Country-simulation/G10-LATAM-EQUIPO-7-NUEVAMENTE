@@ -1,0 +1,4 @@
+calibration_id,semantic_status,semantic_relevance,semantic_coherence,semantic_didactic_adaptation,semantic_content_support,unsupported_information_count,attempts,error_code,model,prompt_version
+CAL-V1-007,success,1.5,5.0,3.5,5.0,0,1,,gemini-3.8-flash,semantic-evaluator-v0.1
+CAL-V1-012,success,1.5,5.0,4.0,4.0,1,1,,gemini-3.8-flash,semantic-evaluator-v0.1
+CAL-V1-019,failed,,,,,0,2,provider_error,gemini-3.8-flash,semantic-evaluator-v0.1
