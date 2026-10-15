@@ -65,7 +65,14 @@ class StubRevision:
         self.result = result
         self.error = error
 
-    async def request_revision(self, *, format_id: str, feedback):
+    async def request_revision(
+        self, *, format_id: str, feedback,
+        revision_id: str | None = None,
+        evaluator_response: dict[str, object] | None = None,
+    ):
+        assert revision_id is not None
+        assert evaluator_response is not None
+        assert evaluator_response["verdict"] in ("requires_revision", "rejected")
         self.calls += 1
         if self.error is not None:
             raise self.error
@@ -113,6 +120,8 @@ def evaluation(verdict: str = "requires_revision", actionable: bool = True) -> F
         evaluation_id="eval_1",
         format_id="fmt_base",
         verdict=verdict,
+        evaluator_version="2.0.0",
+        rubric_version="2.0.0",
         heuristic_scores=HeuristicScoresV2(
             relevance=4.0, coherence=3.0,
             didactic_adaptation=2.0, content_support=4.0,
