@@ -819,7 +819,7 @@ export const bookshelf = {
     container.textContent = '';
     const clean = (fullTitle || 'Documento').trim();
 
-    if (clean.length <= 18) {
+    if (clean.length <= 22) {
       const lineSpan = document.createElement('span');
       lineSpan.className = 'spine-title-line';
       lineSpan.textContent = clean;
