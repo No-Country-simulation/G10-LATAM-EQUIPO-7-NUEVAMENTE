@@ -51,6 +51,8 @@ class DocumentRecord:
     learning_metadata_json: str | None
     created_at: str
     updated_at: str
+    document_title: str | None = None
+    document_description: str | None = None
     is_active: bool = True
 
     @classmethod
@@ -78,6 +80,10 @@ class DocumentRecord:
             ),
             created_at=document.created_at.isoformat(),
             updated_at=document.updated_at.isoformat(),
+            document_title=document.document_title,
+            document_description=(
+                document.document_description
+            ),
             is_active=document.is_active,
         )
 
@@ -100,6 +106,16 @@ class DocumentRecord:
             ],
             created_at=row["created_at"],
             updated_at=row["updated_at"],
+            document_title=(
+                row["document_title"]
+                if "document_title" in tuple(row.keys())
+                else None
+            ),
+            document_description=(
+                row["document_description"]
+                if "document_description" in tuple(row.keys())
+                else None
+            ),
             is_active=(
                 bool(row["is_active"])
                 if "is_active" in tuple(row.keys())
@@ -123,6 +139,10 @@ class DocumentRecord:
             oci_object_name=self.oci_object_name,
             learning_metadata=(
                 self._deserialize_learning_metadata()
+            ),
+            document_title=self.document_title,
+            document_description=(
+                self.document_description
             ),
             is_active=self.is_active,
             created_at=datetime.fromisoformat(
