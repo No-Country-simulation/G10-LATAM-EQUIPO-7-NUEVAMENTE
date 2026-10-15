@@ -31,6 +31,7 @@ from data_ai.evaluation.semantic_provider import (
     SemanticProviderExecutionError,
     SemanticProviderNotConfiguredError,
     SemanticProviderTimeoutError,
+    SemanticProviderInvalidOutputError, # <--- AGREGAMOS NUESTRO NUEVO ERROR AQUÍ
 )
 from data_ai.schemas.semantic_evaluation import (
     SemanticObservation,
@@ -196,7 +197,7 @@ class GeminiSemanticProvider(SemanticProvider):
                 )
 
             except ValidationError as exc:
-                raise SemanticProviderExecutionError(
+                raise SemanticProviderInvalidOutputError(
                     "Gemini returned invalid structured output.",
                     provider=self.provider_name,
                     model=self.model_name,

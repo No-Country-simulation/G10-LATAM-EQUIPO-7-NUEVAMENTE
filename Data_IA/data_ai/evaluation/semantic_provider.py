@@ -125,6 +125,20 @@ class SemanticProviderExecutionError(
         error_code = "provider_error"
     """
 
+class SemanticProviderInvalidOutputError(
+    SemanticProviderError
+):
+    """El proveedor devolvió una salida estructuralmente inválida.
+
+    Ejemplos:
+    - La respuesta no es un JSON válido (JSONDecodeError).
+    - La estructura devuelta no cumple con el esquema esperado (ValidationError).
+
+    Este error debe mapear posteriormente a:
+
+        semantic_status = "failed"
+        error_code = "invalid_output"
+    """
 
 class SemanticProvider(ABC):
     """Interfaz abstracta para proveedores de evaluación semántica.
@@ -202,11 +216,14 @@ class SemanticProvider(ABC):
         SemanticProviderNotConfiguredError
             Cuando el proveedor no cuenta con la configuración necesaria.
 
+        SemanticProviderInvalidOutputError
+            Cuando la IA alucina el formato y rompe la estructura JSON/Pydantic.
+
         SemanticProviderTimeoutError
             Cuando la llamada supera el timeout permitido.
 
         SemanticProviderExecutionError
-            Para otros fallos técnicos del proveedor.
+            Para otros fallos técnicos del proveedor (caídas de red, cuota).
         """
 
         raise NotImplementedError

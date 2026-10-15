@@ -57,7 +57,10 @@ from data_ai.evaluation.semantic_provider import (
     SemanticProviderExecutionError,
     SemanticProviderNotConfiguredError,
     SemanticProviderTimeoutError,
+    SemanticProviderInvalidOutputError, # <--- AGREGAR ESTA LÍNEA
 )
+
+
 from data_ai.schemas.semantic_evaluation import (
     SemanticEvaluationResult,
     SemanticObservation,
@@ -604,6 +607,22 @@ class SemanticEvaluator:
                 ),
             )
 
+        except SemanticProviderInvalidOutputError as exc:
+            return SemanticEvaluationResult(
+                status="failed",
+                scores=None,
+                observations=[],
+                recommendations=[],
+                unsupported_information=[],
+                error_code="invalid_output",
+                error_message=str(exc),
+                model=exc.model or model_name,
+                prompt_version=self.prompt_version,
+                latency_ms=self._elapsed_ms(
+                    started_at
+                ),
+            )
+        
         except (
             ValidationError,
             KeyError,
