@@ -27,6 +27,7 @@ _GENERATED_FORMATS_TABLE_SQL = """
 CREATE TABLE IF NOT EXISTS generated_formats (
     format_id TEXT PRIMARY KEY,
     document_id TEXT NOT NULL,
+    revision_of_format_id TEXT,
 
     format_type TEXT NOT NULL
         CHECK (
@@ -71,6 +72,7 @@ _GENERATED_FORMATS_MIGRATION_TABLE_SQL = """
 CREATE TABLE generated_formats_migrated (
     format_id TEXT PRIMARY KEY,
     document_id TEXT NOT NULL,
+    revision_of_format_id TEXT,
 
     format_type TEXT NOT NULL
         CHECK (
@@ -209,6 +211,12 @@ _SCHEMA_INDEXES_SQL = (
     CREATE INDEX IF NOT EXISTS
         idx_format_evaluations_format
     ON format_evaluations(format_id);
+    """,
+    """
+    CREATE UNIQUE INDEX IF NOT EXISTS
+        idx_generated_formats_revision_unique
+    ON generated_formats(revision_of_format_id)
+    WHERE revision_of_format_id IS NOT NULL;
     """,
 )
 
@@ -411,6 +419,15 @@ class SQLiteDatabase:
         )
 
         if schema_is_current:
+            existing_columns = {
+                column["name"] for column in connection.execute(
+                    "PRAGMA table_info(generated_formats)"
+                ).fetchall()
+            }
+            if "revision_of_format_id" not in existing_columns:
+                connection.execute(
+                    "ALTER TABLE generated_formats ADD COLUMN revision_of_format_id TEXT"
+                )
             return
 
         connection.execute(
@@ -433,11 +450,21 @@ class SQLiteDatabase:
                 _GENERATED_FORMATS_MIGRATION_TABLE_SQL
             )
 
+            legacy_columns = {
+                column["name"] for column in connection.execute(
+                    "PRAGMA table_info(generated_formats)"
+                ).fetchall()
+            }
+            revision_source = (
+                "revision_of_format_id" if "revision_of_format_id" in legacy_columns
+                else "NULL"
+            )
             connection.execute(
-                """
+                f"""
                 INSERT INTO generated_formats_migrated (
                     format_id,
                     document_id,
+                    revision_of_format_id,
                     format_type,
                     status,
                     content_json,
@@ -453,6 +480,7 @@ class SQLiteDatabase:
                 SELECT
                     format_id,
                     document_id,
+                    {revision_source},
                     format_type,
                     status,
                     content_json,

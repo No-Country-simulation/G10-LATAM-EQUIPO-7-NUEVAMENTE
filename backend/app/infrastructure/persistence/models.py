@@ -194,6 +194,7 @@ class GeneratedFormatRecord:
     error_message: str | None
     created_at: str
     updated_at: str
+    revision_of_format_id: str | None = None
 
     @classmethod
     def from_domain(
@@ -256,6 +257,7 @@ class GeneratedFormatRecord:
                 .updated_at
                 .isoformat()
             ),
+            revision_of_format_id=generated_format.revision_of_format_id,
         )
 
     @classmethod
@@ -282,6 +284,7 @@ class GeneratedFormatRecord:
             error_message=row["error_message"],
             created_at=row["created_at"],
             updated_at=row["updated_at"],
+            revision_of_format_id=row["revision_of_format_id"],
         )
 
     def to_domain(
@@ -324,6 +327,7 @@ class GeneratedFormatRecord:
             updated_at=datetime.fromisoformat(
                 self.updated_at
             ),
+            revision_of_format_id=self.revision_of_format_id,
         )
 
     def _deserialize_content(

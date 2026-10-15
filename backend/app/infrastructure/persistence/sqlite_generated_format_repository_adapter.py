@@ -48,11 +48,13 @@ class SQLiteGeneratedFormatRepositoryAdapter:
 
         try:
             with self._database.connect() as connection:
+                self._validate_revision_reference(connection, record)
                 connection.execute(
                     """
                     INSERT INTO generated_formats (
                         format_id,
                         document_id,
+                        revision_of_format_id,
                         format_type,
                         status,
                         content_json,
@@ -65,11 +67,12 @@ class SQLiteGeneratedFormatRepositoryAdapter:
                         created_at,
                         updated_at
                     )
-                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                     """,
                     (
                         record.format_id,
                         record.document_id,
+                        record.revision_of_format_id,
                         record.format_type,
                         record.status,
                         record.content_json,
@@ -99,6 +102,11 @@ class SQLiteGeneratedFormatRepositoryAdapter:
                     "el documento "
                     f"{generated_format.document_id} "
                     "no existe."
+                ) from exc
+
+            if "generated_formats.revision_of_format_id" in error_message:
+                raise GeneratedFormatRepositoryError(
+                    "La generación original ya tiene una revisión persistida."
                 ) from exc
 
             if (
@@ -153,7 +161,8 @@ class SQLiteGeneratedFormatRepositoryAdapter:
                     SELECT
                         document_id,
                         format_type,
-                        created_at
+                        created_at,
+                        revision_of_format_id
                     FROM generated_formats
                     WHERE format_id = ?
                     """,
@@ -173,6 +182,8 @@ class SQLiteGeneratedFormatRepositoryAdapter:
                     != record.format_type
                     or existing["created_at"]
                     != record.created_at
+                    or existing["revision_of_format_id"]
+                    != record.revision_of_format_id
                 ):
                     raise GeneratedFormatRepositoryError(
                         "No es posible modificar la identidad "
@@ -226,6 +237,30 @@ class SQLiteGeneratedFormatRepositoryAdapter:
             ) from exc
 
         return generated_format
+
+    @staticmethod
+    def _validate_revision_reference(
+        connection: sqlite3.Connection,
+        record: GeneratedFormatRecord,
+    ) -> None:
+        """Valida raíz, documento, tipo y estado en la misma transacción."""
+        if record.revision_of_format_id is None:
+            return
+        parent = connection.execute(
+            """SELECT document_id, format_type, status, revision_of_format_id
+               FROM generated_formats WHERE format_id = ?""",
+            (record.revision_of_format_id,),
+        ).fetchone()
+        if parent is None:
+            raise GeneratedFormatRepositoryError("No existe el formato original.")
+        if parent["revision_of_format_id"] is not None:
+            raise GeneratedFormatRepositoryError("No se permiten revisiones encadenadas.")
+        if parent["document_id"] != record.document_id:
+            raise GeneratedFormatRepositoryError("La revisión debe pertenecer al mismo documento.")
+        if parent["format_type"] != record.format_type:
+            raise GeneratedFormatRepositoryError("La revisión debe conservar el tipo de formato.")
+        if parent["status"] != "success":
+            raise GeneratedFormatRepositoryError("Solo se revisan generaciones exitosas.")
 
     def find_by_id(
         self,

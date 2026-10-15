@@ -26,6 +26,9 @@ from app.application.format_generation_service import (
 from app.application.format_regeneration_service import (
     FormatRegenerationService,
 )
+from app.application.format_revision_history_service import (
+    FormatRevisionHistoryService,
+)
 from app.application.format_revision_service import (
     FormatRevisionService,
 )
@@ -89,6 +92,12 @@ async def lifespan(
         create_format_evaluation_repository(
             settings.DATABASE_URL
         )
+    )
+
+    revision_history_service = FormatRevisionHistoryService(
+        document_repository=document_repository,
+        generated_format_repository=generated_format_repository,
+        evaluation_repository=format_evaluation_repository,
     )
 
     document_service = DocumentService(
@@ -250,6 +259,7 @@ async def lifespan(
         app.state.generated_format_query_service = (
             generated_format_query_service
         )
+        app.state.format_revision_history_service = revision_history_service
 
         app.state.generated_package_storage_service = (
             generated_package_storage_service

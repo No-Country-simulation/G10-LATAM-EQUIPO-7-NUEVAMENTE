@@ -16,6 +16,9 @@ from app.application.format_generation_service import (
 from app.application.format_regeneration_service import (
     FormatRegenerationService,
 )
+from app.application.format_revision_history_service import (
+    FormatRevisionHistoryService,
+)
 from app.application.generated_format_query_service import (
     GeneratedFormatQueryService,
 )
@@ -103,6 +106,16 @@ def get_generated_format_query_service(
             "GeneratedFormatQueryService no fue inicializado."
         )
 
+    return service
+
+
+def get_format_revision_history_service(
+    request: Request,
+) -> FormatRevisionHistoryService:
+    """Obtiene el caso de uso de historial configurado."""
+    service = getattr(request.app.state, "format_revision_history_service", None)
+    if service is None:
+        raise RuntimeError("FormatRevisionHistoryService no fue inicializado.")
     return service
 
 
