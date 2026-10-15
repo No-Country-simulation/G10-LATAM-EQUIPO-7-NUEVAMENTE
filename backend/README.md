@@ -3847,3 +3847,37 @@ backend/tests/
 ```
 
 <!-- END BACKENDAPI_SPRINT4_2026 -->
+
+---
+
+## Sprint 4 — Salida de evaluaciones del ciclo vigente
+
+`GET /api/v1/documents/{document_id}/formats` conserva el contrato público de
+contenido y estado por formato, y añade dos campos a cada formato persistido:
+
+- `evaluation`: última evaluación de **la versión cuyo `format_id` se muestra**,
+  o `null` si esa versión no ha sido evaluada. No hereda el veredicto del original
+  cuando el contenido seleccionado es una corrección nueva.
+- `evaluations`: evaluaciones de la generación raíz y su revisión (cuando
+  exista) dentro del **mismo ciclo**, en orden de la más reciente a la más
+  antigua. Es `[]` si aún no hay evaluaciones en ese ciclo.
+
+Las métricas usan `RevisionEvaluationResponse`, el mismo contrato tipado del
+endpoint histórico, con campos V1/V2 (`verdict`, `heuristic_scores`,
+`semantic_evaluation`, `observations`, versiones y fechas). No se calculan
+scores adicionales ni se reevalúa al consultar formatos.
+
+La selección del ciclo se hace por `format_id` del contenido que
+`GeneratedFormatQueryService` considera vigente. Si una regeneración más
+reciente falló, la consulta conserva el último contenido exitoso y muestra
+únicamente sus evaluaciones, sin mezclar intentos de regeneración. Mientras una
+regeneración está `processing`, sus evaluaciones no heredan las anteriores.
+
+**Nota de integración Frontend:** `evaluation=null` significa que la versión
+mostrada no tiene una evaluación propia, incluso si `evaluations` contiene una
+evaluación histórica de la generación original. Frontend debe respetar esta
+distinción antes de atribuir un veredicto a una corrección todavía no evaluada.
+
+El endpoint histórico por formato (`/documents/{document_id}/formats/
+{format_type}/history`) sigue ofreciendo todos los ciclos. Esta ampliación de
+`/formats` no altera su contrato.
