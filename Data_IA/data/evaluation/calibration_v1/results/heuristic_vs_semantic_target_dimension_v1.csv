@@ -1,0 +1,12 @@
+calibration_id,variant,target_dimension,heuristic_target_score,semantic_target_score,delta_sem_minus_heur,heuristic_detected,semantic_detected,model
+CAL-V1-002,poor_didactic_adaptation,didactic_adaptation,5,1.5,-3.5,False,True,gemini-3.8-flash
+CAL-V1-003,low_coherence,coherence,5,1.5,-3.5,False,True,gemini-3.8-flash
+CAL-V1-007,low_relevance,relevance,5,1.5,-3.5,False,True,gemini-3.8-flash
+CAL-V1-008,poor_didactic_adaptation,didactic_adaptation,5,2.0,-3.0,False,True,gemini-3.8-flash
+CAL-V1-010,poor_didactic_adaptation,didactic_adaptation,5,1.5,-3.5,False,True,gemini-3.8-flash
+CAL-V1-011,low_coherence,coherence,5,2.0,-3.0,False,True,gemini-3.8-flash
+CAL-V1-012,low_relevance,relevance,5,1.5,-3.5,False,True,gemini-3.8-flash
+CAL-V1-015,low_coherence,coherence,5,2.5,-2.5,False,True,gemini-3.8-flash
+CAL-V1-016,poor_didactic_adaptation,didactic_adaptation,5,2.0,-3.0,False,True,gemini-3.8-flash
+CAL-V1-019,low_relevance,relevance,5,2.0,-3.0,False,True,gemini-3.8-flash
+CAL-V1-020,low_coherence,coherence,5,1.5,-3.5,False,True,gemini-3.6-flash
