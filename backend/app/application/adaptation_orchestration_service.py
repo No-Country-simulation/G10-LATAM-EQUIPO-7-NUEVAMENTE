@@ -5,6 +5,11 @@ import logging
 from app.application.document_service import (
     DocumentService,
 )
+from app.application.format_auto_revision_service import (
+    FormatAutoReevaluationError,
+    FormatAutoRevisionError,
+    FormatAutoRevisionService,
+)
 from app.application.format_evaluation_service import (
     EvaluationResponseMismatchError,
     FormatEvaluationIntegrationError,
@@ -90,6 +95,9 @@ class AdaptationOrchestrationService:
         format_evaluation_service: (
             FormatEvaluationService | None
         ) = None,
+        format_auto_revision_service: (
+            FormatAutoRevisionService | None
+        ) = None,
     ) -> None:
         self._document_service = document_service
         self._rag_integration_service = (
@@ -103,6 +111,9 @@ class AdaptationOrchestrationService:
         )
         self._format_evaluation_service = (
             format_evaluation_service
+        )
+        self._format_auto_revision_service = (
+            format_auto_revision_service
         )
 
     async def ensure_document_indexed(
@@ -248,15 +259,22 @@ class AdaptationOrchestrationService:
                 continue
 
             try:
-                await (
+                evaluation = await (
                     self._format_evaluation_service
                     .evaluate_format(
                         generated_format.format_id
                     )
                 )
+                if self._format_auto_revision_service is not None:
+                    await self._format_auto_revision_service.revise_if_required(
+                        original=generated_format,
+                        evaluation=evaluation,
+                    )
 
             except (
                 GeneratedFormatNotFoundError,
+                FormatAutoRevisionError,
+                FormatAutoReevaluationError,
                 GeneratedFormatNotEvaluationReadyError,
                 EvaluationResponseMismatchError,
                 FormatEvaluationIntegrationError,

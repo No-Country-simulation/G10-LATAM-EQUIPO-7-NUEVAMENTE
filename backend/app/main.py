@@ -17,6 +17,9 @@ from app.application.adaptation_orchestration_service import (
 from app.application.document_service import (
     DocumentService,
 )
+from app.application.format_auto_revision_service import (
+    FormatAutoRevisionService,
+)
 from app.application.format_evaluation_service import (
     FormatEvaluationService,
 )
@@ -218,6 +221,17 @@ async def lifespan(
             agent_revision=agent_revision_adapter,
         )
 
+        # Desactivado por defecto hasta que Agentes publique /api/v1/revise.
+        format_auto_revision_service = (
+            FormatAutoRevisionService(
+                generated_format_repository=generated_format_repository,
+                format_revision_service=format_revision_service,
+                format_evaluation_service=format_evaluation_service,
+            )
+            if settings.AUTO_REVISION_ENABLED
+            else None
+        )
+
         format_regeneration_service = (
             FormatRegenerationService(
                 document_repository=(
@@ -249,6 +263,7 @@ async def lifespan(
                 format_evaluation_service=(
                     format_evaluation_service
                 ),
+                format_auto_revision_service=format_auto_revision_service,
             )
         )
 

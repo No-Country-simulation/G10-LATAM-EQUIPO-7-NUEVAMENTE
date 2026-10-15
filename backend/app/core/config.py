@@ -70,6 +70,8 @@ class Settings(BaseSettings):
     AGENTS_GENERATE_PATH: str = "/api/v1/generate"
     AGENTS_REVISE_PATH: str = "/api/v1/revise"
     AGENTS_TIMEOUT_SECONDS: float = Field(default=60.0, gt=0)
+    # Habilitar solo cuando Agentes publique POST /api/v1/revise.
+    AUTO_REVISION_ENABLED: bool = False
 
     # --- Data/IA ---
     DATA_IA_BASE_URL: str = "http://localhost:8002"
