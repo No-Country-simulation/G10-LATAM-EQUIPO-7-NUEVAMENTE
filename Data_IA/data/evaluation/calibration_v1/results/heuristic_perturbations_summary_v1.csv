@@ -1,0 +1,4 @@
+variant,cases,target_detected,target_not_detected,target_detection_rate,content_support_penalized,unsupported_true
+low_coherence,4,0,4,0.0,4,3
+low_relevance,3,0,3,0.0,2,1
+poor_didactic_adaptation,4,0,4,0.0,4,4

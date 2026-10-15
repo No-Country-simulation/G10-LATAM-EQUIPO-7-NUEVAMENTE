@@ -1,0 +1,41 @@
+{
+  "calibration_id": "CAL-V1-007",
+  "source_case_id": "BE-ES-002-Q03",
+  "document_id": "BE-ES-002",
+  "category": "Backend",
+  "variant": "low_relevance",
+  "target_dimension": "relevance",
+  "perturbation_design": "Contenido correcto y coherente del mismo chunk, pero evita responder al objetivo sobre el comando que crea mysite en djangotutorial.",
+  "evaluation_request": {
+    "document_id": "BE-ES-002",
+    "format": "video_script",
+    "generated_content": {
+      "title": "Nombres que conviene evitar en un proyecto Django",
+      "estimated_duration_minutes": 1,
+      "scenes": [
+        {
+          "scene_id": "scene_1",
+          "title": "Evitar conflictos de nombres",
+          "visual_description": "Mostrar los nombres django y test tachados.",
+          "narration": "Al crear proyectos Django conviene evitar nombres que coincidan con componentes integrados de Python o Django, como django o test, porque pueden producir conflictos.",
+          "duration_seconds": 40
+        }
+      ]
+    },
+    "generation_context": {
+      "profile": "beginner",
+      "niche": "general",
+      "detail_level": "medium",
+      "learning_objective": null
+    },
+    "chunks_used": [
+      {
+        "chunk_id": "BE-ES-002_CH_005",
+        "document_id": "BE-ES-002",
+        "rank": 1,
+        "score": 1.0,
+        "text": "cd\ndjangotutorial\n\n$ mkdir djangotutorial\n\nThen, run the following command to bootstrap a new Django project:\n\n$ django-admin startproject mysite djangotutorial\n\nThis will create a project called mysite inside the djangotutorial directory. If it didn’t work, see Problemas ejecutando django-admin.\n\nNota\n\nTendrá que evitar darle nombres a sus proyectos que sean iguales a los de otros componentes integrados de Python o Django. En particular, debe evitar nombres como django o test."
+      }
+    ]
+  }
+}

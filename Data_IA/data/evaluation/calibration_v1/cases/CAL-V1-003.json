@@ -1,0 +1,38 @@
+{
+  "calibration_id": "CAL-V1-003",
+  "source_case_id": "AI-ES-002-Q03",
+  "document_id": "AI-ES-002",
+  "category": "IA",
+  "variant": "low_coherence",
+  "target_dimension": "coherence",
+  "perturbation_design": "No agrega hechos; degrada cohesión mediante repetición, fragmentación y circularidad.",
+  "evaluation_request": {
+    "document_id": "AI-ES-002",
+    "format": "tldr",
+    "generated_content": {
+      "title": "Solicitudes eficaces para LLM",
+      "summary": "El módulo espera considerar cómo crear solicitudes eficaces para los LLM. LLM. Solicitudes. Crear solicitudes. El objetivo aparece como una habilidad del módulo.",
+      "key_points": [
+        "Crear solicitudes eficaces para LLM.",
+        "Los LLM forman parte del módulo.",
+        "Solicitudes eficaces; módulo; LLM; solicitudes eficaces."
+      ],
+      "conclusion": "Por tanto, el objetivo es ese objetivo de solicitudes para LLM que el módulo espera considerar."
+    },
+    "generation_context": {
+      "profile": "beginner",
+      "niche": "general",
+      "detail_level": "medium",
+      "learning_objective": null
+    },
+    "chunks_used": [
+      {
+        "chunk_id": "AI-ES-002_CH_001",
+        "document_id": "AI-ES-002",
+        "rank": 1,
+        "score": 1.0,
+        "text": "# Introducción a la inteligencia artificial y los agentes generativos\n\n- Módulo\n- 7 Unidades\n\nLa inteligencia artificial genera aplicaciones que pueden crear contenido, responder preguntas y ayudar con tareas. En este módulo, explorará los aspectos básicos de la inteligencia artificial generativa, incluidos los modelos de lenguaje grande (LLM), las solicitudes y los agentes de IA.\n\n## Objetivos de aprendizaje\n\nAl término de este módulo, sabrá hacer lo siguiente:\n- Describir los conceptos básicos de la inteligencia artificial generativa.\n- Explicar cómo funcionan los modelos de lenguaje (LLM) de gran tamaño.\n- Considere cómo crear solicitudes eficaces para los LLM.\n- Describir los conceptos básicos de los agentes y las soluciones de inteligencia artificial agente."
+      }
+    ]
+  }
+}

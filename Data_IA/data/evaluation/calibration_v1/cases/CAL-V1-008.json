@@ -1,0 +1,46 @@
+{
+  "calibration_id": "CAL-V1-008",
+  "source_case_id": "BE-ES-002-Q05",
+  "document_id": "BE-ES-002",
+  "category": "Backend",
+  "variant": "poor_didactic_adaptation",
+  "target_dimension": "didactic_adaptation",
+  "perturbation_design": "Respuesta correcta y respaldada, pero expresada con jerga arquitectónica excesiva para beginner.",
+  "evaluation_request": {
+    "document_id": "BE-ES-002",
+    "format": "quiz",
+    "generated_content": {
+      "title": "Distinción ontológica proyecto-app en Django",
+      "instructions": "Seleccione la formulación taxonómicamente correcta.",
+      "questions": [
+        {
+          "question_id": "q1",
+          "question": "¿Cuál es la diferenciación arquitectónica entre proyecto y aplicación?",
+          "options": [
+            "La aplicación encapsula una funcionalidad web concreta; el proyecto actúa como agregado configuracional capaz de contener múltiples aplicaciones.",
+            "Ambos términos son equivalentes.",
+            "Una aplicación solo contiene configuración.",
+            "Un proyecto solo puede contener una aplicación."
+          ],
+          "correct_answer": "La aplicación encapsula una funcionalidad web concreta; el proyecto actúa como agregado configuracional capaz de contener múltiples aplicaciones.",
+          "explanation": "La relación se entiende como una separación entre unidad funcional reutilizable y contenedor configuracional del sitio."
+        }
+      ]
+    },
+    "generation_context": {
+      "profile": "beginner",
+      "niche": "general",
+      "detail_level": "medium",
+      "learning_objective": null
+    },
+    "chunks_used": [
+      {
+        "chunk_id": "BE-ES-002_CH_014",
+        "document_id": "BE-ES-002",
+        "rank": 1,
+        "score": 1.0,
+        "text": "Ahora que su entorno (un «proyecto») se ha configurado, ya está listo para empezar a trabajar.\n\nCada aplicación que usted escribe en Django consiste en un paquete de Python que sigue una determinada convención. Django tiene una utilidad que genera automáticamente la estructura básica de directorios de una aplicación.\n\nProyectos vs. aplicaciones\n\nAn app is a web application that does something – e.g., a blog system, a database of public records or a small poll app. A project is a collection of configuration and apps for a particular website. A project can contain multiple apps. An app can be in multiple projects."
+      }
+    ]
+  }
+}

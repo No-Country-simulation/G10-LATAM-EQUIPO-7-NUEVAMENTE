@@ -1,0 +1,39 @@
+{
+  "calibration_id": "CAL-V1-002",
+  "source_case_id": "AI-ES-001-Q05",
+  "document_id": "AI-ES-001",
+  "category": "IA",
+  "variant": "poor_didactic_adaptation",
+  "target_dimension": "didactic_adaptation",
+  "perturbation_design": "Mantiene el hecho fuente, pero usa abstracción, nominalizaciones y vocabulario innecesariamente complejo para un perfil beginner.",
+  "evaluation_request": {
+    "document_id": "AI-ES-001",
+    "format": "flashcards",
+    "generated_content": {
+      "title": "Prerrequisitos epistémicos para IA",
+      "instructions": "Estudie la formulación técnica.",
+      "cards": [
+        {
+          "card_id": "c1",
+          "front": "¿Qué prerrequisito cognitivo antecede al módulo?",
+          "back": "Una representación conceptual previa del aprendizaje automático resulta instrumental, aunque su posesión no constituye una condición normativa de acceso al itinerario formativo."
+        }
+      ]
+    },
+    "generation_context": {
+      "profile": "beginner",
+      "niche": "general",
+      "detail_level": "medium",
+      "learning_objective": null
+    },
+    "chunks_used": [
+      {
+        "chunk_id": "AI-ES-001_CH_001",
+        "document_id": "AI-ES-001",
+        "rank": 1,
+        "score": 1.0,
+        "text": "# Introducción a los conceptos de inteligencia artificial\n\n- Módulo\n- 10 Unidades\n\n¿Tiene curiosidad por la inteligencia artificial? ¿Quieres entender de qué trata el revuelo? En este módulo se presenta el mundo de la inteligencia artificial.\n\n## Objetivos de aprendizaje\n\nEn este módulo, obtendrá información sobre los tipos de soluciones que la inteligencia artificial puede hacer posible y tener en cuenta las prácticas de inteligencia artificial responsables.\n\n## Requisitos previos\n\nAunque no es necesario, un conocimiento conceptual del aprendizaje automático puede ser útil para este módulo. Considere la posibilidad de completar la introducción a los conceptos de Machine Learning antes de iniciar este módulo."
+      }
+    ]
+  }
+}

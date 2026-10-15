@@ -1,0 +1,52 @@
+{
+  "calibration_id": "CAL-V1-004",
+  "source_case_id": "AI-ES-002-Q05",
+  "document_id": "AI-ES-002",
+  "category": "IA",
+  "variant": "unsupported_claim",
+  "target_dimension": "content_support",
+  "expected_behavior": {
+    "semantic": "Debe detectar al menos una afirmación no respaldada y reducir content_support.",
+    "heuristic": "Puede penalizar content_support por términos no presentes en chunks_used."
+  },
+  "injected_unsupported_claim": "Los agentes de IA pueden desplegar modelos en producción de forma autónoma sin supervisión humana.",
+  "evaluation_request": {
+    "document_id": "AI-ES-002",
+    "format": "video_script",
+    "generated_content": {
+      "title": "Agentes de IA en el módulo",
+      "estimated_duration_minutes": 1,
+      "scenes": [
+        {
+          "scene_id": "scene_1",
+          "title": "Conceptos básicos de agentes",
+          "visual_description": "Mostrar iconos de un LLM, un prompt y un agente de IA.",
+          "narration": "El módulo incluye conceptos básicos de agentes de IA y soluciones de inteligencia artificial agéntica. También afirma que los agentes de IA pueden desplegar modelos en producción de forma autónoma sin supervisión humana.",
+          "duration_seconds": 45
+        }
+      ]
+    },
+    "generation_context": {
+      "profile": "beginner",
+      "niche": "general",
+      "detail_level": "medium",
+      "learning_objective": null
+    },
+    "chunks_used": [
+      {
+        "chunk_id": "AI-ES-002_CH_001",
+        "document_id": "AI-ES-002",
+        "rank": 1,
+        "score": 1.0,
+        "text": "# Introducción a la inteligencia artificial y los agentes generativos\n\n- Módulo\n\n- 7 Unidades\n\nLa inteligencia artificial genera aplicaciones que pueden crear contenido, responder preguntas y ayudar con tareas. En este módulo, explorará los aspectos básicos de la inteligencia artificial generativa, incluidos los modelos de lenguaje grande (LLM), las solicitudes y los agentes de IA.\n\n## Objetivos de aprendizaje\n\nAl término de este módulo, sabrá hacer lo siguiente:\n\n- Describir los conceptos básicos de la inteligencia artificial generativa.\n- Explicar cómo funcionan los modelos de lenguaje (LLM) de gran tamaño.\n- Considere cómo crear solicitudes eficaces para los LLM.\n- Describir los conceptos básicos de los agentes y las soluciones de inteligencia artificial agente."
+      },
+      {
+        "chunk_id": "AI-ES-002_CH_002",
+        "document_id": "AI-ES-002",
+        "rank": 2,
+        "score": 1.0,
+        "text": "- Describir los conceptos básicos de los agentes y las soluciones de inteligencia artificial agente.\n\n## Requisitos previos\n\nAntes de iniciar este módulo, debería tener lo siguiente:\n- Familiaridad con los conceptos y la terminología de la inteligencia artificial\n- Principios básicos de aprendizaje automático.\n\n- Introducción min\n- Modelos de lenguaje grandes (LLM) min\n- Mensajes min\n- Agentes de IA min\n- Ejercicio: Exploración de la inteligencia artificial generativa min\n- Evaluación del módulo min\n- Resumen min"
+      }
+    ]
+  }
+}

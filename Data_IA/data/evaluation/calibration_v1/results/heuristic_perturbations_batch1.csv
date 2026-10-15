@@ -1,0 +1,12 @@
+calibration_id,source_case_id,document_id,category,format,variant,target_dimension,heuristic_relevance,heuristic_coherence,heuristic_didactic_adaptation,heuristic_content_support,heuristic_unsupported_information
+CAL-V1-002,AI-ES-001-Q05,AI-ES-001,IA,flashcards,poor_didactic_adaptation,didactic_adaptation,5,5,5,1,True
+CAL-V1-003,AI-ES-002-Q03,AI-ES-002,IA,tldr,low_coherence,coherence,5,5,5,1,True
+CAL-V1-007,BE-ES-002-Q03,BE-ES-002,Backend,video_script,low_relevance,relevance,5,5,5,3,False
+CAL-V1-008,BE-ES-002-Q05,BE-ES-002,Backend,quiz,poor_didactic_adaptation,didactic_adaptation,5,5,5,1,True
+CAL-V1-010,DS-ES-001-Q05,DS-ES-001,Data Science,video_script,poor_didactic_adaptation,didactic_adaptation,5,5,5,1,True
+CAL-V1-011,DS-ES-002-Q02,DS-ES-002,Data Science,quiz,low_coherence,coherence,5,5,5,1,True
+CAL-V1-012,DS-ES-002-Q05,DS-ES-002,Data Science,flashcards,low_relevance,relevance,5,5,5,5,False
+CAL-V1-015,FE-ES-002-Q01,FE-ES-002,Frontend,flashcards,low_coherence,coherence,5,5,5,1,True
+CAL-V1-016,FE-ES-002-Q04,FE-ES-002,Frontend,tldr,poor_didactic_adaptation,didactic_adaptation,5,5,5,1,True
+CAL-V1-019,CLD-ES-002-Q03,CLD-ES-002,Cloud / DevOps,tldr,low_relevance,relevance,5,5,5,1,True
+CAL-V1-020,CLD-ES-002-Q05,CLD-ES-002,Cloud / DevOps,video_script,low_coherence,coherence,5,5,5,4,False

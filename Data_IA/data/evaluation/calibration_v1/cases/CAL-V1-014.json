@@ -1,0 +1,50 @@
+{
+  "calibration_id": "CAL-V1-014",
+  "source_case_id": "FE-ES-001-Q05",
+  "document_id": "FE-ES-001",
+  "category": "Frontend",
+  "variant": "unsupported_claim",
+  "target_dimension": "content_support",
+  "expected_behavior": {
+    "semantic": "Debe marcar como no respaldada la afirmación sobre mejorar automáticamente el SEO.",
+    "heuristic": "Debe penalizar content_support por vocabulario no presente en la evidencia."
+  },
+  "injected_unsupported_claim": "Usar etiquetas HTML mejora automáticamente el posicionamiento SEO de una página.",
+  "evaluation_request": {
+    "document_id": "FE-ES-001",
+    "format": "quiz",
+    "generated_content": {
+      "title": "Etiquetas HTML y contenido",
+      "instructions": "Selecciona la respuesta correcta.",
+      "questions": [
+        {
+          "question_id": "q1",
+          "question": "¿Qué puede hacer una etiqueta HTML con el contenido?",
+          "options": [
+            "Marcar partes del contenido para que aparezcan o actúen de cierta manera",
+            "Convertir automáticamente cualquier página en una aplicación móvil",
+            "Reemplazar por completo JavaScript",
+            "Eliminar la necesidad de usar un navegador"
+          ],
+          "correct_answer": "Marcar partes del contenido para que aparezcan o actúen de cierta manera",
+          "explanation": "Las etiquetas HTML pueden marcar diferentes partes del contenido para que aparezcan o actúen de cierta manera. Además, usar etiquetas HTML mejora automáticamente el posicionamiento SEO de una página."
+        }
+      ]
+    },
+    "generation_context": {
+      "profile": "beginner",
+      "niche": "general",
+      "detail_level": "medium",
+      "learning_objective": null
+    },
+    "chunks_used": [
+      {
+        "chunk_id": "FE-ES-001_CH_002",
+        "document_id": "FE-ES-001",
+        "rank": 1,
+        "score": 1.0,
+        "text": "## ¿Qué es HTML?\n\nHTML (HyperText Markup Language, por sus siglas en inglés) es un lenguaje de marcado que indica a los navegadores web cómo estructurar las páginas web que visita. Puede ser tan complicado o tan simple como el desarrollador web quiera que sea. HTML consiste en una serie de elementos, que utiliza para encerrar, envolver o marcar diferentes partes del contenido para que aparezca o actúe de cierta manera. Las etiquetas pueden convertir el contenido en un hipervínculo para conectarse a otra página, poner palabras en cursiva, etc."
+      }
+    ]
+  }
+}
