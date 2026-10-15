@@ -1064,15 +1064,15 @@ export const bookshelf = {
     if (btnStartStudying) {
       btnStartStudying.addEventListener('click', () => {
         if (!this.currentSelectedBook) return;
-        this.selectBookAndStudy(this.currentSelectedBook, 'flashcards');
+        this.selectBookAndStudy(this.currentSelectedBook, 'sintesis');
       });
     }
 
-    // Tarjetas de estudio directo (Flashcards, Quiz, Video, Resumen)
+    // Tarjetas de estudio directo (Síntesis, Flashcards, Video, Quiz)
     studyChoiceCards.forEach(card => {
       card.addEventListener('click', () => {
         if (!this.currentSelectedBook) return;
-        const targetFormat = card.getAttribute('data-study-format') || 'flashcards';
+        const targetFormat = card.getAttribute('data-study-format') || 'sintesis';
         this.selectBookAndStudy(this.currentSelectedBook, targetFormat);
       });
     });
@@ -1090,7 +1090,7 @@ export const bookshelf = {
     });
   },
 
-  async selectBookAndStudy(book, targetFormat) {
+  async selectBookAndStudy(book, targetFormat = 'sintesis') {
     this.closeBookModal();
 
     // Estado inmediato para navegación rápida

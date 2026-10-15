@@ -449,14 +449,49 @@
 
         <!-- Pestañas de Modalidades Formativas (4 Salidas) -->
         <div class="format-tabs-bar" role="tablist">
-          <button type="button" class="format-tab-btn" data-format="sintesis">Síntesis Ejecutiva</button>
-          <button type="button" class="format-tab-btn active" data-format="flashcards">Tarjetas de Refuerzo</button>
+          <button type="button" class="format-tab-btn active" data-format="sintesis">Síntesis Ejecutiva</button>
+          <button type="button" class="format-tab-btn" data-format="flashcards">Tarjetas de Refuerzo</button>
           <button type="button" class="format-tab-btn" data-format="video">Guion Formativo</button>
           <button type="button" class="format-tab-btn" data-format="quiz">Evaluación (Quiz)</button>
         </div>
 
-        <!-- Formato 1: Flashcards 3D (Refuerzo de Conocimientos) -->
-        <div class="format-view active" id="viewFormatFlashcards">
+        <!-- Formato 1: Síntesis / Resumen RAG (Formato Default) -->
+        <div class="format-view active" id="viewFormatSintesis">
+          <div class="format-header-bar">
+            <span class="topic-badge-pill" id="sintesisCounterBadge">Síntesis Ejecutiva (TLDR)</span>
+            <div class="format-header-actions" id="sintesisHeaderActions">
+              <span class="evaluator-badge-slot" id="evalBadgeSintesis"></span>
+              <button type="button" class="btn-regen-format" id="btnRegenSintesis" title="Generar una nueva síntesis ejecutiva del documento">
+                ↻ Regenerar Síntesis
+              </button>
+            </div>
+          </div>
+          <div class="sintesis-container">
+            <div class="sintesis-card">
+              <h4 id="sintesisTitle">Resumen Ejecutivo</h4>
+              <p id="sintesisResumen">Cargando resumen ejecutivo...</p>
+              <div class="sintesis-conclusion-box" id="sintesisConclusionBox">
+                <h5>Conclusión y Cierre Formativo</h5>
+                <p id="sintesisConclusion">Cargando conclusión formativa...</p>
+              </div>
+            </div>
+            <div class="sintesis-details">
+              <h4>Puntos Críticos y Procedimientos</h4>
+              <ul id="sintesisPuntosList">
+                <!-- Generado dinámicamente por summary.js -->
+              </ul>
+              <div id="sintesisTerminosSection" style="display: none;">
+                <h4>Competencias Clave</h4>
+                <div class="concept-chips" id="sintesisTerminosChips">
+                  <!-- Generado dinámicamente por summary.js -->
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Formato 2: Flashcards 3D (Refuerzo de Conocimientos) -->
+        <div class="format-view" id="viewFormatFlashcards">
           <div class="format-header-bar">
             <span class="topic-badge-pill" id="flashcardsCounterBadge">Tarjetas de Refuerzo (Memoria Activa)</span>
             <div class="format-header-actions" id="flashcardsHeaderActions">
@@ -509,31 +544,6 @@
           </div>
         </div>
 
-        <!-- Formato 2: Quiz de Evaluación de Competencias -->
-        <div class="format-view" id="viewFormatQuiz">
-          <div class="quiz-container">
-            <div class="quiz-header-bar">
-              <span class="topic-badge-pill" id="quizCounterBadge">Evaluación Interactiva</span>
-              <div class="format-header-actions" id="quizHeaderActions">
-                <span class="evaluator-badge-slot" id="evalBadgeQuiz"></span>
-                <button type="button" class="btn-regen-format" id="btnRegenQuiz" title="Generar un nuevo cuestionario con preguntas diferentes a la IA">
-                  ↻ Cambiar Quiz / Nuevas Preguntas
-                </button>
-              </div>
-            </div>
-            <h4 class="quiz-question-title" id="quizQuestionText">Cargando evaluación de competencias...</h4>
-            <div class="quiz-options-list" id="quizOptionsList">
-              <!-- Generado dinámicamente por quiz.js -->
-            </div>
-            <div class="quiz-feedback-box" id="quizFeedbackBox" style="display: none;">
-              <span class="feedback-badge" id="quizFeedbackBadge">Correcto</span>
-              <p id="quizFeedbackText" style="font-size: 0.92rem; line-height: 1.5; color: var(--text-main);">
-                Explicación...
-              </p>
-            </div>
-          </div>
-        </div>
-
         <!-- Formato 3: Guion Formativo y Estructura de Entrenamiento -->
         <div class="format-view" id="viewFormatVideo">
           <div class="format-header-bar">
@@ -568,37 +578,27 @@
           </div>
         </div>
 
-        <!-- Formato 4: Síntesis / Resumen RAG -->
-        <div class="format-view" id="viewFormatSintesis">
-          <div class="format-header-bar">
-            <span class="topic-badge-pill" id="sintesisCounterBadge">Síntesis Ejecutiva (TLDR)</span>
-            <div class="format-header-actions" id="sintesisHeaderActions">
-              <span class="evaluator-badge-slot" id="evalBadgeSintesis"></span>
-              <button type="button" class="btn-regen-format" id="btnRegenSintesis" title="Generar una nueva síntesis ejecutiva del documento">
-                ↻ Regenerar Síntesis
-              </button>
-            </div>
-          </div>
-          <div class="sintesis-container">
-            <div class="sintesis-card">
-              <h4 id="sintesisTitle">Resumen Ejecutivo</h4>
-              <p id="sintesisResumen">Cargando resumen ejecutivo...</p>
-              <div class="sintesis-conclusion-box" id="sintesisConclusionBox">
-                <h5>Conclusión y Cierre Formativo</h5>
-                <p id="sintesisConclusion">Cargando conclusión formativa...</p>
+        <!-- Formato 4: Quiz de Evaluación de Competencias -->
+        <div class="format-view" id="viewFormatQuiz">
+          <div class="quiz-container">
+            <div class="quiz-header-bar">
+              <span class="topic-badge-pill" id="quizCounterBadge">Evaluación Interactiva</span>
+              <div class="format-header-actions" id="quizHeaderActions">
+                <span class="evaluator-badge-slot" id="evalBadgeQuiz"></span>
+                <button type="button" class="btn-regen-format" id="btnRegenQuiz" title="Generar un nuevo cuestionario con preguntas diferentes a la IA">
+                  ↻ Cambiar Quiz / Nuevas Preguntas
+                </button>
               </div>
             </div>
-            <div class="sintesis-details">
-              <h4>Puntos Críticos y Procedimientos</h4>
-              <ul id="sintesisPuntosList">
-                <!-- Generado dinámicamente por summary.js -->
-              </ul>
-              <div id="sintesisTerminosSection" style="display: none;">
-                <h4>Competencias Clave</h4>
-                <div class="concept-chips" id="sintesisTerminosChips">
-                  <!-- Generado dinámicamente por summary.js -->
-                </div>
-              </div>
+            <h4 class="quiz-question-title" id="quizQuestionText">Cargando evaluación de competencias...</h4>
+            <div class="quiz-options-list" id="quizOptionsList">
+              <!-- Generado dinámicamente por quiz.js -->
+            </div>
+            <div class="quiz-feedback-box" id="quizFeedbackBox" style="display: none;">
+              <span class="feedback-badge" id="quizFeedbackBadge">Correcto</span>
+              <p id="quizFeedbackText" style="font-size: 0.92rem; line-height: 1.5; color: var(--text-main);">
+                Explicación...
+              </p>
             </div>
           </div>
         </div>

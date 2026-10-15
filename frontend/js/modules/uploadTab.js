@@ -522,7 +522,7 @@ export const uploadTab = {
         activeSectionId: procDoc.sections[0]?.id || null,
         formats: initialFormats,
         formatsStatus: 'processing',
-        activeFormat: 'flashcards',
+        activeFormat: 'sintesis',
         currentCardIndex: 0,
         isFlipped: false
       }
