@@ -36,6 +36,14 @@ En escritorio, la presentación ocupa la altura disponible de la ventana: cabece
 
 ## Estética y fuentes
 
+### Validación offline
+
+`offline.html`, `offline.css` y `offline.js` implementan una vista independiente, accesible desde el nodo «Validación offline» sobre Data/IA. Se abre en el modal compartido y puede servirse directamente como `/landing/offline.html`. No participa en la secuencia de generación y corrección.
+
+La vista separa arquitectura experimental, benchmark V1/V2 y seis variantes de ablación. Usa el estudio congelado de 50 consultas y 121 chunks, Ground Truth v2 y Top-K 5. Las 32 cifras se contrastaron con los CSV de `Data_IA/data/evaluation/results/retrieval_v2_ablation/`: `ablation_global_metrics.csv`, `signal_ablation/signal_ablation_global_metrics.csv`, `weighted_rrf_ablation/weighted_rrf_global_metrics.csv` y `weighted_rrf_cross_ablation/weighted_rrf_cross_global_metrics.csv`. Se muestran tres decimales; los experimentos RRF 60/40 con y sin Cross-Encoder permanecen separados. El resumen de 11 casos críticos resueltos procede de la gráfica de benchmark proporcionada en `docs/Sprint 3/BenchmarkRetrieval.png`.
+
+Los botones cambian la vista; el selector de ablaciones actualiza componentes, métricas y lectura del experimento. Las conexiones animadas se pueden pausar y respetan movimiento reducido y cierre del modal. Las métricas son resultados guardados del estudio, no una ejecución en vivo.
+
 Fondos `#090c10`, `#121822` y `#1a2230`; acento principal dorado y ámbar (`#f59e0b`, `#fbbf24`, `#fef08a`), botones oficiales dorados y paleta cósmica unificada con el diseño del frontend. Tipografía local, sin fuentes remotas. Las relaciones de los diagramas se reconstruyen en SVG.
 
 Fuente narrativa: `docs/README_Panorama_Pitch_DemoDay_NuevaMente.md`. Arquitectura y flujos: diagramas de Sprint 4 y ciclo de evaluación de `docs/`. Las escenas de arquitectura y corrección ilustran el flujo propuesto; consultar el estado verificado arriba para distinguirlo de las capacidades conectadas actualmente. No se inventan métricas ni nombres de integrantes.

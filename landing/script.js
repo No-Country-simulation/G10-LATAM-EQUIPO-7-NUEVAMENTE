@@ -144,7 +144,7 @@ function openRagDetail(detail = 'rag') {
   stopPlayback();
   activeDetail = detail;
   ragLink.href = detail + '.html';
-  const detailTitles = { rag: 'Investigador RAG', reviewer: 'Agente Revisor', evaluator: 'Data/IA · Evaluación de calidad' };
+  const detailTitles = { rag: 'Investigador RAG', reviewer: 'Agente Revisor', evaluator: 'Data/IA · Evaluación de calidad', offline: 'Validación offline del retrieval' };
   ragDialog.setAttribute('aria-label', 'Detalle de ' + detailTitles[detail]);
   ragFrame.title = detailTitles[detail];
   if (typeof ragDialog.showModal !== 'function') {
@@ -164,10 +164,12 @@ function getSteps() {
       { node: 'writer', edge: 'rag-writer', text: 'El Redactor transforma la evidencia en el formato solicitado y lo adapta al perfil, contexto y profundidad.' },
       { node: 'backend', edge: 'writer-back', text: 'BackendAPI recibe y conserva el contenido junto con la evidencia utilizada.' },
       { node: 'evaluator', edge: 'back-eval', text: 'Data/IA evalúa el contenido, su contexto pedagógico y su respaldo documental.' },
-      { node: 'backend', edge: 'eval-back', text: 'BackendAPI recibe la evaluación y decide si acepta el contenido o solicita corrección.' }
+      { node: 'backend', edge: 'eval-back', text: 'BackendAPI recibe la evaluación. Si el contenido está aprobado, completa el flujo normal.' },
+      { node: 'frontend', edge: 'back-front', text: 'El contenido aprobado vuelve al Frontend para su consulta.' }
     ].map((step) => ({ ...step, phase: 'GENERACIÓN Y EVALUACIÓN' }));
   const steps = [
-    { node: 'reviewer', edge: 'back-reviewer', text: 'Si quedan intentos, BackendAPI solicita corregir y el Revisor interpreta las recomendaciones.' }
+    { node: 'backend', edge: 'eval-back', text: 'Caso alternativo: la evaluación pide cambios y aporta hallazgos accionables. BackendAPI habilita una corrección.' },
+    { node: 'reviewer', edge: 'back-reviewer', text: 'El Revisor interpreta las recomendaciones y decide si necesita nueva evidencia.' }
   ];
   if (evidenceCheckbox.checked) {
     steps.push({ node: 'rag', edge: 'reviewer-rag', text: 'Hace falta información: el Investigador RAG recupera evidencia adicional.' });
@@ -176,10 +178,10 @@ function getSteps() {
     { node: 'writer', edge: evidenceCheckbox.checked ? 'rag-writer' : 'reviewer-writer', text: 'El Redactor incorpora el feedback del evaluador y la evidencia disponible para corregir el contenido.' },
     { node: 'backend', edge: 'writer-back', text: 'BackendAPI recibe la nueva versión y conserva el historial del proceso.' },
     { node: 'evaluator', edge: 'back-eval', text: 'Data/IA evalúa nuevamente el contenido corregido.' },
-    { node: 'backend', edge: 'eval-back', text: 'El ciclo termina al aprobar el contenido o alcanzar el límite de correcciones.' }
+    { node: 'backend', edge: 'eval-back', text: 'BackendAPI conserva la reevaluación y cierra el ciclo: como máximo, una corrección por generación.' }
   );
   return generation.concat(
-    steps.map((step) => ({ ...step, phase: 'CORRECCIÓN Y REEVALUACIÓN' })),
+    steps.map((step) => ({ ...step, phase: 'CASO ALTERNATIVO · CORRECCIÓN' })),
     { node: 'frontend', edge: 'back-front', phase: 'RESPUESTA AL USUARIO', text: 'BackendAPI devuelve al Frontend el contenido final y el historial de evaluaciones para su consulta.' }
   );
 }
@@ -215,9 +217,9 @@ function resetSequence() {
   stopPlayback();
   currentMode = 'general';
   stepIndex = -1;
-  highlightNode(null, null);
-  stepCount.textContent = 'EL SISTEMA';
-  stepDescription.textContent = 'Reproduce el recorrido completo: generación, evaluación y un caso que requiere corrección.';
+  highlightNode('backend', null);
+  stepCount.textContent = 'ORQUESTADOR GLOBAL';
+  stepDescription.textContent = 'BackendAPI coordina la generación, la evaluación y la respuesta al usuario. Reproduce el flujo normal y después un caso de corrección.';
   scheduleSceneFit();
 }
 
@@ -225,6 +227,7 @@ function showScene(index, focusHeading = false) {
   stopPlayback();
   sceneIndex = Math.max(0, Math.min(index, scenes.length - 1));
   scenes.forEach((scene, position) => { scene.hidden = position !== sceneIndex; });
+  if (scenes[sceneIndex].id === 'arquitectura') resetSequence();
   sceneLinks.forEach((link, position) => {
     if (position === sceneIndex) link.setAttribute('aria-current', 'step');
     else link.removeAttribute('aria-current');
@@ -280,7 +283,7 @@ playButton.addEventListener('click', () => {
 });
 nodes.forEach((node) => {
   function inspectNode() {
-    if (['rag', 'reviewer', 'evaluator'].includes(node.dataset.node)) {
+    if (['rag', 'reviewer', 'evaluator', 'offline'].includes(node.dataset.node)) {
       openRagDetail(node.dataset.node);
       return;
     }

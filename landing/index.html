@@ -59,10 +59,14 @@
           <path class="infra-divider" d="M26 52H1034"/>
           <g transform="translate(20 65)">
           <rect class="agent-boundary" id="agent-boundary" x="505" y="25" width="265" height="390" rx="20"/>
-          <text class="group-heading" x="525" y="58">MULTIAGENTES</text><text class="group-subtitle" x="525" y="78">Contenedor · Grafo de generación</text>
+          <text class="group-heading" x="525" y="58">MULTIAGENTES</text><text class="group-subtitle" x="525" y="78">Contenedor · Generación y corrección</text>
           <text class="container-label" x="20" y="163">CONTENEDOR / NGINX</text>
           <text class="container-label" x="245" y="159">CONTENEDOR / BACKEND</text>
           <text class="container-label" x="805" y="159">CONTENEDOR / DATA &amp; IA</text>
+          <path class="offline-link" d="M902 120V146" fill="none"/>
+          <g class="system-node offline-node" data-node="offline" role="button" tabindex="0" aria-haspopup="dialog" aria-label="Validación offline: explorar Ground Truth, benchmark y ablaciones">
+            <rect x="805" y="55" width="195" height="65" rx="10"/><text class="node-title agent-title" x="818" y="81">Validación offline</text><text class="node-detail" x="818" y="105">Ground Truth · Benchmark · Ablation</text><g class="explore-icon" aria-hidden="true"><circle cx="980" cy="76" r="11"/><text x="980" y="81">↗</text></g>
+          </g>
           <g class="edges" fill="none" marker-end="url(#arrowhead)">
             <path id="edge-front-back" d="M190 211H245"/>
             <path id="edge-back-front" d="M245 242H190"/>
@@ -71,9 +75,9 @@
             <path id="edge-writer-back" d="M525 220H477V250H450"/>
             <path id="edge-back-eval" d="M350 270V441H880V270"/>
             <path id="edge-eval-back" d="M925 270V480H310V270"/>
-            <path id="edge-back-reviewer" d="M425 270V340H525"/>
-            <path id="edge-reviewer-rag" d="M730 340H750V130H730"/>
-            <path id="edge-reviewer-writer" d="M627 310V250"/>
+            <path class="correction-edge" id="edge-back-reviewer" d="M425 270V340H525"/>
+            <path class="correction-edge" id="edge-reviewer-rag" d="M730 340H750V130H730"/>
+            <path class="correction-edge" id="edge-reviewer-writer" d="M627 310V250"/>
           </g>
           <text class="wire-label" x="475" y="433">Contenido + contexto + evidencia</text><text class="wire-label" x="475" y="473">Métricas + recomendaciones</text>
           <g class="system-node frontend-node" data-node="frontend" role="button" tabindex="0" aria-label="Frontend: interacción con el usuario">
@@ -93,10 +97,10 @@
           </g>
           <text class="optional-label" x="530" y="395">Nueva evidencia, solo si es necesaria</text>
           <g class="system-node evaluator-node" data-node="evaluator" role="button" tabindex="0" aria-haspopup="dialog" aria-label="Data/IA: abrir detalle de evaluación heurística y semántica">
-            <rect x="805" y="170" width="195" height="100" rx="12"/><text class="node-kicker" x="824" y="196">EVALUADOR INDEPENDIENTE</text><text class="node-title" x="824" y="224">Data/IA</text><text class="node-detail" x="824" y="247">Calidad y respaldo documental</text><g class="explore-icon" aria-hidden="true"><circle cx="980" cy="220" r="11"/><text x="980" y="225">↗</text></g>
+            <rect x="805" y="170" width="195" height="100" rx="12"/><text class="node-kicker" x="824" y="196">EVALUADOR INDEPENDIENTE</text><text class="node-title" x="824" y="224">Data/IA</text><text class="node-detail" x="824" y="244"><tspan x="824">Calidad pedagógica ·</tspan><tspan x="824" dy="14">fidelidad a la fuente</tspan></text><g class="explore-icon" aria-hidden="true"><circle cx="980" cy="220" r="11"/><text x="980" y="225">↗</text></g>
           </g>
           </g>
-          <text class="infra-caption" x="40" y="594">Persistencia · Backend / ChromaDB</text>
+          <text class="infra-caption" x="40" y="594">Persistencia · SQLite · OCI Object Storage · ChromaDB</text>
           <text class="infra-caption" x="1020" y="594" text-anchor="end">Contenedor adicional · Landing / Nginx</text>
         </svg>
       </div>

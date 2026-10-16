@@ -1,0 +1,40 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Validación offline · NuevaMente</title>
+  <link rel="stylesheet" href="rag.css"><link rel="stylesheet" href="offline.css"><link rel="stylesheet" href="detail-responsive.css">
+  <script src="offline.js" defer></script>
+</head>
+<body><main>
+  <header><div><p class="eyebrow">DATA / IA · VALIDACIÓN OFFLINE</p><h1>Medir la recuperación. <em>Entender qué aporta cada pieza.</em></h1></div><a href="./#arquitectura" id="return-link">Volver a arquitectura ↗</a></header>
+  <div class="experiment"><span><b>50</b> consultas</span><span><b>121</b> fragmentos</span><span>Ground Truth <b>v2 congelado</b></span><span>Mismo corpus · <b>Top-K = 5</b></span></div>
+  <nav class="views" aria-label="Vistas de validación"><button type="button" data-view="architecture" aria-pressed="true">01 · Arquitectura</button><button type="button" data-view="benchmark" aria-pressed="false">02 · Benchmark V1 vs V2</button><button type="button" data-view="ablation" aria-pressed="false">03 · Ablaciones</button><button type="button" id="motion" aria-pressed="false">Pausar animación</button></nav>
+  <section id="architecture" class="view" aria-label="Arquitectura de validación offline">
+    <div class="diagram"><svg viewBox="0 0 1120 370" role="img" aria-labelledby="offline-title offline-desc">
+      <title id="offline-title">Circuito reproducible de evaluación del retrieval</title><desc id="offline-desc">El corpus congelado y las consultas alimentan las variantes del retrieval de Agentes. Los rankings recuperados se comparan con los fragmentos relevantes del Ground Truth. Data/IA calcula métricas, analiza los errores y conserva resultados y configuración para recomendar un pipeline.</desc>
+      <defs><marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M0 0L10 5L0 10Z" fill="#7dd3fc"/></marker></defs>
+      <g class="wires" fill="none" marker-end="url(#arrow)"><path d="M220 120H270"/><path d="M510 120H555"/><path d="M720 120H770"/><path d="M220 277H637V170"/><path d="M930 175V235"/></g>
+      <g class="stage"><rect x="10" y="60" width="210" height="120" rx="14"/><text class="label" x="115" y="85">01 / ENTRADAS CONGELADAS</text><text x="115" y="114">Corpus + consultas</text><text class="detail" x="115" y="138">chunks_v1.csv · 121 fragmentos</text><text class="detail" x="115" y="160">50 queries + document_id</text></g>
+      <g class="stage"><rect x="270" y="60" width="240" height="120" rx="14"/><text class="label" x="390" y="85">02 / EJECUTAR VARIANTES</text><text x="390" y="114">Retrieval de Agentes</text><text class="detail" x="390" y="138">Baseline V1 · V2 · Ablaciones</text><text class="detail" x="390" y="160">Mismas consultas y corpus</text></g>
+      <g class="stage"><rect x="555" y="70" width="165" height="100" rx="14"/><text class="label" x="637" y="95">03 / CONTRASTAR</text><text x="637" y="124">Evaluar Top-5</text><text class="detail" x="637" y="148">IDs recuperados vs relevantes</text></g>
+      <g class="stage truth"><rect x="10" y="225" width="210" height="105" rx="14"/><text class="label" x="115" y="250">REFERENCIA INDEPENDIENTE</text><text x="115" y="278">Ground Truth v2</text><text class="detail" x="115" y="302">Query → IDs de chunks relevantes</text></g>
+      <text class="flow-label" x="335" y="266">La respuesta esperada permite medir el acierto</text>
+      <g class="stage"><rect x="770" y="60" width="330" height="115" rx="14"/><text class="label" x="935" y="85">04 / MEDIR EN DATA / IA</text><text x="935" y="109"><tspan x="935">Medición: Recall@3/@5</tspan><tspan x="935" dy="20">y Precision@3/@5</tspan></text><text class="detail" x="935" y="149">Resultados por consulta + métricas globales</text><text class="detail" x="935" y="166">Análisis de errores y trazas del ranking</text></g>
+      <g class="stage output"><rect x="770" y="235" width="330" height="95" rx="14"/><text class="label" x="935" y="260">05 / CONSERVAR Y DECIDIR</text><text x="935" y="287">Configuración recomendada</text><text class="detail" x="935" y="310">Resultados + manifest + diagnóstico reproducible</text></g>
+    </svg></div>
+    <div class="takeaway"><strong>Una comparación controlada, fuera del flujo de cada usuario.</strong><p>El benchmark mide la recuperación de evidencia. El Ground Truth y el corpus se mantienen fijos mientras se compara la configuración del retrieval.</p></div>
+  </section>
+  <section id="benchmark" class="view" aria-label="Benchmark V1 frente a V2" hidden>
+    <div class="section-heading"><div><h2>V2 mejora las cuatro métricas del benchmark.</h2><p>Promedios sobre las mismas 50 consultas. Escala común de 0 a 1.</p></div><div class="legend"><span class="baseline-key">Baseline V1</span><span class="v2-key">Retrieval V2</span></div></div>
+    <div id="benchmark-chart" class="metrics-grid"></div>
+    <div class="results-strip"><span><b>11</b> casos críticos resueltos</span><span><b>2</b> casos con Recall@5 = 0</span><span><b>50 / 50</b> ejecuciones sin errores técnicos</span></div>
+    <div class="takeaway"><strong>V2 mejora cobertura y precisión sobre el mismo corpus de evaluación.</strong></div>
+  </section>
+  <section id="ablation" class="view" aria-label="Estudio de ablaciones" hidden>
+    <div class="section-heading"><div><h2>¿Qué cambia cuando modificamos una pieza?</h2><p>Selecciona una variante para ver su configuración y compararla con V2 completo.</p></div><label class="variant-label">Variante<select id="variant"><option value="unfiltered">Sin filtro documental</option><option value="vector">Solo Vector</option><option value="bm25">Solo BM25</option><option value="rrf">Sin Cross-Encoder</option><option value="weighted">RRF 60/40 · sin Cross-Encoder</option><option value="weightedCross">RRF 60/40 + Cross-Encoder</option></select></label></div>
+    <div class="pipeline" aria-label="Configuración de la variante seleccionada"><span data-piece="filter">Filtro documental</span><i>→</i><span data-piece="vector">Vector</span><i>+</i><span data-piece="bm25">BM25</span><i>→</i><span data-piece="rrf">RRF 50/50</span><i>→</i><span data-piece="cross">Cross-Encoder</span><i>→</i><span>Top-5</span></div>
+    <div class="ablation-content"><table><caption>Métricas globales · escala 0–1</caption><thead><tr><th scope="col">Métrica</th><th scope="col">V2 completo</th><th scope="col">Variante</th><th scope="col">Diferencia</th></tr></thead><tbody id="ablation-metrics"></tbody></table><aside class="takeaway" aria-live="polite"><span class="small-label">LECTURA DEL EXPERIMENTO</span><h3 id="finding-title"></h3><p id="finding"></p><p id="variant-note" class="variant-note"></p></aside></div>
+  </section>
+  <footer><div><h2>Recall: cuánto de lo relevante encontramos. Precision: cuánto de lo recuperado es relevante.</h2><p>@3 y @5 evalúan las primeras 3 y 5 posiciones del ranking. Mayor valor indica mejor resultado.</p></div><span class="note">Configuración recomendada:<br>Filtro por documento + Vector + BM25 + RRF 50/50 + Cross-Encoder</span></footer>
+</main></body></html>

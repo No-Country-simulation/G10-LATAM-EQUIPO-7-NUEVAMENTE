@@ -155,6 +155,9 @@ button, a { -webkit-tap-highlight-color: transparent; }
 .system-node:hover rect, .system-node:focus-visible rect { stroke: var(--gold-light); stroke-width: 2; }
 .backend-node rect { fill: #281f12; stroke: var(--gold); }
 .evaluator-node rect { fill: #162632; stroke: #38bdf8; }
+.offline-node rect { fill: #11222c; stroke: #438394; stroke-dasharray: 4 3; }
+.offline-node .node-detail { font-size: 9px; }
+.offline-link { stroke: #438394; stroke-width: 1.2; stroke-dasharray: 4 4; }
 .reviewer-node rect { fill: #2c2216; stroke: #d97706; }
 .system-node.active rect { fill: #38290f; stroke: #fde047; stroke-width: 2.5; filter: drop-shadow(0 0 10px rgba(245, 158, 11, 0.5)); }
 .reviewer-node.active rect { fill: #452f14; stroke: var(--gold-light); }
@@ -164,6 +167,7 @@ button, a { -webkit-tap-highlight-color: transparent; }
 .node-detail { fill: #94a3b8; font-size: 11px; }
 .optional-label { fill: #d8b4fe; font-size: 10px; }
 .edges path { stroke: #435b75; stroke-width: 1.8; opacity: .8; }
+.edges path.correction-edge { stroke-width: 1.3; stroke-dasharray: 4 5; opacity: .3; }
 .edges path.dimmed { opacity: .14; }
 .edges path.active { stroke: var(--gold-bright); stroke-width: 3; stroke-dasharray: 7 4; opacity: 1; animation: travel .5s linear infinite; }
 .system-canvas:not(.playing) .edges path.active { animation-play-state: paused; }
