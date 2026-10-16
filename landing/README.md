@@ -19,20 +19,20 @@ En escritorio, la presentación ocupa la altura disponible de la ventana: cabece
 
 - Navegación inferior, botones anterior/siguiente y teclas izquierda/derecha o PageUp/PageDown. Home/End llevan al inicio/cierre. Los atajos no interceptan controles interactivos ni el diálogo.
 - Enlaces directos: `#documento`, `#transformacion`, `#demo`, `#arquitectura`, `#equipo`, `#impacto`. El historial del navegador permite regresar entre vistas.
-- Arquitectura: el panel inferior tiene dos columnas, explicación del paso y controles compactos (Reiniciar, Reproducir, Pausa y nueva evidencia). Reproducir recorre generación, evaluación y un caso que necesita corrección; termina con la respuesta de BackendAPI al Frontend, iluminando su flecha de retorno. Pausa conserva el paso; Reproducir continúa desde allí. Reiniciar restaura el diagrama general. Al terminar, cambiar de vista o salir de la pestaña, la reproducción se detiene. En móvil las columnas se apilan.
+- Arquitectura: el panel inferior tiene dos columnas, explicación del paso y controles compactos (Reiniciar, Reproducir, Pausa y nueva evidencia). Reproducir anima un recorrido conceptual de generación, evaluación y un caso que necesita corrección; termina con la respuesta de BackendAPI al Frontend, iluminando su flecha de retorno. Pausa conserva el paso; Reproducir continúa desde allí. Reiniciar restaura el diagrama general. Al terminar, cambiar de vista o salir de la pestaña, la reproducción se detiene. En móvil las columnas se apilan.
 - Activar o desactivar “Requiere nueva evidencia” selecciona el camino del Revisor y reinicia la secuencia para mantenerla coherente.
 - Seleccionar un nodo muestra su responsabilidad. Data/IA siempre permanece como evaluador independiente; BackendAPI coordina ambos servicios.
 - Pantalla completa cuando el navegador la admite. Recursos del jurado en el cierre.
 - La vista 05 presenta ocho contribuciones destacadas y una fila de colaboradores, con los LinkedIn proporcionados. Los avatares muestran iniciales hasta disponer de fotos autorizadas. Davo Ruiz y Óscar Muñoz no tienen enlace porque no se proporcionaron sus perfiles.
 - Sin JavaScript se muestran las seis vistas en secuencia con el diagrama estático y acceso al producto y repositorio. Las animaciones respetan `prefers-reduced-motion`.
 
-La arquitectura es una explicación visual del proyecto, no una simulación conectada a los servicios. El ciclo finaliza al aprobar el contenido o llegar al límite de correcciones; no representa una aprobación garantizada.
+**Alcance del diagrama (estado verificado al 15 de octubre de 2026):** es una explicación visual con animación local, no una simulación conectada a los servicios ni una prueba de que el flujo esté operativo. Agentes aún no expone `/api/v1/revise`; por tanto, la corrección automática de extremo a extremo no está disponible y el ciclo animado representa el flujo propuesto, no el comportamiento actual del producto. El recorrido termina en aprobación o al llegar al límite de correcciones solo como escenario conceptual; no representa una aprobación garantizada.
 
 ## Estética y fuentes
 
 Fondos `#090c10`, `#121822` y `#1a2230`; acentos cian, azul, violeta y dorado tomados del sistema visual del frontend. Tipografía local, sin fuentes remotas. Las relaciones de los diagramas se reconstruyen en SVG.
 
-Fuente principal: `docs/README_Panorama_Pitch_DemoDay_NuevaMente.md`. Arquitectura y flujos: diagramas de Sprint 4 y ciclo de evaluación de `docs/`. Se mantiene la premisa acordada de producto implementado. No se inventan métricas ni nombres de integrantes.
+Fuente narrativa: `docs/README_Panorama_Pitch_DemoDay_NuevaMente.md`. Arquitectura y flujos: diagramas de Sprint 4 y ciclo de evaluación de `docs/`. Las escenas de arquitectura y corrección ilustran el flujo propuesto; consultar el estado verificado arriba para distinguirlo de las capacidades conectadas actualmente. No se inventan métricas ni nombres de integrantes.
 
 ## Servir
 

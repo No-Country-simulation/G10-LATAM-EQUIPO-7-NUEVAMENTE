@@ -1,8 +1,8 @@
 # NuevaMente — Data/IA
 
-Guía oficial del módulo Data/IA. Aquí se describe su responsabilidad, el
-contrato de evaluación de formatos, el benchmark offline de retrieval, la
-organización de datos y cómo ejecutar el servicio y sus pruebas.
+Guía oficial del módulo Data/IA. Aquí se describen sus responsabilidades,
+los endpoints V1.1 y V2 de evaluación de formatos, el benchmark offline de
+retrieval, la organización de datos y cómo ejecutar el servicio y sus pruebas.
 
 Data/IA evalúa contenido educativo generado y mantiene herramientas y datos
 para medir retrieval. No implementa el pipeline productivo de extracción,
@@ -16,7 +16,7 @@ describe en el [README de la raíz](../README.md).
 |---|---|
 | Responsabilidades y límites del módulo | [Alcance](#alcance) |
 | API, request, respuesta y formatos aceptados | [API de evaluación](#api-de-evaluación) |
-| Evaluation V2 y Semantic Evaluator | [Evaluation V2](#evaluation-v2) |
+| Contratos activos V1.1 y V2, y Semantic Evaluator | [API de evaluación](#api-de-evaluación) |
 | Criterios, versión del evaluator y veredicto | [Evaluación de calidad](#evaluación-de-calidad) |
 | Benchmark y análisis de retrieval | [Evaluación offline de retrieval](#evaluación-offline-de-retrieval) |
 | Corpus controlado para comparar formatos de archivo | [Validación multiformato](#validación-multiformato) |
@@ -29,7 +29,8 @@ Data/IA mantiene dos recorridos relacionados, pero separados:
 
 1. **Evaluación integrada de formatos:** recibe desde BackendAPI el formato
    generado, el contexto de generación y los chunks que sirvieron como
-   evidencia. Devuelve scores, veredicto y observaciones.
+   evidencia. `POST /evaluate` mantiene la respuesta V1.1 y
+   `POST /evaluate/v2` devuelve señales heurísticas y semánticas separadas.
 2. **Evaluación offline de retrieval:** valida respuestas de Agentes frente a
    un corpus y Ground Truth versionados; produce métricas y análisis de error.
 
@@ -52,23 +53,19 @@ La aplicación FastAPI se define en `data_ai/api/app.py`.
 | Método y ruta | Función |
 |---|---|
 | `GET /health` | Comprueba la disponibilidad del servicio. |
-| `POST /evaluate` | Evaluación V1.1 compatible con el contrato actual de Backend. |
-| `POST /evaluate/v2` | Evaluation V2 con señales heurísticas y semánticas separadas. |
+| `POST /evaluate` | Evaluación V1.1, conservada por compatibilidad. |
+| `POST /evaluate/v2` | Evaluation V2 activa, con señales heurísticas y semánticas separadas. |
 
-`POST /evaluate` acepta `format` como discriminador y valida `generated_content`
-contra el esquema correspondiente. Los formatos definidos en el contrato son
-`quiz`, `flashcards`, `tldr` y `video_script`.
+Ambos endpoints aceptan el mismo request tipado y discriminado por `format`.
+El cuerpo incluye `document_id`, `format`, `generation_context`,
+`generated_content` y `chunks_used`; los modelos rechazan campos adicionales.
+Los formatos soportados son `quiz`, `flashcards`, `tldr` y `video_script`.
+`generated_content` se valida según el formato. `generation_context` contiene
+`profile`, `niche`, `detail_level` y `learning_objective` opcional;
+`chunks_used` contiene los fragmentos de evidencia, cada uno con `chunk_id`,
+`document_id`, `rank`, `score` y `text`.
 
-La solicitud incluye:
-
-- `document_id` y `format`;
-- `generation_context`: `profile`, `niche`, `detail_level` y
-  `learning_objective` opcional;
-- `generated_content`, validado según el formato;
-- `chunks_used`, con identificador, documento, ranking, score y texto de cada
-  fragmento de evidencia.
-
-La validación rechaza campos extra, contenido mal formado, identificadores
+La validación también rechaza contenido mal formado, identificadores
 duplicados y chunks que no pertenezcan al `document_id` de la solicitud. Los
 modelos completos y sus reglas están en
 [`data_ai/schemas/format_evaluation.py`](data_ai/schemas/format_evaluation.py).
@@ -85,8 +82,9 @@ Los estados posibles del contrato V1.1 son:
 
 ### Evaluation V2
 
-`POST /evaluate/v2` introduce el contrato de evaluación de Sprint 4 sin
-reemplazar todavía el endpoint V1.1.
+`POST /evaluate/v2` implementa el contrato V2 y coexiste con
+`POST /evaluate`; no reemplaza ni modifica la respuesta V1.1. BackendAPI
+configura actualmente esta ruta mediante `DATA_IA_EVALUATE_PATH=/evaluate/v2`.
 
 La respuesta mantiene separadas las dos señales de evaluación:
 
@@ -115,11 +113,48 @@ Las dimensiones semánticas evaluadas son:
 Los scores heurísticos y semánticos no se ponderan ni combinan. Actualmente no
 existe un `final_score`, `combined_score` ni `weighted_score`.
 
-Mientras no exista una Decision Layer calibrada, el `verdict` global continúa
-derivándose exclusivamente del evaluator heurístico.
+El `verdict` V2 se mapea actualmente desde el veredicto heurístico V1.1:
+`aprobado` → `approved`, `requiere_revision` → `requires_revision` y
+`rechazado` → `rejected`. Si el evaluator heurístico no produce una señal
+válida, el veredicto permanece `null`. Un resultado semántico exitoso no
+genera ni modifica por sí solo el veredicto.
 
-Un resultado semántico exitoso no genera por sí solo un veredicto
-`approved`, `requires_revision` o `rejected`.
+La forma principal de la respuesta V2 es:
+
+```json
+{
+  "document_id": "doc_123",
+  "format": "tldr",
+  "verdict": "approved",
+  "heuristic_scores": {
+    "relevance": 4.0,
+    "coherence": 4.0,
+    "didactic_adaptation": 4.0,
+    "content_support": 4.0
+  },
+  "semantic_evaluation": {
+    "status": "unavailable",
+    "scores": null,
+    "observations": [],
+    "recommendations": [],
+    "unsupported_information": [],
+    "error_code": "not_configured",
+    "error_message": "Semantic provider is not configured.",
+    "model": null,
+    "prompt_version": "semantic-evaluator-v0.1",
+    "latency_ms": 1
+  },
+  "evaluator_version": "1.1.0",
+  "rubric_version": "1.0.0"
+}
+```
+
+Los valores del ejemplo ilustran la estructura; los scores y el veredicto
+dependen del contenido evaluado. Cuando el proveedor semántico se ejecuta,
+`status` es `success` y `scores` contiene las cuatro dimensiones. Ante un fallo
+técnico puede ser `failed`; si no hay configuración del proveedor, es
+`unavailable`. Esos estados describen al componente semántico, no la calidad
+global del formato ni el `verdict`.
 
 Para la dimensión `content_support`, `chunks_used` es la única evidencia
 factual válida.
@@ -219,8 +254,8 @@ un Semantic Evaluator independiente basado en LLM-as-a-Judge.
 
 Ambas señales permanecen separadas y todavía no se ponderan ni combinan.
 
-El evaluator heurístico continúa siendo la fuente del veredicto global mientras
-no exista una Decision Layer calibrada.
+El evaluator heurístico continúa siendo la fuente del veredicto global; no hay
+una Decision Layer calibrada que combine ambas señales.
 
 La versión V1.1 normaliza mayúsculas y acentos y compara términos
 significativos con la evidencia.
@@ -328,8 +363,12 @@ Puntos de entrada frecuentes:
 | Cambiar contrato V2 | `data_ai/schemas/evaluation_v2.py` |
 | Cambiar esquema semántico | `data_ai/schemas/semantic_evaluation.py` |
 | Cambiar evaluación heurística | `data_ai/evaluation/quality_evaluator.py` |
+| Cambiar orquestación V2 | `data_ai/evaluation/evaluation_v2_service.py` |
+| Cambiar ensamblado o mapeo V2 | `data_ai/evaluation/evaluation_v2_builder.py`, `data_ai/evaluation/evaluation_v2_mapper.py` |
 | Cambiar Semantic Evaluator | `data_ai/evaluation/semantic_evaluator.py` |
+| Cambiar configuración del evaluator y versiones | `data_ai/evaluation/config.py` |
 | Cambiar integración Gemini | `data_ai/evaluation/gemini_semantic_provider.py` |
+| Cambiar interfaz del provider semántico | `data_ai/evaluation/semantic_provider.py` |
 | Cambiar selección de provider | `data_ai/evaluation/semantic_provider_factory.py` |
 | Cambiar reglas del veredicto | `data_ai/evaluation/rubric.py` |
 | Cambiar carga/validación de retrieval | `data_ai/loaders/`, `data_ai/validators/` |
@@ -439,3 +478,18 @@ reemplaces salidas históricas.
   de Evaluation V2.
 - [Semantic Rubric v0.1](docs/semantic_rubric_v0_1.md): criterios del
   Semantic Evaluator.
+
+## Pendientes técnicos identificados
+
+Esta sección registra límites observables en el código actual; no representa
+un backlog priorizado:
+
+- V1.1 y V2 coexisten. V2 está publicado en `/evaluate/v2`, mientras
+  `/evaluate` conserva el contrato V1.1.
+- V2 no tiene una Decision Layer calibrada: el `verdict` se deriva del
+  evaluator heurístico y las señales semánticas no se combinan con esos scores.
+- La evaluación semántica requiere configurar `DATA_IA_GEMINI_API_KEY` y
+  `DATA_IA_GEMINI_MODEL`; sin ellas, V2 responde con estado semántico
+  `unavailable`, pero mantiene la evaluación heurística.
+- La evaluación offline de retrieval es un benchmark de análisis y no una API
+  de búsqueda o retrieval del servicio Data/IA.

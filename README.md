@@ -85,7 +85,15 @@ Los errores de generación y evaluación se registran por separado: un problema 
 
 ### Estado observable
 
-El documento y cada formato tienen ciclos de estado distintos. La indexación debe concluir antes de comenzar la generación; los formatos pasan de `processing` a `success`, `failed` o `no_results`. La biblioteca puede mostrar resultados parciales mientras se completan los demás formatos. La evaluación tiene su propio resultado —`aprobado`, `requiere_revision` o `rechazado`— y no sustituye el estado de generación.
+El documento y cada formato tienen ciclos de estado distintos. La indexación debe concluir antes de comenzar la generación; los formatos pasan de `processing` a `success`, `failed` o `no_results`. La biblioteca puede mostrar resultados parciales mientras se completan los demás formatos. La evaluación tiene un resultado independiente del estado de generación: V1.1 utiliza `aprobado`, `requiere_revision` o `rechazado`; V2 expone el veredicto canónico `approved`, `requires_revision` o `rejected`.
+
+### Evaluación y revisión
+
+Backend solicita a Data/IA la evaluación V2 de los formatos exitosos. La respuesta conserva separados los scores heurísticos y semánticos: no se calcula un score combinado y el veredicto actual se deriva de la señal heurística. Si el proveedor semántico no está configurado, la evaluación semántica queda `unavailable`, pero la evaluación heurística puede continuar.
+
+Frontend presenta el veredicto, las métricas y los hallazgos recibidos desde Backend. También permite recorrer las evaluaciones del ciclo actual expuestas en `evaluations`; no consulta directamente el endpoint de historial completo por formato.
+
+La corrección automática **no está activa de extremo a extremo**: Backend la mantiene deshabilitada por defecto (`AUTO_REVISION_ENABLED=false`) y requiere `POST /api/v1/revise` en Agentes, que aún no está implementado. La regeneración manual de formatos sí está disponible y es distinta de esa corrección automática.
 
 ---
 
@@ -122,7 +130,7 @@ Docker Compose
 
 Frontend es servido mediante Nginx y utiliza el Backend como única puerta de entrada al producto.
 
-Los servicios internos de Backend, Agentes y Data/IA no necesitan exponerse directamente al usuario.
+El Frontend accede al Backend a través de Nginx; Agentes y Data/IA son dependencias internas y no forman parte de la API que consume la interfaz. Sin embargo, el `compose.yaml` actual publica los puertos de Backend, Agentes y Data/IA en el host, por lo que su exposición de red debe controlarse en la configuración de OCI.
 
 La infraestructura mantiene persistencia externa para:
 
@@ -134,12 +142,13 @@ cache de modelos
 
 Las credenciales y claves de OCI permanecen fuera de las imágenes Docker y fuera del repositorio.
 
-El despliegue se realiza actualmente de forma manual. La automatización mediante CI/CD y publicación de imágenes versionadas forma parte de la siguiente etapa de Infraestructura.
+El workflow de CI para la rama `QA` ejecuta pruebas y lint de Backend, pruebas de Agentes y Data/IA, y build de Frontend. El workflow `Deploy Main to OCI` permite desplegar mediante push a `main` o ejecución manual; conecta por SSH con la VM, actualiza el checkout y reconstruye los servicios con Docker Compose. No publica imágenes versionadas en un registry: consulta los workflows activos de [CI QA](.github/workflows/ci-qa.yml) y [Deploy Main to OCI](.github/workflows/deploy-main.yml).
 
 Más información:
 
-- [`docs/NuevaMente_Infraestructura_OCI.md`](docs/NuevaMente_Infraestructura_OCI.md)
-- [`docs/NuevaMente_Despliegue_Docker_CICD.md`](docs/NuevaMente_Despliegue_Docker_CICD.md)
+- [Infraestructura OCI](<docs/Infra & Arq/NuevaMente_Infraestructura_OCI.md>)
+- [Arquitectura de despliegue OCI](<docs/Infra & Arq/NuevaMente_Arquitectura_OCI.md>)
+- [Despliegue Docker y CI/CD](<docs/Infra & Arq/NuevaMente_Despliegue_Docker_CICD.md>)
 
 ---
 
@@ -151,8 +160,9 @@ Más información:
 | Orquestación, estados y persistencia del BackendAPI | [backend/README.md](backend/README.md) |
 | Indexación, recuperación y generación de Agentes | [agentes/README.md](agentes/README.md) |
 | API evaluadora, rúbrica y benchmarks de Data/IA | [Data_IA/README.md](Data_IA/README.md) |
-| Arquitectura y recursos de OCI | [docs/NuevaMente_Arquitectura_OCI.md](docs/NuevaMente_Arquitectura_OCI.md) |
-| Despliegue Docker y estado de CI/CD | [docs/NuevaMente_Despliegue_Docker_CICD.md](docs/NuevaMente_Despliegue_Docker_CICD.md) |
+| Arquitectura y recursos de OCI | [Infraestructura OCI](<docs/Infra & Arq/NuevaMente_Infraestructura_OCI.md>) y [arquitectura de despliegue](<docs/Infra & Arq/NuevaMente_Arquitectura_OCI.md>) |
+| Despliegue Docker y estado de CI/CD | [docs/Infra & Arq/NuevaMente_Despliegue_Docker_CICD.md](<docs/Infra & Arq/NuevaMente_Despliegue_Docker_CICD.md>) |
+| Planning y acuerdos de Sprint 4 (no certifica implementación) | [docs/README_Sprint_4_NuevaMente.md](docs/README_Sprint_4_NuevaMente.md) |
 
 La carpeta [`docs/`](docs) conserva además diagramas, evidencias y documentación
 complementaria del equipo.

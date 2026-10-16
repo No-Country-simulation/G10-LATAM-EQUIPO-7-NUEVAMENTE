@@ -16,6 +16,8 @@ El frontend se encuentra en [`../frontend`](../frontend).
 
 El flujo principal está integrado de extremo a extremo. **La indexación RAG y la generación de formatos tienen ciclos de ejecución separados**: la indexación termina antes de que BackendAPI registre los formatos y programe su generación en segundo plano.
 
+La evaluación V2 está configurada en BackendAPI y se solicita para los formatos exitosos. La corrección automática está implementada en BackendAPI, pero permanece desactivada por defecto (`AUTO_REVISION_ENABLED=false`) y depende de que Agentes publique `POST /api/v1/revise`; ese endpoint no forma parte actualmente de `agentes/api.py`. Por tanto, los detalles de revisión más adelante describen capacidad condicional de BackendAPI, no un flujo activo de extremo a extremo.
+
 ### Alcance funcional
 
 Esta sección resume las capacidades del BackendAPI; los contratos, reglas y
@@ -96,8 +98,10 @@ La tarea:
 4. persiste `learning_metadata` a nivel del documento cuando corresponde;
 5. actualiza los mismos `format_id`;
 6. termina cada intento en uno de estos estados;
-7. reconstruye el paquete educativo terminal vigente;
-8. persiste `documents/{document_id}/generated/content.json` en OCI:
+7. evalúa en Data/IA los formatos exitosos y persiste las evaluaciones disponibles;
+8. si la corrección automática está habilitada y la evaluación V2 aporta feedback accionable, puede crear una única revisión;
+9. reconstruye el paquete educativo terminal vigente;
+10. persiste `documents/{document_id}/generated/content.json` en OCI:
 
 ```text
 success
@@ -912,6 +916,7 @@ status = processing
 "formats": {
 "quiz": {
 "format_id": "fmt_quiz_1",
+"revision_of_format_id": null,
 "status": "success",
 "content": {},
 "error_message": null
@@ -1208,7 +1213,7 @@ DataIAPort
 ↑
 HTTPDataIAAdapter
 ↓
-POST /evaluate
+POST /evaluate/v2
 ```
 
 Data/IA recibe únicamente contenido **ya generado exitosamente**. No genera material educativo y no controla el estado de generación.
@@ -1388,7 +1393,7 @@ POST /api/v1/generate
 ▼
 cada format_id → estado terminal independiente
 │
-├─ success → FormatEvaluationService → Data/IA /evaluate
+├─ success → FormatEvaluationService → Data/IA /evaluate/v2
 │             └─ format_evaluations
 ├─ failed
 └─ no_results
@@ -1438,7 +1443,7 @@ mismos nuevos format_id
 ↓
 success | failed | no_results
 ↓
-success → Data/IA /evaluate
+success → Data/IA /evaluate/v2
 ↓
 persistir evaluación histórica cuando esté disponible
 ↓
@@ -1504,6 +1509,20 @@ video_script = failed
 ---
 
 ## Endpoints públicos actuales
+
+| Método | Ruta | Uso |
+|---|---|---|
+| `GET` | `/api/v1/health` | Estado básico de la aplicación. |
+| `POST` | `/api/v1/documents` | Carga, indexa y programa la generación inicial. |
+| `GET` | `/api/v1/documents` | Lista documentos activos. |
+| `GET` | `/api/v1/documents/{document_id}` | Consulta metadata y estado del documento. |
+| `GET` | `/api/v1/documents/{document_id}/download` | Descarga el original almacenado. |
+| `GET` | `/api/v1/documents/{document_id}/formats` | Consulta formatos vigentes, estados y evaluaciones del ciclo. |
+| `POST` | `/api/v1/documents/{document_id}/formats/regenerate` | Inicia la regeneración de formatos. |
+| `GET` | `/api/v1/documents/{document_id}/formats/{format_type}/history` | Consulta los ciclos, revisiones y evaluaciones. |
+| `PATCH` | `/api/v1/documents/{document_id}/deactivate` | Inactiva lógicamente el documento. |
+
+`POST /api/v1/revise` no es una ruta de BackendAPI, sino una dependencia externa de Agentes para la corrección automática. Su estado actual se detalla en [Pendientes y dependencias de integración](#pendientes-y-dependencias-de-integración).
 
 ### Salud
 
@@ -1747,6 +1766,7 @@ Ejemplo con formatos disponibles:
 "formats": {
 "quiz": {
 "format_id": "fmt_quiz_1",
+"revision_of_format_id": null,
 "status": "success",
 "content": {
 "title": "Quiz",
@@ -1764,10 +1784,13 @@ Ejemplo con formatos disponibles:
 }
 ]
 },
-"error_message": null
+"error_message": null,
+"evaluation": null,
+"evaluations": []
 },
 "flashcards": {
 "format_id": "fmt_flashcards_1",
+"revision_of_format_id": null,
 "status": "success",
 "content": {
 "title": "Flashcards",
@@ -1780,19 +1803,27 @@ Ejemplo con formatos disponibles:
 }
 ]
 },
-"error_message": null
+"error_message": null,
+"evaluation": null,
+"evaluations": []
 },
 "tldr": {
 "format_id": "fmt_tldr_1",
+"revision_of_format_id": null,
 "status": "success",
 "content": {},
-"error_message": null
+"error_message": null,
+"evaluation": null,
+"evaluations": []
 },
 "video_script": {
 "format_id": "fmt_video_script_1",
+"revision_of_format_id": null,
 "status": "success",
 "content": {},
-"error_message": null
+"error_message": null,
+"evaluation": null,
+"evaluations": []
 }
 }
 }
@@ -2203,7 +2234,10 @@ Python >= 3.11
 
 ---
 
-## Estructura actual
+## Estructura de referencia
+
+Se muestran los módulos principales; los archivos auxiliares y de pruebas se
+omiten cuando no son necesarios para ubicar una responsabilidad.
 
 ```text
 backend/
@@ -2217,13 +2251,15 @@ backend/
 │   │       └── endpoints/
 │   │           ├── health.py
 │   │           ├── documents.py
-│   │           └── format_regeneration.py
+│   │           ├── format_regeneration.py
+│   │           └── format_revision_history.py
 │   ├── schemas/
 │   │   ├── common.py
 │   │   ├── adaptation.py
 │   │   ├── document.py
 │   │   ├── generated_format.py
-│   │   └── format_regeneration.py
+│   │   ├── format_regeneration.py
+│   │   └── revision_cycle.py
 │   ├── domain/
 │   │   ├── document.py
 │   │   ├── enums.py
@@ -2231,7 +2267,8 @@ backend/
 │   │   ├── generated_educational_package.py
 │   │   ├── generated_format.py
 │   │   ├── learning_metadata.py
-│   │   └── format_evaluation.py
+│   │   ├── format_evaluation.py
+│   │   └── revision_feedback.py
 │   ├── application/
 │   │   ├── adaptation_orchestration_service.py
 │   │   ├── document_service.py
@@ -2240,7 +2277,14 @@ backend/
 │   │   ├── format_regeneration_service.py
 │   │   ├── generated_format_query_service.py
 │   │   ├── generated_package_storage_service.py
-│   │   └── format_evaluation_service.py
+│   │   ├── format_evaluation_service.py
+│   │   ├── current_cycle_evaluations_service.py
+│   │   ├── format_evaluation_feedback_mapper.py
+│   │   ├── revision_contract_v2.py
+│   │   ├── format_revision_service.py
+│   │   ├── format_revision_history_service.py
+│   │   ├── format_auto_revision_service.py
+│   │   └── stale_revision_recovery_service.py
 │   ├── ports/
 │   │   ├── document_repository_port.py
 │   │   ├── temporary_storage_port.py
@@ -2249,19 +2293,24 @@ backend/
 │   │   ├── agents_port.py
 │   │   ├── generated_format_repository_port.py
 │   │   ├── format_evaluation_repository_port.py
-│   │   └── data_ia_port.py
+│   │   ├── data_ia_port.py
+│   │   ├── agent_revision_port.py
+│   │   └── stale_revision_recovery_port.py
 │   ├── infrastructure/
 │   │   ├── integrations/
 │   │   │   ├── http_rag_adapter.py
 │   │   │   ├── http_agents_adapter.py
-│   │   │   └── http_data_ia_adapter.py
+│   │   │   ├── http_data_ia_adapter.py
+│   │   │   ├── http_data_ia_v2_mapper.py
+│   │   │   └── http_agent_revision_adapter.py
 │   │   ├── persistence/
 │   │   │   ├── database.py
 │   │   │   ├── models.py
 │   │   │   ├── repository_factory.py
 │   │   │   ├── sqlite_document_repository_adapter.py
 │   │   │   ├── sqlite_generated_format_repository_adapter.py
-│   │   │   └── sqlite_format_evaluation_repository_adapter.py
+│   │   │   ├── sqlite_format_evaluation_repository_adapter.py
+│   │   │   └── sqlite_stale_revision_recovery_adapter.py
 │   │   └── storage/
 │   │       ├── local_temporary_storage_adapter.py
 │   │       └── oci_object_storage_adapter.py
@@ -2327,10 +2376,13 @@ RAG_TIMEOUT_SECONDS=30
 # --- Agentes ---
 AGENTS_BASE_URL=http://localhost:8001
 AGENTS_GENERATE_PATH=/api/v1/generate
+AGENTS_REVISE_PATH=/api/v1/revise
 AGENTS_TIMEOUT_SECONDS=60
+# Requiere que Agentes publique /api/v1/revise; desactivado por defecto.
+AUTO_REVISION_ENABLED=false
 # --- Data/IA ---
 DATA_IA_BASE_URL=http://localhost:8002
-DATA_IA_EVALUATE_PATH=/evaluate
+DATA_IA_EVALUATE_PATH=/evaluate/v2
 DATA_IA_TIMEOUT_SECONDS=60
 ```
 
@@ -2441,7 +2493,7 @@ Respuesta esperada:
 BackendAPI utiliza por defecto:
 
 ```text
-http://localhost:8002/evaluate
+http://localhost:8002/evaluate/v2
 ```
 
 ---
@@ -3195,7 +3247,7 @@ GeneratedFormat success
 ↓
 FormatEvaluationService
 ↓
-POST Data/IA /evaluate
+POST Data/IA /evaluate/v2
 ↓
 FormatEvaluation
 ↓
@@ -3403,7 +3455,7 @@ POST responde
                                 ↓
                    success | failed | no_results
                                 ↓
-              success → Data/IA /evaluate
+              success → Data/IA /evaluate/v2
                                 ↓
                  persistir evaluación
                                 ↓
@@ -3461,7 +3513,7 @@ BackendAPI
                                 ↓
              mismos nuevos format_id → estado terminal
                                 ↓
-              success → Data/IA /evaluate
+              success → Data/IA /evaluate/v2
                                 ↓
                  persistir evaluación
                                 ↓
@@ -3510,6 +3562,8 @@ Evaluación V2 persistida → decisión de BackendAPI
     ├── approved / verdict null / sin feedback accionable
     │       └── conservar generación sin corregir
     └── requires_revision / rejected + feedback accionable
+            │ si AUTO_REVISION_ENABLED=true y Agentes expone /revise
+            │ (desactivado por defecto; integración externa pendiente)
             ↓
         reservar revisión processing en SQLite
             ↓
@@ -3594,7 +3648,9 @@ solicitud de corrección y la reevaluación posterior.
 
 ### Contrato HTTP BackendAPI → Agentes, revisión V2
 
-Ruta externa consumida exclusivamente por BackendAPI:
+Contrato esperado para la integración externa consumida por BackendAPI. Este
+endpoint todavía no está implementado en el `api.py` actual de Agentes; el
+adaptador de BackendAPI está preparado para consumirlo cuando se publique:
 
 ```http
 POST /api/v1/revise
@@ -3802,18 +3858,8 @@ recuperación transaccional de estados `processing` obsoletos. El transporte
 HTTP se simula con `httpx.MockTransport` y no representa comunicación real
 entre servicios.
 
-**Pendientes de validación conjunta:**
-
-1. Publicación y verificación de `POST /api/v1/revise` en Agentes, incluido
-   `sources_used` e idempotencia por `revision_id`.
-2. Disponibilidad y contrato V2 real de Data/IA para generación y reevaluación.
-3. Flujo E2E real BackendAPI → Agentes → Data/IA → Frontend, con OCI y SQLite.
-4. Confirmación por Producto/QA de qué versión exponer cuando el último
-   `success` técnico de una corrección resulte `rejected` o no disponga de
-   evaluación. La selección actual favorece el éxito técnico más reciente,
-   **no** garantiza que la versión esté pedagógicamente aprobada.
-5. Activación deliberada del flag y verificación de errores en un entorno de
-   integración controlado.
+Los puntos abiertos y las dependencias de servicios externos se centralizan
+al final en [Pendientes y dependencias de integración](#pendientes-y-dependencias-de-integración).
 
 ### Mapa de componentes añadidos en Sprint 4
 
@@ -3821,6 +3867,7 @@ entre servicios.
 backend/app/
 ├── api/v1/endpoints/format_revision_history.py
 ├── application/
+│   ├── current_cycle_evaluations_service.py
 │   ├── format_revision_service.py
 │   ├── format_revision_history_service.py
 │   ├── format_evaluation_feedback_mapper.py
@@ -3843,7 +3890,8 @@ backend/tests/
 │   └── test_agent_revision_v2_contract.py
 └── integration/
     ├── test_revision_flow_v2_sqlite.py
-    └── test_stale_revision_recovery.py
+    ├── test_stale_revision_recovery.py
+    └── test_current_cycle_evaluations_api.py
 ```
 
 <!-- END BACKENDAPI_SPRINT4_2026 -->
@@ -3881,3 +3929,28 @@ distinción antes de atribuir un veredicto a una corrección todavía no evaluad
 El endpoint histórico por formato (`/documents/{document_id}/formats/
 {format_type}/history`) sigue ofreciendo todos los ciclos. Esta ampliación de
 `/formats` no altera su contrato.
+
+## Pendientes y dependencias de integración
+
+Esta sección reúne las brechas observadas al contrastar la documentación con
+el código. Son pendientes técnicos y validaciones por completar; no representan
+por sí solos compromisos aprobados del backlog.
+
+- **Publicar el endpoint de revisión en Agentes.** BackendAPI tiene preparado
+  el adaptador para `POST /api/v1/revise`, pero la ruta no está implementada en
+  el servicio Agentes (`../agentes/api.py`). Hasta que exista un servicio
+  compatible, mantener `AUTO_REVISION_ENABLED=false`.
+- **Validar el contrato V2 con Data/IA real.** BackendAPI configura
+  `DATA_IA_EVALUATE_PATH=/evaluate/v2`; las pruebas locales descritas en este
+  README simulan el transporte y no certifican el intercambio real entre
+  servicios.
+- **Completar una prueba E2E de la revisión V2 con servicios desplegados.**
+  Verificar generación, evaluación, corrección y reevaluación entre BackendAPI,
+  Agentes, Data/IA y Frontend, incluyendo SQLite y OCI Object Storage.
+- **Acordar la selección pedagógica del contenido vigente.** La consulta
+  favorece el último `success` técnico, incluso si esa versión fue evaluada
+  como `rejected` o todavía no tiene evaluación; la política de producto debe
+  confirmar si ese comportamiento es el esperado.
+- **Evaluar durabilidad de tareas en segundo plano.** La generación y
+  regeneración usan `FastAPI BackgroundTasks`; no hay una cola durable para
+  recuperarlas automáticamente después de una caída abrupta del proceso.

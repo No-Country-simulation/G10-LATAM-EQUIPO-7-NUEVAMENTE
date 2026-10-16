@@ -21,6 +21,15 @@ La propuesta que se ha trabajado establece **dos niveles de coordinación comple
 
 La denominación acordada para Data/IA es **Agente Evaluador**; su trabajo consiste en evaluar el contenido y producir hallazgos, métricas y recomendaciones. El **Agente Revisor**, situado en Agentes/LangGraph, **no vuelve a evaluar**: procesa las recomendaciones que BackendAPI le entrega y coordina su aplicación.
 
+### Estado de implementación verificado — 15 de octubre de 2026
+
+Este documento conserva los objetivos y acuerdos funcionales del planning. El código revisado después de la versión de 12 de octubre muestra el siguiente estado:
+
+- **LangGraph:** ya está incluido como dependencia y `agentes/graph.py` define grafos internos de generación. Sin embargo, la API activa de Agentes todavía usa el flujo directo de `AgentV1`; no hay endpoint HTTP `/api/v1/revise` implementado ni conectado a BackendAPI.
+- **Evaluación semántica:** Data/IA expone `POST /evaluate/v2`, con señales heurísticas y semánticas separadas. BackendAPI está configurado para usar V2 y persiste las evaluaciones. El veredicto se deriva de la evaluación heurística; el proveedor semántico puede quedar `unavailable` si Gemini no está configurado.
+- **Ciclo e historial:** BackendAPI devuelve en `GET /api/v1/documents/{id}/formats` `evaluation` y `evaluations` del ciclo asociado al formato seleccionado. También existe un endpoint de historial de generaciones/correcciones por formato, pero el Frontend no lo consulta: muestra las evaluaciones entregadas para el ciclo actual.
+- **Corrección automática:** sigue desactivada por defecto (`AUTO_REVISION_ENABLED=false`) y no puede completarse de extremo a extremo mientras falte el endpoint de revisión en Agentes. La regeneración manual de formatos sí está implementada, pero no equivale a corregir basándose en recomendaciones.
+
 ## 3. Responsabilidades por componente
 
 | Componente | Responsabilidad definida o propuesta |
@@ -29,23 +38,23 @@ La denominación acordada para Data/IA es **Agente Evaluador**; su trabajo consi
 | **Investigador RAG (Agentes)** | Recuperar los chunks pertinentes del documento previamente indexado; buscar evidencia adicional si el Revisor lo solicita. **No confundir recuperación con el pipeline de indexación.** |
 | **Redactor Pedagógico (Agentes)** | Generar y corregir los formatos educativos mediante Gemini, atendiendo perfil, nicho, detalle y objetivos; mantener las salidas estructuradas. |
 | **Agente Revisor (Agentes)** | Recibir contenido anterior, chunks y recomendaciones trasladadas por BackendAPI; determinar acciones de corrección, solicitar evidencia adicional al Investigador cuando haga falta y orientar al Redactor. **No emite una nueva evaluación de calidad.** |
-| **Agente Evaluador (Data/IA)** | Analizar calidad pedagógica, relevancia, coherencia y soporte documental; combinar evaluación heurística y semántica; emitir métricas, hallazgos, veredicto y recomendaciones de mejora. |
+| **Agente Evaluador (Data/IA)** | Analizar calidad pedagógica, relevancia, coherencia y soporte documental; exponer scores heurísticos y semánticos separados, hallazgos y recomendaciones. El veredicto V2 actual se deriva de la evaluación heurística. |
 | **Frontend** | Solicitar acciones y presentar documentos, formatos, estados y resultados de evaluación; no orquestar el ciclo de revisión. |
 | **QA** | Validar integración, recorridos de usuario, regresiones y escenario de demostración final. |
 
 ## 4. Flujos funcionales propuestos
 
-### 4.1 Generación inicial
+### 4.1 Generación inicial propuesta
 
 1. BackendAPI recibe la solicitud y el contexto de generación (documento, perfil, nicho, nivel, formato y, si corresponde, objetivo pedagógico).
 2. BackendAPI llama al endpoint de generación de Agentes.
-3. En LangGraph, **Investigador RAG → Redactor Pedagógico**: se recuperan chunks y se genera el contenido.
+3. En el recorrido propuesto con LangGraph, **Investigador RAG → Redactor Pedagógico**: se recuperan chunks y se genera el contenido. En el endpoint activo, Agentes genera mediante el flujo directo de `AgentV1`, no con este grafo.
 4. Agentes devuelve a BackendAPI contenido, evidencia utilizada y datos asociados.
 5. **BackendAPI** solicita la evaluación al **Agente Evaluador de Data/IA**, incluyendo contenido, chunks y contexto.
 6. Data/IA devuelve a BackendAPI veredicto, métricas, hallazgos y recomendaciones.
 7. BackendAPI decide si la salida queda aceptada o requiere el ciclo de corrección, dentro de las reglas y límites que se acuerden.
 
-### 4.2 Ciclo de corrección
+### 4.2 Ciclo de corrección propuesto (aún no activo E2E)
 
 1. Si Data/IA requiere cambios y hay intentos disponibles, BackendAPI llama al **nuevo endpoint del Agente Revisor**, enviando contenido anterior, chunks utilizados, contexto y recomendaciones; también debe disponer de información del intento.
 2. En LangGraph, el **Revisor interpreta las recomendaciones** y prepara las acciones de corrección.
@@ -86,9 +95,9 @@ flowchart TB
 
 - [`agentes/agent_v1.py`](https://github.com/No-Country-simulation/G10-LATAM-EQUIPO-7-NUEVAMENTE/blob/QA/agentes/agent_v1.py): `AgentV1.answer()` **ya recupera evidencia** con `RetrieverService`, construye prompts adaptados y genera contenido con Gemini usando esquemas Pydantic. Retorna `content`, `sources_used`, estado y error. `extract_learning_metadata()` recupera información y obtiene metadatos pedagógicos.
 - [`agentes/api.py`](https://github.com/No-Country-simulation/G10-LATAM-EQUIPO-7-NUEVAMENTE/blob/QA/agentes/api.py): existe `/api/v1/index` para indexar documentos y `/api/v1/generate` para generación de los cuatro formatos. La generación itera formatos **secuencialmente**, pese al comentario de «paralela» que aparece en el archivo.
-- [`agentes/requirements.txt`](https://github.com/No-Country-simulation/G10-LATAM-EQUIPO-7-NUEVAMENTE/blob/QA/agentes/requirements.txt): **LangGraph todavía no figura como dependencia**. Tampoco se verificó un grafo activo o un endpoint de revisión.
+- [`agentes/requirements.txt`](https://github.com/No-Country-simulation/G10-LATAM-EQUIPO-7-NUEVAMENTE/blob/QA/agentes/requirements.txt) incluye LangGraph y [`agentes/graph.py`](https://github.com/No-Country-simulation/G10-LATAM-EQUIPO-7-NUEVAMENTE/blob/QA/agentes/graph.py) define grafos internos para generación y subgrafos por formato. El endpoint activo `/api/v1/generate` aún utiliza el flujo directo y secuencial de `AgentV1`; `api.py` no expone `/api/v1/revise`.
 - La recuperación híbrida y los embeddings **ya existen**. La propuesta es **separar capacidades funcionales** dentro del grafo, reutilizándolas; **no duplicar el motor RAG ni rehacer la generación**.
-- Actualmente `answer()` **no recibe contenido anterior ni recomendaciones correctivas**. Es una modificación necesaria para alimentar el recorrido de revisión.
+- El flujo activo de `AgentV1.answer()` **no recibe contenido anterior ni recomendaciones correctivas**. El grafo/subgrafo interno no implica que exista un endpoint de revisión consumible por BackendAPI.
 
 ### BackendAPI
 
@@ -100,8 +109,9 @@ flowchart TB
 
 ### Data/IA
 
-- El evaluador actual contiene lógica **heurística/léxica** y rúbrica para determinar aprobación, revisión o rechazo. La evaluación semántica mediante LLM es trabajo planteado para Sprint 4; no debe presentarse como completada.
-- El contrato actual contiene estado, puntuaciones y `observaciones`, pero la conversación detectó que estas últimas no ofrecen aún recomendaciones correctivas suficientemente concretas para guiar automáticamente al Revisor. **El contrato Data/IA → BackendAPI → Agentes debe evolucionar de forma coordinada.**
+- Data/IA mantiene `POST /evaluate` (V1.1) y expone `POST /evaluate/v2` con evaluación heurística y semántica separadas. BackendAPI configura V2. El veredicto V2 se mapea desde la señal heurística; no hay una Decision Layer calibrada que combine los scores.
+- El contrato V2 incluye `observations`, `recommendations` y `unsupported_information`; BackendAPI persiste y expone los resultados de evaluación. La ejecución de Gemini depende de configuración; sin ella, la señal semántica queda `unavailable` y la evaluación heurística puede continuar.
+- La corrección automática basada en estas recomendaciones sigue pendiente de integración extremo a extremo porque Agentes no expone `/api/v1/revise` y Backend la mantiene desactivada por defecto.
 
 ## 6. Organización del trabajo según tarjetas de Sprint 4
 
@@ -162,13 +172,14 @@ Las tarjetas revisadas están agrupadas por área. **Que una tarjeta exista no d
 
 `Data/IA: hallazgos accionables y veredicto` → `BackendAPI: persistir, decidir, reenviar` → `Agentes: revisión/corrección` → `BackendAPI: reevaluar`.
 
-Puntos que deben acordar los equipos antes de una integración definitiva:
+Brechas que siguen abiertas para una integración definitiva:
 
-1. **Evaluación correctiva:** cómo identifica Data/IA qué ajustar y qué evidencia falta, con suficiente especificidad para que el Revisor pueda actuar. La estructura exacta no quedó cerrada en esta conversación.
-2. **Solicitud al endpoint del Revisor:** contenido anterior, evidencia/chunks, recomendaciones, contexto pedagógico e identificación del intento; acordar nombres de campos y formatos.
-3. **Respuesta del Revisor:** nueva versión estructurada en el mismo formato, chunks usados/actualizados y resultado/error; preservar compatibilidad de los contratos existentes.
-4. **Estados y cierre:** distinguir fallos de Gemini, fallos de evaluación, ausencia de evidencia, contenido aprobado, corrección requerida y agotamiento de intentos. **Se acordó comenzar con un reintento automático de corrección**, y luego medir tiempos antes de considerar más. La forma de configuración y persistencia corresponde al equipo BackendAPI.
-5. **Métricas del ciclo vigente:** Backend debe poder recuperar las evaluaciones que corresponden a la generación inicial y las correcciones automáticas del **último ciclo** de cada formato, sin mezclar ciclos anteriores. **No se ha impuesto identificador de ciclo ni esquema de tablas**: BackendAPI analizará y propondrá su solución.
+1. **Ejecución de la corrección automática:** la API de revisión de Agentes y su integración con BackendAPI siguen pendientes; definir y validar el contrato de revisión cuando se habilite ese recorrido.
+2. **Estados y cierre del ciclo automático:** al integrar revisión, distinguir fallos de Gemini, fallos de evaluación, ausencia de evidencia, contenido aprobado, corrección requerida y agotamiento de intentos. La configuración actual mantiene deshabilitada la revisión automática.
+3. **Historial completo en la interfaz:** Frontend muestra las evaluaciones (`evaluations`) que Backend entrega para el ciclo actual, pero no consume la ruta `/history` para recorrer todos los ciclos históricos por formato.
+4. **Validación E2E:** validar corrección y reevaluación entre BackendAPI, Agentes, Data/IA y Frontend cuando exista un endpoint de revisión consumible.
+
+Los contratos de evaluación V2 y el agrupamiento de evaluaciones del ciclo actual ya están implementados. Estos puntos describen brechas del recorrido de corrección automática y del acceso visual al historial completo; no implican que toda la evaluación o persistencia esté pendiente.
 
 ## 8. Nuevo acuerdo funcional: ciclo, evaluaciones y respuesta al Frontend
 
@@ -184,7 +195,7 @@ Este concepto de ciclo es **un requisito de agrupación funcional**, no la oblig
 
 1. BackendAPI obtiene el contenido de la generación inicial y los chunks de respaldo.
 2. BackendAPI solicita **una evaluación** a Data/IA enviando contenido, tipo de formato, documento, evidencia y contexto pedagógico.
-3. Data/IA aplica su evaluación y devuelve un **veredicto, métricas, observaciones y recomendaciones útiles para corregir**, según el contrato que acuerden los equipos. **Data/IA no guarda ni ensambla el historial de métricas para Frontend.**
+3. Data/IA aplica Evaluation V2 y devuelve `verdict`, `heuristic_scores` y `semantic_evaluation`, con observaciones, recomendaciones y afirmaciones no respaldadas. El veredicto actual se deriva de la señal heurística; los scores semánticos permanecen separados. **Data/IA no guarda ni ensambla el historial de métricas para Frontend.**
 4. **BackendAPI guarda la evaluación al recibirla**, sea favorable o no. Actualmente esta persistencia ya existe.
 5. Si el contenido requiere mejoras y resta un reintento, BackendAPI pide la corrección al servicio Agentes; luego envía la versión corregida a Data/IA, que genera **otra evaluación independiente**.
 6. BackendAPI vuelve a guardar esa evaluación; decide si termina por aprobación o por límite de reintentos.
@@ -240,27 +251,29 @@ Este concepto de ciclo es **un requisito de agrupación funcional**, no la oblig
 
 > El ejemplo ilustra **forma y orden**, no datos reales ni campos definitivos; `questions: []` es una abreviación gráfica, no un ejemplo de contenido válido para los esquemas de generación. El equipo definirá la forma real de la respuesta.
 
-### 8.4 Lo que confirma el código de BackendAPI y Data/IA
+### 8.4 Estado que confirma el código de BackendAPI, Data/IA y Frontend
 
-| Capacidad | Situación verificada en la revisión de `QA` |
+| Capacidad | Situación verificada al 15 de octubre de 2026 |
 | --- | --- |
 | Generaciones múltiples de un documento | **Existe**: `FormatGenerationService.prepare_generation()` crea nuevos `format_id`; la regeneración manual crea registros adicionales, sin sobrescribir generaciones anteriores. |
 | Historial de generaciones | **Existe internamente**: `SQLiteGeneratedFormatRepositoryAdapter.find_by_document_id()` consulta todas las generaciones del documento. |
-| Formato vigente para Frontend | **Existe**: `GeneratedFormatQueryService._select_current_formats()` selecciona un resultado por tipo; el esquema público `GeneratedFormatResponse` no incluye evaluaciones. |
-| Guardado de cada evaluación | **Existe**: `FormatEvaluationService.evaluate_format()` persiste `FormatEvaluation` mediante `evaluation_repository.create()`; cada evaluación tiene su propio `evaluation_id` y queda asociada a un `format_id`. |
-| Consulta del historial de evaluaciones de una generación | **Existe**: `SQLiteFormatEvaluationRepositoryAdapter.find_by_format_id()` devuelve evaluaciones ordenadas por fecha ascendente. |
-| Historial de métricas de todo el último ciclo, asociado al contenido vigente | **Pendiente**: una corrección guardada como nueva generación puede tener otro `format_id`; se deberá resolver la asociación de las evaluaciones que pertenecen a un mismo ciclo, sin arrastrar las de regeneraciones anteriores. |
-| Corrección automática basada en recomendaciones y reintentos | **Pendiente**: hoy se genera y evalúa, pero el flujo no usa el resultado para solicitar una nueva versión automáticamente. |
+| Formato vigente y evaluaciones del ciclo actual para Frontend | **Existe**: `GET /documents/{document_id}/formats` devuelve el contenido seleccionado con `evaluation` y `evaluations` del ciclo pertinente. El Frontend muestra esas evaluaciones en el modal y permite recorrerlas. |
+| Historial completo de evaluaciones/correcciones | **Existe en Backend**: `GET /documents/{document_id}/formats/{format_type}/history` agrupa ciclos por formato. **El Frontend no consume este endpoint**; su vista actual muestra las evaluaciones entregadas para el ciclo del formato. |
+| Guardado y presentación de evaluaciones | **Existe**: Backend persiste cada evaluación con `evaluation_id` y `format_id`; Data/IA V2 devuelve scores heurísticos y semánticos separados, hallazgos y recomendaciones. |
+| Evaluación V2 integrada | **Existe**: Data/IA expone `/evaluate/v2` y BackendAPI lo tiene configurado. El veredicto se deriva del evaluador heurístico; no existe una Decision Layer calibrada que combine ambos scores. |
+| Corrección automática basada en recomendaciones y reintentos | **Pendiente E2E**: Backend tiene la capacidad condicional, desactivada por defecto; falta el endpoint `/api/v1/revise` en Agentes. La regeneración manual existente no es una corrección automática guiada por evaluación. |
 
-**Campos existentes en la integración de evaluación:** Backend prepara para Data/IA `document_id`, tipo de formato, `generated_content`, `chunks_used` y `generation_context`. El `format_id` identifica internamente la generación a la cual Backend vincula la evaluación; **no debe anunciarse como campo obligatorio del request de Data/IA sin acuerdo**. Las métricas actuales tienen cuatro dimensiones (`relevance`, `coherence`, `didactic_adaptation`, `content_support`) con puntuaciones de 1 a 5. Los datos históricos guardados incluyen estado, observaciones, respaldo documental y versiones de evaluador/rúbrica.
+**Campos de la integración de evaluación:** Backend envía a Data/IA `document_id`, `format`, `generated_content`, `chunks_used` y `generation_context`; asocia después la evaluación con el `format_id` persistido. V2 expone scores heurísticos y semánticos en cuatro dimensiones (`relevance`, `coherence`, `didactic_adaptation`, `content_support`), además de `observations`, `recommendations`, `unsupported_information`, versiones de evaluator/rúbrica y metadatos semánticos.
 
-**Ajuste de términos frente a diagramas exploratorios:** los JSON que aparecen ilustrados en imágenes (`verdict`, `recommendations`, `format_type`, `format_id` y otros) **no representan necesariamente los nombres literales del contrato existente**. En el esquema directo de Data/IA se usan, entre otros, `document_id`, `format`, `generated_content`, `generation_context`, `chunks_used`, y en la salida `status`, `scores`, `informacion_no_respaldada`, `observaciones`. Los equipos acordarán la extensión para recomendaciones accionables.
+**Ajuste de términos frente a diagramas exploratorios:** los JSON de las imágenes son conceptuales y no deben tratarse como contrato literal. En V2, la entrada utiliza `document_id`, `format`, `generated_content`, `generation_context` y `chunks_used`; la respuesta incluye `verdict`, `heuristic_scores` y `semantic_evaluation`. El endpoint V1.1 `/evaluate` conserva los nombres de su contrato anterior (`status`, `scores`, `informacion_no_respaldada`, `observaciones`).
 
 ### 8.5 Qué se solicita al equipo, sin imponer implementación
 
-- **Data/IA:** entregar evaluaciones comprensibles y recomendaciones accionables para que el Revisor pueda corregir; acordar con BackendAPI el contrato de evaluación actualizado.
-- **BackendAPI:** definir cómo identificar las evaluaciones del **último ciclo de cada formato**, guardarlas después de cada llamada, controlar la política de **un reintento inicial**, y construir el JSON final de **último contenido + métricas del ciclo, reciente → antigua**. **No se exige** `cycle_id`, nuevas tablas ni contadores persistidos como decisión previa.
-- **Frontend:** presentar la versión vigente y la evolución de métricas del ciclo. La solución visual concreta queda en manos del equipo.
+- **Data/IA:** el contrato V2 ya expone hallazgos y recomendaciones, y Backend lo consume; validar que la calidad de esas recomendaciones resulte suficiente para un flujo automático de revisión.
+- **BackendAPI:** ya persiste evaluaciones y devuelve el contenido seleccionado con métricas de su ciclo actual. Sigue pendiente activar y probar la decisión y el reintento automático junto al endpoint de Agentes.
+- **Frontend:** ya muestra el resultado de evaluación y permite navegar entre las evaluaciones del ciclo actual. No consulta el endpoint de historial completo por formato; incorporarlo a la interfaz sería un alcance adicional.
+
+El requisito funcional de presentar el contenido seleccionado con evaluaciones del ciclo actual está implementado en la respuesta de `/formats` y en la vista del Frontend. El ejemplo conceptual anterior continúa describiendo el objetivo de orden de las evaluaciones, no un JSON contractual.
 
 ### 8.6 Esquema de las responsabilidades del ciclo
 
@@ -323,16 +336,17 @@ Un recorrido reproducible que permita demostrar que:
 
 ### 10.1 Evaluación de viabilidad del sprint
 
-Se consideró **viable con riesgo de integración**, porque RAG, generación con Gemini, evaluación heurística y persistencia ya existen, pero **LangGraph/Revisor, evaluación semántica, ciclo automático y consolidación de métricas** todavía deben integrarse. Los tres servicios dependen de contratos consistentes y pruebas E2E; la disponibilidad efectiva del equipo y el progreso actual de PR no quedaron verificados, por lo que **no se garantiza la entrega**. Se recomienda validar cuanto antes un recorrido completo con **una corrección como máximo**, y ampliar tras medir tiempos y estabilidad.
+La evaluación de viabilidad que sigue corresponde al planning del 12 de octubre, no al estado actual. A la fecha de la revisión (15 de octubre), LangGraph y la evaluación semántica V2 ya están en el código; BackendAPI persiste las evaluaciones y entrega al Frontend las métricas del ciclo actual. La **corrección automática E2E** sigue pendiente porque Agentes no expone `/api/v1/revise` y BackendAPI la mantiene deshabilitada. También queda por validar el recorrido E2E desplegado; la existencia de estos componentes no certifica por sí sola la integración productiva ni el cumplimiento de las tarjetas del sprint.
 
 ## 12. Diagramas de referencia
 
-- **Arquitectura general:** `nuevamente_arquitectura_general_sprint_4.png` — responsabilidades y comunicaciones entre servicios; la solicitud de evaluación **sale de BackendAPI**.
-- **Flujo de funcionamiento:** `flujo_de_funcionamiento_de_nuevamente.png` — generación inicial y ciclo de corrección; dos secciones en un mismo diagrama.
-- **Flujo de evaluación, persistencia y entrega de métricas:** gráfico revisado en la conversación, con el concepto de ciclo delimitado; los JSON de la imagen son orientativos. El original deberá guardarse en documentación antes de referenciarlo mediante una ruta definitiva.
+- [Arquitectura y responsabilidades](<ArquitecturaResponsabilidades.png>) — separación de responsabilidades entre servicios.
+- [Flujo de funcionamiento de NuevaMente](<Flujo de funcionamiento de NuevaMente.png>) — generación y ciclo de evaluación/corrección propuestos.
+- [Ciclo de evaluación y corrección de IA](<Ciclo de evaluación y corrección de IA.png>) — evaluación, persistencia y devolución de métricas.
+- [Arquitectura general Sprint 4](<NuevaMente_ Arquitectura General Sprint 4.png>) — comunicación entre servicios.
 
-> Para publicar este README en el repositorio, copiar los PNG al directorio de documentación y ajustar sus rutas. Las imágenes ilustran la **arquitectura propuesta**, no un estado de implementación confirmado.
+Las imágenes están en el repositorio y representan la arquitectura/flujo propuestos; no certifican que el recorrido completo de corrección automática esté implementado.
 
 ---
 
-**Estado de este documento:** versión actualizada para revisión de la Project Manager. La **regla inicial de un reintento de corrección** y la **presentación del contenido vigente con métricas del último ciclo** están definidas a nivel funcional. La solución de asociación de ciclos, los contratos exactos, los estados finales de error y otros detalles de implementación quedan para propuesta y validación de los equipos, con aprobación de la PM.
+**Estado de este documento:** planning funcional actualizado con una nota de implementación verificada al 15 de octubre de 2026. La evaluación V2, persistencia y presentación de evaluaciones del ciclo actual están implementadas; la corrección automática sigue siendo una propuesta no activa de extremo a extremo. El endpoint de historial completo existe en Backend, pero aún no se consume desde Frontend. La planificación y la existencia de código no sustituyen la validación de los acuerdos por la Project Manager ni una prueba E2E desplegada.
