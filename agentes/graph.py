@@ -6,12 +6,8 @@ Arquitectura alineada (Sprint 4):
 * Este módulo expone dos grafos:
   1. `compilar_grafo_generacion`: Grafo global (Map-Reduce) que ejecuta el Investigador (RAG),
      extrae metadatos y hace fan-out para generar la primera versión de múltiples formatos.
-  2. `compilar_subgrafo_formato`: Grafo atómico (lineal) que ejecuta el Redactor una sola vez. 
-     Se usa tanto internamente en el fan-out como externamente para el endpoint de corrección.
-
-Topología de Generación:
-    START -> investigador -+-> metadatos ------------------------------+-> END
-                           +-> procesar_formato (uno por formato) -----+
+  2. `compilar_subgrafo_formato`: Grafo inteligente con nodo Revisor, lógica condicional de nueva evidencia
+     y el Redactor Pedagógico. Se usa tanto internamente en el fan-out como externamente para la corrección.
 """
 import logging
 import os
@@ -209,19 +205,95 @@ def traducir_respuesta_evaluador(
 
 
 # ----------------------------------------------------------------------
-# 3. SUBGRAFO ATÓMICO POR FORMATO
+# 3. NODO REVISOR Y FLUJO CONDICIONAL DE NUEVA EVIDENCIA (Sprint 4)
+# ----------------------------------------------------------------------
+def crear_nodo_revisor(agente: AgentV1) -> Callable[[FormatState], Dict[str, Any]]:
+    """
+    Nodo Revisor activo: analiza el feedback y determina si requiere nueva evidencia o ajuste directo.
+    """
+    def nodo_revisor(state: FormatState) -> Dict[str, Any]:
+        feedback = state.get("feedback")
+        if not feedback or feedback.get("approved"):
+            return {"needs_new_evidence": False}
+
+        # Analizar si las observaciones indican falta de contexto o afirmaciones sin respaldo
+        issues = feedback.get("issues", [])
+        requiere_busqueda = any("respaldo" in issue.lower() or "contexto" in issue.lower() for issue in issues)
+        
+        return {"needs_new_evidence": requiere_busqueda}
+    return nodo_revisor
+
+
+def crear_nodo_nueva_evidencia(agente: AgentV1, top_k: int = 5) -> Callable[[FormatState], Dict[str, Any]]:
+    """
+    Recupera nueva evidencia de ChromaDB si el revisor determinó que el feedback lo exige.
+    """
+    def nodo_nueva_evidencia(state: FormatState) -> Dict[str, Any]:
+        document_id = state["document_id"]
+        niche = state["niche"]
+        query = f"Ampliación sobre {niche} para corregir observaciones del revisor."
+        
+        try:
+            resultados = agente.retriever.retrieve(
+                query=query, top_k=top_k, metadata_filters={"document_id": document_id}
+            )
+        except Exception as e:
+            logger.exception("Nodo nueva evidencia: fallo en el retriever")
+            return {"retrieval_error": classify_exception(e)}
+
+        if not resultados:
+            return {}
+
+        nuevos_chunks = [
+            {
+                "rank": rank,
+                "chunk_id": r.chunk_id,
+                "document_id": (r.metadata or {}).get("document_id", document_id),
+                "score": getattr(r, "score", 0.0),
+                "text": r.text,
+            }
+            for rank, r in enumerate(resultados, start=1)
+        ]
+        
+        contexto_actualizado = state.get("retrieved_context", "") + "\n\n" + "\n\n".join(r.text for r in resultados)
+        
+        return {
+            "retrieved_context": contexto_actualizado,
+            "sources_used": state.get("sources_used", []) + nuevos_chunks,
+        }
+    return nodo_nueva_evidencia
+
+
+def decidir_ruta_revision(state: FormatState) -> str:
+    """Enrutamiento condicional: si necesita nueva evidencia, va al buscador; si no, directo al redactor."""
+    if state.get("needs_new_evidence", False):
+        return "nueva_evidencia"
+    return "redactor"
+
+
+# ----------------------------------------------------------------------
+# 4. SUBGRAFO ATÓMICO POR FORMATO (Con Revisor y Redactor)
 # ----------------------------------------------------------------------
 def compilar_subgrafo_formato(agente: AgentV1):
     """
-    Worker lineal: START -> Redactor -> Finalizar -> END.
-    Al eliminar el bucle de revisión, el Redactor toma el estado actual (limpio o con feedback inyectado) 
-    y genera una única salida.
+    Subgrafo robusto: START -> Revisor -> (Condicional: nueva_evidencia o redactor) -> Redactor -> Finalizar -> END.
     """
     sub = StateGraph(FormatState)
+    sub.add_node("revisor", crear_nodo_revisor(agente))
+    sub.add_node("nueva_evidencia", crear_nodo_nueva_evidencia(agente))
     sub.add_node("redactor", crear_nodo_redactor(agente))
     sub.add_node("finalizar", nodo_finalizar)
     
-    sub.add_edge(START, "redactor")
+    sub.add_edge(START, "revisor")
+    sub.add_conditional_edges(
+        "revisor",
+        decidir_ruta_revision,
+        {
+            "nueva_evidencia": "nueva_evidencia",
+            "redactor": "redactor"
+        }
+    )
+    sub.add_edge("nueva_evidencia", "redactor")
     sub.add_edge("redactor", "finalizar")
     sub.add_edge("finalizar", END)
     
@@ -249,7 +321,7 @@ def crear_nodo_formato(app_formato) -> Callable[[FormatState], Dict[str, Any]]:
 
 
 # ----------------------------------------------------------------------
-# 4. COMPILACIÓN GLOBAL (ORQUESTADOR)
+# 5. COMPILACIÓN GLOBAL (ORQUESTADOR)
 # ----------------------------------------------------------------------
 def compilar_grafo_generacion(agente: AgentV1, *, top_k: int = 5):
     """

@@ -20,9 +20,10 @@ from agentes.rag.models import Chunk
 # ==========================================
 # DECORADOR INTELIGENTE PARA CI DETERMINISTA
 # ==========================================
+_api_key = os.environ.get("GEMINI_API_KEY", "")
 skip_if_no_real_gemini = pytest.mark.skipif(
-    not os.environ.get("GEMINI_API_KEY") or os.environ.get("CI") == "true",
-    reason="Prueba real de Gemini omitida en CI determinista para evitar bloqueos de red/cuota."
+    not _api_key or _api_key.startswith("fake-") or os.environ.get("CI") == "true",
+    reason="Prueba real de Gemini omitida por falta de key válida o en CI determinista."
 )
 
 
@@ -148,4 +149,8 @@ def test_generate_accepts_video_script_real(test_client):
             "detail_level": "avanzado",
         },
     )
-    assert response.status_code
+    assert response.status_code == 200
+    data = response.json()
+    assert data["results"][0]["status"] == "success"
+    assert data["results"][0]["format"] == "video_script"
+    assert "learning_metadata" in data
