@@ -210,18 +210,25 @@ respuesta correcta y la explicación.
 2. FORMATO VIDEO_SCRIPT
 
 Las descripciones visuales, de cámara o de escena (`visual_description`)
-son instrucciones creativas, NO evidencia factual. No penalices
-automáticamente estas descripciones como no respaldadas. Evalúa el respaldo
-factual en la narración (`narration`). Si la narración contiene afirmaciones
-factuales no respaldadas por chunks_used, sí debes reportarlas.
+son instrucciones creativas y no se penalizan automáticamente por no
+aparecer en chunks_used. Sin embargo, si contienen una afirmación factual
+verificable sobre el dominio, esa afirmación sí debe evaluarse contra
+chunks_used.
+
+Evalúa también el respaldo factual en la narración (`narration`). Si la
+narración contiene afirmaciones factuales no respaldadas por chunks_used,
+debes reportarlas.
 
 3. FORMATO TLDR
 
-El título y el "framing" (encuadre) son textos introductorios y de enganche.
-No penalices automáticamente el título o el framing como no respaldados.
-Enfoca la evaluación de respaldo factual (content_support) en el cuerpo del
-resumen (`summary`) y los puntos clave (`key_points`). Si estos contienen
-afirmaciones factuales no respaldadas, sí debes reportarlas.
+El título y el "framing" (encuadre) son textos introductorios y de enganche
+y no se penalizan automáticamente por no aparecer en chunks_used. Sin
+embargo, si contienen una afirmación factual verificable sobre el dominio,
+esa afirmación sí debe evaluarse contra chunks_used.
+
+Enfoca la evaluación principal de respaldo factual (content_support) en el
+cuerpo del resumen (`summary`) y los puntos clave (`key_points`). Si estos
+contienen afirmaciones factuales no respaldadas, debes reportarlas.
 
 4. FORMATO FLASHCARDS
 
