@@ -1,0 +1,56 @@
+{
+  "calibration_id": "CAL-EXT-V1-003",
+  "source_calibration_id": "CAL-V1-005",
+  "source_case_id": "BE-ES-001-Q01",
+  "document_id": "BE-ES-001",
+  "category": "Backend",
+  "variant": "semantic_failed",
+  "target_dimension": "operational_fallback",
+  "scenario_type": "semantic_failed",
+  "execution_mode": "controlled_decision_layer_input",
+  "expected_behavior": {
+    "semantic": "La señal semántica no está disponible porque la ejecución terminó en failed.",
+    "decision": "La Decision Layer debe aplicar un fallback explícito usando la señal heurística disponible, registrar la ausencia de evaluación semántica y no convertir el caso automáticamente en rejected.",
+    "expected_decision_behavior": "heuristic_fallback"
+  },
+  "evaluation_request": {
+    "document_id": "BE-ES-001",
+    "format": "flashcards",
+    "generated_content": {
+      "title": "Primeros pasos con FastAPI",
+      "instructions": "Repasa el concepto y comprueba la respuesta al reverso.",
+      "cards": [
+        {
+          "card_id": "c1",
+          "front": "¿Qué clase se importa para crear una aplicación FastAPI?",
+          "back": "La clase FastAPI, importada desde el paquete fastapi mediante: from fastapi import FastAPI."
+        }
+      ]
+    },
+    "generation_context": {
+      "profile": "beginner",
+      "niche": "general",
+      "detail_level": "medium",
+      "learning_objective": null
+    },
+    "chunks_used": [
+      {
+        "chunk_id": "BE-ES-001_CH_001",
+        "document_id": "BE-ES-001",
+        "rank": 1,
+        "score": 1.0,
+        "text": "# Primeros Pasos\n\nEl archivo FastAPI más simple podría verse así:\n\n```text\nfrom fastapi import FastAPI\n\napp = FastAPI()\n\n@app.get(\"/\")\nasync def root():\n    return {\"message\": \"Hello World\"}\n```\n\nCopia eso en un archivo main.py.\n\nFastAPI tiene una extensión oficial para VS Code (y Cursor), que proporciona varias funcionalidades.\n\nEjecuta el servidor en vivo con `uv run fastapi dev`."
+      }
+    ]
+  },
+  "semantic_result_override": {
+    "status": "failed",
+    "error_code": "provider_error",
+    "error_message": "Controlled calibration scenario: semantic provider failed.",
+    "scores": null,
+    "unsupported_information": null,
+    "observations": null,
+    "recommendations": null
+  },
+  "notes": "Este caso no debe provocar un fallo real del proveedor. El resultado semántico se inyecta de forma controlada al probar la futura Decision Layer. Los heuristic_scores deben provenir del evaluador heurístico real y no hardcodearse en este artefacto."
+}
