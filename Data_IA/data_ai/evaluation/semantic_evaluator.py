@@ -176,13 +176,61 @@ Detecta:
 Una afirmación puede estar respaldada aunque no copie literalmente el texto
 de los chunks, siempre que exista equivalencia semántica clara.
 
+REGLA TRANSVERSAL — RELEVANCE vs CONTENT_SUPPORT
+
+Una baja puntuación en `relevance` NO implica que el contenido no esté
+soportado factualmente. Son dimensiones independientes:
+
+- `relevance` evalúa alineación con el learning_objective y el niche.
+- `content_support` evalúa respaldo factual contra chunks_used.
+
+No muevas afirmaciones a `unsupported_information` solo porque el contenido
+sea poco relevante.
+
+No bajes `content_support` solo porque el contenido se desvíe del objetivo.
+
+Si detectas ambos problemas, repórtalos por separado en la dimensión que
+corresponde.
+
 REGLAS ESPECÍFICAS POR FORMATO (CRÍTICO PARA TU EVALUACIÓN)
 
-Dependiendo del formato del contenido recibido, debes aplicar estas excepciones estrictas para evitar falsos positivos de alucinación (unsupported_information):
+Dependiendo del formato del contenido recibido, debes aplicar estas
+excepciones para evitar falsos positivos de alucinación
+(unsupported_information). Estas excepciones NO implican ignorar
+afirmaciones factuales no respaldadas: si una afirmación factual real
+aparece y no está respaldada por chunks_used, debes reportarla.
 
-1. FORMATO QUIZ: Los "distractores" (las opciones de respuesta incorrectas) están diseñados para ser falsos a propósito. NUNCA los evalúes como alucinaciones ni como afirmaciones factuales no respaldadas. Evalúa únicamente la pregunta, la respuesta correcta y la explicación.
-2. FORMATO VIDEO_SCRIPT: Las descripciones visuales, de cámara o de escena (`visual_description`) son instrucciones creativas, NO evidencia factual. NUNCA exijas que el texto de la descripción visual esté en los chunks. Evalúa el respaldo factual ÚNICAMENTE en la narración (`narration`).
-3. FORMATO TLDR: El título y el "framing" (encuadre) son textos introductorios y de enganche. Enfoca tu evaluación de respaldo factual (content_support) estrictamente en el cuerpo del resumen (`summary`) y los puntos clave (`key_points`).
+1. FORMATO QUIZ
+
+Los "distractores" (las opciones de respuesta incorrectas) están diseñados
+para ser falsos a propósito. NO los evalúes como alucinaciones ni como
+afirmaciones factuales no respaldadas. Evalúa únicamente la pregunta, la
+respuesta correcta y la explicación.
+
+2. FORMATO VIDEO_SCRIPT
+
+Las descripciones visuales, de cámara o de escena (`visual_description`)
+son instrucciones creativas, NO evidencia factual. No penalices
+automáticamente estas descripciones como no respaldadas. Evalúa el respaldo
+factual en la narración (`narration`). Si la narración contiene afirmaciones
+factuales no respaldadas por chunks_used, sí debes reportarlas.
+
+3. FORMATO TLDR
+
+El título y el "framing" (encuadre) son textos introductorios y de enganche.
+No penalices automáticamente el título o el framing como no respaldados.
+Enfoca la evaluación de respaldo factual (content_support) en el cuerpo del
+resumen (`summary`) y los puntos clave (`key_points`). Si estos contienen
+afirmaciones factuales no respaldadas, sí debes reportarlas.
+
+4. FORMATO FLASHCARDS
+
+El reverso de la tarjeta (respuesta) puede ser una reformulación, un
+ejemplo, una analogía o una aplicación del concepto. No lo penalices
+automáticamente como no respaldado si existe equivalencia semántica clara
+con chunks_used. Evalúa el respaldo factual en el contenido conceptual, no
+en la formulación literal. Si el reverso introduce información factual nueva
+y no respaldada, sí debes reportarla.
 
 FORMATO DE SALIDA
 
