@@ -23,34 +23,26 @@ Dataset total:
 
 Casos con evaluación semántica disponible:
 
-- **19/20**.
-
-Caso pendiente:
-
-- `CAL-V1-017`
-- variante: `clean_reference`
-- categoría: `Cloud / DevOps`
-- formato: `quiz`
+- **20/20**.
 
 ---
 
 ## 2. Resultado principal
 
-Sobre los **19 casos con evaluación semántica disponible**:
+Sobre los **20 casos con evaluación semántica disponible**:
 
-- la dimensión objetivo quedó dentro del rango humano esperado en **19/19 casos**;
-- la detección de `unsupported_information` coincidió con el Ground Truth humano en **17/19 casos**;
+- la dimensión objetivo quedó dentro del rango humano esperado en **20/20 casos**;
+- la detección de `unsupported_information` coincidió con el Ground Truth humano en **18/20 casos**;
 - quedaron **2 falsos positivos probables** de `unsupported_information`.
 
 Resumen:
 
 ```text
 Casos totales: 20
-Casos con evaluación semántica: 19
-Target dimension dentro de rango: 19/19
-Unsupported information alineado con GT humano: 17/19
+Casos con evaluación semántica: 20
+Target dimension dentro de rango: 20/20
+Unsupported information alineado con GT humano: 18/20
 Falsos positivos probables: 2
-Caso pendiente: CAL-V1-017
 ```
 
 Esto indica una buena alineación inicial del Semantic Evaluator con el Ground Truth humano para la dimensión principal de cada perturbación.
@@ -460,13 +452,13 @@ El objetivo no es exigir concordancia decimal exacta, sino comprobar:
 Casos totales: 20
 
 Casos con evaluación semántica:
-19/20
+20/20
 
 Dimensión objetivo dentro del rango humano:
-19/19
+20/20
 
 Unsupported information alineado con Ground Truth:
-17/19
+18/20
 
 Falsos positivos probables:
 2
@@ -475,8 +467,6 @@ Casos con falsos positivos probables:
 CAL-V1-011
 CAL-V1-012
 
-Caso pendiente:
-CAL-V1-017
 ```
 
 ---
@@ -529,13 +519,26 @@ secondary unsupported extrapolation
 
 ### CAL-V1-017
 
-Estado:
+Tipo:
 
-```text
-semantic evaluation pending
-```
+`clean_reference`
 
-Debe evaluarse antes de cerrar completamente la cobertura del dataset.
+Formato:
+
+`quiz`
+
+Resultado final con `gemini-3.8-flash`:
+
+- `semantic_status`: `success`
+- `semantic_relevance`: `5.0`
+- `semantic_coherence`: `5.0`
+- `semantic_didactic_adaptation`: `5.0`
+- `semantic_content_support`: `5.0`
+- `unsupported_information_count`: `0`
+
+Interpretación:
+
+El caso limpio quedó completamente alineado con el Ground Truth humano y permitió cerrar la cobertura semántica del dataset en **20/20 casos**.
 
 ---
 
@@ -566,13 +569,12 @@ Esto debe mantenerse documentado para reproducibilidad.
 1. Ajustar el prompt semántico por formato.
 2. Repetir `CAL-V1-011` después del ajuste.
 3. Repetir `CAL-V1-012` después del ajuste.
-4. Evaluar `CAL-V1-017`.
-5. Validar estabilidad mediante múltiples ejecuciones.
-6. Revisar calidad y accionabilidad de `observations`.
-7. Revisar calidad y accionabilidad de `recommendations`.
-8. Validar que las correcciones producidas por el Agente Revisor mejoren la reevaluación.
-9. Definir reglas candidatas de Decision Layer a partir de evidencia calibrada.
-10. Versionar prompt, Ground Truth y reglas antes de integración productiva.
+4. Validar estabilidad mediante múltiples ejecuciones.
+5. Revisar calidad y accionabilidad de `observations`.
+6. Revisar calidad y accionabilidad de `recommendations`.
+7. Validar que las correcciones producidas por el Agente Revisor mejoren la reevaluación.
+8. Definir reglas candidatas de Decision Layer a partir de evidencia calibrada.
+9. Versionar prompt, Ground Truth y reglas antes de integración productiva.
 
 ---
 
@@ -583,7 +585,7 @@ El Semantic Evaluator muestra una alineación inicial fuerte con el Ground Truth
 El resultado actual más importante es:
 
 ```text
-19/19 casos evaluados
+20/20 casos evaluados
 con dimensión objetivo dentro del rango humano esperado.
 ```
 

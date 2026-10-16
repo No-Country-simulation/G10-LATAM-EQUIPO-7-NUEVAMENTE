@@ -15,7 +15,7 @@ CAL-V1-013,clean_reference,all,approved,True,5.0,5.0,5.0,5.0,True,True,True,True
 CAL-V1-014,unsupported_claim,content_support,requires_revision,True,5.0,5.0,4.8,3.0,True,True,True,True,True,True,True,True,gemini-3.8-flash
 CAL-V1-015,low_coherence,coherence,requires_revision,True,2.5,2.5,2.0,5.0,False,True,True,True,True,False,False,True,gemini-3.8-flash
 CAL-V1-016,poor_didactic_adaptation,didactic_adaptation,requires_revision,True,4.0,5.0,2.0,3.5,True,True,True,True,True,True,True,True,gemini-3.8-flash
-CAL-V1-017,clean_reference,all,approved,False,,,,,False,False,False,False,False,False,False,True,
+CAL-V1-017,clean_reference,all,approved,True,5.0,5.0,5.0,5.0,True,True,True,True,True,False,False,True,gemini-3.8-flash
 CAL-V1-018,unsupported_claim,content_support,requires_revision,True,4.5,4.0,4.5,2.5,True,True,True,True,True,True,True,True,gemini-3.8-flash
 CAL-V1-019,low_relevance,relevance,requires_revision,True,2.0,5.0,3.0,5.0,True,True,True,True,True,False,False,True,gemini-3.8-flash
 CAL-V1-020,low_coherence,coherence,requires_revision,True,4.0,1.5,2.0,5.0,True,True,True,True,True,False,False,True,gemini-3.6-flash
