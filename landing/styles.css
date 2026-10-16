@@ -129,6 +129,11 @@ button, a { -webkit-tap-highlight-color: transparent; }
 .journey-note strong { font-size: .8rem; color: var(--gold-light); font-weight: 600; }
 .architecture-heading { display: flex; align-items: center; justify-content: space-between; gap: 20px; }
 .architecture-heading h2 { font-size: clamp(1.9rem, 2.6vw, 3rem); }
+.explore-hint { margin: 9px 0 0; color: #cbd5e1; font-size: .75rem; }
+.explore-hint span { display: inline-grid; place-items: center; width: 20px; height: 20px; margin-right: 5px; border: 1px solid #fbbf24; border-radius: 50%; color: #fde68a; }
+.explore-icon circle { fill: #29271e; stroke: #fbbf24; stroke-width: 1; }
+.explore-icon text { fill: #fde68a; font-size: 16px; font-weight: 700; text-anchor: middle; }
+.system-node:hover .explore-icon circle, .system-node:focus-visible .explore-icon circle { fill: #614519; stroke: #fef08a; }
 .architecture-badge { flex-shrink: 0; text-align: right; color: #94a3b8; font-size: .7rem; line-height: 1.7; padding-left: 16px; border-left: 2px solid var(--gold); }
 .architecture-badge strong { color: var(--gold-bright); font-weight: 600; }
 .architecture-toolbar { display: flex; justify-content: flex-end; min-width: 0; }
@@ -160,7 +165,7 @@ button, a { -webkit-tap-highlight-color: transparent; }
 .optional-label { fill: #d8b4fe; font-size: 10px; }
 .edges path { stroke: #435b75; stroke-width: 1.8; opacity: .8; }
 .edges path.dimmed { opacity: .14; }
-.edges path.active { stroke: var(--gold-bright); stroke-width: 3; stroke-dasharray: 7 4; opacity: 1; animation: travel 1.2s linear infinite; }
+.edges path.active { stroke: var(--gold-bright); stroke-width: 3; stroke-dasharray: 7 4; opacity: 1; animation: travel .5s linear infinite; }
 .system-canvas:not(.playing) .edges path.active { animation-play-state: paused; }
 .wire-label { fill: #94a3b8; font-size: 10px; }
 @keyframes travel { to { stroke-dashoffset: -22; } }
@@ -436,6 +441,38 @@ dialog h2 { font-size: 1.8rem; margin: 25px 0; }
 @media (prefers-reduced-motion: reduce) {
   *, *:before, *:after { animation: none !important; transition: none !important; }
 }
+.architecture-workspace { display: grid; grid-template-columns: minmax(190px, 230px) minmax(0, 1fr); grid-template-areas: "controls diagram"; align-items: center; gap: 22px; margin-top: 18px; }
+.architecture-workspace .system-canvas { grid-area: diagram; min-width: 0; margin: 0; }
+.architecture-workspace .sequence-bar { grid-area: controls; grid-template-columns: 1fr; align-content: space-between; align-items: start; gap: 24px; padding: 18px; min-height: 280px; margin: 0; background: linear-gradient(155deg, #172333, #101722); }
+.architecture-workspace .sequence-caption p { line-height: 1.65; white-space: pre-line; }
+.architecture-workspace .architecture-toolbar { justify-content: stretch; }
+.architecture-workspace .playback-panel { width: 100%; padding: 14px 0 0; border-left: 0; border-top: 1px solid #334155; }
+.architecture-workspace .sequence-controls { flex-wrap: wrap; margin-left: 0; }
+.architecture-workspace .evidence-option { line-height: 1.5; }
+.architecture-workspace #system-map { min-height: 0; max-height: none; height: auto; }
+.oci-boundary { fill: #0d1726; stroke: #395878; stroke-width: 1.5; }
+.infra-heading { fill: #bae6fd; font-size: 14px; font-weight: 700; letter-spacing: 1.5px; }
+.infra-caption { fill: #94a3b8; font-size: 12px; }
+.infra-divider { stroke: #293f57; stroke-width: 1; }
+.container-label { fill: #7da2c8; font-size: 9px; font-weight: 600; letter-spacing: 1px; }
+@media screen and (min-width: 761px) {
+  .enhanced .architecture-scene { padding-inline: 2.5%; }
+  .enhanced .architecture-workspace #system-map { height: clamp(280px, calc(100dvh - 245px), 720px); }
+  .enhanced .architecture-workspace .sequence-bar { min-height: 280px; padding: 16px; gap: 24px; }
+}
+@media screen and (max-width: 1000px) and (min-width: 761px) {
+  .architecture-workspace { grid-template-columns: 185px minmax(0, 1fr); gap: 12px; }
+}
+@media screen and (max-width: 760px) {
+  .architecture-workspace { grid-template-columns: minmax(0, 1fr); grid-template-areas: "diagram" "controls"; gap: 14px; }
+  .architecture-workspace .sequence-bar { min-height: 0; gap: 14px; }
+}
+.rag-dialog { width: min(1280px, 96vw); max-width: 96vw; height: min(850px, 94dvh); max-height: 94dvh; padding: 0; border: 1px solid #395878; border-radius: 18px; background: #0c1421; color: #e2e8f0; }
+.rag-dialog[open] { display: flex; flex-direction: column; }
+.rag-dialog::backdrop { background: #020617d9; backdrop-filter: blur(8px); }
+.rag-dialog-header { display: flex; flex-shrink: 0; align-items: center; justify-content: flex-end; gap: 16px; padding: 6px 14px; border-bottom: 1px solid #293f57; }
+.rag-dialog-header a { color: #bae6fd; font-size: .75rem; }
+.rag-dialog iframe { width: 100%; flex: 1; min-height: 0; border: 0; background: #0c1421; }
 @media print {
   .header, .deck-footer, .architecture-toolbar, .sequence-controls, .closing-links, dialog { display: none !important; }
   .enhanced .scene[hidden], .enhanced .scene { display: block !important; min-height: 0; break-after: page; padding: 25px; zoom: 1 !important; }

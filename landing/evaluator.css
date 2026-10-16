@@ -1,0 +1,16 @@
+main { grid-template-rows: auto auto auto minmax(150px, 1fr) auto auto; gap: 10px; }
+.dimensions { display: flex; align-items: center; flex-wrap: wrap; gap: 7px; font-size: .72rem; color: #94a3b8; }
+.dimensions button { font: inherit; color: #cbd5e1; background: #142338; border: 1px solid #3b5877; border-radius: 6px; padding: 7px 10px; cursor: pointer; }
+.dimensions button[aria-pressed="true"] { color: #fde68a; border-color: #fbbf24; background: #29271e; }
+#motion { margin-left: auto; background: transparent; }
+.stage.current rect { stroke: #fde68a; filter: drop-shadow(0 0 5px #fbbf2433); }
+.wires path { animation: flow 4s linear infinite; }
+body.paused .wires path { animation-play-state: paused; }
+.dimension-detail { padding: 10px 14px; border: 1px solid #30445c; border-left: 3px solid #fbbf24; border-radius: 8px; background: #142338; }
+.dimension-detail h2 { color: #fde68a; font-size: .85rem; }
+.dimension-detail > div { display: grid; grid-template-columns: 1fr 1fr; gap: 22px; }
+.dimension-detail p { margin: 0; color: #cbd5e1; font-size: .74rem; line-height: 1.5; }
+.dimension-detail b { display: block; color: #7dd3fc; margin-bottom: 3px; }
+@keyframes flow { to { stroke-dashoffset: -48; } }
+@media (prefers-reduced-motion: reduce) { .wires path { animation: none; } }
+@media (max-width: 700px) { main { height: auto; min-height: 100dvh; } .diagram { min-height: 220px; } .dimension-detail > div { grid-template-columns: 1fr; gap: 8px; } #motion { margin-left: 0; } }

@@ -1,0 +1,27 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Data/IA · NuevaMente</title>
+  <link rel="stylesheet" href="rag.css"><link rel="stylesheet" href="evaluator.css">
+  <script src="evaluator.js" defer></script>
+</head>
+<body><main>
+  <header><div><p class="eyebrow">DENTRO DE DATA / IA</p><h1>Dos señales. <em>Una evaluación de calidad.</em></h1></div><a href="./#arquitectura" id="return-link">Volver a arquitectura ↗</a></header>
+  <div class="context"><span><strong>Entrada desde Backend</strong> · Contenido generado + contexto pedagógico + evidencia utilizada</span><span class="filter">POST /evaluate/v2 · Por formato</span></div>
+  <div class="dimensions" role="group" aria-label="Dimensión de evaluación"><span>Explorar dimensión:</span><button type="button" data-dimension="relevance" aria-pressed="true">Relevancia</button><button type="button" data-dimension="coherence" aria-pressed="false">Coherencia</button><button type="button" data-dimension="adaptation" aria-pressed="false">Adaptación didáctica</button><button type="button" data-dimension="support" aria-pressed="false">Respaldo documental</button><button type="button" id="motion" aria-pressed="false">Pausar animación</button></div>
+  <div class="diagram"><svg viewBox="0 0 1140 350" role="img" aria-labelledby="evaluation-title evaluation-desc">
+    <title id="evaluation-title">Arquitectura de evaluación heurística y semántica</title>
+    <desc id="evaluation-desc">La entrada se valida según el formato y el documento. La evaluación heurística aporta reglas verificables y la semántica analiza significado mediante Gemini y una rúbrica. Ambas señales alimentan la decisión de calidad. Backend recibe el veredicto, las puntuaciones separadas y los hallazgos para orientar una corrección.</desc>
+    <defs><marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M0 0L10 5L0 10Z" fill="#7dd3fc"/></marker></defs>
+    <g class="wires" fill="none" marker-end="url(#arrow)"><path d="M185 175H210V90H245"/><path d="M210 175V265H245"/><path d="M535 90H575V175H620"/><path d="M535 265H575V175"/><path d="M835 175H880"/></g>
+    <g class="stage validate"><rect x="10" y="120" width="175" height="110" rx="14"/><text class="label" x="97" y="145">01 / VALIDAR</text><text x="97" y="173">Contrato de entrada</text><text class="detail" x="97" y="196">Esquema por formato</text><text class="detail" x="97" y="216">Evidencia del documento</text></g>
+    <g class="stage heuristic"><rect x="245" y="20" width="290" height="130" rx="14"/><text class="label" x="390" y="45">02A / HEURÍSTICA</text><text x="390" y="73">Reglas verificables</text><text class="detail" x="390" y="96">Estructura · términos · señales del formato</text><text class="detail" x="390" y="118">Puntuaciones por dimensión · escala 1–5</text><text class="detail" x="390" y="137">Criterios reproducibles</text></g>
+    <g class="stage semantic"><rect x="245" y="200" width="290" height="130" rx="14"/><text class="label" x="390" y="225">02B / SEMÁNTICA</text><text x="390" y="253">LLM como evaluador · Gemini</text><text class="detail" x="390" y="276">Rúbrica + contenido + contexto + evidencia</text><text class="detail" x="390" y="298">Puntuaciones 1–5 + hallazgos</text><text class="detail" x="390" y="317">Respuesta estructurada y validada</text></g>
+    <g class="stage decision"><rect x="620" y="110" width="215" height="130" rx="14"/><text class="label" x="727" y="135">03 / DECISIÓN</text><text x="727" y="159">Valoración conjunta</text><text class="detail" x="727" y="178"><tspan x="727">Integra señales heurísticas</tspan><tspan x="727" dy="13">y semánticas</tspan></text><text class="detail" x="727" y="205"><tspan x="727">Calidad pedagógica +</tspan><tspan x="727" dy="13">fidelidad a la fuente</tspan></text><text class="detail" x="727" y="233">Veredicto de evaluación</text></g>
+    <g class="stage output result"><rect x="880" y="85" width="250" height="180" rx="14"/><text class="label" x="1005" y="110">04 / RESULTADO V2 → BACKEND</text><text x="1005" y="140">Veredicto + hallazgos</text><text class="detail" x="1005" y="165">Aprobado · Revisión · Rechazado</text><text class="detail" x="1005" y="188">Puntuaciones de ambas señales</text><text class="detail" x="1005" y="210">Observaciones y recomendaciones</text><text class="detail" x="1005" y="232">Información no respaldada</text><text class="detail" x="1005" y="252">Versiones de evaluador y rúbrica</text></g>
+  </svg></div>
+  <section class="dimension-detail" aria-live="polite"><h2 id="dimension-title">Relevancia · ¿Responde al objetivo?</h2><div><p><b>Heurística</b><span id="heuristic-description">Compara términos significativos del contenido con la fuente y el contexto de aprendizaje.</span></p><p><b>Semántica</b><span id="semantic-description">Valora si el contenido responde al tema y al objetivo, aunque utilice otras palabras.</span></p></div></section>
+  <footer><div><h2>El respaldo se contrasta con la evidencia utilizada.</h2><p>chunks_used es la fuente factual. El perfil y el contexto orientan la adaptación pedagógica.</p></div><span class="note">Señales identificables en el resultado.<br>Feedback para orientar la revisión.</span></footer>
+</main></body>
+</html>

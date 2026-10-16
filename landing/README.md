@@ -4,6 +4,12 @@ Presentación interactiva de seis momentos, pensada para acompañar un pitch de 
 
 ## Recorrido
 
+### Detalle del Investigador RAG
+
+El nodo Investigador abre un modal con `rag.html`, una página independiente con `rag.css` y `rag.js`, accesible también en `/landing/rag.html`. El modal conserva el documento principal y su pantalla completa, pausa el recorrido y permite volver con Cerrar o Escape.
+
+El diagrama muestra ChromaDB y BM25 como ramas de recuperación, RRF, Cross-Encoder y Top-K. Los selectores de objetivo ilustran nuevas recuperaciones, no ejecutan consultas ni muestran resultados reales. Para esta explicación se utiliza el flujo productivo del README de agentes: metadatos y cada formato recuperan su propio contexto, con formatos en serie; no el contexto compartido del grafo propuesto. Las ramas visuales no afirman ejecución concurrente de ChromaDB y BM25.
+
 1. **Del documento al conocimiento:** un documento conectado con cuatro perfiles.
 2. **Qué transforma NuevaMente:** documento → contexto → adaptación → cuatro formatos.
 3. **Verlo en acción:** transición al producto real en la misma pestaña. Atrás permite regresar a la presentación.
@@ -19,7 +25,7 @@ En escritorio, la presentación ocupa la altura disponible de la ventana: cabece
 
 - Navegación inferior, botones anterior/siguiente y teclas izquierda/derecha o PageUp/PageDown. Home/End llevan al inicio/cierre. Los atajos no interceptan controles interactivos ni el diálogo.
 - Enlaces directos: `#documento`, `#transformacion`, `#demo`, `#arquitectura`, `#equipo`, `#impacto`. El historial del navegador permite regresar entre vistas.
-- Arquitectura: el panel inferior tiene dos columnas, explicación del paso y controles compactos (Reiniciar, Reproducir, Pausa y nueva evidencia). Reproducir anima un recorrido conceptual de generación, evaluación y un caso que necesita corrección; termina con la respuesta de BackendAPI al Frontend, iluminando su flecha de retorno. Pausa conserva el paso; Reproducir continúa desde allí. Reiniciar restaura el diagrama general. Al terminar, cambiar de vista o salir de la pestaña, la reproducción se detiene. En móvil las columnas se apilan.
+- Arquitectura: explicación y controles compactos (Reiniciar, Reproducir, Pausa y nueva evidencia) forman una columna izquierda; el diagrama ocupa el espacio principal a la derecha. El marco OCI agrupa los contenedores administrados por Docker Compose. Multiagentes muestra recuperación compartida y generación paralela por formato, tomando el README de agentes como referencia y asumiendo sus integraciones completas para el Demo Day. Reproducir anima generación, evaluación y corrección; termina con la respuesta de BackendAPI al Frontend. Pausa conserva el paso; Reproducir continúa desde allí. Reiniciar restaura el diagrama general. Al terminar, cambiar de vista o salir de la pestaña, la reproducción se detiene. En móvil el panel queda debajo del diagrama.
 - Activar o desactivar “Requiere nueva evidencia” selecciona el camino del Revisor y reinicia la secuencia para mantenerla coherente.
 - Seleccionar un nodo muestra su responsabilidad. Data/IA siempre permanece como evaluador independiente; BackendAPI coordina ambos servicios.
 - Pantalla completa cuando el navegador la admite. Recursos del jurado en el cierre.

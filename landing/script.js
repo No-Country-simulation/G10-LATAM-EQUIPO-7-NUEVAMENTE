@@ -98,8 +98,8 @@ function scheduleSceneFit() {
 const descriptions = {
   frontend: 'Frontend: carga de documentos, consulta de formatos y experiencia de aprendizaje.',
   backend: 'BackendAPI: coordina servicios, conserva resultados y controla las decisiones y reintentos.',
-  rag: 'Investigador RAG: recupera del documento la evidencia necesaria para cada formato.',
-  writer: 'Redactor Pedagógico: genera o corrige el contenido según el contexto de aprendizaje.',
+  rag: 'Investigador RAG: combina búsqueda semántica y léxica, fusiona rankings y selecciona evidencia para cada objetivo.',
+  writer: 'Transforma la evidencia recuperada en el formato solicitado, adaptándolo al perfil, contexto y nivel de profundidad, y al objetivo de aprendizaje cuando se indica.',
   reviewer: 'Agente Revisor: interpreta recomendaciones y decide si necesita nueva evidencia.',
   evaluator: 'Data/IA: evalúa relevancia, coherencia, adaptación didáctica y respaldo documental.'
 };
@@ -111,26 +111,69 @@ const pauseButton = document.querySelector('#step-pause');
 const stepCount = document.querySelector('#step-count');
 const stepDescription = document.querySelector('#step-description');
 const resourcesDialog = document.querySelector('#resources-dialog');
+const ragDialog = document.createElement('dialog');
+let activeDetail = 'rag';
+ragDialog.className = 'rag-dialog';
+ragDialog.setAttribute('aria-label', 'Detalle del Investigador RAG');
+const ragHeader = document.createElement('div');
+ragHeader.className = 'rag-dialog-header';
+const ragLink = document.createElement('a');
+ragLink.href = 'rag.html';
+ragLink.textContent = 'Abrir vista independiente ↗';
+const ragClose = document.createElement('button');
+ragClose.type = 'button';
+ragClose.className = 'quiet';
+ragClose.textContent = 'Cerrar ✕';
+ragHeader.append(ragClose);
+const ragFrame = document.createElement('iframe');
+ragFrame.title = 'Arquitectura de recuperación híbrida RAG';
+ragDialog.append(ragHeader, ragFrame);
+document.body.append(ragDialog);
+ragClose.addEventListener('click', () => ragDialog.close());
+ragDialog.addEventListener('close', () => {
+  ragFrame.contentWindow?.postMessage({ type: 'hide-' + activeDetail }, window.location.origin);
+});
+ragDialog.addEventListener('click', (event) => {
+  if (event.target === ragDialog) ragDialog.close();
+});
+window.addEventListener('message', (event) => {
+  if (event.source === ragFrame.contentWindow && event.origin === window.location.origin && event.data?.type === 'close-' + activeDetail) ragDialog.close();
+});
+
+function openRagDetail(detail = 'rag') {
+  stopPlayback();
+  activeDetail = detail;
+  ragLink.href = detail + '.html';
+  const detailTitles = { rag: 'Investigador RAG', reviewer: 'Agente Revisor', evaluator: 'Data/IA · Evaluación de calidad' };
+  ragDialog.setAttribute('aria-label', 'Detalle de ' + detailTitles[detail]);
+  ragFrame.title = detailTitles[detail];
+  if (typeof ragDialog.showModal !== 'function') {
+    window.location.href = ragLink.href;
+    return;
+  }
+  if (ragFrame.src !== ragLink.href) ragFrame.src = ragLink.href;
+  ragDialog.showModal();
+  ragFrame.contentWindow?.postMessage({ type: 'show-' + activeDetail }, window.location.origin);
+}
 
 function getSteps() {
   const generation = [
       { node: 'frontend', text: 'Frontend solicita contenido para un documento y un contexto pedagógico.' },
       { node: 'backend', edge: 'front-back', text: 'BackendAPI recibe la solicitud y coordina la generación.' },
-      { node: 'rag', edge: 'back-rag', text: 'El Investigador RAG recupera la evidencia relevante del documento.' },
-      { node: 'writer', edge: 'rag-writer', text: 'El Redactor transforma la evidencia en contenido educativo adaptado.' },
+      { node: 'rag', edge: 'back-rag', text: 'El Investigador RAG recupera evidencia: metadatos y cada formato realizan su propia búsqueda.' },
+      { node: 'writer', edge: 'rag-writer', text: 'El Redactor transforma la evidencia en el formato solicitado y lo adapta al perfil, contexto y profundidad.' },
       { node: 'backend', edge: 'writer-back', text: 'BackendAPI recibe y conserva el contenido junto con la evidencia utilizada.' },
       { node: 'evaluator', edge: 'back-eval', text: 'Data/IA evalúa el contenido, su contexto pedagógico y su respaldo documental.' },
       { node: 'backend', edge: 'eval-back', text: 'BackendAPI recibe la evaluación y decide si acepta el contenido o solicita corrección.' }
     ].map((step) => ({ ...step, phase: 'GENERACIÓN Y EVALUACIÓN' }));
   const steps = [
-    { node: 'backend', text: 'Si la evaluación requiere ajustes y quedan intentos, BackendAPI solicita corregir.' },
-    { node: 'reviewer', edge: 'back-reviewer', text: 'El Revisor interpreta las recomendaciones y decide cómo corregir.' }
+    { node: 'reviewer', edge: 'back-reviewer', text: 'Si quedan intentos, BackendAPI solicita corregir y el Revisor interpreta las recomendaciones.' }
   ];
   if (evidenceCheckbox.checked) {
     steps.push({ node: 'rag', edge: 'reviewer-rag', text: 'Hace falta información: el Investigador RAG recupera evidencia adicional.' });
   }
   steps.push(
-    { node: 'writer', edge: evidenceCheckbox.checked ? 'rag-writer' : 'reviewer-writer', text: 'El Redactor produce una versión corregida con la evidencia disponible.' },
+    { node: 'writer', edge: evidenceCheckbox.checked ? 'rag-writer' : 'reviewer-writer', text: 'El Redactor incorpora el feedback del evaluador y la evidencia disponible para corregir el contenido.' },
     { node: 'backend', edge: 'writer-back', text: 'BackendAPI recibe la nueva versión y conserva el historial del proceso.' },
     { node: 'evaluator', edge: 'back-eval', text: 'Data/IA evalúa nuevamente el contenido corregido.' },
     { node: 'backend', edge: 'eval-back', text: 'El ciclo termina al aprobar el contenido o alcanzar el límite de correcciones.' }
@@ -209,7 +252,7 @@ window.addEventListener('hashchange', () => {
 previousScene.addEventListener('click', () => navigateTo(sceneIndex - 1));
 nextScene.addEventListener('click', () => navigateTo(sceneIndex + 1));
 document.addEventListener('keydown', (event) => {
-  if (resourcesDialog.open || event.altKey || event.ctrlKey || event.metaKey || event.shiftKey) return;
+  if (resourcesDialog.open || ragDialog.open || event.altKey || event.ctrlKey || event.metaKey || event.shiftKey) return;
   if (event.target.closest('button, a, input, select, textarea, [role="button"]')) return;
   if (['ArrowRight', 'PageDown', 'ArrowLeft', 'PageUp', 'Home', 'End'].includes(event.key)) {
     event.preventDefault();
@@ -233,13 +276,17 @@ playButton.addEventListener('click', () => {
   playbackTimer = window.setInterval(() => {
     stepIndex = Math.min(stepIndex + 1, getSteps().length - 1);
     renderStep();
-  }, 2600);
+  }, 1500);
 });
 nodes.forEach((node) => {
   function inspectNode() {
+    if (['rag', 'reviewer', 'evaluator'].includes(node.dataset.node)) {
+      openRagDetail(node.dataset.node);
+      return;
+    }
     resetSequence();
     highlightNode(node.dataset.node, null);
-    stepCount.textContent = 'RESPONSABILIDAD';
+    stepCount.textContent = node.dataset.node === 'writer' ? 'REDACTOR PEDAGÓGICO' : 'RESPONSABILIDAD';
     stepDescription.textContent = descriptions[node.dataset.node];
     scheduleSceneFit();
   }
