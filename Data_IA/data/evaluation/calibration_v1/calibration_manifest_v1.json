@@ -18,12 +18,13 @@
       "video_script": 5
     },
     "variant_types": {
-      "clean_reference": 4,
-      "low_relevance": 4,
+      "clean_reference": 5,
+      "low_relevance": 3,
       "low_coherence": 4,
       "poor_didactic_adaptation": 4,
       "unsupported_claim": 4
-    }
+    },
+    "variant_distribution_note": "Distribución verificada contra los 20 archivos JSON de cases/. La versión anterior del manifest declaraba 4 casos por variante, pero la distribución real del dataset es 5/3/4/4/4."
   },
   "generation_context_default": {
     "profile": "beginner",

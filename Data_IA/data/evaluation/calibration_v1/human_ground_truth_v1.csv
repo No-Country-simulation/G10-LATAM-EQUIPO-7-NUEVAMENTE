@@ -1,0 +1,21 @@
+calibration_id,variant,target_dimension,relevance_min,relevance_max,coherence_min,coherence_max,didactic_adaptation_min,didactic_adaptation_max,content_support_min,content_support_max,expected_observation,expected_unsupported_information,expected_verdict,review_notes
+CAL-V1-001,clean_reference,all,4.0,5.0,4.0,5.0,4.0,5.0,4.0,5.0,Sin hallazgos críticos.,False,approved,Caso limpio de referencia.
+CAL-V1-002,poor_didactic_adaptation,didactic_adaptation,4.0,5.0,4.0,5.0,1.0,2.5,4.0,5.0,Lenguaje excesivamente técnico o abstracto para perfil beginner.,False,requires_revision,Hechos correctos; problema pedagógico.
+CAL-V1-003,low_coherence,coherence,3.5,5.0,1.0,2.5,2.0,4.0,4.0,5.0,"Repetición, fragmentación o circularidad que dificulta la comprensión.",False,requires_revision,No introduce hechos nuevos; falla la estructura.
+CAL-V1-004,unsupported_claim,content_support,3.5,5.0,3.5,5.0,3.5,5.0,1.0,3.0,Debe identificar una afirmación factual no respaldada por chunks_used.,True,requires_revision,Claim inyectado sobre despliegue autónomo sin supervisión.
+CAL-V1-005,clean_reference,all,4.0,5.0,4.0,5.0,4.0,5.0,4.0,5.0,Sin hallazgos críticos.,False,approved,Caso limpio de referencia.
+CAL-V1-006,unsupported_claim,content_support,3.5,5.0,3.5,5.0,3.5,5.0,1.0,3.0,Debe identificar como no respaldada la afirmación sobre cifrado automático.,True,requires_revision,Claim inyectado sobre @app.get('/') y cifrado.
+CAL-V1-007,low_relevance,relevance,1.0,2.5,4.0,5.0,3.0,5.0,4.0,5.0,Contenido correcto pero no responde al objetivo principal del caso.,False,requires_revision,Desplaza el foco respecto al comando de creación del proyecto.
+CAL-V1-008,poor_didactic_adaptation,didactic_adaptation,4.0,5.0,4.0,5.0,1.0,2.5,4.0,5.0,Jerga arquitectónica innecesariamente compleja para beginner.,False,requires_revision,Respuesta correcta y respaldada.
+CAL-V1-009,clean_reference,all,4.0,5.0,4.0,5.0,4.0,5.0,4.0,5.0,Sin hallazgos críticos.,False,approved,Caso limpio de referencia.
+CAL-V1-010,poor_didactic_adaptation,didactic_adaptation,4.0,5.0,4.0,5.0,1.0,2.5,4.0,5.0,Uso de tecnicismos innecesarios para explicar conceptos simples.,False,requires_revision,Hechos correctos; adaptación didáctica degradada.
+CAL-V1-011,low_coherence,coherence,3.0,5.0,1.0,2.5,1.5,4.0,3.0,5.0,"Explicación circular, entrecortada o mal organizada.",False,requires_revision,Respuesta correcta; falla la explicación.
+CAL-V1-012,low_relevance,relevance,1.0,2.5,4.0,5.0,2.5,5.0,4.0,5.0,Contenido respaldado pero no responde al requisito previo preguntado.,False,requires_revision,Desalineación respecto al objetivo.
+CAL-V1-013,clean_reference,all,4.0,5.0,4.0,5.0,4.0,5.0,4.0,5.0,Sin hallazgos críticos.,False,approved,Caso limpio de referencia.
+CAL-V1-014,unsupported_claim,content_support,3.5,5.0,3.5,5.0,3.5,5.0,1.0,3.0,Debe detectar que el beneficio SEO automático no está respaldado.,True,requires_revision,Claim inyectado sobre SEO.
+CAL-V1-015,low_coherence,coherence,3.0,5.0,1.0,2.5,1.5,4.0,4.0,5.0,"Redundancia, orden inconsistente o formulación fragmentaria.",False,requires_revision,Información factual respaldada.
+CAL-V1-016,poor_didactic_adaptation,didactic_adaptation,4.0,5.0,4.0,5.0,1.0,2.5,3.5,5.0,Uso de jerga avanzada sobre runtime/reactividad para un perfil beginner.,True,requires_revision,"El problema principal es adaptación didáctica. Además, la afirmación sobre desacoplamiento del paradigma dirigido por eventos es una extrapolación no explícitamente respaldada por chunks_used."
+CAL-V1-017,clean_reference,all,4.0,5.0,4.0,5.0,4.0,5.0,4.0,5.0,Sin hallazgos críticos.,False,approved,Caso limpio de referencia.
+CAL-V1-018,unsupported_claim,content_support,3.5,5.0,3.5,5.0,3.5,5.0,1.0,3.0,Debe detectar como no respaldada la afirmación sobre cifrado total por defecto.,True,requires_revision,Claim inyectado sobre Kubernetes.
+CAL-V1-019,low_relevance,relevance,1.0,2.5,4.0,5.0,2.5,5.0,4.0,5.0,El contenido se centra en prerrequisitos y no en los temas solicitados del módulo.,False,requires_revision,Contenido respaldado pero fuera de foco.
+CAL-V1-020,low_coherence,coherence,3.5,5.0,1.0,2.5,1.5,4.0,4.0,5.0,Secuencia narrativa invertida y progresión pedagógica desordenada.,False,requires_revision,Hechos fieles; problema estructural.

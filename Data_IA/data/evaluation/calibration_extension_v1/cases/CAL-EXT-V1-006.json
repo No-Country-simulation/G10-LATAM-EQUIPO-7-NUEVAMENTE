@@ -1,0 +1,60 @@
+{
+  "calibration_id": "CAL-EXT-V1-006",
+  "source_case_id": "FE-ES-001-Q01",
+  "document_id": "FE-ES-001",
+  "category": "Frontend",
+  "variant": "multi_dimension_failure",
+  "target_dimension": "multiple",
+  "scenario_type": "multi_dimension_failure",
+  "expected_behavior": {
+    "heuristic": "Se espera degradación en relevance, coherence y didactic_adaptation por la organización confusa, repetición y foco secundario del contenido.",
+    "semantic": "Se espera detectar degradación en relevance, coherence y didactic_adaptation, manteniendo content_support alto porque las afirmaciones factuales proceden de chunks_used y no se introducen hechos externos.",
+    "decision": "El caso debe ser candidato a requires_revision por múltiples defectos corregibles. La explicación debe conservar las dimensiones separadas y no usar un promedio global."
+  },
+  "evaluation_request": {
+    "document_id": "FE-ES-001",
+    "format": "video_script",
+    "generated_content": {
+      "title": "HTML: enlaces, cursiva y estructura",
+      "estimated_duration_minutes": 1,
+      "scenes": [
+        {
+          "scene_id": "scene_1",
+          "title": "Hipervínculos",
+          "visual_description": "Mostrar varias palabras subrayadas y una página web cambiando de pantalla.",
+          "narration": "Las etiquetas HTML pueden convertir contenido en un hipervínculo para conectarse a otra página. También pueden poner palabras en cursiva.",
+          "duration_seconds": 20
+        },
+        {
+          "scene_id": "scene_2",
+          "title": "HTML",
+          "visual_description": "Mostrar etiquetas HTML básicas apareciendo de forma rápida y sin explicación.",
+          "narration": "HTML puede ser tan complicado o tan simple como el desarrollador web quiera. HTML consiste en una serie de elementos. Las etiquetas pueden poner palabras en cursiva y también convertir contenido en hipervínculos.",
+          "duration_seconds": 20
+        },
+        {
+          "scene_id": "scene_3",
+          "title": "Estructura",
+          "visual_description": "Volver a la misma página inicial y resaltar distintas zonas sin orden.",
+          "narration": "HTML es un lenguaje de marcado que indica a los navegadores cómo estructurar las páginas web. Sus elementos permiten marcar diferentes partes del contenido para que aparezcan o actúen de cierta manera.",
+          "duration_seconds": 20
+        }
+      ]
+    },
+    "generation_context": {
+      "profile": "beginner",
+      "niche": "general",
+      "detail_level": "medium",
+      "learning_objective": "Comprender qué es HTML y cuál es su función básica."
+    },
+    "chunks_used": [
+      {
+        "chunk_id": "FE-ES-001_CH_002",
+        "document_id": "FE-ES-001",
+        "rank": 1,
+        "score": 1.0,
+        "text": "## ¿Qué es HTML?\n\nHTML (HyperText Markup Language, por sus siglas en inglés) es un lenguaje de marcado que indica a los navegadores web cómo estructurar las páginas web que visita. Puede ser tan complicado o tan simple como el desarrollador web quiera que sea. HTML consiste en una serie de elementos, que utiliza para encerrar, envolver o marcar diferentes partes del contenido para que aparezca o actúe de cierta manera. Las etiquetas pueden convertir el contenido en un hipervínculo para conectarse a otra página, poner palabras en cursiva, etc."
+      }
+    ]
+  }
+}

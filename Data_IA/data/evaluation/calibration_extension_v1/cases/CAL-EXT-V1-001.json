@@ -1,0 +1,44 @@
+{
+  "calibration_id": "CAL-EXT-V1-001",
+  "source_case_id": "DS-ES-001-Q01",
+  "document_id": "DS-ES-001",
+  "category": "Data Science",
+  "variant": "heuristic_semantic_conflict",
+  "target_dimension": "content_support",
+  "scenario_type": "heuristic_semantic_conflict",
+  "expected_behavior": {
+    "heuristic": "Se espera que pueda conservar señales favorables de relevancia, coherencia y adaptación didáctica; el comportamiento real debe verificarse empíricamente.",
+    "semantic": "Debe detectar soporte factual insuficiente por la afirmación sobre pandas y Matplotlib, reduciendo content_support y reportando unsupported_information.",
+    "decision": "Si la afirmación factual no respaldada queda confirmada, el caso debe ser candidato a requires_revision; no debe resolverse mediante promedio simple."
+  },
+  "evaluation_request": {
+    "document_id": "DS-ES-001",
+    "format": "tldr",
+    "generated_content": {
+      "title": "Trabajar con datos en Python",
+      "summary": "El módulo enseña a almacenar y manipular datos en Python, incluyendo el uso de variables, operaciones numéricas y conversión de tipos. También introduce el análisis tabular con pandas y la visualización de datos con Matplotlib.",
+      "key_points": [
+        "Almacenar y actualizar valores mediante variables.",
+        "Realizar operaciones aritméticas con números.",
+        "Convertir entre tipos de datos mediante funciones integradas.",
+        "Analizar datos tabulares con pandas y crear visualizaciones con Matplotlib."
+      ],
+      "conclusion": "El módulo proporciona una base para trabajar con datos en Python y avanzar hacia tareas de análisis y visualización."
+    },
+    "generation_context": {
+      "profile": "beginner",
+      "niche": "general",
+      "detail_level": "medium",
+      "learning_objective": null
+    },
+    "chunks_used": [
+      {
+        "chunk_id": "DS-ES-001_CH_001",
+        "document_id": "DS-ES-001",
+        "rank": 1,
+        "score": 1.0,
+        "text": "# Trabajar con datos en Python\n\n- Módulo\n\n- 7 Unidades\n\nAprenda a almacenar y manipular datos en Python. Explore variables, escritura dinámica, operaciones numéricas y conversión de tipos.\n\n## Objetivos de aprendizaje\n\nDespués de completar este módulo, puede hacer lo siguiente:\n\n- Almacene y actualice los valores mediante variables.\n- Realice operaciones aritméticas con números.\n- Convertir entre tipos de datos mediante funciones integradas.\n\n- Ejercicio: Cálculo del GPA de un alumno."
+      }
+    ]
+  }
+}
