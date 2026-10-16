@@ -201,6 +201,7 @@ class IndexResponse(BaseModel):
     status: Literal["indexed"]
     document_title: str = Field(..., description="Nombre del archivo recibido.")
     chunks_indexed: int = Field(..., description="Cantidad de fragmentos guardados.")
+    short_description: str = Field(..., description="Descripción corta del documento en máximo 1 oración.")
 
 
 class DeleteResponse(BaseModel):
@@ -303,13 +304,33 @@ async def index_document(document_id: str = Form(...), file: UploadFile = File(.
 
         try:
             documents = extract_document(tmp_path)
+            
+            # Acumulamos el texto para la descripción corta
+            texto_completo = ""
             for doc in documents:
                 doc.metadata["document_id"] = document_id
                 doc.metadata["source"] = file.filename
                 doc.text = clean_text(doc.text)
+                texto_completo += doc.text + " "
 
             chunks = create_chunks(documents)
             vector_store.add_chunks(chunks)
+            
+            # --- NUEVO: Generar descripción corta (Sprint 4 - Trello) ---
+            descripcion_corta = "Documento indexado correctamente."
+            try:
+                if texto_completo.strip() and not API_KEY.startswith("fake"):
+                    import google.generativeai as genai
+                    genai.configure(api_key=API_KEY)
+                    model = genai.GenerativeModel("gemini-1.5-flash") # Usamos flash por velocidad
+                    prompt = f"Escribe una única oración descriptiva (máximo 20 palabras) resumiendo de qué trata este texto:\n\n{texto_completo[:2000]}"
+                    response = model.generate_content(prompt)
+                    if response.text:
+                        descripcion_corta = response.text.strip().replace("\n", "")
+            except Exception as e:
+                logger.warning("No se pudo generar la descripción corta con LLM: %s", e)
+            # ------------------------------------------------------------
+
         finally:
             if os.path.exists(tmp_path):
                 os.remove(tmp_path)
@@ -320,6 +341,7 @@ async def index_document(document_id: str = Form(...), file: UploadFile = File(.
             "status": "indexed",
             "document_title": titulo_crudo,
             "chunks_indexed": len(chunks),
+            "short_description": descripcion_corta # <-- SE AGREGA AL JSON FINAL
         }
     except Exception as e:
         logger.exception("Error interno al indexar")

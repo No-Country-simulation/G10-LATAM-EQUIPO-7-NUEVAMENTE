@@ -258,4 +258,10 @@ def test_index_devuelve_titulo_y_chunks_indexados(monkeypatch):
         files={"file": ("informe.pdf", b"contenido", "application/pdf")},
     )
     assert r.status_code == 200, r.text
-    assert r.json() == {"document_id": "d", "status": "indexed", "document_title": "informe.pdf", "chunks_indexed": 3}
+    assert r.json() == {
+        "document_id": "d",
+        "status": "indexed",
+        "document_title": "informe.pdf",
+        "chunks_indexed": 3,
+        "short_description": "Documento indexado correctamente."
+    }
