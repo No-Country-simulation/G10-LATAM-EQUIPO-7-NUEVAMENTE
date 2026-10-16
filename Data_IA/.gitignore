@@ -16,3 +16,5 @@ env/
 
 # Scripts de prueba locales(lz)
 script_prueba_gemini.py
+scripts/script_prueba_gemini*.py
+scripts/test_gemini_minimal.py

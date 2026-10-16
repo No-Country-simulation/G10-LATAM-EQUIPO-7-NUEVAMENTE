@@ -30,7 +30,7 @@ En escritorio, la presentación ocupa la altura disponible de la ventana: cabece
 
 ## Estética y fuentes
 
-Fondos `#090c10`, `#121822` y `#1a2230`; acentos cian, azul, violeta y dorado tomados del sistema visual del frontend. Tipografía local, sin fuentes remotas. Las relaciones de los diagramas se reconstruyen en SVG.
+Fondos `#090c10`, `#121822` y `#1a2230`; acento principal dorado y ámbar (`#f59e0b`, `#fbbf24`, `#fef08a`), botones oficiales dorados y paleta cósmica unificada con el diseño del frontend. Tipografía local, sin fuentes remotas. Las relaciones de los diagramas se reconstruyen en SVG.
 
 Fuente narrativa: `docs/README_Panorama_Pitch_DemoDay_NuevaMente.md`. Arquitectura y flujos: diagramas de Sprint 4 y ciclo de evaluación de `docs/`. Las escenas de arquitectura y corrección ilustran el flujo propuesto; consultar el estado verificado arriba para distinguirlo de las capacidades conectadas actualmente. No se inventan métricas ni nombres de integrantes.
 

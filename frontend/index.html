@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>NuevaMente - Plataforma Educativa Adaptativa con IA</title>
-  <link rel="icon" type="image/png" href="LogoPropuesta - Editado.png">
+  <link rel="icon" type="image/svg+xml" href="favicon.svg">
   <link rel="stylesheet" href="css/main.css?v=2.2">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -43,6 +43,11 @@
         <span class="btn-enter-label">Acceder al Catálogo de Capacitaciones</span>
         <span class="btn-enter-arrow">&rarr;</span>
       </button>
+
+      <a href="/landing/" class="btn-landing-access" id="btnLandingAccess" title="Ver Presentación Demo Day">
+        <span class="btn-landing-icon" aria-hidden="true">↗</span>
+        <span class="btn-landing-label">Ver Presentación Demo Day</span>
+      </a>
 
       <p class="portada-click-anywhere-hint">
         Haz clic en el botón o en cualquier lugar para ingresar al Catálogo de Capacitaciones
@@ -436,6 +441,7 @@
           <div class="study-topic-meta">
             <span class="topic-badge-pill" id="studyTopicBadge">ÁREA OPERATIVA</span>
             <h3 class="study-topic-title" id="studyTopicTitle">Módulo de Capacitación</h3>
+            <span class="study-topic-filename" id="studyTopicFilename" style="display: none;"></span>
           </div>
           <div class="study-header-actions">
             <button type="button" class="btn-refresh-formats" id="btnDownloadStudyDoc" title="Descargar archivo original persistido en el servidor" style="display: none;">
@@ -633,6 +639,7 @@
 
         <div style="display: flex; flex-direction: column; gap: 0.75rem;">
           <h3 class="opened-doc-title" id="openedDocTitle">Título del Módulo</h3>
+          <span class="opened-doc-filename" id="openedDocFilename" style="display: none;"></span>
           <p class="opened-doc-summary" id="openedDocSummary">Descripción y alcance de la capacitación...</p>
         </div>
 

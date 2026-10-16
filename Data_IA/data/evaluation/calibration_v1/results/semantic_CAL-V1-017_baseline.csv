@@ -1,0 +1,2 @@
+calibration_id,source_case_id,document_id,category,format,variant,target_dimension,semantic_status,semantic_relevance,semantic_coherence,semantic_didactic_adaptation,semantic_content_support,unsupported_information_count,observations_count,recommendations_count,error_code,error_message,model,prompt_version,latency_ms
+CAL-V1-017,CLD-ES-001-Q01,CLD-ES-001,Cloud / DevOps,quiz,clean_reference,all,success,5.0,5.0,5.0,5.0,0,0,0,,,gemini-3.8-flash,semantic-evaluator-v0.1,23893

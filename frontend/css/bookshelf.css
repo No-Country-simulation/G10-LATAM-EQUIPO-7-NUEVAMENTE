@@ -1001,6 +1001,15 @@
   -webkit-text-fill-color: initial;
 }
 
+.opened-doc-filename {
+  font-size: clamp(0.72rem, 1vh, 0.82rem);
+  color: #64748b;
+  font-weight: 500;
+  margin-top: -0.4rem;
+  letter-spacing: 0.01em;
+  word-break: break-all;
+}
+
 .opened-doc-summary {
   font-size: clamp(0.78rem, 1.1vh, 0.9rem);
   line-height: 1.5;
@@ -1802,6 +1811,19 @@ body.interactive-mode-active .btn-toggle-interactive-mode:hover {
   border: 1px solid rgba(254, 240, 138, 0.3);
   font-weight: 600;
   font-size: 0.74rem;
+}
+
+.catalog-doc-filename-sub {
+  font-size: 0.78rem;
+  color: #94a3b8;
+  margin-top: 0.15rem;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  font-weight: 500;
 }
 
 .catalog-format-pill {

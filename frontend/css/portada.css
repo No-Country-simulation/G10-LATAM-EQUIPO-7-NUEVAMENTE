@@ -274,6 +274,50 @@
   transform: translateX(5px);
 }
 
+/* Botón Secundario: Acceso a la Landing / Presentación Demo Day */
+.btn-landing-access {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.6rem;
+  padding: clamp(0.5rem, 1vh, 0.7rem) clamp(1.4rem, 2.5vw, 2rem);
+  font-size: clamp(0.9rem, 1.15vw, 1.05rem);
+  font-weight: 700;
+  font-family: inherit;
+  color: #fef08a;
+  background: rgba(14, 22, 36, 0.75);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(254, 240, 138, 0.45);
+  border-radius: 50px;
+  text-decoration: none;
+  cursor: pointer;
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.5), 0 0 18px rgba(245, 158, 11, 0.15);
+  transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+  margin-top: 0.15rem;
+}
+
+.btn-landing-access:hover {
+  background: rgba(26, 36, 56, 0.9);
+  border-color: rgba(254, 240, 138, 0.85);
+  color: #ffffff;
+  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.7), 0 0 28px rgba(245, 158, 11, 0.4);
+  transform: translateY(-2px);
+}
+
+.btn-landing-access:active {
+  transform: translateY(0) scale(0.98);
+}
+
+.btn-landing-icon {
+  font-size: 1.05rem;
+  transition: transform 0.25s ease;
+}
+
+.btn-landing-access:hover .btn-landing-icon {
+  transform: translate(2px, -2px);
+}
+
 /* Indicador de ayuda al pie */
 .portada-click-anywhere-hint {
   font-size: clamp(0.88rem, 1.1vw, 0.98rem);
@@ -321,6 +365,11 @@
     padding: 0.95rem 1.75rem;
     font-size: 1.05rem;
   }
+  .btn-landing-access {
+    width: 100%;
+    padding: 0.75rem 1.4rem;
+    font-size: 0.95rem;
+  }
 }
 
 /* Adaptación para pantallas de PC con baja altura vertical (1366x768, 1440x900, monitores 17" y laptops) */
@@ -360,6 +409,11 @@
   .btn-enter-library {
     padding: 0.62rem 1.5rem;
     font-size: 0.9rem;
+    border-radius: 12px;
+  }
+  .btn-landing-access {
+    padding: 0.42rem 1.25rem;
+    font-size: 0.82rem;
     border-radius: 12px;
   }
   .portada-click-anywhere-hint {

@@ -3,18 +3,12 @@ Nodos del grafo de LangGraph para el ciclo de un formato: Redactor -> (Revisor) 
 
 Reparto de responsabilidades (para que cada decisión viva en UN solo lugar):
 
-* nodo_redactor   : escribe HECHOS en el estado (contenido nuevo o error). No decide el rumbo
-                    y no construye el outcome.
-* ruta_tras_redactor: decide el rumbo (revisar / reescribir / cerrar) con las reglas de state.py.
-* nodo_finalizar  : único lugar que construye el outcome del formato.
-
-El Redactor tiene dos modos, que se distinguen por lo que haya en el estado, no por un contador:
-
-    creación     : no hay current_error ni feedback  -> revision_count no cambia
-    reescritura  : hay current_error o feedback      -> revision_count += 1
-
-revision_count cuenta reescrituras (la primera generación NO cuenta), así que con
-max_revisions=2 el formato puede generarse hasta 3 veces: 1 creación + 2 reescrituras.
+* nodo_redactor        : escribe HECHOS en el estado (contenido nuevo o error). No decide el rumbo
+                         y no construye el outcome.
+* crear_nodo_revisor   : analiza el feedback del evaluador y determina si se requiere nueva evidencia.
+* crear_nodo_nueva_evidencia: recupera nuevos fragmentos de ChromaDB si el revisor lo solicita.
+* ruta_tras_redactor   : decide el rumbo (revisar / reescribir / cerrar) con las reglas de state.py.
+* nodo_finalizar       : único lugar que construye el outcome del formato.
 """
 import json
 import logging
@@ -29,7 +23,7 @@ from .state import (
     puede_revisar,
 )
 
-if TYPE_CHECKING:  # solo para tipado: no importa chromadb ni el reranker al cargar este módulo
+if TYPE_CHECKING:
     from .agent_v1 import AgentV1
 
 logger = logging.getLogger(__name__)
@@ -83,14 +77,73 @@ def construir_instrucciones_revision(state: FormatState) -> str:
     return "\n".join(lineas)
 
 
+def crear_nodo_revisor(agente: "AgentV1") -> Callable[[FormatState], Dict[str, Any]]:
+    """
+    Nodo Revisor activo: analiza el feedback y determina si requiere nueva evidencia o ajuste directo.
+    """
+    def nodo_revisor(state: FormatState) -> Dict[str, Any]:
+        feedback = state.get("feedback")
+        if not feedback or feedback.get("approved"):
+            return {"needs_new_evidence": False}
+
+        issues = feedback.get("issues", [])
+        requiere_busqueda = any("respaldo" in issue.lower() or "contexto" in issue.lower() for issue in issues)
+        
+        return {"needs_new_evidence": requiere_busqueda}
+    return nodo_revisor
+
+
+def crear_nodo_nueva_evidencia(agente: "AgentV1", top_k: int = 5) -> Callable[[FormatState], Dict[str, Any]]:
+    """
+    Recupera nueva evidencia de ChromaDB si el revisor determinó que el feedback lo exige.
+    """
+    def nodo_nueva_evidencia(state: FormatState) -> Dict[str, Any]:
+        document_id = state["document_id"]
+        niche = state["niche"]
+        query = f"Ampliación sobre {niche} para corregir observaciones del revisor."
+        
+        try:
+            resultados = agente.retriever.retrieve(
+                query=query, top_k=top_k, metadata_filters={"document_id": document_id}
+            )
+        except Exception as e:
+            logger.exception("Nodo nueva evidencia: fallo en el retriever")
+            return {"retrieval_error": classify_exception(e)}
+
+        if not resultados:
+            return {}
+
+        nuevos_chunks = [
+            {
+                "rank": rank,
+                "chunk_id": r.chunk_id,
+                "document_id": (r.metadata or {}).get("document_id", document_id),
+                "score": getattr(r, "score", 0.0),
+                "text": r.text,
+            }
+            for rank, r in enumerate(resultados, start=1)
+        ]
+        
+        contexto_actualizado = state.get("retrieved_context", "") + "\n\n" + "\n\n".join(r.text for r in resultados)
+        
+        return {
+            "retrieved_context": contexto_actualizado,
+            "sources_used": state.get("sources_used", []) + nuevos_chunks,
+        }
+    return nodo_nueva_evidencia
+
+
+def decidir_ruta_revision(state: FormatState) -> str:
+    """Enrutamiento condicional: si necesita nueva evidencia, va al buscador; si no, directo al redactor."""
+    if state.get("needs_new_evidence", False):
+        return "nueva_evidencia"
+    return "redactor"
+
+
 def crear_nodo_redactor(agente: "AgentV1") -> Callable[[FormatState], Dict[str, Any]]:
     """
-    Fábrica del nodo: LangGraph llama a los nodos con un solo argumento (el estado), así que el
-    agente se inyecta por cierre en vez de como segundo parámetro.
-
-        graph.add_node("redactor", crear_nodo_redactor(agente))
+    Fábrica del nodo Redactor Pedagógico.
     """
-
     def nodo_redactor(state: FormatState) -> Dict[str, Any]:
         formato = state["format"]
         es_reescritura = bool(state.get("current_error") or state.get("feedback"))
@@ -104,7 +157,6 @@ def crear_nodo_redactor(agente: "AgentV1") -> Callable[[FormatState], Dict[str, 
         )
 
         try:
-            # Reutiliza el contexto que ya recuperó el Investigador: no vuelve a buscar en el RAG.
             resultado = agente.generate_from_context(
                 contexto=state.get("retrieved_context", ""),
                 sources_used=state.get("sources_used", []),
@@ -115,12 +167,11 @@ def crear_nodo_redactor(agente: "AgentV1") -> Callable[[FormatState], Dict[str, 
                 learning_objective=state.get("learning_objective"),
                 extra_instructions=instrucciones,
             )
-        except Exception as e:  # defensa: generate_from_context no lanza, pero nada debe abortar el grafo
+        except Exception as e:
             logger.exception("Redactor: excepción inesperada (formato=%s)", formato)
             return {"revision_count": revision, "current_error": classify_exception(e)}
 
         if resultado.get("status") == "success":
-            # El feedback ya se consumió; el historial se conserva en feedback_history.
             return {
                 "revision_count": revision,
                 "current_content": resultado["content"],
@@ -132,7 +183,6 @@ def crear_nodo_redactor(agente: "AgentV1") -> Callable[[FormatState], Dict[str, 
             "INTERNAL_ERROR", resultado.get("error_message") or "Fallo sin detalle."
         )
         logger.warning("Redactor: fallo en %s: %s", formato, error["code"])
-        # current_content y feedback se conservan: el siguiente intento los necesita como contexto.
         return {"revision_count": revision, "current_error": error}
 
     return nodo_redactor
@@ -140,11 +190,7 @@ def crear_nodo_redactor(agente: "AgentV1") -> Callable[[FormatState], Dict[str, 
 
 def ruta_tras_redactor(state: FormatState) -> str:
     """
-    Router posterior al Redactor:
-
-        sin error                                  -> "revisor"
-        INVALID_MODEL_OUTPUT y quedan revisiones   -> "redactor"  (reescribir)
-        cualquier otro error, o sin presupuesto    -> "finalizar" (cuota, saturación, config...)
+    Router posterior al Redactor.
     """
     error = state.get("current_error")
     if error is None:
@@ -155,7 +201,7 @@ def ruta_tras_redactor(state: FormatState) -> str:
 
 
 def nodo_finalizar(state: FormatState) -> Dict[str, Any]:
-    """Único lugar donde se construye el outcome del formato (forma de results[] de /generate)."""
+    """Único lugar donde se construye el outcome del formato."""
     error = state.get("current_error")
     if error is not None:
         estado = "no_results" if error.get("code") == "NO_CONTEXT" else "failed"
