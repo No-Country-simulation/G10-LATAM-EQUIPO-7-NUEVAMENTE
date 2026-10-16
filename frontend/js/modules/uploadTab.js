@@ -434,16 +434,20 @@ export const uploadTab = {
    */
   createDocumentFromUpload(selectedFile, uploadResult, params = {}) {
     const rawName = uploadResult.filename || selectedFile.name || 'Documento';
-    const cleanTitle = rawName
+    const cleanFallback = rawName
       .replace(/\.[^/.]+$/, '')
       .replace(/[-_]/g, ' ')
       .trim();
 
-    const formattedTitle = cleanTitle.charAt(0).toUpperCase() + cleanTitle.slice(1);
+    const formattedFallback = cleanFallback.charAt(0).toUpperCase() + cleanFallback.slice(1);
+    const rawAiTitle = uploadResult.title || uploadResult.document_title;
+    const hasTitle = Boolean(rawAiTitle && typeof rawAiTitle === 'string' && rawAiTitle.trim().length > 0);
+    const finalTitle = hasTitle ? rawAiTitle.trim() : formattedFallback;
+
     const profile = params.profile || params.target_profile || 'intermediate';
     const niche = params.niche || params.niche_context || 'general';
     const detail_level = params.detail_level || 'detailed';
-    const discipline = this.inferDiscipline(cleanTitle, niche);
+    const discipline = this.inferDiscipline(finalTitle, niche);
     const docId = uploadResult.document_id;
     const ext = (selectedFile.format || rawName.split('.').pop() || 'pdf').toLowerCase();
     const ociId = uploadResult.oci_object_name || `documents/${docId}/original.${ext}`;
@@ -451,10 +455,10 @@ export const uploadTab = {
     return {
       id: docId,
       filename: rawName,
-      title: formattedTitle,
+      title: finalTitle,
       discipline: discipline,
       spineColor: getRandomSpineColor(),
-      description: `Documento indexado mediante RAG (${uploadResult.isDuplicate ? 'Registro existente reutilizado' : 'Nuevo registro creado'}). Formatos pedagógicos en proceso de generación.`,
+      description: uploadResult.summary || uploadResult.description || `Documento indexado mediante RAG (${uploadResult.isDuplicate ? 'Registro existente reutilizado' : 'Nuevo registro creado'}). Formatos pedagógicos en proceso de generación.`,
       filesize: selectedFile.size || '1.0 MB',
       status: uploadResult.status || 'indexed',
       metadatos: {
@@ -469,7 +473,7 @@ export const uploadTab = {
       sections: [
         {
           id: `sec_${docId}`,
-          title: formattedTitle,
+          title: finalTitle,
           summary: `Documento indexado exitosamente. Generando Evaluación y Tarjetas de Refuerzo en segundo plano.`,
           key_concepts: [discipline, 'Competencia Clave', 'Capacitación Adaptativa']
         }

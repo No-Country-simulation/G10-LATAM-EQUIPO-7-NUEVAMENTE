@@ -52,17 +52,22 @@ export const bookshelf = {
 
       if (Array.isArray(docs) && docs.length > 0) {
         this.booksFromBackend = docs.map((doc, idx) => {
-          const rawTitle = doc.title || doc.filename || doc.original_filename || `Documento ${idx + 1}`;
-          const cleanTitle = rawTitle.replace(/\.[^/.]+$/, '').replace(/[-_]/g, ' ').trim();
-          const formattedTitle = cleanTitle.charAt(0).toUpperCase() + cleanTitle.slice(1);
+          // Título principal: utilizar title generado por IA si existe.
+          // Fallback a filename únicamente cuando title no esté disponible.
+          const hasTitle = Boolean(doc.title && typeof doc.title === 'string' && doc.title.trim().length > 0);
+          const rawFallback = doc.filename || doc.original_filename || `Documento ${idx + 1}`;
+          const cleanFallback = rawFallback.replace(/\.[^/.]+$/, '').replace(/[-_]/g, ' ').trim();
+          const formattedFallback = cleanFallback.charAt(0).toUpperCase() + cleanFallback.slice(1);
+          const finalTitle = hasTitle ? doc.title.trim() : formattedFallback;
+
           const docId = doc.document_id || doc.id || `doc_${idx}`;
           const ext = (doc.filename || doc.original_filename || 'pdf').split('.').pop().toUpperCase();
-          const discipline = doc.discipline || this.inferDiscipline(cleanTitle);
+          const discipline = doc.discipline || this.inferDiscipline(finalTitle);
 
           return {
             id: docId,
-            title: formattedTitle,
-            filename: doc.filename || doc.original_filename || `${cleanTitle}.pdf`,
+            title: finalTitle,
+            filename: doc.filename || doc.original_filename || `${cleanFallback}.pdf`,
             discipline: discipline,
             spineColor: doc.spineColor || getRandomSpineColor(),
             description: doc.summary || doc.description || `Documento persistido en Backend y OCI Object Storage.`,
@@ -88,8 +93,8 @@ export const bookshelf = {
             sections: doc.sections || [
               {
                 id: `sec_${docId}`,
-                title: formattedTitle,
-                summary: doc.summary || `Contenido de ${formattedTitle} analizado por NuevaMente.`,
+                title: finalTitle,
+                summary: doc.summary || `Contenido de ${finalTitle} analizado por NuevaMente.`,
                 key_concepts: Array.isArray(doc.key_concepts) && doc.key_concepts.length > 0
                   ? doc.key_concepts
                   : [discipline, 'Concepto Clave', 'Persistencia OCI']
@@ -159,6 +164,7 @@ export const bookshelf = {
       // Campos de la Hoja Izquierda
       openedBadge: document.getElementById('openedDocBadge'),
       openedTitle: document.getElementById('openedDocTitle'),
+      openedFilename: document.getElementById('openedDocFilename'),
       openedSummary: document.getElementById('openedDocSummary'),
       openedTime: document.getElementById('openedDocTime'),
       openedLevel: document.getElementById('openedDocLevel'),
@@ -548,7 +554,16 @@ export const bookshelf = {
 
       const h3 = document.createElement('h3');
       h3.style.cssText = 'font-size: 1.05rem; font-weight: 700; color: #ffffff; margin: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;';
-      h3.textContent = book.title || 'Documento sin título';
+      h3.textContent = book.title || book.filename || 'Documento sin título';
+      titleMetaCol.appendChild(h3);
+
+      // Subtítulo secundario y discreto con el nombre del archivo original
+      if (book.filename && book.filename !== book.title) {
+        const fileSub = document.createElement('div');
+        fileSub.className = 'catalog-doc-filename-sub';
+        fileSub.textContent = `📄 ${book.filename}`;
+        titleMetaCol.appendChild(fileSub);
+      }
 
       const metaRow = document.createElement('div');
       metaRow.style.cssText = 'display: flex; align-items: center; gap: 0.6rem; font-size: 0.78rem; color: var(--text-secondary); margin-top: 0.3rem; flex-wrap: wrap;';
@@ -588,7 +603,6 @@ export const bookshelf = {
       metaRow.appendChild(sizeSpan);
       metaRow.appendChild(tagSpan);
 
-      titleMetaCol.appendChild(h3);
       titleMetaCol.appendChild(metaRow);
 
       infoContainer.appendChild(formatTag);
@@ -785,15 +799,18 @@ export const bookshelf = {
     const spine = document.createElement('div');
     const colorClass = `spine-${book.spineColor || 'navy'}`;
     spine.className = `book-spine ${colorClass}`;
-    spine.setAttribute('data-book-id', book.id);
-    spine.title = `${book.title} (${book.discipline})`;
+    const bookTitle = book.title || book.filename || 'Documento';
+    if (book.filename && book.filename !== book.title) {
+      spine.title = `${book.title} (${book.filename}) · ${book.discipline}`;
+    } else {
+      spine.title = `${bookTitle} (${book.discipline})`;
+    }
 
     const topRib = document.createElement('div');
     topRib.className = 'spine-top-rib';
 
     const titleEl = document.createElement('div');
     titleEl.className = 'spine-title-vertical';
-    const bookTitle = book.title || 'Documento';
 
     this.formatSpineTitle(titleEl, bookTitle);
 
@@ -902,7 +919,17 @@ export const bookshelf = {
 
     // Poblar Hoja Izquierda
     if (openedBadge) openedBadge.textContent = book.discipline;
-    if (openedTitle) openedTitle.textContent = book.title;
+    if (openedTitle) openedTitle.textContent = book.title || book.filename || 'Módulo de Capacitación';
+    if (this.elements.openedFilename) {
+      const origFile = book.filename || '';
+      const docTitle = book.title || '';
+      if (origFile && origFile !== docTitle) {
+        this.elements.openedFilename.textContent = `Archivo original: ${origFile}`;
+        this.elements.openedFilename.style.display = 'block';
+      } else {
+        this.elements.openedFilename.style.display = 'none';
+      }
+    }
     if (openedSummary) openedSummary.textContent = book.description;
 
     const meta = book.metadatos || {};
@@ -930,8 +957,8 @@ export const bookshelf = {
     if (book.id) {
       apiClient.getDocumentById(book.id).then(docDetail => {
         if (docDetail) {
-          if (docDetail.filename && !book.title) {
-            if (openedTitle) openedTitle.textContent = docDetail.filename;
+          if (docDetail.filename) {
+            book.filename = docDetail.filename;
           }
 
           // Enriquecimiento con metadatos pedagógicos del documento (Sprint 3 / PR #63)
@@ -991,9 +1018,23 @@ export const bookshelf = {
             prereqsContainer.style.display = 'none';
           }
 
-          if (docDetail.title && openedTitle) {
-            openedTitle.textContent = docDetail.title;
-            book.title = docDetail.title;
+          if (docDetail.title && typeof docDetail.title === 'string' && docDetail.title.trim()) {
+            const trimmedTitle = docDetail.title.trim();
+            book.title = trimmedTitle;
+            if (openedTitle) openedTitle.textContent = trimmedTitle;
+          } else if (docDetail.filename && !book.title) {
+            if (openedTitle) openedTitle.textContent = docDetail.filename;
+          }
+
+          if (this.elements.openedFilename) {
+            const origFile = book.filename || '';
+            const docTitle = book.title || '';
+            if (origFile && origFile !== docTitle) {
+              this.elements.openedFilename.textContent = `Archivo original: ${origFile}`;
+              this.elements.openedFilename.style.display = 'block';
+            } else {
+              this.elements.openedFilename.style.display = 'none';
+            }
           }
 
           if (docDetail.summary && openedSummary) {

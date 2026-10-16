@@ -20,6 +20,7 @@ export const evaluatorMetrics = {
   modalOverlay: null,
   activeFormatKey: null,
   activeAttemptIndex: 0,
+  cycleItems: [],
   currentEvaluationsList: [],
   currentFormatData: null,
 
@@ -190,10 +191,11 @@ export const evaluatorMetrics = {
       return;
     }
 
-    // Extraer datos de evaluación según contrato V2
-    const evaluation = formatData.evaluation 
-      || (Array.isArray(formatData.evaluations) && formatData.evaluations.length > 0 ? formatData.evaluations[0] : null)
-      || (formatData.verdict ? formatData : null);
+    // Regla de Negocio (PR #110 Backend):
+    // El indicador principal de calidad utiliza EXCLUSIVAMENTE 'evaluation', correspondiente
+    // a la versión del contenido que se está mostrando. NUNCA tomar evaluations[0] automáticamente
+    // como fallback, ya que podría pertenecer a una versión previa u original y no a la vigente.
+    const evaluation = formatData.evaluation || null;
 
     // Crear botón del badge con API segura del DOM
     const badgeBtn = document.createElement('button');
@@ -214,15 +216,15 @@ export const evaluatorMetrics = {
       if (verdict === 'approved') {
         badgeBtn.classList.add('verdict-approved');
         textSpan.textContent = isDegraded ? 'Calidad Aprobada (Heurístico)' : 'Calidad Pedagógica Aprobada';
-        badgeBtn.title = 'El Agente Evaluador certificó este formato. Clic para ver métricas completas.';
+        badgeBtn.title = 'El Agente Evaluador certificó esta versión del formato. Clic para ver métricas completas.';
       } else if (verdict === 'requires_revision') {
         badgeBtn.classList.add('verdict-requires-revision');
         textSpan.textContent = 'Requiere Revisión Didáctica';
-        badgeBtn.title = 'El formato presenta observaciones pedagógicas. Clic para ver detalles.';
+        badgeBtn.title = 'Esta versión presenta observaciones pedagógicas. Clic para ver detalles e historial.';
       } else if (verdict === 'rejected') {
         badgeBtn.classList.add('verdict-rejected');
         textSpan.textContent = 'Calidad Observada (No Aprobado)';
-        badgeBtn.title = 'El formato no superó la rúbrica mínima. Clic para auditar.';
+        badgeBtn.title = 'Esta versión no superó la rúbrica mínima. Clic para auditar e historial.';
       } else {
         // verdict === null
         badgeBtn.classList.add('verdict-preview');
@@ -230,10 +232,10 @@ export const evaluatorMetrics = {
         badgeBtn.title = 'Evaluación técnica registrada sin veredicto definitivo. Clic para inspeccionar.';
       }
     } else {
-      // Estado informativo cuando evaluation es null (ej. tldr en phase evaluating)
-      badgeBtn.classList.add('verdict-preview');
-      textSpan.textContent = 'En Evaluación Pedagógica';
-      badgeBtn.title = 'Haz clic para auditar la evaluación de calidad de este formato.';
+      // Si evaluation llega null, debe indicar estrictamente: «Sin evaluación de esta versión»
+      badgeBtn.classList.add('verdict-unevaluated');
+      textSpan.textContent = 'Sin evaluación de esta versión';
+      badgeBtn.title = 'Esta versión del formato aún no cuenta con evaluación pedagógica. Clic para consultar detalles e historial.';
     }
 
     badgeBtn.appendChild(dotSpan);
@@ -273,23 +275,18 @@ export const evaluatorMetrics = {
       subtitleEl.textContent = `Formato: ${friendlyFormatName} · Agente Evaluador (Gemini Judge)`;
     }
 
-    // Resolver lista de evaluaciones del ciclo (V2) exclusivamente desde Backend
-    let evaluationsList = [];
-    if (formatData?.evaluations && Array.isArray(formatData.evaluations) && formatData.evaluations.length > 0) {
-      evaluationsList = formatData.evaluations;
-    } else if (evaluationData) {
-      evaluationsList = [evaluationData];
-    }
+    // Construir la lista de versiones/evaluaciones del ciclo identificando cada una por su format_id
+    this.buildCycleItems(formatData, evaluationData);
 
-    this.currentEvaluationsList = evaluationsList;
+    // Por defecto siempre posicionar en la versión vigente (índice 0)
     this.activeAttemptIndex = 0;
 
-    // Renderizar selector de intentos del ciclo si hay más de una evaluación
+    // Renderizar selector de historial de versiones
     this.renderCycleSelector();
 
-    // Renderizar el intento seleccionado
-    const selectedEval = evaluationsList[this.activeAttemptIndex] || null;
-    this.renderAttempt(selectedEval, formatKey, formatData);
+    // Renderizar la versión seleccionada
+    const selectedItem = this.cycleItems[this.activeAttemptIndex] || null;
+    this.renderCycleItem(selectedItem, formatKey, formatData);
 
     // Mostrar modal
     if (this.modalOverlay) {
@@ -299,15 +296,84 @@ export const evaluatorMetrics = {
   },
 
   /**
-   * Renderiza el selector de ciclos/intentos de evaluación si existen múltiples intentos
+   * Construye la lista de versiones y evaluaciones disponibles en formatData.
+   * Identifica cada versión por su format_id para distinguir la versión original de la corregida,
+   * permitiendo consultar el historial incluso cuando la versión vigente no tenga evaluación (evaluation === null).
+   */
+  buildCycleItems(formatData, currentEvaluation) {
+    const currentFormatId = formatData?.format_id || currentEvaluation?.format_id || null;
+    const currentEvalId = currentEvaluation?.evaluation_id || null;
+    const allEvals = Array.isArray(formatData?.evaluations) ? formatData.evaluations : [];
+
+    // Evaluaciones históricas que pertenecen a otras versiones (ej. versión original o previas)
+    const historicalEvals = allEvals.filter((ev) => {
+      if (!ev) return false;
+      if (currentEvalId && ev.evaluation_id && ev.evaluation_id === currentEvalId) {
+        return false;
+      }
+      if (currentFormatId && ev.format_id && ev.format_id === currentFormatId) {
+        return false;
+      }
+      return true;
+    });
+
+    // Ordenar históricas si traen timestamp (la más antigua primero: original)
+    historicalEvals.sort((a, b) => {
+      const tA = a.created_at ? new Date(a.created_at).getTime() : 0;
+      const tB = b.created_at ? new Date(b.created_at).getTime() : 0;
+      return tA - tB;
+    });
+
+    const hasHistorical = historicalEvals.length > 0;
+    const currentLabel = hasHistorical
+      ? 'Versión Corregida (Vigente)'
+      : 'Versión Vigente';
+
+    const formatShortId = (id) => {
+      if (!id) return '';
+      return id.length > 12 ? `${id.slice(0, 10)}…` : id;
+    };
+
+    // Item 0: Versión actualmente mostrada
+    const currentItem = {
+      isCurrent: true,
+      versionLabel: currentLabel,
+      format_id: currentFormatId,
+      shortFormatId: formatShortId(currentFormatId),
+      hasEvaluation: Boolean(currentEvaluation),
+      evaluation: currentEvaluation || null
+    };
+
+    // Items históricos: versión original o previas
+    const historicalItems = historicalEvals.map((ev, idx) => {
+      let label = 'Versión Original';
+      if (historicalEvals.length > 1) {
+        label = idx === 0 ? 'Versión Original' : `Versión Previa ${idx + 1}`;
+      }
+      const fmtId = ev.format_id || null;
+      return {
+        isCurrent: false,
+        versionLabel: label,
+        format_id: fmtId,
+        shortFormatId: formatShortId(fmtId),
+        hasEvaluation: true,
+        evaluation: ev
+      };
+    });
+
+    this.cycleItems = [currentItem, ...historicalItems];
+  },
+
+  /**
+   * Renderiza el selector de versiones e historial de evaluaciones en el modal
    */
   renderCycleSelector() {
     const cycleBar = document.getElementById('evalCycleBar');
     if (!cycleBar) return;
 
-    cycleBar.textContent = ''; // Limpieza segura
+    cycleBar.textContent = ''; // Limpieza segura DOM
 
-    const list = this.currentEvaluationsList || [];
+    const list = this.cycleItems || [];
     if (list.length <= 1) {
       cycleBar.style.display = 'none';
       return;
@@ -317,41 +383,53 @@ export const evaluatorMetrics = {
 
     const labelSpan = document.createElement('span');
     labelSpan.className = 'eval-cycle-label';
-    labelSpan.textContent = 'Historial del Ciclo:';
+    labelSpan.textContent = 'Historial de Versiones:';
     cycleBar.appendChild(labelSpan);
 
-    const totalAttempts = list.length;
-    list.forEach((evalItem, index) => {
+    list.forEach((item, index) => {
       const btn = document.createElement('button');
       btn.type = 'button';
       btn.className = `eval-cycle-btn${index === this.activeAttemptIndex ? ' is-active' : ''}`;
 
-      const attemptNumber = totalAttempts - index;
-      const isLatest = index === 0;
-      const isInitial = index === totalAttempts - 1;
+      // Etiqueta de la versión
+      const textSpan = document.createElement('span');
+      textSpan.textContent = item.versionLabel;
+      btn.appendChild(textSpan);
 
-      let suffix = '';
-      if (isLatest && totalAttempts > 1) {
-        suffix = ' (Actual - Corregido)';
-      } else if (isInitial) {
-        suffix = ' (Inicial)';
+      // Chip con format_id para identificación técnica
+      if (item.shortFormatId) {
+        const fmtChip = document.createElement('span');
+        fmtChip.className = 'eval-cycle-fmt';
+        fmtChip.textContent = item.shortFormatId;
+        if (item.format_id) {
+          fmtChip.title = `ID de formato: ${item.format_id}`;
+        }
+        btn.appendChild(fmtChip);
       }
 
-      btn.textContent = `Intento ${attemptNumber}${suffix}`;
-
-      // Veredicto en miniatura
-      const v = (evalItem?.verdict || 'none').toLowerCase();
+      // Veredicto en miniatura (punto de color)
       const dot = document.createElement('span');
-      dot.className = `eval-badge-dot`;
+      dot.className = 'eval-badge-dot';
       dot.style.marginLeft = '0.35rem';
-      if (v === 'approved') {
-        dot.style.background = '#10b981';
-      } else if (v === 'requires_revision') {
-        dot.style.background = '#f59e0b';
-      } else if (v === 'rejected') {
-        dot.style.background = '#ef4444';
+
+      if (item.hasEvaluation && item.evaluation) {
+        const v = (item.evaluation.verdict || 'none').toLowerCase();
+        if (v === 'approved') {
+          dot.style.background = '#10b981';
+          btn.title = `${item.versionLabel} · Aprobado`;
+        } else if (v === 'requires_revision') {
+          dot.style.background = '#f59e0b';
+          btn.title = `${item.versionLabel} · Requiere Revisión`;
+        } else if (v === 'rejected') {
+          dot.style.background = '#ef4444';
+          btn.title = `${item.versionLabel} · No Aprobado`;
+        } else {
+          dot.style.background = '#94a3b8';
+          btn.title = `${item.versionLabel} · En Evaluación`;
+        }
       } else {
-        dot.style.background = '#94a3b8';
+        dot.style.background = '#64748b';
+        btn.title = `${item.versionLabel} · Sin evaluación de esta versión`;
       }
       btn.appendChild(dot);
 
@@ -359,7 +437,7 @@ export const evaluatorMetrics = {
         e.preventDefault();
         this.activeAttemptIndex = index;
         this.renderCycleSelector();
-        this.renderAttempt(list[index], this.activeFormatKey, this.currentFormatData);
+        this.renderCycleItem(list[index], this.activeFormatKey, this.currentFormatData);
       });
 
       cycleBar.appendChild(btn);
@@ -367,12 +445,23 @@ export const evaluatorMetrics = {
   },
 
   /**
+   * Renderiza el elemento de ciclo seleccionado (vigente o histórico)
+   */
+  renderCycleItem(cycleItem, formatKey, formatData) {
+    if (!cycleItem || !cycleItem.hasEvaluation || !cycleItem.evaluation) {
+      this.renderEmptyAttempt(cycleItem, formatData);
+    } else {
+      this.renderAttempt(cycleItem.evaluation, formatKey, formatData, cycleItem);
+    }
+  },
+
+  /**
    * Puebla los datos de un intento específico de evaluación en el modal
    */
-  renderAttempt(evalData, formatKey, formatData) {
+  renderAttempt(evalData, formatKey, formatData, cycleItem = null) {
     // Si no hay evaluación disponible (ej. tldr en phase evaluating)
     if (!evalData) {
-      this.renderEmptyAttempt(formatData);
+      this.renderEmptyAttempt(cycleItem, formatData);
       return;
     }
 
@@ -692,14 +781,16 @@ export const evaluatorMetrics = {
     if (evalVerEl) evalVerEl.textContent = `Evaluador: ${evalData.evaluator_version || '2.0.0'}`;
     if (rubricVerEl) rubricVerEl.textContent = `Rúbrica: ${evalData.rubric_version || '2.0.0'}`;
     if (latencyEl) latencyEl.textContent = `Latencia: ${semEval.latency_ms ? semEval.latency_ms + ' ms' : '--'}`;
-    if (formatIdEl) formatIdEl.textContent = `Formato: ${evalData.format_id || '--'}`;
+    const displayFmtId = cycleItem?.format_id || evalData.format_id || formatData?.format_id || '--';
+    const versionSuffix = cycleItem?.versionLabel ? ` (${cycleItem.versionLabel})` : '';
+    if (formatIdEl) formatIdEl.textContent = `Formato: ${displayFmtId}${versionSuffix}`;
     if (evalIdEl) evalIdEl.textContent = `ID: ${evalData.evaluation_id || '--'}`;
   },
 
   /**
-   * Vista informativa cuando un formato todavía no posee evaluación (ej. tldr)
+   * Vista informativa cuando un formato o versión todavía no posee evaluación
    */
-  renderEmptyAttempt(formatData) {
+  renderEmptyAttempt(cycleItem, formatData) {
     const bannerEl = document.getElementById('evalVerdictBanner');
     const iconEl = document.getElementById('evalVerdictIcon');
     const titleEl = document.getElementById('evalVerdictTitle');
@@ -709,13 +800,18 @@ export const evaluatorMetrics = {
 
     if (bannerEl) bannerEl.className = 'eval-verdict-banner is-neutral';
     if (iconEl) iconEl.textContent = 'ℹ';
-    if (titleEl) titleEl.textContent = 'Evaluación en Proceso / Sin Veredicto';
+    if (titleEl) titleEl.textContent = 'Sin evaluación de esta versión';
     if (badgeEl) {
-      badgeEl.textContent = 'SIN VEREDICTO';
+      badgeEl.textContent = 'SIN EVALUACIÓN';
       badgeEl.className = 'verdict-badge-tag tag-neutral';
     }
     if (descEl) {
-      descEl.textContent = 'El Agente Evaluador aún no ha emitido una evaluación técnica ni pedagógica para este formato.';
+      const isCorrected = cycleItem?.versionLabel && cycleItem.versionLabel.toLowerCase().includes('corregid');
+      if (isCorrected) {
+        descEl.textContent = 'Esta versión corregida aún no cuenta con evaluación pedagógica. Puedes consultar en el selector superior la evaluación de la versión original.';
+      } else {
+        descEl.textContent = 'Esta versión del formato aún no cuenta con evaluación pedagógica emitida por el Agente Evaluador.';
+      }
     }
     if (fallbackAlertEl) fallbackAlertEl.style.display = 'none';
 
@@ -724,7 +820,7 @@ export const evaluatorMetrics = {
       heuristicListEl.textContent = '';
       const note = document.createElement('div');
       note.className = 'eval-empty-note';
-      note.textContent = 'Puntuaciones heurísticas pendientes de ejecución.';
+      note.textContent = 'Puntuaciones heurísticas pendientes de evaluación para esta versión.';
       heuristicListEl.appendChild(note);
     }
 
@@ -733,7 +829,7 @@ export const evaluatorMetrics = {
       semanticListEl.textContent = '';
       const note = document.createElement('div');
       note.className = 'eval-empty-note';
-      note.textContent = 'Evaluación semántica pendiente.';
+      note.textContent = 'Evaluación semántica pendiente para esta versión.';
       semanticListEl.appendChild(note);
     }
 
@@ -748,7 +844,9 @@ export const evaluatorMetrics = {
 
     const formatIdEl = document.getElementById('evalTechFormatId');
     const evalIdEl = document.getElementById('evalTechEvalId');
-    if (formatIdEl) formatIdEl.textContent = `Formato: ${formatData?.format_id || '--'}`;
+    const displayFmtId = cycleItem?.format_id || formatData?.format_id || '--';
+    const versionSuffix = cycleItem?.versionLabel ? ` (${cycleItem.versionLabel})` : '';
+    if (formatIdEl) formatIdEl.textContent = `Formato: ${displayFmtId}${versionSuffix}`;
     if (evalIdEl) evalIdEl.textContent = 'ID: --';
   },
 
