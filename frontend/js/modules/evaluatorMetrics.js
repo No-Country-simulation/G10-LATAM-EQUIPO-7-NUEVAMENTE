@@ -297,71 +297,183 @@ export const evaluatorMetrics = {
 
   /**
    * Construye la lista de versiones y evaluaciones disponibles en formatData.
-   * Identifica cada versión por su format_id para distinguir la versión original de la corregida,
-   * permitiendo consultar el historial incluso cuando la versión vigente no tenga evaluación (evaluation === null).
+   * Agrupa y distingue cada versión por su format_id, conservando TODAS las evaluaciones
+   * que compartan dicho identificador (diferenciadas por evaluation_id) sin descartar ninguna.
+   * Si la versión vigente no tiene evaluación (evaluation === null), se presenta en estado no evaluado
+   * permitiendo al mismo tiempo consultar el historial completo de evaluaciones.
    */
   buildCycleItems(formatData, currentEvaluation) {
     const currentFormatId = formatData?.format_id || currentEvaluation?.format_id || null;
     const currentEvalId = currentEvaluation?.evaluation_id || null;
     const allEvals = Array.isArray(formatData?.evaluations) ? formatData.evaluations : [];
 
-    // Evaluaciones históricas que pertenecen a otras versiones (ej. versión original o previas)
-    const historicalEvals = allEvals.filter((ev) => {
-      if (!ev) return false;
-      if (currentEvalId && ev.evaluation_id && ev.evaluation_id === currentEvalId) {
-        return false;
-      }
-      if (currentFormatId && ev.format_id && ev.format_id === currentFormatId) {
-        return false;
-      }
-      return true;
-    });
+    // 1. Recolectar todas las evaluaciones sin descartar ninguna (deduplicando únicamente instancias idénticas por evaluation_id)
+    const evalsPool = [];
+    const seenEvalIds = new Set();
 
-    // Ordenar históricas si traen timestamp (la más antigua primero: original)
-    historicalEvals.sort((a, b) => {
-      const tA = a.created_at ? new Date(a.created_at).getTime() : 0;
-      const tB = b.created_at ? new Date(b.created_at).getTime() : 0;
-      return tA - tB;
-    });
+    if (currentEvaluation) {
+      evalsPool.push(currentEvaluation);
+      if (currentEvaluation.evaluation_id) {
+        seenEvalIds.add(currentEvaluation.evaluation_id);
+      }
+    }
 
-    const hasHistorical = historicalEvals.length > 0;
-    const currentLabel = hasHistorical
-      ? 'Versión Corregida (Vigente)'
-      : 'Versión Vigente';
+    for (const ev of allEvals) {
+      if (!ev) continue;
+      if (ev.evaluation_id && seenEvalIds.has(ev.evaluation_id)) {
+        continue;
+      }
+      if (ev.evaluation_id) {
+        seenEvalIds.add(ev.evaluation_id);
+      }
+      evalsPool.push(ev);
+    }
+
+    // 2. Agrupar evaluaciones por format_id para conservar la separación por versiones
+    const groupsByFormat = new Map();
+
+    // Si conocemos el format_id vigente, inicializarlo primero para que sea el grupo principal
+    if (currentFormatId) {
+      groupsByFormat.set(currentFormatId, []);
+    }
+
+    for (const ev of evalsPool) {
+      const fId = ev.format_id || currentFormatId || 'default_format';
+      if (!groupsByFormat.has(fId)) {
+        groupsByFormat.set(fId, []);
+      }
+      groupsByFormat.get(fId).push(ev);
+    }
+
+    // Si el formato vigente no tenía evaluaciones en el pool, se mantiene la entrada vacía en groupsByFormat
+    const distinctFormatIds = Array.from(groupsByFormat.keys());
+    const hasMultipleFormats = distinctFormatIds.length > 1;
 
     const formatShortId = (id) => {
       if (!id) return '';
       return id.length > 12 ? `${id.slice(0, 10)}…` : id;
     };
 
-    // Item 0: Versión actualmente mostrada
-    const currentItem = {
-      isCurrent: true,
-      versionLabel: currentLabel,
-      format_id: currentFormatId,
-      shortFormatId: formatShortId(currentFormatId),
-      hasEvaluation: Boolean(currentEvaluation),
-      evaluation: currentEvaluation || null
-    };
+    const items = [];
 
-    // Items históricos: versión original o previas
-    const historicalItems = historicalEvals.map((ev, idx) => {
-      let label = 'Versión Original';
-      if (historicalEvals.length > 1) {
-        label = idx === 0 ? 'Versión Original' : `Versión Previa ${idx + 1}`;
+    // 3. Generar elementos del historial por cada grupo de format_id
+    distinctFormatIds.forEach((fId) => {
+      const isCurrentFormat = fId === currentFormatId;
+      const evalsInGroup = groupsByFormat.get(fId) || [];
+
+      // Ordenar cronológicamente si traen timestamp
+      evalsInGroup.sort((a, b) => {
+        const tA = a.created_at ? new Date(a.created_at).getTime() : 0;
+        const tB = b.created_at ? new Date(b.created_at).getTime() : 0;
+        return tA - tB;
+      });
+
+      // Etiqueta base de la versión
+      let baseVersionLabel;
+      if (isCurrentFormat) {
+        baseVersionLabel = hasMultipleFormats ? 'Versión Corregida' : 'Versión Vigente';
+      } else {
+        const historicalFormatIds = distinctFormatIds.filter(id => id !== currentFormatId);
+        const histIndex = historicalFormatIds.indexOf(fId);
+        baseVersionLabel = histIndex === 0 ? 'Versión Original' : `Versión Previa ${histIndex + 1}`;
       }
-      const fmtId = ev.format_id || null;
-      return {
-        isCurrent: false,
-        versionLabel: label,
-        format_id: fmtId,
-        shortFormatId: formatShortId(fmtId),
-        hasEvaluation: true,
-        evaluation: ev
-      };
+
+      // Caso A: Formato vigente sin evaluación activa (currentEvaluation === null)
+      if (isCurrentFormat && !currentEvaluation) {
+        // Elemento que representa la versión vigente sin evaluación
+        items.push({
+          isCurrent: true,
+          versionLabel: `${baseVersionLabel} (Vigente)`,
+          baseVersion: baseVersionLabel,
+          format_id: fId,
+          shortFormatId: formatShortId(fId),
+          evaluation_id: null,
+          hasEvaluation: false,
+          evaluation: null
+        });
+
+        // Si existen otras evaluaciones históricas vinculadas a este mismo format_id, incluirlas sin descartarlas
+        evalsInGroup.forEach((ev, evIdx) => {
+          const attemptNum = evIdx + 1;
+          const attemptSuffix = evalsInGroup.length > 1 ? ` · Intento ${attemptNum}` : ' · Evaluación previa';
+          items.push({
+            isCurrent: false,
+            versionLabel: `${baseVersionLabel}${attemptSuffix}`,
+            baseVersion: baseVersionLabel,
+            format_id: fId,
+            shortFormatId: formatShortId(fId),
+            evaluation_id: ev.evaluation_id || null,
+            hasEvaluation: true,
+            evaluation: ev
+          });
+        });
+        return;
+      }
+
+      // Caso B: Grupo sin evaluaciones (placeholder de seguridad)
+      if (evalsInGroup.length === 0) {
+        if (isCurrentFormat) {
+          items.push({
+            isCurrent: true,
+            versionLabel: `${baseVersionLabel} (Vigente)`,
+            baseVersion: baseVersionLabel,
+            format_id: fId,
+            shortFormatId: formatShortId(fId),
+            evaluation_id: null,
+            hasEvaluation: false,
+            evaluation: null
+          });
+        }
+        return;
+      }
+
+      // Caso C: Grupo con una o más evaluaciones (conservando todas las evaluaciones)
+      const hasMultipleInGroup = evalsInGroup.length > 1;
+
+      evalsInGroup.forEach((ev, evIdx) => {
+        const attemptNum = evIdx + 1;
+        const isThisCurrentEval = isCurrentFormat && (
+          (currentEvalId && ev.evaluation_id === currentEvalId) ||
+          (ev === currentEvaluation) ||
+          (!currentEvalId && evIdx === evalsInGroup.length - 1)
+        );
+
+        let label;
+        if (isCurrentFormat) {
+          if (isThisCurrentEval) {
+            label = hasMultipleInGroup
+              ? `${baseVersionLabel} (Vigente) · Intento ${attemptNum}`
+              : `${baseVersionLabel} (Vigente)`;
+          } else {
+            label = `${baseVersionLabel} · Intento ${attemptNum}`;
+          }
+        } else {
+          label = hasMultipleInGroup
+            ? `${baseVersionLabel} · Intento ${attemptNum}`
+            : baseVersionLabel;
+        }
+
+        items.push({
+          isCurrent: isThisCurrentEval,
+          versionLabel: label,
+          baseVersion: baseVersionLabel,
+          format_id: fId,
+          shortFormatId: formatShortId(fId),
+          evaluation_id: ev.evaluation_id || null,
+          hasEvaluation: true,
+          evaluation: ev
+        });
+      });
     });
 
-    this.cycleItems = [currentItem, ...historicalItems];
+    // Asegurar que el elemento marcado como isCurrent esté al frente (índice 0)
+    const curIdx = items.findIndex(item => item.isCurrent);
+    if (curIdx > 0) {
+      const [current] = items.splice(curIdx, 1);
+      items.unshift(current);
+    }
+
+    this.cycleItems = items;
   },
 
   /**
@@ -402,7 +514,7 @@ export const evaluatorMetrics = {
         fmtChip.className = 'eval-cycle-fmt';
         fmtChip.textContent = item.shortFormatId;
         if (item.format_id) {
-          fmtChip.title = `ID de formato: ${item.format_id}`;
+          fmtChip.title = `ID de formato: ${item.format_id}${item.evaluation_id ? ' · ID de evaluación: ' + item.evaluation_id : ''}`;
         }
         btn.appendChild(fmtChip);
       }
@@ -412,20 +524,21 @@ export const evaluatorMetrics = {
       dot.className = 'eval-badge-dot';
       dot.style.marginLeft = '0.35rem';
 
+      const evalSuffix = item.evaluation_id ? ` · Eval: ${item.evaluation_id}` : '';
       if (item.hasEvaluation && item.evaluation) {
         const v = (item.evaluation.verdict || 'none').toLowerCase();
         if (v === 'approved') {
           dot.style.background = '#10b981';
-          btn.title = `${item.versionLabel} · Aprobado`;
+          btn.title = `${item.versionLabel} · Aprobado${evalSuffix}`;
         } else if (v === 'requires_revision') {
           dot.style.background = '#f59e0b';
-          btn.title = `${item.versionLabel} · Requiere Revisión`;
+          btn.title = `${item.versionLabel} · Requiere Revisión${evalSuffix}`;
         } else if (v === 'rejected') {
           dot.style.background = '#ef4444';
-          btn.title = `${item.versionLabel} · No Aprobado`;
+          btn.title = `${item.versionLabel} · No Aprobado${evalSuffix}`;
         } else {
           dot.style.background = '#94a3b8';
-          btn.title = `${item.versionLabel} · En Evaluación`;
+          btn.title = `${item.versionLabel} · En Evaluación${evalSuffix}`;
         }
       } else {
         dot.style.background = '#64748b';

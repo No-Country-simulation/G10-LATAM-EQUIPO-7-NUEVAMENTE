@@ -799,6 +799,9 @@ export const bookshelf = {
     const spine = document.createElement('div');
     const colorClass = `spine-${book.spineColor || 'navy'}`;
     spine.className = `book-spine ${colorClass}`;
+    if (book.id) {
+      spine.setAttribute('data-book-id', book.id);
+    }
     const bookTitle = book.title || book.filename || 'Documento';
     if (book.filename && book.filename !== book.title) {
       spine.title = `${book.title} (${book.filename}) · ${book.discipline}`;
