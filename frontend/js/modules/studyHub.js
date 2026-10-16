@@ -46,6 +46,7 @@ export const studyHub = {
     this.elements = {
       topicBadge: document.getElementById('studyTopicBadge'),
       topicTitle: document.getElementById('studyTopicTitle'),
+      topicFilename: document.getElementById('studyTopicFilename'),
       btnRefreshFormats: document.getElementById('btnRefreshFormats'),
       btnDownloadStudyDoc: document.getElementById('btnDownloadStudyDoc'),
       formatTabs: document.querySelectorAll('.format-tab-btn'),
@@ -424,6 +425,9 @@ export const studyHub = {
       if (this.elements.topicTitle) {
         this.elements.topicTitle.textContent = 'Selecciona o carga un documento en el Catálogo de Capacitaciones para comenzar';
       }
+      if (this.elements.topicFilename) {
+        this.elements.topicFilename.style.display = 'none';
+      }
       if (this.elements.btnRefreshFormats) {
         this.elements.btnRefreshFormats.style.display = 'none';
       }
@@ -448,7 +452,17 @@ export const studyHub = {
       this.elements.topicBadge.textContent = currentDocument.discipline || 'MODALIDAD MULTI-FORMATO';
     }
     if (this.elements.topicTitle) {
-      this.elements.topicTitle.textContent = activeSection?.title || currentDocument.title;
+      this.elements.topicTitle.textContent = activeSection?.title || currentDocument.title || currentDocument.filename || 'Módulo de Capacitación';
+    }
+    if (this.elements.topicFilename) {
+      const origFile = currentDocument.filename || '';
+      const docTitle = currentDocument.title || '';
+      if (origFile && origFile !== docTitle) {
+        this.elements.topicFilename.textContent = `Archivo original: ${origFile}`;
+        this.elements.topicFilename.style.display = 'inline-block';
+      } else {
+        this.elements.topicFilename.style.display = 'none';
+      }
     }
 
     // Mostrar u ocultar botón de descarga de documento original
