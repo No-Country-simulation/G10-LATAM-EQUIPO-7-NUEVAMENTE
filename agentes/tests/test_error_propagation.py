@@ -14,6 +14,7 @@ from agentes.errors import build_error, classify_exception
 client = TestClient(app)
 
 FALLBACK_META = {
+    "document_title": "Título no generado",
     "key_concepts": ["Error al extraer conceptos"],
     "prerequisites": ["No se pudieron determinar"],
     "estimated_time_minutes": 0,
@@ -23,7 +24,12 @@ FALLBACK_META = {
 def meta_ok():
     return {
         "status": "success",
-        "content": {"key_concepts": ["a", "b", "c"], "prerequisites": ["x"], "estimated_time_minutes": 5},
+        "content": {
+            "document_title": "documento.pdf", 
+            "key_concepts": ["a", "b", "c"], 
+            "prerequisites": ["x"], 
+            "estimated_time_minutes": 5
+        },
         "error_message": None,
         "error": None,
         "document_title": "documento.pdf",
@@ -103,7 +109,21 @@ def test_todo_ok_devuelve_200(monkeypatch):
 
 
 def test_campos_nuevos_en_la_raiz(monkeypatch):
-    parchear(monkeypatch, meta_ok(), {"quiz": answer_ok("quiz")})
+    def mock_meta_ok_campos_nuevos():
+        return {
+            "status": "success",
+            "content": {
+                "document_title": "documento.pdf",
+                "key_concepts": ["a", "b", "c"], 
+                "prerequisites": ["x"], 
+                "estimated_time_minutes": 5
+            },
+            "error_message": None,
+            "error": None,
+            "document_title": "documento.pdf",
+            "document_description": "Describe el pipeline RAG del proyecto.",
+        }
+    parchear(monkeypatch, mock_meta_ok_campos_nuevos(), {"quiz": answer_ok("quiz")})
     data = client.post("/api/v1/generate", json=payload(["quiz"])).json()
     assert data["document_title"] == "documento.pdf"
     assert data["document_description"] == "Describe el pipeline RAG del proyecto."
@@ -204,7 +224,17 @@ def test_metadatos_fallan_pero_formatos_ok_es_parcial(monkeypatch):
     data = r.json()
     assert data["learning_metadata_status"] == "failed"
     assert data["learning_metadata_error"]["code"] == "PROVIDER_UNAVAILABLE"
-    assert data["learning_metadata"] == FALLBACK_META
+    
+    # Comprobamos que el learning_metadata devuelto es igual al fallback
+    esperado = {
+        "document_title": "Título no generado",
+        "key_concepts": ["Error al extraer conceptos"],
+        "prerequisites": ["No se pudieron determinar"],
+        "estimated_time_minutes": 0,
+    }
+    assert data["learning_metadata"] == esperado
+    
+    # Validamos los campos en la raíz
     assert data["document_title"] == "documento.pdf"
     assert data["document_description"] is None
 

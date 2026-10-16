@@ -2,6 +2,7 @@ import os
 import time
 import logging
 import tempfile
+import json
 from typing import Any, Dict, List, Literal, Optional
 from pathlib import Path
 
@@ -25,7 +26,13 @@ from .errors import (
     http_evaluacion_caso,
     evaluar_lote_evaluacion,
 )
-from .graph import compilar_subgrafo_formato, traducir_respuesta_evaluador
+from .graph import (
+    compilar_subgrafo_formato,
+    traducir_respuesta_evaluador,
+    compilar_grafo_generacion,
+    ejecutar_grafo,
+)
+from .state import new_agent_state
 
 # ==========================================
 # ÚNICA FUENTE DE VERDAD (Sprint 3)
@@ -56,6 +63,7 @@ _revision_cache: Dict[str, Dict[str, Any]] = {}
 
 def _metadata_fallback() -> Dict[str, Any]:
     return {
+        "document_title": "Título no generado",
         "key_concepts": ["Error al extraer conceptos"],
         "prerequisites": ["No se pudieron determinar"],
         "estimated_time_minutes": 0
@@ -305,7 +313,6 @@ async def index_document(document_id: str = Form(...), file: UploadFile = File(.
         try:
             documents = extract_document(tmp_path)
             
-            # Acumulamos el texto para la descripción corta
             texto_completo = ""
             for doc in documents:
                 doc.metadata["document_id"] = document_id
@@ -316,64 +323,56 @@ async def index_document(document_id: str = Form(...), file: UploadFile = File(.
             chunks = create_chunks(documents)
             vector_store.add_chunks(chunks)
             
-            # --- NUEVO: Generar descripción corta (Sprint 4 - Trello) ---
+            titulo_generado = file.filename or document_id
             descripcion_corta = "Documento indexado correctamente."
+            
             try:
                 if texto_completo.strip() and not API_KEY.startswith("fake"):
                     import google.generativeai as genai
                     genai.configure(api_key=API_KEY)
-                    model = genai.GenerativeModel("gemini-1.5-flash") # Usamos flash por velocidad
-                    prompt = f"Escribe una única oración descriptiva (máximo 20 palabras) resumiendo de qué trata este texto:\n\n{texto_completo[:2000]}"
-                    response = model.generate_content(prompt)
+                    model = genai.GenerativeModel("gemini-1.5-flash") 
+                    
+                    prompt = (
+                        "Analiza el siguiente texto y devuelve un objeto JSON estricto con dos claves:\n"
+                        "1. 'titulo': Un título descriptivo, profesional y semántico del documento.\n"
+                        "2. 'descripcion': Una única oración (máximo 20 palabras) que resuma el texto.\n\n"
+                        f"Texto:\n{texto_completo[:2000]}"
+                    )
+                    
+                    response = model.generate_content(
+                        prompt,
+                        generation_config={"response_mime_type": "application/json"}
+                    )
+                    
                     if response.text:
-                        descripcion_corta = response.text.strip().replace("\n", "")
+                        datos = json.loads(response.text)
+                        titulo_generado = datos.get("titulo", titulo_generado)
+                        descripcion_corta = datos.get("descripcion", descripcion_corta)
+                        
             except Exception as e:
-                logger.warning("No se pudo generar la descripción corta con LLM: %s", e)
-            # ------------------------------------------------------------
+                logger.warning("No se pudo generar título/descripción semántica con LLM: %s", e)
 
         finally:
             if os.path.exists(tmp_path):
                 os.remove(tmp_path)
 
-        titulo_crudo = file.filename or document_id
         return {
             "document_id": document_id,
             "status": "indexed",
-            "document_title": titulo_crudo,
+            "document_title": titulo_generado,
             "chunks_indexed": len(chunks),
-            "short_description": descripcion_corta # <-- SE AGREGA AL JSON FINAL
+            "short_description": descripcion_corta 
         }
     except Exception as e:
         logger.exception("Error interno al indexar")
         raise HTTPException(status_code=500, detail="Error interno al indexar el documento.")
 
 
-def _normalizar_resultado(formato: str, resultado: Dict[str, Any], segundos: float) -> Dict[str, Any]:
-    status = resultado.get("status", "failed")
-    error = resultado.get("error")
-
-    if status == "success":
-        error = None
-    elif not error:
-        causa = "NO_CONTEXT" if status == "no_results" else "INTERNAL_ERROR"
-        error = build_error(causa, resultado.get("error_message") or "Fallo sin detalle.")
-
-    return {
-        "format": formato,
-        "status": status,
-        "content": resultado.get("content"),
-        "sources_used": resultado.get("sources_used", []),
-        "error_message": resultado.get("error_message") or (error["message"] if error else None),
-        "error": error,
-        "execution_time_seconds": round(segundos, 3),
-    }
-
-
 @app.post(
     "/api/v1/generate",
     response_model=GenerateResponse,
     responses=RESPUESTAS_DOC,
-    summary="Genera formatos de estudio con errores estructurados por formato",
+    summary="Genera formatos de estudio utilizando LangGraph (Requisito 1 QA)",
 )
 def generate_formats(payload: GenerateRequest):
     inicio = time.perf_counter()
@@ -382,78 +381,69 @@ def generate_formats(payload: GenerateRequest):
         if not payload.query and payload.learning_objective:
             query_rag += f" Objetivo: {payload.learning_objective}"
 
+        initial_state = new_agent_state(
+            document_id=payload.document_id,
+            formats=payload.formats,
+            profile=payload.profile,
+            niche=payload.niche,
+            detail_level=payload.detail_level,
+            learning_objective=payload.learning_objective,
+            query=query_rag
+        )
+
+        grafo = compilar_grafo_generacion(agent)
+        final_state = ejecutar_grafo(grafo, initial_state)
+
+        meta_res = final_state.get("metadata_result", {})
+        meta_status = meta_res.get("status", "failed")
+        learning_metadata = meta_res.get("content") or _metadata_fallback()
+        
+        meta_error = None
         exitosas = 0
-        errores: List[Dict[str, Any]] = []
-
-        # 1. METADATOS
-        try:
-            meta = agent.extract_learning_metadata(
-                query=query_rag, document_id=payload.document_id, niche=payload.niche
-            )
-        except Exception as e:
-            logger.exception("extract_learning_metadata lanzó una excepción inesperada")
-            meta = {"status": "failed", "content": None, "error_message": str(e), "error": classify_exception(e)}
-
-        meta_status = meta.get("status", "failed")
         if meta_status == "success":
-            meta_error = None
             exitosas += 1
         else:
             causa = "NO_CONTEXT" if meta_status == "no_results" else "INTERNAL_ERROR"
-            meta_error = meta.get("error") or build_error(causa, meta.get("error_message") or "Fallo sin detalle.")
+            meta_error = meta_res.get("error") or build_error(causa, meta_res.get("error_message") or "Fallo al extraer metadatos.")
+
+        format_results_raw = final_state.get("format_results", [])
+        respuestas_generadas = []
+        errores = []
+        if meta_error:
             errores.append(meta_error)
 
-        learning_metadata = meta.get("content") or _metadata_fallback()
-
-        # 2. FORMATOS
-        respuestas_generadas = []
-        for formato in payload.formats:
-            t0 = time.perf_counter()
-
-            if formato not in FORMATOS_SOPORTADOS:
-                mensaje = f"El formato '{formato}' no está soportado en esta versión."
-                resultado = {
-                    "status": "failed",
-                    "content": None,
-                    "sources_used": [],
-                    "error_message": mensaje,
-                    "error": build_error("UNSUPPORTED_FORMAT", mensaje),
-                }
-            else:
-                try:
-                    resultado = agent.answer(
-                        query=query_rag, document_id=payload.document_id,
-                        formato=formato, perfil=payload.profile,
-                        nicho=payload.niche, nivel=payload.detail_level,
-                        learning_objective=payload.learning_objective
-                    )
-                except Exception as e:
-                    logger.exception("agent.answer lanzó una excepción inesperada (formato=%s)", formato)
-                    resultado = {
-                        "status": "failed",
-                        "content": None,
-                        "sources_used": [],
-                        "error_message": str(e),
-                        "error": classify_exception(e),
-                    }
-
-            item = _normalizar_resultado(formato, resultado, time.perf_counter() - t0)
-            respuestas_generadas.append(item)
-            if item["status"] == "success":
+        for item_res in format_results_raw:
+            fmt = item_res.get("format", "desconocido")
+            st = item_res.get("status", "failed")
+            
+            normalized = {
+                "format": fmt,
+                "status": st,
+                "content": item_res.get("content"),
+                "sources_used": item_res.get("sources_used", []),
+                "error_message": item_res.get("error_message"),
+                "error": item_res.get("error"),
+                "execution_time_seconds": round(item_res.get("execution_time_seconds", 0.1), 3)
+            }
+            if st == "success":
                 exitosas += 1
+                normalized["error"] = None
             else:
-                errores.append(item["error"])
+                if normalized["error"] is None:
+                    causa = "NO_CONTEXT" if st == "no_results" else "INTERNAL_ERROR"
+                    normalized["error"] = build_error(causa, normalized.get("error_message") or "Fallo en generación.")
+                errores.append(normalized["error"])
+                
+            respuestas_generadas.append(normalized)
 
-        # 3. ESTADO GLOBAL
         overall_status, http_status = evaluar_resultado_global(exitosas, errores)
-
-        titulo_crudo = meta.get("document_title")
+        titulo_crudo = meta_res.get("document_title") or learning_metadata.get("document_title")
 
         cuerpo = {
             "document_id": payload.document_id,
             "overall_status": overall_status,
             "document_title": titulo_crudo,
-            "document_description": meta.get("document_description"),
+            "document_description": meta_res.get("document_description"),
             "execution_time_seconds": round(time.perf_counter() - inicio, 3),
             "learning_metadata": learning_metadata,
             "learning_metadata_status": meta_status,
@@ -468,7 +458,7 @@ def generate_formats(payload: GenerateRequest):
         )
 
     except Exception as e:
-        logger.exception("Error inesperado en /generate")
+        logger.exception("Error inesperado en /generate con LangGraph")
         raise HTTPException(status_code=500, detail="Error interno del servidor en el motor de agentes.")
 
 
@@ -483,13 +473,11 @@ def generate_formats(payload: GenerateRequest):
 def revise_format(payload: ReviseRequest):
     inicio = time.perf_counter()
     
-    # 1. IDEMPOTENCIA: Verificar si ya procesamos este revision_id
     if payload.revision_id in _revision_cache:
         logger.info("Idempotencia: devolviendo respuesta cacheada para %s", payload.revision_id)
         cached = _revision_cache[payload.revision_id]
         return JSONResponse(status_code=cached["status_code"], content=cached["content"])
 
-    # Helper para guardar en caché antes de retornar
     def _cache_and_return(status_code: int, content: dict):
         _revision_cache[payload.revision_id] = {"status_code": status_code, "content": content}
         return JSONResponse(status_code=status_code, content=content)
@@ -498,7 +486,6 @@ def revise_format(payload: ReviseRequest):
         if payload.format not in FORMATOS_SOPORTADOS:
             raise ValueError(f"El formato '{payload.format}' no está soportado.")
 
-        # 2. OBTENER CONTEXTO RAG (Fix Fallback con interfaz real de retrieve)
         textos_chunks = [c.get("text", "") for c in payload.chunks_used if isinstance(c, dict) and c.get("text")]
         retrieved_context = "\n\n".join(textos_chunks).strip()
         fuentes_usadas = payload.chunks_used
@@ -526,14 +513,12 @@ def revise_format(payload: ReviseRequest):
         if not retrieved_context:
             raise ValueError(f"No se encontró contexto indexado para el documento '{payload.document_id}'.")
 
-        # 3. Normalizar feedback para el contrato del Redactor
         feedback_normalizado = _normalizar_feedback_revision(
             payload.evaluator_response,
             document_id=payload.document_id,
             formato=payload.format,
         )
 
-        # 4. Construir FormatState estricto para LangGraph
         initial_format_state = {
             "format": payload.format,
             "document_id": payload.document_id,
@@ -554,28 +539,25 @@ def revise_format(payload: ReviseRequest):
             "outcome": None,
         }
 
-        # 5. Invocar Subgrafo de Corrección pasándole la instancia del agente
         subgrafo = compilar_subgrafo_formato(agent)
         final_state = subgrafo.invoke(initial_format_state)
 
-        # 6. Extraer el resultado real del nodo_finalizar
         outcome: Optional[Dict[str, Any]] = final_state.get("outcome")
-        corrected_content = None
-        error_outcome = None
+        if not isinstance(outcome, dict):
+            raise RuntimeError("El subgrafo no devolvió un outcome válido.")
 
-        if outcome:
-            corrected_content = outcome.get("content")
-            error_outcome = outcome.get("error")
+        # Selección de fuentes robusta y simplificada sugerida por QA
+        fuentes_finales = (
+            outcome.get("sources_used")
+            or final_state.get("sources_used")
+            or fuentes_usadas
+        )
 
-        if not corrected_content and not error_outcome:
-            corrected_content = final_state.get("current_content")
-
-        if not corrected_content and not error_outcome:
-            raise ValueError("El agente revisor devolvió un contenido vacío tras la corrección.")
-
-        tiempo_ejecucion = round(time.perf_counter() - inicio, 3)
-
-        if error_outcome:
+        if outcome.get("status") != "success":
+            error_outcome = outcome.get("error") or build_error(
+                "INTERNAL_ERROR",
+                outcome.get("error_message") or "La revisión no produjo un resultado exitoso.",
+            )
             cuerpo_error = {
                 "revision_id": payload.revision_id,
                 "original_format_id": payload.original_format_id,
@@ -583,15 +565,20 @@ def revise_format(payload: ReviseRequest):
                 "format": payload.format,
                 "status": "failed",
                 "content": None,
-                "sources_used": fuentes_usadas,
-                "error_message": error_outcome.get("message", "Error durante la revisión."),
+                "sources_used": [], 
+                "error_message": error_outcome["message"],
                 "error": error_outcome,
-                "execution_time_seconds": tiempo_ejecucion
+                "execution_time_seconds": round(time.perf_counter() - inicio, 3),
             }
             respuesta_validada = ReviseResponse.model_validate(cuerpo_error)
             http_code = error_outcome.get("http_status", 500)
             return _cache_and_return(http_code, respuesta_validada.model_dump(mode="json"))
 
+        corrected_content = outcome.get("content") or final_state.get("current_content")
+        if not corrected_content:
+            raise ValueError("El agente revisor devolvió un contenido vacío tras la corrección.")
+
+        tiempo_ejecucion = round(time.perf_counter() - inicio, 3)
         cuerpo_exito = {
             "revision_id": payload.revision_id,
             "original_format_id": payload.original_format_id,
@@ -599,7 +586,7 @@ def revise_format(payload: ReviseRequest):
             "format": payload.format,
             "status": "success",
             "content": corrected_content,
-            "sources_used": fuentes_usadas,
+            "sources_used": fuentes_finales,
             "error_message": None,
             "error": None,
             "execution_time_seconds": tiempo_ejecucion
@@ -620,7 +607,7 @@ def revise_format(payload: ReviseRequest):
             "format": payload.format,
             "status": "failed",
             "content": None,
-            "sources_used": payload.chunks_used,
+            "sources_used": [],
             "error_message": str(e),
             "error": error_detail,
             "execution_time_seconds": tiempo_ejecucion
