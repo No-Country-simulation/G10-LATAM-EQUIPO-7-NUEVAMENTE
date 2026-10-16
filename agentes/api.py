@@ -34,9 +34,6 @@ from .graph import (
 )
 from .state import new_agent_state
 
-# ==========================================
-# ÚNICA FUENTE DE VERDAD (Sprint 3)
-# ==========================================
 from .generated_schemas import (
     LearningMetadata,
     CardItem,
@@ -58,7 +55,6 @@ app = FastAPI(title="NuevaMente - API de Agentes")
 
 FORMATOS_SOPORTADOS = ["quiz", "flashcards", "tldr", "video_script"]
 
-# Caché en memoria para garantizar idempotencia en el endpoint /revise
 _revision_cache: Dict[str, Dict[str, Any]] = {}
 
 def _metadata_fallback() -> Dict[str, Any]:
@@ -75,7 +71,6 @@ def _normalizar_feedback_revision(
     document_id: str,
     formato: str,
 ) -> Dict[str, Any]:
-    """Adapta la evaluación del cliente o evaluador V2 al contrato ReviewFeedback que requiere el Redactor."""
     if "semantic_evaluation" in evaluacion:
         return traducir_respuesta_evaluador(
             evaluacion,
@@ -123,9 +118,6 @@ def _normalizar_feedback_revision(
     }
 
 
-# ==========================================
-# CONTRATOS DE GENERACIÓN ORIGINAL
-# ==========================================
 class GenerateRequest(BaseModel):
     document_id: str = Field(..., min_length=1)
     formats: List[str] = Field(default_factory=list)
@@ -137,12 +129,12 @@ class GenerateRequest(BaseModel):
 
 
 class ErrorDetail(BaseModel):
-    code: str = Field(..., description="Causa normalizada: RESOURCE_EXHAUSTED, PROVIDER_UNAVAILABLE, PROVIDER_TIMEOUT, PROVIDER_ERROR, INVALID_MODEL_OUTPUT, PROVIDER_REJECTED_REQUEST, PROVIDER_AUTH_ERROR, MODEL_NOT_FOUND, NO_CONTEXT, UNSUPPORTED_FORMAT, INTERNAL_ERROR.")
-    message: str = Field(..., description="Detalle corto del fallo.")
-    retryable: bool = Field(..., description="True si tiene sentido reintentar más tarde.")
-    http_status: int = Field(..., description="HTTP que la API emite si todo falla por esta causa.")
-    upstream_status: Optional[int] = Field(None, description="HTTP devuelto por Gemini (si aplica).")
-    provider: str = Field(..., description="'gemini' o 'internal'.")
+    code: str = Field(..., description="Causa normalizada.")
+    message: str = Field(..., description="Detalle corto.")
+    retryable: bool = Field(..., description="True si reintentable.")
+    http_status: int = Field(..., description="Código HTTP.")
+    upstream_status: Optional[int] = Field(None)
+    provider: str = Field(..., description="gemini o internal.")
 
 
 class FormatResult(BaseModel):
@@ -150,26 +142,23 @@ class FormatResult(BaseModel):
     status: str = Field(..., description="success | failed | no_results")
     content: Optional[Dict[str, Any]] = None
     sources_used: List[Dict[str, Any]] = Field(default_factory=list)
-    error_message: Optional[str] = Field(None, description="Compatibilidad con el contrato previo.")
-    error: Optional[ErrorDetail] = Field(None, description="Error estructurado; null si status=success.")
+    error_message: Optional[str] = None
+    error: Optional[ErrorDetail] = None
     execution_time_seconds: float
 
 
 class GenerateResponse(BaseModel):
     document_id: str
     overall_status: str = Field(..., description="success | partial | failed")
-    document_title: Optional[str] = Field(None, description="Nombre del archivo indexado.")
-    document_description: Optional[str] = Field(None, description="Descripción del documento en una oración; null si Gemini falló.")
-    execution_time_seconds: float = Field(..., description="Tiempo total de ejecución del request.")
+    document_title: Optional[str] = Field(None)
+    document_description: Optional[str] = Field(None)
+    execution_time_seconds: float
     learning_metadata: Dict[str, Any]
     learning_metadata_status: str = Field(..., description="success | failed | no_results")
     learning_metadata_error: Optional[ErrorDetail] = None
     results: List[FormatResult]
 
 
-# ==========================================
-# CONTRATOS DE REVISIÓN (SPRINT 4)
-# ==========================================
 class GenerationContext(BaseModel):
     profile: str
     niche: str
@@ -201,15 +190,11 @@ class ReviseResponse(BaseModel):
     execution_time_seconds: float
 
 
-# ==========================================
-# CONTRATOS DE EVALUACIÓN Y OPERACIÓN
-# ==========================================
 class IndexResponse(BaseModel):
     document_id: str
     status: Literal["indexed"]
     document_title: str = Field(..., description="Nombre del archivo recibido.")
-    chunks_indexed: int = Field(..., description="Cantidad de fragmentos guardados.")
-    short_description: str = Field(..., description="Descripción corta del documento en máximo 1 oración.")
+    chunks_indexed: int = Field(..., description="Cantidad de fragmentos.")
 
 
 class DeleteResponse(BaseModel):
@@ -220,31 +205,30 @@ class DeleteResponse(BaseModel):
 
 class HealthResponse(BaseModel):
     status: Literal["ok", "degraded"]
-    model: str = Field(..., description="Valor de GEMINI_MODEL (nunca la key).")
+    model: str
     gemini_key_configured: bool
     vector_store_ok: bool
 
 
 class RetrievalEvalCase(BaseModel):
     model_config = ConfigDict(extra="forbid")
-
-    case_id: str = Field(..., min_length=1, max_length=128, description="Id del caso del Ground Truth; se devuelve igual.")
+    case_id: str = Field(..., min_length=1, max_length=128)
     query: str = Field(..., min_length=1)
     top_k: int = Field(5, ge=1, le=50)
-    metadata_filters: Optional[Dict[str, Any]] = Field(None, description='Ej.: {"document_id": "doc_1"} o {"categoria": "..."}')
+    metadata_filters: Optional[Dict[str, Any]] = None
 
 
 class RetrievedChunk(BaseModel):
     rank: int
     chunk_id: str
     document_id: str
-    score: float = Field(..., description="Logit del Cross-Encoder: mayor = más relevante, sin cota, no comparable entre queries.")
+    score: float
     text: str
     metadata: Dict[str, Any]
 
 
 class RetrievalError(BaseModel):
-    code: str = Field(..., description="INVALID_INPUT | RETRIEVAL_FAILED")
+    code: str
     message: str
 
 
@@ -267,30 +251,29 @@ class RetrievalEvalBatchRequest(BaseModel):
 class RetrievalEvalBatchResponse(BaseModel):
     overall_status: Literal["success", "partial", "failed"]
     total: int
-    succeeded: int = Field(..., description="Casos con status success o no_results.")
-    failed: int = Field(..., description="Casos con status error.")
+    succeeded: int
+    failed: int
     execution_time_seconds: float
-    results: List[RetrievalEvalResult] = Field(..., description="Payloads del contrato v2.0, listos para evaluate_retrieval_batch.")
+    results: List[RetrievalEvalResult]
 
 
 _DESCRIPCION_EVAL = {
     207: "Lote con casos exitosos y casos con status=error.",
-    422: "INVALID_INPUT en el caso (o todos los casos del lote).",
-    500: "RETRIEVAL_FAILED en el caso (o en algún caso del lote cuando todos fallaron).",
+    422: "INVALID_INPUT en el caso.",
+    500: "RETRIEVAL_FAILED en el caso.",
 }
 RESPUESTAS_EVAL_CASO = {c: {"model": RetrievalEvalResult, "description": d} for c, d in _DESCRIPCION_EVAL.items() if c != 207}
 RESPUESTAS_EVAL_LOTE = {c: {"model": RetrievalEvalBatchResponse, "description": d} for c, d in _DESCRIPCION_EVAL.items()}
 
-
 _DESCRIPCION_HTTP = {
-    207: "Fallo parcial controlado: al menos una unidad (metadatos o formato) salió bien y otra falló. Revisar results[].error.",
-    404: "Todo falló: el document_id no tiene contenido indexado (NO_CONTEXT).",
-    422: "Todo falló: ningún formato solicitado está soportado (UNSUPPORTED_FORMAT).",
-    429: "Todo falló: cuota o rate limit de Gemini agotado (RESOURCE_EXHAUSTED).",
-    500: "Todo falló por configuración del servidor (key/modelo de Gemini) o error interno.",
-    502: "Todo falló: Gemini respondió con error o con una salida inválida.",
-    503: "Todo falló: Gemini no disponible o saturado.",
-    504: "Todo falló: timeout de Gemini.",
+    207: "Fallo parcial controlado.",
+    404: "Todo falló: NO_CONTEXT.",
+    422: "Todo falló: UNSUPPORTED_FORMAT.",
+    429: "Todo falló: RESOURCE_EXHAUSTED.",
+    500: "Todo falló por configuración interna.",
+    502: "Todo falló: respuesta inválida.",
+    503: "Todo falló: saturado.",
+    504: "Todo falló: timeout.",
 }
 RESPUESTAS_DOC = {
     codigo: {"model": GenerateResponse, "description": texto}
@@ -298,9 +281,6 @@ RESPUESTAS_DOC = {
 }
 
 
-# ==========================================
-# ENDPOINTS PRINCIPALES
-# ==========================================
 @app.post("/api/v1/index", response_model=IndexResponse)
 async def index_document(document_id: str = Form(...), file: UploadFile = File(...)):
     try:
@@ -321,9 +301,7 @@ async def index_document(document_id: str = Form(...), file: UploadFile = File(.
             chunks = create_chunks(documents)
             vector_store.add_chunks(chunks)
             
-            # Asignación robusta y limpia sin llamadas directas a google.generativeai legado
             titulo_generado = file.filename or document_id
-            descripcion_corta = "Documento indexado correctamente."
 
         finally:
             if os.path.exists(tmp_path):
@@ -333,8 +311,7 @@ async def index_document(document_id: str = Form(...), file: UploadFile = File(.
             "document_id": document_id,
             "status": "indexed",
             "document_title": titulo_generado,
-            "chunks_indexed": len(chunks),
-            "short_description": descripcion_corta 
+            "chunks_indexed": len(chunks)
         }
     except Exception as e:
         logger.exception("Error interno al indexar")
@@ -345,7 +322,7 @@ async def index_document(document_id: str = Form(...), file: UploadFile = File(.
     "/api/v1/generate",
     response_model=GenerateResponse,
     responses=RESPUESTAS_DOC,
-    summary="Genera formatos de estudio utilizando LangGraph (Requisito 1 QA)",
+    summary="Genera formatos de estudio utilizando LangGraph",
 )
 def generate_formats(payload: GenerateRequest):
     inicio = time.perf_counter()
@@ -367,22 +344,22 @@ def generate_formats(payload: GenerateRequest):
         grafo = compilar_grafo_generacion(agent)
         final_state = ejecutar_grafo(grafo, initial_state)
 
-        meta_res = final_state.get("metadata_result", {})
-        meta_status = meta_res.get("status", "failed")
-        learning_metadata = meta_res.get("content") or _metadata_fallback()
-        
-        meta_error = None
+        meta_status = final_state.get("learning_metadata_status", "failed")
+        learning_metadata = final_state.get("learning_metadata") or _metadata_fallback()
+        meta_error = final_state.get("learning_metadata_error")
+
+        if meta_status != "success" and not meta_error:
+            error_code = "NO_CONTEXT" if meta_status == "no_results" else "INTERNAL_ERROR"
+            meta_error = build_error(error_code, "No se pudieron extraer los metadatos del documento.")
+
         exitosas = 0
         if meta_status == "success":
             exitosas += 1
-        else:
-            causa = "NO_CONTEXT" if meta_status == "no_results" else "INTERNAL_ERROR"
-            meta_error = meta_res.get("error") or build_error(causa, meta_res.get("error_message") or "Fallo al extraer metadatos.")
 
-        format_results_raw = final_state.get("format_results", [])
+        format_results_raw = final_state.get("final_results", [])
         respuestas_generadas = []
         errores = []
-        if meta_error:
+        if meta_status != "success" and meta_error:
             errores.append(meta_error)
 
         for item_res in format_results_raw:
@@ -410,13 +387,20 @@ def generate_formats(payload: GenerateRequest):
             respuestas_generadas.append(normalized)
 
         overall_status, http_status = evaluar_resultado_global(exitosas, errores)
-        titulo_crudo = meta_res.get("document_title") or learning_metadata.get("document_title")
+        
+        # Selección robusta del título con respaldo inteligente solicitada por QA
+        titulo_semantico = learning_metadata.get("document_title")
+        titulo_original = final_state.get("document_title")
+        if meta_status == "success" and titulo_semantico and titulo_semantico != "Título no generado":
+            titulo_crudo = titulo_semantico
+        else:
+            titulo_crudo = titulo_original or titulo_semantico or "Título no generado"
 
         cuerpo = {
             "document_id": payload.document_id,
             "overall_status": overall_status,
             "document_title": titulo_crudo,
-            "document_description": meta_res.get("document_description"),
+            "document_description": final_state.get("document_description"),
             "execution_time_seconds": round(time.perf_counter() - inicio, 3),
             "learning_metadata": learning_metadata,
             "learning_metadata_status": meta_status,
@@ -435,19 +419,15 @@ def generate_formats(payload: GenerateRequest):
         raise HTTPException(status_code=500, detail="Error interno del servidor en el motor de agentes.")
 
 
-# ==========================================
-# ENDPOINT DE REVISIÓN / CORRECCIÓN (SPRINT 4)
-# ==========================================
 @app.post(
     "/api/v1/revise",
     response_model=ReviseResponse,
-    summary="Aplica correcciones pedagógicas a un formato previamente generado"
+    summary="Aplica correcciones pedagógicas"
 )
 def revise_format(payload: ReviseRequest):
     inicio = time.perf_counter()
     
     if payload.revision_id in _revision_cache:
-        logger.info("Idempotencia: devolviendo respuesta cacheada para %s", payload.revision_id)
         cached = _revision_cache[payload.revision_id]
         return JSONResponse(status_code=cached["status_code"], content=cached["content"])
 
@@ -590,9 +570,6 @@ def revise_format(payload: ReviseRequest):
         return _cache_and_return(http_code, respuesta_validada.model_dump(mode="json"))
 
 
-# ==========================================
-# EVALUACIÓN DE RETRIEVAL Y OPERACIÓN
-# ==========================================
 def _evaluar_caso(caso: RetrievalEvalCase) -> Dict[str, Any]:
     if not caso.case_id.strip():
         return build_error_response(
@@ -616,7 +593,7 @@ def _evaluar_caso(caso: RetrievalEvalCase) -> Dict[str, Any]:
     "/api/v1/evaluate/retrieval",
     response_model=RetrievalEvalResult,
     responses=RESPUESTAS_EVAL_CASO,
-    summary="Evalúa un caso de retrieval (contrato v2.0)",
+    summary="Evalúa un caso de retrieval",
 )
 def evaluate_retrieval(caso: RetrievalEvalCase):
     payload = _evaluar_caso(caso)
@@ -627,7 +604,7 @@ def evaluate_retrieval(caso: RetrievalEvalCase):
     "/api/v1/evaluate/retrieval/batch",
     response_model=RetrievalEvalBatchResponse,
     responses=RESPUESTAS_EVAL_LOTE,
-    summary="Evalúa un lote de casos de retrieval (cada caso es atómico)",
+    summary="Evalúa un lote de casos",
 )
 def evaluate_retrieval_batch_endpoint(lote: RetrievalEvalBatchRequest):
     inicio = time.perf_counter()

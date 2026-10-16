@@ -10,7 +10,7 @@ from dotenv import load_dotenv
 from google import genai
 from google.genai import types
 from google.genai import errors as genai_errors
-from pydantic import BaseModel, Field, ValidationError
+from pydantic import ValidationError
 
 from .rag.retriever import RetrieverService
 from .errors import InvalidModelOutputError, build_error, classify_exception
@@ -35,7 +35,6 @@ MAX_RETRIES = int(os.getenv("GEMINI_MAX_RETRIES", "3"))
 
 RETRYABLE_CODES = {429, 500, 502, 503, 504}
 
-# Inicialización segura para evitar colapsos en entornos de prueba con keys falsas
 client = genai.Client(api_key=API_KEY) if API_KEY and not API_KEY.startswith("fake") else None
 
 PROMPTS_BASE = {
@@ -51,14 +50,6 @@ ESQUEMAS_POR_FORMATO = {
     "tldr": TLDRContent,
     "video_script": VideoScriptContent,
 }
-
-
-# Modelo plano y explícito para evitar problemas de herencia
-class MetadataExtractorSchema(BaseModel):
-    key_concepts: list[str] = Field(description="Lista exacta de 3 a 5 conceptos técnicos o ideas principales.")
-    prerequisites: list[str] = Field(description="Lista de 1 a 3 conocimientos previos recomendados.")
-    estimated_time_minutes: int = Field(description="Tiempo estimado de estudio en minutos enteros.")
-    short_description: str = Field(description="Descripción del documento en UNA sola oración (máximo 30 palabras).")
 
 
 def _titulo_desde_resultados(resultados) -> Optional[str]:
@@ -117,14 +108,11 @@ def _generate_with_retry(prompt: str, config):
 
 
 def _generate_and_parse(prompt: str, schema: type, temperature: float = 0.2) -> dict:
-    # NO pasamos response_schema aquí para evitar el Error 400 (Bad Request)
-    # de la API de Gemini al parsear modelos Pydantic complejos.
     config = types.GenerateContentConfig(
         response_mime_type="application/json",
         temperature=temperature
     )
     
-    # Inyectamos el JSON Schema directamente en el prompt
     try:
         esquema_str = json.dumps(schema.model_json_schema(), ensure_ascii=False)
         prompt_final = f"{prompt}\n\nIMPORTANTE: Tu respuesta DEBE ser un JSON válido que cumpla estrictamente con este esquema:\n{esquema_str}"
@@ -194,31 +182,41 @@ class AgentV1:
         try:
             prompt_metadata = f"""
             Analiza el siguiente contexto enfocado estrictamente en el nicho temático: '{niche}'.
-            Extrae OBLIGATORIAMENTE los metadatos pedagógicos adaptados a este nicho:
-            1. "key_concepts": Lista exacta de 3 a 5 conceptos técnicos o ideas principales específicos de {niche}.
-            2. "prerequisites": Lista de 1 a 3 conocimientos previos recomendados para este dominio.
-            3. "estimated_time_minutes": Calcula el tiempo estimado de estudio (en minutos enteros).
-            4. "short_description": UNA sola oración (máximo 30 palabras) que describa de qué trata el documento en general, sin limitarse al nicho.
+            Extrae OBLIGATORIAMENTE los metadatos pedagógicos adaptados a este nicho utilizando estrictamente el esquema LearningMetadata:
+            - document_title: Genera un título descriptivo y profesional que identifique claramente el tema principal (con ortografía, tildes y uso natural de mayúsculas). No uses el nombre del archivo.
+            - key_concepts: Lista exacta de 3 a 5 conceptos técnicos o ideas principales específicos de {niche}.
+            - prerequisites: Lista de 1 a 3 conocimientos previos recomendados.
+            - estimated_time_minutes: Tiempo estimado de estudio en minutos enteros.
+            - short_description: Una sola oración (máximo 30 palabras) que describa de qué trata el documento en general.
 
             CONTEXTO RECUPERADO:
             {contexto}
             """
 
+            # Única fuente de verdad reutilizando LearningMetadata
             parsed_content = _generate_and_parse(
                 prompt=prompt_metadata,
-                schema=MetadataExtractorSchema,
+                schema=LearningMetadata,
                 temperature=0.1
             )
 
-            descripcion = (parsed_content.pop("short_description", None) or "").strip() or None
-            parsed_content["document_title"] = titulo or "Título no generado"
+            # Fallback robusto para asegurar que document_description nunca sea None
+            descripcion = (parsed_content.pop("short_description", None) or "").strip()
+            if not descripcion and parsed_content.get("key_concepts"):
+                conceptos = parsed_content["key_concepts"][:3]
+                descripcion = f"Documento enfocado en: {', '.join(conceptos)}."
+            if not descripcion:
+                descripcion = "Documento analizado y estructurado pedagógicamente."
+
+            titulo_generado = parsed_content.get("document_title") or titulo or "Título no generado"
+            parsed_content["document_title"] = titulo_generado
 
             return {
                 "status": "success",
                 "content": parsed_content,
                 "error_message": None,
                 "error": None,
-                "document_title": titulo,
+                "document_title": titulo_generado,
                 "document_description": descripcion,
             }
 
