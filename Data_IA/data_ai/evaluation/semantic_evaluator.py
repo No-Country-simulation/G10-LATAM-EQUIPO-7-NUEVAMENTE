@@ -176,6 +176,14 @@ Detecta:
 Una afirmación puede estar respaldada aunque no copie literalmente el texto
 de los chunks, siempre que exista equivalencia semántica clara.
 
+REGLAS ESPECÍFICAS POR FORMATO (CRÍTICO PARA TU EVALUACIÓN)
+
+Dependiendo del formato del contenido recibido, debes aplicar estas excepciones estrictas para evitar falsos positivos de alucinación (unsupported_information):
+
+1. FORMATO QUIZ: Los "distractores" (las opciones de respuesta incorrectas) están diseñados para ser falsos a propósito. NUNCA los evalúes como alucinaciones ni como afirmaciones factuales no respaldadas. Evalúa únicamente la pregunta, la respuesta correcta y la explicación.
+2. FORMATO VIDEO_SCRIPT: Las descripciones visuales, de cámara o de escena (`visual_description`) son instrucciones creativas, NO evidencia factual. NUNCA exijas que el texto de la descripción visual esté en los chunks. Evalúa el respaldo factual ÚNICAMENTE en la narración (`narration`).
+3. FORMATO TLDR: El título y el "framing" (encuadre) son textos introductorios y de enganche. Enfoca tu evaluación de respaldo factual (content_support) estrictamente en el cuerpo del resumen (`summary`) y los puntos clave (`key_points`).
+
 FORMATO DE SALIDA
 
 Devuelve exclusivamente un objeto estructurado equivalente a:
