@@ -742,6 +742,7 @@
   box-shadow: 0 4px 10px rgba(0, 0, 0, 0.35);
   clip-path: polygon(0 0, 100% 0, 100% 85%, 50% 100%, 0 85%);
   z-index: 20;
+  pointer-events: none;
 }
 
 /* Hoja Izquierda: Ficha del Documento sobre Pergamino */
