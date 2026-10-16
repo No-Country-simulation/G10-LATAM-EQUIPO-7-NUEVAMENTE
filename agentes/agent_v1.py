@@ -193,14 +193,12 @@ class AgentV1:
             {contexto}
             """
 
-            # Única fuente de verdad reutilizando LearningMetadata
             parsed_content = _generate_and_parse(
                 prompt=prompt_metadata,
                 schema=LearningMetadata,
                 temperature=0.1
             )
 
-            # Fallback robusto para asegurar que document_description nunca sea None
             descripcion = (parsed_content.pop("short_description", None) or "").strip()
             if not descripcion and parsed_content.get("key_concepts"):
                 conceptos = parsed_content["key_concepts"][:3]
