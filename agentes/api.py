@@ -313,44 +313,17 @@ async def index_document(document_id: str = Form(...), file: UploadFile = File(.
         try:
             documents = extract_document(tmp_path)
             
-            texto_completo = ""
             for doc in documents:
                 doc.metadata["document_id"] = document_id
                 doc.metadata["source"] = file.filename
                 doc.text = clean_text(doc.text)
-                texto_completo += doc.text + " "
 
             chunks = create_chunks(documents)
             vector_store.add_chunks(chunks)
             
+            # Asignación robusta y limpia sin llamadas directas a google.generativeai legado
             titulo_generado = file.filename or document_id
             descripcion_corta = "Documento indexado correctamente."
-            
-            try:
-                if texto_completo.strip() and not API_KEY.startswith("fake"):
-                    import google.generativeai as genai
-                    genai.configure(api_key=API_KEY)
-                    model = genai.GenerativeModel("gemini-1.5-flash") 
-                    
-                    prompt = (
-                        "Analiza el siguiente texto y devuelve un objeto JSON estricto con dos claves:\n"
-                        "1. 'titulo': Un título descriptivo, profesional y semántico del documento.\n"
-                        "2. 'descripcion': Una única oración (máximo 20 palabras) que resuma el texto.\n\n"
-                        f"Texto:\n{texto_completo[:2000]}"
-                    )
-                    
-                    response = model.generate_content(
-                        prompt,
-                        generation_config={"response_mime_type": "application/json"}
-                    )
-                    
-                    if response.text:
-                        datos = json.loads(response.text)
-                        titulo_generado = datos.get("titulo", titulo_generado)
-                        descripcion_corta = datos.get("descripcion", descripcion_corta)
-                        
-            except Exception as e:
-                logger.warning("No se pudo generar título/descripción semántica con LLM: %s", e)
 
         finally:
             if os.path.exists(tmp_path):
@@ -546,7 +519,6 @@ def revise_format(payload: ReviseRequest):
         if not isinstance(outcome, dict):
             raise RuntimeError("El subgrafo no devolvió un outcome válido.")
 
-        # Selección de fuentes robusta y simplificada sugerida por QA
         fuentes_finales = (
             outcome.get("sources_used")
             or final_state.get("sources_used")
