@@ -1,1 +1,50 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64"><rect width="64" height="64" rx="16" fill="#0b111e"/><path d="M18 46V18h7l14 19V18h7v28h-7L25 27v19z" fill="#f59e0b"/></svg>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
+  <defs>
+    <linearGradient id="bookGold" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#fffbeb"/>
+      <stop offset="25%" stop-color="#fde047"/>
+      <stop offset="65%" stop-color="#f59e0b"/>
+      <stop offset="100%" stop-color="#d97706"/>
+    </linearGradient>
+    <linearGradient id="bookSpine" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#fde047"/>
+      <stop offset="100%" stop-color="#b45309"/>
+    </linearGradient>
+    <linearGradient id="bookDark" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#d97706"/>
+      <stop offset="100%" stop-color="#92400e"/>
+    </linearGradient>
+  </defs>
+
+  <!-- Fondo sutil redondeado para contraste en cualquier pestaña de navegador -->
+  <rect width="64" height="64" rx="15" fill="#0b111e"/>
+  
+  <!-- Borde exterior sutil dorado -->
+  <rect width="62" height="62" x="1" y="1" rx="14" fill="none" stroke="rgba(245, 158, 11, 0.25)" stroke-width="1"/>
+
+  <!-- Capa inferior del libro abierto (hojas de fondo / profundidad) -->
+  <path d="M12 43 C 18 47, 26 47, 32 45 C 38 47, 46 47, 52 43 L 53 45.5 C 46 49.5, 38 49.5, 32 47.5 C 26 49.5, 18 49.5, 11 45.5 Z" fill="url(#bookDark)"/>
+
+  <!-- Páginas abiertas principales (Libro Abierto de NuevaMente) -->
+  <!-- Hoja izquierda -->
+  <path d="M31 20 C 24 16, 16 16.5, 10 20 C 9.5 20.3, 9 20.8, 9 21.5 L 9 39.5 C 9 40.5, 9.8 41.2, 10.8 40.8 C 16.5 38, 24 38, 31 41.5 Z" fill="url(#bookGold)"/>
+
+  <!-- Hoja derecha -->
+  <path d="M33 20 C 40 16, 48 16.5, 54 20 C 54.5 20.3, 55 20.8, 55 21.5 L 55 39.5 C 55 40.5, 54.2 41.2, 53.2 40.8 C 47.5 38, 40 38, 33 41.5 Z" fill="url(#bookGold)"/>
+
+  <!-- Separación central / Lomo del libro -->
+  <path d="M31 20 C 31.6 20.5, 32.4 20.5, 33 20 L 33 41.5 C 32.4 41.2, 31.6 41.2, 31 41.5 Z" fill="url(#bookSpine)"/>
+
+  <!-- Líneas sutiles de texto en hoja izquierda -->
+  <path d="M14 26 C 18 24.5, 23 24.5, 27 26" stroke="#92400e" stroke-width="1.6" stroke-linecap="round" opacity="0.6"/>
+  <path d="M14 30.5 C 18 29, 23 29, 27 30.5" stroke="#92400e" stroke-width="1.6" stroke-linecap="round" opacity="0.6"/>
+  <path d="M14 35 C 18 33.5, 23 33.5, 27 35" stroke="#92400e" stroke-width="1.6" stroke-linecap="round" opacity="0.6"/>
+
+  <!-- Líneas sutiles de texto en hoja derecha -->
+  <path d="M37 26 C 41 24.5, 46 24.5, 50 26" stroke="#92400e" stroke-width="1.6" stroke-linecap="round" opacity="0.6"/>
+  <path d="M37 30.5 C 41 29, 46 29, 50 30.5" stroke="#92400e" stroke-width="1.6" stroke-linecap="round" opacity="0.6"/>
+  <path d="M37 35 C 41 33.5, 46 33.5, 50 35" stroke="#92400e" stroke-width="1.6" stroke-linecap="round" opacity="0.6"/>
+
+  <!-- Destello / brillo sutil en el centro superior -->
+  <circle cx="32" cy="18" r="1.5" fill="#ffffff" opacity="0.9"/>
+</svg>
