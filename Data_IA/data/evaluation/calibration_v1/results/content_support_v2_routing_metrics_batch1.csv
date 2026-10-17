@@ -1,0 +1,2 @@
+tp,fp,fn,tn,precision,recall,specificity,accuracy,case_review_rate
+1,2,0,0,0.3333333333333333,1.0,0.0,0.3333333333333333,1.0

@@ -1,0 +1,4 @@
+calibration_id,format,total_claims,factual_claims,semantic_review_claims,case_requires_semantic_review,expected_support_issue,confusion
+CAL-V1-005,flashcards,2,1,1,True,False,FP
+CAL-V1-013,video_script,2,2,1,True,False,FP
+CAL-V1-014,quiz,4,3,1,True,True,TP
