@@ -63,7 +63,8 @@ def test_generate_endpoint_root_metadata_success(mock_ejecutar):
     response = client.post("/api/v1/generate", json=payload)
     assert response.status_code == 200
     data = response.json()
-    assert data["learning_metadata"]["document_title"] == "Guía de Python"
+    # CORRECCIÓN: Buscamos el título en la raíz, no dentro de learning_metadata
+    assert data["document_title"] == "Guía de Python"
     assert len(data["results"]) == 2
 
 @patch("agentes.api.ejecutar_grafo")
@@ -86,7 +87,8 @@ def test_generate_endpoint_metadata_fallback(mock_ejecutar):
     assert response.status_code == 207
     data = response.json()
     assert data["learning_metadata_status"] == "failed"
-    assert data["learning_metadata"]["document_title"] == "Título no generado"
+    # CORRECCIÓN: Buscamos el título en la raíz
+    assert data["document_title"] == "Título no generado"
 
 @patch("agentes.api.ejecutar_grafo")
 def test_niche_variation_affects_output(mock_ejecutar):

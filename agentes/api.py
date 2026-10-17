@@ -364,18 +364,20 @@ def generate_formats(payload: GenerateRequest):
                 if k not in learning_metadata:
                     learning_metadata[k] = v
 
+        # Extraer y remover document_title de learning_metadata para cumplir con extra="forbid"
+        extracted_title = learning_metadata.pop("document_title", None)
+
         meta_status = (
             final_state.get("learning_metadata_status") 
             or (meta_raw.get("status") if isinstance(meta_raw, dict) else None)
             or ("success" if meta_raw and not meta_raw.get("error") else "failed")
         )
 
-        # Manejo estricto del título según el estado de los metadatos
+        # Manejo estricto del título en la raíz según el estado de los metadatos
         if meta_status != "success":
-            learning_metadata["document_title"] = "Título no generado"
+            titulo_crudo = "Título no generado"
         else:
-            if not learning_metadata.get("document_title"):
-                learning_metadata["document_title"] = final_state.get("document_title") or "Guía de Python"
+            titulo_crudo = extracted_title or final_state.get("document_title") or "Guía de Python"
         
         meta_error = final_state.get("learning_metadata_error") or (meta_raw.get("error") if isinstance(meta_raw, dict) else None)
 
@@ -435,13 +437,6 @@ def generate_formats(payload: GenerateRequest):
             http_status = 207
 
         overall_status, _ = evaluar_resultado_global(exitosas, errores)
-        
-        titulo_semantico = learning_metadata.get("document_title")
-        titulo_original = final_state.get("document_title")
-        if meta_status == "success" and titulo_semantico and titulo_semantico != "Título no generado":
-            titulo_crudo = titulo_semantico
-        else:
-            titulo_crudo = titulo_original or titulo_semantico or "Título no generado"
 
         cuerpo = {
             "document_id": payload.document_id,
