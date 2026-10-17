@@ -1,9 +1,11 @@
 from typing import List
-
 from pydantic import BaseModel, Field
 
-
 class LearningMetadata(BaseModel):
+    document_title: str = Field(
+        ...,
+        description="Título descriptivo, profesional y semántico del documento generado a partir de su contenido.",
+    )
     key_concepts: List[str] = Field(
         ...,
         description="Lista de 3 a 5 conceptos clave abordados en el contenido.",

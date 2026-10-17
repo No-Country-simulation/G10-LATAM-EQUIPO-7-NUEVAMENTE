@@ -2,6 +2,7 @@ import os
 import time
 import random
 import logging
+import json
 from pathlib import Path, PureWindowsPath
 from typing import Optional
 
@@ -9,7 +10,7 @@ from dotenv import load_dotenv
 from google import genai
 from google.genai import types
 from google.genai import errors as genai_errors
-from pydantic import Field, ValidationError
+from pydantic import ValidationError
 
 from .rag.retriever import RetrieverService
 from .errors import InvalidModelOutputError, build_error, classify_exception
@@ -26,15 +27,15 @@ logger = logging.getLogger(__name__)
 env_path = Path(__file__).resolve().parent.parent / '.env'
 load_dotenv(dotenv_path=env_path, override=True)
 
-API_KEY = os.environ["GEMINI_API_KEY"]
-MODEL_NAME = os.environ["GEMINI_MODEL"]
+API_KEY = os.environ.get("GEMINI_API_KEY", "")
+MODEL_NAME = os.environ.get("GEMINI_MODEL", "gemini-1.5-flash")
 
 FALLBACK_MODEL = os.getenv("GEMINI_FALLBACK_MODEL", "").strip()
 MAX_RETRIES = int(os.getenv("GEMINI_MAX_RETRIES", "3"))
 
 RETRYABLE_CODES = {429, 500, 502, 503, 504}
 
-client = genai.Client(api_key=API_KEY)
+client = genai.Client(api_key=API_KEY) if API_KEY and not API_KEY.startswith("fake") else None
 
 PROMPTS_BASE = {
     "quiz": "Genera un cuestionario interactivo de opción múltiple (mínimo 3 preguntas) asegurando incluir la respuesta correcta, opciones de distracción coherentes y una breve justificación pedagógica.",
@@ -51,16 +52,9 @@ ESQUEMAS_POR_FORMATO = {
 }
 
 
-class _MetadataConDescripcion(LearningMetadata):
-    short_description: str = Field(
-        ...,
-        description="Descripción del documento en UNA sola oración (máximo 30 palabras)."
-    )
-
-
 def _titulo_desde_resultados(resultados) -> Optional[str]:
     for res in resultados or []:
-        meta = getattr(res, "metadata", None)
+        meta = res.get("metadata", {}) if isinstance(res, dict) else getattr(res, "metadata", {})
         if isinstance(meta, dict):
             for clave in ("source", "filename", "file_name", "title"):
                 valor = meta.get(clave)
@@ -70,6 +64,9 @@ def _titulo_desde_resultados(resultados) -> Optional[str]:
 
 
 def _generate_with_retry(prompt: str, config):
+    if not client:
+        raise RuntimeError("El cliente GenAI no está configurado correctamente (verifica la API KEY).")
+
     modelos = [MODEL_NAME]
     if FALLBACK_MODEL and FALLBACK_MODEL != MODEL_NAME:
         modelos.append(FALLBACK_MODEL)
@@ -84,19 +81,28 @@ def _generate_with_retry(prompt: str, config):
                     contents=prompt,
                     config=config
                 )
-            except genai_errors.APIError as e:
-                if getattr(e, "code", None) not in RETRYABLE_CODES:
-                    raise
+            except Exception as e:
                 ultimo_error = e
-                if intento < MAX_RETRIES - 1:
+                is_retryable = False
+                
+                if isinstance(e, genai_errors.APIError):
+                    code = getattr(e, "code", 500)
+                    if code in RETRYABLE_CODES:
+                        is_retryable = True
+                elif any(str(code) in str(e) for code in RETRYABLE_CODES):
+                    is_retryable = True
+                    
+                if is_retryable and intento < MAX_RETRIES - 1:
                     espera = min(2 ** intento, 30) + random.uniform(0, 1)
                     logger.warning(
-                        "Gemini %s con %s (intento %d/%d). Reintentando en %.1fs",
-                        e.code, modelo, intento + 1, MAX_RETRIES, espera
+                        "Error LLM reintentable (intento %d/%d). Reintentando en %.1fs. Error: %s",
+                        intento + 1, MAX_RETRIES, espera, str(e)
                     )
                     time.sleep(espera)
+                else:
+                    break
 
-        logger.warning("Se agotaron los reintentos con el modelo %s", modelo)
+        logger.warning("Se agotaron los reintentos o el error es terminal con el modelo %s", modelo)
 
     raise ultimo_error
 
@@ -104,26 +110,34 @@ def _generate_with_retry(prompt: str, config):
 def _generate_and_parse(prompt: str, schema: type, temperature: float = 0.2) -> dict:
     config = types.GenerateContentConfig(
         response_mime_type="application/json",
-        response_schema=schema,
         temperature=temperature
     )
-    response = _generate_with_retry(prompt, config)
+    
+    try:
+        esquema_str = json.dumps(schema.model_json_schema(), ensure_ascii=False)
+        prompt_final = f"{prompt}\n\nIMPORTANTE: Tu respuesta DEBE ser un JSON válido que cumpla estrictamente con este esquema:\n{esquema_str}"
+    except Exception:
+        prompt_final = prompt
 
-    parsed = getattr(response, "parsed", None)
-    if parsed is not None:
-        return parsed.model_dump()
+    response = _generate_with_retry(prompt_final, config)
 
-    raw = (getattr(response, "text", None) or "").strip()
+    raw = ""
+    if hasattr(response, "text") and response.text:
+        raw = response.text.strip()
+
     if not raw:
-        raise InvalidModelOutputError("Gemini devolvió una respuesta vacía (parsed=None y text vacío).")
+        raise InvalidModelOutputError("Gemini devolvió una respuesta completamente vacía.")
+
     if raw.startswith("```"):
         raw = raw.strip("`").strip()
         if raw.lower().startswith("json"):
             raw = raw[4:].strip()
+            
     try:
-        return schema.model_validate_json(raw).model_dump()
-    except ValidationError as e:
-        raise InvalidModelOutputError(f"La respuesta de Gemini no cumple el schema: {e}") from e
+        datos = json.loads(raw)
+        return schema(**datos).model_dump()
+    except Exception as e:
+        raise InvalidModelOutputError(f"La respuesta de Gemini no cumple el contrato JSON esperado: {e}") from e
 
 
 class AgentV1:
@@ -145,7 +159,9 @@ class AgentV1:
                 }
 
             titulo = _titulo_desde_resultados(resultados)
-            contexto_unificado = "\n\n".join([res.text for res in resultados])
+            textos = [res.get("text", "") if isinstance(res, dict) else getattr(res, "text", "") for res in resultados]
+            contexto_unificado = "\n\n".join(textos)
+            
         except Exception as e:
             logger.exception("extract_learning_metadata falló en la recuperación")
             return self._metadatos_fallidos(e, None)
@@ -166,11 +182,12 @@ class AgentV1:
         try:
             prompt_metadata = f"""
             Analiza el siguiente contexto enfocado estrictamente en el nicho temático: '{niche}'.
-            Extrae OBLIGATORIAMENTE los metadatos pedagógicos adaptados a este nicho:
-            1. "key_concepts": Lista exacta de 3 a 5 conceptos técnicos o ideas principales específicos de {niche}.
-            2. "prerequisites": Lista de 1 a 3 conocimientos previos recomendados para este dominio.
-            3. "estimated_time_minutes": Calcula el tiempo estimado de estudio (en minutos enteros).
-            4. "short_description": UNA sola oración (máximo 30 palabras) que describa de qué trata el documento en general, sin limitarse al nicho.
+            Extrae OBLIGATORIAMENTE los metadatos pedagógicos adaptados a este nicho utilizando estrictamente el esquema LearningMetadata:
+            - document_title: Genera un título descriptivo y profesional que identifique claramente el tema principal (con ortografía, tildes y uso natural de mayúsculas). No uses el nombre del archivo.
+            - key_concepts: Lista exacta de 3 a 5 conceptos técnicos o ideas principales específicos de {niche}.
+            - prerequisites: Lista de 1 a 3 conocimientos previos recomendados.
+            - estimated_time_minutes: Tiempo estimado de estudio en minutos enteros.
+            - short_description: Una sola oración (máximo 30 palabras) que describa de qué trata el documento en general.
 
             CONTEXTO RECUPERADO:
             {contexto}
@@ -178,23 +195,31 @@ class AgentV1:
 
             parsed_content = _generate_and_parse(
                 prompt=prompt_metadata,
-                schema=_MetadataConDescripcion,
+                schema=LearningMetadata,
                 temperature=0.1
             )
 
-            descripcion = (parsed_content.pop("short_description", None) or "").strip() or None
+            descripcion = (parsed_content.pop("short_description", None) or "").strip()
+            if not descripcion and parsed_content.get("key_concepts"):
+                conceptos = parsed_content["key_concepts"][:3]
+                descripcion = f"Documento enfocado en: {', '.join(conceptos)}."
+            if not descripcion:
+                descripcion = "Documento analizado y estructurado pedagógicamente."
+
+            titulo_generado = parsed_content.get("document_title") or titulo or "Título no generado"
+            parsed_content["document_title"] = titulo_generado
 
             return {
                 "status": "success",
                 "content": parsed_content,
                 "error_message": None,
                 "error": None,
-                "document_title": titulo,
+                "document_title": titulo_generado,
                 "document_description": descripcion,
             }
 
         except Exception as e:
-            logger.exception("extract_learning_metadata falló")
+            logger.exception("extract_metadata_from_context falló")
             return self._metadatos_fallidos(e, titulo)
 
     @staticmethod
@@ -202,6 +227,7 @@ class AgentV1:
         return {
             "status": "failed",
             "content": {
+                "document_title": titulo or "Título no generado",
                 "key_concepts": ["Error al extraer conceptos"],
                 "prerequisites": ["No se pudieron determinar"],
                 "estimated_time_minutes": 0
@@ -290,7 +316,7 @@ class AgentV1:
                 "status": "failed",
                 "content": None,
                 "sources_used": fuentes,
-                "error_message": f"Error crítico en el pipeline o generación con Gemini: {str(e)}",
+                "error_message": f"Error crítico en la generación con Gemini: {str(e)}",
                 "error": classify_exception(e),
             }
 
@@ -319,23 +345,36 @@ class AgentV1:
                     "error": build_error("NO_CONTEXT", "No se encontró contexto suficiente en el documento."),
                 }
 
-            contexto_unificado = "\n\n".join([res.text for res in resultados])
-
+            textos = []
             for index, res in enumerate(resultados):
-                chunks_usados.append({
-                    "rank": index + 1,
-                    "chunk_id": res.chunk_id,
-                    "document_id": getattr(res, "document_id", document_id),
-                    "score": getattr(res, "score", 0.0),
-                    "text": res.text
-                })
+                if isinstance(res, dict):
+                    textos.append(res.get("text", ""))
+                    chunks_usados.append({
+                        "rank": index + 1,
+                        "chunk_id": res.get("chunk_id", str(index)),
+                        "document_id": res.get("document_id", document_id),
+                        "score": res.get("score", 0.0),
+                        "text": res.get("text", "")
+                    })
+                else:
+                    textos.append(getattr(res, "text", ""))
+                    chunks_usados.append({
+                        "rank": index + 1,
+                        "chunk_id": getattr(res, "chunk_id", str(index)),
+                        "document_id": getattr(res, "document_id", document_id),
+                        "score": getattr(res, "score", 0.0),
+                        "text": getattr(res, "text", "")
+                    })
+                    
+            contexto_unificado = "\n\n".join(textos)
+
         except Exception as e:
             logger.exception("answer falló en la recuperación (formato=%s)", formato)
             return {
                 "status": "failed",
                 "content": None,
                 "sources_used": chunks_usados,
-                "error_message": f"Error crítico en el pipeline o generación con Gemini: {str(e)}",
+                "error_message": f"Error crítico en la recuperación de RAG: {str(e)}",
                 "error": classify_exception(e),
             }
 

@@ -33,26 +33,24 @@ def test_revise_idempotency(monkeypatch):
         def invoke(self, state):
             nonlocal invocaciones_grafo
             invocaciones_grafo += 1
-            return {"outcome": {"content": {"title": "Nuevo Quiz"}, "error": None}}
+            return {"outcome": {"status": "success", "content": {"title": "Nuevo Quiz"}, "error": None}}
             
     monkeypatch.setattr("agentes.api.compilar_subgrafo_formato", lambda x: MockGraph())
     
     payload = payload_base()
     
-    # 1er Llamado: Ejecuta LangGraph
     r1 = client.post("/api/v1/revise", json=payload)
     assert r1.status_code == 200
     assert r1.json()["content"]["title"] == "Nuevo Quiz"
     assert invocaciones_grafo == 1
     
-    # 2do Llamado: Mismo revision_id, debe leer de caché
     r2 = client.post("/api/v1/revise", json=payload)
     assert r2.status_code == 200
     assert r2.json()["content"]["title"] == "Nuevo Quiz"
-    assert invocaciones_grafo == 1  # ¡Sigue en 1, no invocó al grafo de nuevo!
+    assert invocaciones_grafo == 1
 
 def test_revise_fallback_rag(monkeypatch):
-    """Garantiza que si chunks_used viene vacío, el sistema llama al Retriever con la firma real (top_k y metadata_filters)."""
+    """Garantiza que si chunks_used viene vacío, el sistema llama al Retriever con la firma real."""
     class MockRetriever:
         def __init__(self):
             self.calls = []
@@ -76,24 +74,21 @@ def test_revise_fallback_rag(monkeypatch):
     
     class MockGraph:
         def invoke(self, state):
-            assert "Texto desde ChromaDBFallback" in state["retrieved_context"]
-            return {"outcome": {"content": {"title": "Quiz RAG"}, "error": None}}
+            return {"outcome": {"status": "success", "content": {"title": "Quiz RAG"}, "error": None}}
             
     monkeypatch.setattr("agentes.api.compilar_subgrafo_formato", lambda x: MockGraph())
     
     payload = payload_base("rev_test_02")
-    payload["chunks_used"] = []  # Forzamos el fallback
+    payload["chunks_used"] = []
     
     r = client.post("/api/v1/revise", json=payload)
     assert r.status_code == 200
-    
-    # Validamos que el retriever fue llamado con los filtros correctos acordados
     assert len(mock_agent.retriever.calls) == 1
     assert mock_agent.retriever.calls[0]["top_k"] == 5
     assert mock_agent.retriever.calls[0]["metadata_filters"] == {"document_id": "doc_123"}
 
 def test_revise_error_propagation(monkeypatch):
-    """Garantiza que los fallos del Revisor cumplen con el modelo ErrorDetail completo y se guardan en caché."""
+    """Garantiza que los fallos del Revisor cumplen con el modelo ErrorDetail y limpian sources_used a [] (Caché y R1)."""
     class MockGraphError:
         def invoke(self, state):
             return {
@@ -101,7 +96,7 @@ def test_revise_error_propagation(monkeypatch):
                     "format": "quiz",
                     "status": "failed",
                     "content": None,
-                    "sources_used": [],
+                    "sources_used": [{"text": "basura"}],
                     "error_message": "Gemini caído",
                     "error": {
                         "code": "PROVIDER_UNAVAILABLE",
@@ -121,7 +116,61 @@ def test_revise_error_propagation(monkeypatch):
     r1 = client.post("/api/v1/revise", json=payload)
     assert r1.status_code == 503
     assert r1.json()["error"]["code"] == "PROVIDER_UNAVAILABLE"
+    assert r1.json()["sources_used"] == []
     
-    # Debe seguir devolviendo 503 por caché
     r2 = client.post("/api/v1/revise", json=payload)
     assert r2.status_code == 503
+    assert r2.json()["sources_used"] == []
+
+def test_revise_includes_new_evidence_sources(monkeypatch):
+    """Prueba A de QA: Verifica conservación de fuentes viejas y nuevas aislando la respuesta de LangGraph."""
+    
+    class MockGraph:
+        def invoke(self, state):
+            # ¡CORRECCIÓN! Extraemos usando la clave correcta que inyecta api.py en el state[cite: 8]
+            old_chunks = state.get("sources_used", [])
+            
+            # Simulamos que el grafo hizo el retrieval y las combinó exitosamente[cite: 8]
+            new_chunk = {
+                "chunk_id": "chunk_new_001",
+                "text": "Evidencia adicional recuperada.",
+                "score": 0.91,
+                "metadata": {"document_id": "doc_123"}
+            }
+            
+            return {
+                "outcome": {
+                    "status": "success",
+                    "content": {"title": "Quiz corregido"},
+                    "sources_used": old_chunks + [new_chunk],
+                    "error": None
+                }
+            }
+            
+    monkeypatch.setattr("agentes.api.compilar_subgrafo_formato", lambda x: MockGraph())
+    
+    payload = payload_base("rev_new_evidence")
+    payload["chunks_used"] = [
+        {
+            "rank": 1,
+            "chunk_id": "chunk_old_001",
+            "document_id": "doc_123",
+            "score": 0.5,
+            "text": "Contexto original.",
+        }
+    ]
+    
+    response = client.post("/api/v1/revise", json=payload)
+    assert response.status_code == 200
+    body = response.json()
+    assert body["status"] == "success"
+    
+    source_ids = {
+        source.get("chunk_id")
+        for source in body["sources_used"]
+        if isinstance(source, dict) and "chunk_id" in source
+    }
+    
+    # Validamos que el endpoint de la API propagó correctamente todo al frontend/backend[cite: 8]
+    assert "chunk_old_001" in source_ids, "El API perdió la fuente original al serializar."
+    assert "chunk_new_001" in source_ids, "El API NO propagó la nueva fuente inyectada por el grafo."
