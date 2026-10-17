@@ -1,0 +1,2 @@
+total_claims,successful_claims,evaluated_claims,tp,fp,fn,tn,precision,recall,specificity,accuracy,average_latency_ms,min_latency_ms,max_latency_ms
+24,24,24,0,0,1,23,0.0,0.0,1.0,0.9583333333333334,933.62,647,2951
