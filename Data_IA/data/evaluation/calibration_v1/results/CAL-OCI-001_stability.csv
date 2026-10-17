@@ -1,0 +1,4 @@
+calibration_id,run,heuristic_relevance,heuristic_coherence,heuristic_didactic_adaptation,heuristic_content_support,heuristic_verdict,semantic_relevance,semantic_coherence,semantic_didactic_adaptation,semantic_content_support,unsupported_information_count,semantic_status,model,prompt_version,latency_ms
+CAL-OCI-001,1,5,5,5,1,rejected,5,5,5,5,0,success,gemini-3.5-flash-lite,semantic-evaluator-v0.1,5841
+CAL-OCI-001,2,5,5,5,1,rejected,5,5,5,5,0,success,gemini-3.5-flash-lite,semantic-evaluator-v0.1,6079
+CAL-OCI-001,3,5,5,5,1,rejected,5,5,5,5,0,success,gemini-3.5-flash-lite,semantic-evaluator-v0.1,2790
