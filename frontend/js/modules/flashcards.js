@@ -5,6 +5,7 @@
 
 import { state } from '../state.js';
 import { toFriendlyError } from '../utils/friendlyError.js';
+import { exportFlashcardsPdf } from '../utils/pdfExport.js';
 
 export const flashcards = {
   elements: {},
@@ -28,7 +29,8 @@ export const flashcards = {
       btnPrev: document.getElementById('btnPrevCard'),
       btnNext: document.getElementById('btnNextCard'),
       btnFlip: document.getElementById('btnFlipCard'),
-      btnRegen: document.getElementById('btnRegenFlashcards')
+      btnRegen: document.getElementById('btnRegenFlashcards'),
+      btnDownload: document.getElementById('btnDownloadPdfFlashcards')
     };
   },
 
@@ -66,6 +68,14 @@ export const flashcards = {
         import('./studyHub.js').then(({ studyHub }) => {
           studyHub.triggerRegeneration(['flashcards']);
         });
+      });
+    }
+
+    if (this.elements.btnDownload) {
+      this.elements.btnDownload.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const doc = state.get().currentDocument;
+        exportFlashcardsPdf(doc, this.formatMeta, this.cards);
       });
     }
 
@@ -198,6 +208,15 @@ export const flashcards = {
     if (btnRegen) {
       const isBusy = this.formatMeta?.status === 'processing' || this.formatMeta?.status === 'pending';
       btnRegen.disabled = isBusy;
+    }
+    const btnDownload = this.elements.btnDownload;
+    if (btnDownload) {
+      const isBusy = this.formatMeta?.status === 'processing' || this.formatMeta?.status === 'pending';
+      const hasCards = this.cards && this.cards.length > 0;
+      btnDownload.disabled = isBusy || !hasCards;
+      btnDownload.title = hasCards
+        ? 'Descargar Tarjetas de Refuerzo en formato PDF'
+        : (isBusy ? 'Las Tarjetas se están generando...' : 'Tarjetas no disponibles para descargar');
     }
 
     card.classList.remove('flipped');

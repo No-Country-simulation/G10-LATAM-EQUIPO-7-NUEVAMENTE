@@ -342,6 +342,54 @@
   border-color: rgba(255, 255, 255, 0.1);
 }
 
+.btn-download-format-pdf {
+  background: rgba(6, 182, 212, 0.12);
+  border: 1px solid rgba(34, 211, 238, 0.4);
+  color: #a5f3fc;
+  font-size: clamp(0.78rem, 1vh, 0.86rem);
+  font-weight: 700;
+  padding: 0.38rem 0.85rem;
+  border-radius: 10px;
+  cursor: pointer;
+  transition: all var(--transition-fast);
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  user-select: none;
+}
+
+.btn-download-format-pdf:hover:not(:disabled) {
+  background: rgba(6, 182, 212, 0.28);
+  border-color: #22d3ee;
+  color: #ffffff;
+  box-shadow: 0 4px 14px rgba(6, 182, 212, 0.25);
+  transform: translateY(-1px);
+}
+
+.btn-download-format-pdf:active:not(:disabled) {
+  transform: translateY(0) scale(0.98);
+}
+
+.btn-download-format-pdf:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+  border-color: rgba(255, 255, 255, 0.1);
+  transform: none;
+  box-shadow: none;
+}
+
+[data-theme="light"] .btn-download-format-pdf {
+  background: rgba(6, 182, 212, 0.08);
+  border-color: rgba(14, 116, 144, 0.35);
+  color: #0e7490;
+}
+
+[data-theme="light"] .btn-download-format-pdf:hover:not(:disabled) {
+  background: rgba(6, 182, 212, 0.18);
+  border-color: #0891b2;
+  color: #155e75;
+}
+
 .quiz-header-bar,
 .format-header-bar {
   display: flex;

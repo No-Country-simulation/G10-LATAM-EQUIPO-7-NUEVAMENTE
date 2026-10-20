@@ -5,6 +5,8 @@
  */
 
 import { toFriendlyError } from '../utils/friendlyError.js';
+import { exportQuizPdf } from '../utils/pdfExport.js';
+import { state } from '../state.js';
 
 export const quiz = {
   elements: {},
@@ -19,7 +21,8 @@ export const quiz = {
       feedbackBadge: document.getElementById('quizFeedbackBadge'),
       feedbackText: document.getElementById('quizFeedbackText'),
       counterBadge: document.getElementById('quizCounterBadge'),
-      btnRegenQuiz: document.getElementById('btnRegenQuiz')
+      btnRegenQuiz: document.getElementById('btnRegenQuiz'),
+      btnDownloadQuiz: document.getElementById('btnDownloadPdfQuiz')
     };
 
     if (this.elements.btnRegenQuiz) {
@@ -27,6 +30,13 @@ export const quiz = {
         import('./studyHub.js').then(({ studyHub }) => {
           studyHub.triggerRegeneration(['quiz']);
         });
+      });
+    }
+
+    if (this.elements.btnDownloadQuiz) {
+      this.elements.btnDownloadQuiz.addEventListener('click', () => {
+        const doc = state.get().currentDocument;
+        exportQuizPdf(doc, this.quizMeta, this.questions);
       });
     }
   },
@@ -63,6 +73,15 @@ export const quiz = {
     if (btnRegenQuiz) {
       const isBusy = this.quizMeta?.status === 'processing' || this.quizMeta?.status === 'pending';
       btnRegenQuiz.disabled = isBusy;
+    }
+    const btnDownload = this.elements.btnDownloadQuiz;
+    if (btnDownload) {
+      const isBusy = this.quizMeta?.status === 'processing' || this.quizMeta?.status === 'pending';
+      const hasQuestions = this.questions && this.questions.length > 0;
+      btnDownload.disabled = isBusy || !hasQuestions;
+      btnDownload.title = hasQuestions
+        ? 'Descargar Evaluación (Quiz) en formato PDF'
+        : (isBusy ? 'La Evaluación se está generando...' : 'Evaluación no disponible para descargar');
     }
 
     if (counterBadge) {
