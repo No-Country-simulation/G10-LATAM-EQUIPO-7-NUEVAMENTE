@@ -1,0 +1,5 @@
+calibration_id,format,factual_claims,legacy_review_claims,normalized_review_claims,legacy_case_review,normalized_case_review
+CAL-OCI-001,tldr,4,3,3,True,True
+CAL-V1-005,flashcards,1,1,1,True,True
+CAL-V1-013,video_script,2,1,1,True,True
+CAL-V1-014,quiz,3,1,1,True,True

@@ -1,0 +1,57 @@
+calibration_id,claim_id,claim_text,human_support_label,legacy_needs_review,legacy_confusion,normalized_needs_review,normalized_confusion
+CAL-V1-004,scene_1_narration_claim_1,El módulo incluye conceptos básicos de agentes de IA y soluciones de inteligencia artificial agéntica.,supported,False,TN,False,TN
+CAL-V1-004,scene_1_narration_claim_2,También afirma que los agentes de IA pueden desplegar modelos en producción de forma autónoma sin supervisión humana.,unsupported,True,TP,True,TP
+CAL-V1-006,conclusion_claim_1,@app.get('/') vincula una función con solicitudes GET dirigidas al path raíz.,supported,True,FP,True,FP
+CAL-V1-006,key_point_1_claim_1,El path configurado es '/'.,supported,True,FP,True,FP
+CAL-V1-006,key_point_2_claim_1,La operación HTTP utilizada es GET.,supported,True,FP,True,FP
+CAL-V1-006,key_point_3_claim_1,El decorador cifra automáticamente todas las respuestas GET.,unsupported,True,TP,True,TP
+CAL-V1-006,summary_claim_1,El decorador @app.get('/') indica que la función situada debajo manejará solicitudes GET dirigidas al path raíz '/'.,supported,True,FP,True,FP
+CAL-V1-014,question_1_answer_claim_1,Marcar partes del contenido para que aparezcan o actúen de cierta manera,supported,False,TN,False,TN
+CAL-V1-014,question_1_explanation_claim_1,Las etiquetas HTML pueden marcar diferentes partes del contenido para que aparezcan o actúen de cierta manera.,supported,False,TN,False,TN
+CAL-V1-014,question_1_explanation_claim_2,"Además, usar etiquetas HTML mejora automáticamente el posicionamiento SEO de una página.",unsupported,True,TP,True,TP
+CAL-V1-016,conclusion_claim_1,El paradigma dirigido por eventos desacopla la ocurrencia notificable de la lógica reactiva que procesa dicha señal.,unsupported,True,TP,True,TP
+CAL-V1-016,key_point_1_claim_1,Una interacción de click sobre un botón puede actuar como disparador de una rutina de respuesta.,supported,True,FP,True,FP
+CAL-V1-016,key_point_2_claim_1,La reacción asociada puede materializar información en un elemento de interfaz.,supported,True,FP,True,FP
+CAL-V1-016,summary_claim_1,Los eventos constituyen ocurrencias observables del runtime cuya notificación habilita mecanismos reactivos de respuesta.,supported,True,FP,True,FP
+CAL-V1-018,card_1_back_claim_1,"Como una plataforma de contenedores, una plataforma de microservicios o una plataforma portable de nube.",supported,False,TN,False,TN
+CAL-V1-018,card_1_back_claim_2,También cifra automáticamente todo el tráfico del clúster por defecto.,unsupported,True,TP,True,TP
+CAL-V1-002,card_1_back_claim_1,"Una representación conceptual previa del aprendizaje automático resulta instrumental, aunque su posesión no constituye una condición normativa de acceso al itinerario formativo.",supported,True,FP,True,FP
+CAL-V1-003,key_point_2_claim_1,Los LLM forman parte del módulo.,supported,True,FP,True,FP
+CAL-V1-003,summary_claim_1,El módulo espera considerar cómo crear solicitudes eficaces para los LLM.,supported,True,FP,False,TN
+CAL-V1-003,summary_claim_5,El objetivo aparece como una habilidad del módulo.,supported,True,FP,True,FP
+CAL-V1-005,card_1_back_claim_1,"La clase FastAPI, importada desde el paquete fastapi mediante: from fastapi import FastAPI.",supported,True,FP,True,FP
+CAL-V1-007,scene_1_narration_claim_1,"Al crear proyectos Django conviene evitar nombres que coincidan con componentes integrados de Python o Django, como django o test, porque pueden producir conflictos.",supported,True,FP,True,FP
+CAL-V1-008,question_1_answer_claim_1,La aplicación encapsula una funcionalidad web concreta; el proyecto actúa como agregado configuracional capaz de contener múltiples aplicaciones.,supported,True,FP,True,FP
+CAL-V1-008,question_1_explanation_claim_1,La relación se entiende como una separación entre unidad funcional reutilizable y contenedor configuracional del sitio.,supported,True,FP,True,FP
+CAL-V1-009,conclusion_claim_1,Una habilidad central del módulo es almacenar y actualizar valores mediante variables.,supported,True,FP,True,FP
+CAL-V1-010,scene_1_narration_claim_1,"El módulo aborda la persistencia simbólica y la mutabilidad de valores mediante variables, la operatoria aritmética y la coerción explícita entre representaciones tipadas usando funciones integradas de Python.",supported,True,FP,True,FP
+CAL-V1-011,question_1_explanation_claim_3,"Datos agregados, agregación; también agrupa y visualiza.",supported,True,FP,True,FP
+CAL-V1-013,scene_1_narration_claim_2,Sus elementos permiten marcar distintas partes del contenido para que aparezcan o actúen de una manera determinada.,supported,True,FP,True,FP
+CAL-V1-015,card_1_back_claim_2,"Esas estructuras, las cuatro, aparecen en el módulo.",supported,True,FP,True,FP
+CAL-V1-015,card_2_back_claim_1,"Eventos, funciones, después condicionales; bucles también.",supported,True,FP,True,FP
+CAL-V1-015,card_2_back_claim_2,"Bloques fundamentales, los mismos cuatro, sin una secuencia clara.",unsupported,True,TP,True,TP
+CAL-V1-019,conclusion_claim_1,El foco aquí está en la preparación previa del estudiante antes de avanzar en la ruta.,supported,True,FP,True,FP
+CAL-V1-019,key_point_1_claim_1,Se mencionan conocimientos básicos de TI como requisito previo.,supported,True,FP,False,TN
+CAL-V1-019,key_point_2_claim_1,La sección también presenta opciones para comenzar con Azure.,supported,True,FP,True,FP
+CAL-V1-019,summary_claim_1,La ruta indica como requisito previo contar con conocimientos básicos de términos y conceptos de TI.,supported,True,FP,False,TN
+CAL-V1-020,scene_2_narration_claim_2,Después volvemos a los ejercicios y otra vez a los servicios de Azure.,unsupported,True,TP,True,TP
+CAL-V1-001,question_1_answer_claim_1,Los tipos de soluciones que la IA puede hacer posible y las prácticas de IA responsable,supported,False,TN,False,TN
+CAL-V1-001,question_1_explanation_claim_1,El módulo introduce los tipos de soluciones que la inteligencia artificial puede hacer posible y considera prácticas de inteligencia artificial responsable.,supported,False,TN,False,TN
+CAL-V1-003,key_point_1_claim_1,Crear solicitudes eficaces para LLM.,supported,False,TN,False,TN
+CAL-V1-003,key_point_3_claim_1,Solicitudes eficaces; módulo; LLM; solicitudes eficaces.,supported,False,TN,False,TN
+CAL-V1-003,summary_claim_2,LLM.,supported,False,TN,False,TN
+CAL-V1-003,summary_claim_3,Solicitudes.,supported,False,TN,False,TN
+CAL-V1-003,summary_claim_4,Crear solicitudes.,supported,False,TN,False,TN
+CAL-V1-009,key_point_1_claim_1,Almacenar y actualizar valores mediante variables.,supported,False,TN,False,TN
+CAL-V1-009,key_point_2_claim_1,Realizar operaciones aritméticas con números.,supported,False,TN,False,TN
+CAL-V1-009,key_point_3_claim_1,Convertir entre tipos de datos mediante funciones integradas.,supported,False,TN,False,TN
+CAL-V1-009,summary_claim_1,"El módulo enseña a almacenar y manipular datos en Python, incluyendo el uso de variables, operaciones numéricas y conversión de tipos.",supported,False,TN,False,TN
+CAL-V1-011,question_1_answer_claim_1,La agregación de datos.,supported,False,TN,False,TN
+CAL-V1-011,question_1_explanation_claim_1,Agregación de datos.,supported,False,TN,False,TN
+CAL-V1-012,card_1_back_claim_1,"Agregación de datos, agrupación de datos y visualizaciones de datos.",supported,False,TN,False,TN
+CAL-V1-013,scene_1_narration_claim_1,HTML es un lenguaje de marcado que indica a los navegadores web cómo estructurar las páginas que visitamos.,supported,False,TN,False,TN
+CAL-V1-015,card_1_back_claim_1,Funciones y eventos; y bucles; condicionales.,supported,False,TN,False,TN
+CAL-V1-017,question_1_answer_claim_1,Una plataforma portable y extensible de código abierto para administrar cargas de trabajo y servicios,supported,False,TN,False,TN
+CAL-V1-017,question_1_explanation_claim_1,El documento define Kubernetes como una plataforma portable y extensible de código abierto para administrar cargas de trabajo y servicios.,supported,False,TN,False,TN
+CAL-V1-020,scene_1_narration_claim_1,La serie incluye ejercicios prácticos para implementar primeros servicios y ofrece una visión general de servicios de Azure.,supported,False,TN,False,TN
+CAL-V1-020,scene_2_narration_claim_1,"Antes de eso, la serie enseña conceptos básicos de la nube.",unsupported,False,FN,False,FN
