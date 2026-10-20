@@ -66,10 +66,27 @@ function resolveTimeoutMs() {
   return 30000;
 }
 
+function resolveLandingArchUrl() {
+  try {
+    if (typeof import.meta !== 'undefined' && import.meta.env && import.meta.env.VITE_LANDING_ARCH_URL) {
+      return import.meta.env.VITE_LANDING_ARCH_URL;
+    }
+  } catch {}
+  if (typeof window !== 'undefined' && window.__ENV__ && window.__ENV__.VITE_LANDING_ARCH_URL) {
+    return window.__ENV__.VITE_LANDING_ARCH_URL;
+  }
+  return 'http://155.181.154.104/landing/#arquitectura';
+}
+
 export const CONFIG = {
   APP_NAME: 'NuevaMente',
   VERSION: '1.0.0',
   HACKATHON: 'ONE · Grupo 10',
+
+  // Enlaces de documentación externa y presentación interactiva
+  LANDING: {
+    ARCHITECTURE_URL: resolveLandingArchUrl()
+  },
 
   // Configuración de Backend (FastAPI desacoplado)
   API: {
