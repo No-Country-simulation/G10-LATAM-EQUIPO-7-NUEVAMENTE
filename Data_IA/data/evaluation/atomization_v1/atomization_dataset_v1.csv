@@ -1,0 +1,17 @@
+dataset_id,calibration_id,source_claim_id,format,source_claim_text,human_support_label,selection_reason
+ATOM-V1-001,CAL-V1-004,scene_1_narration_claim_2,video_script,También afirma que los agentes de IA pueden desplegar modelos en producción de forma autónoma sin supervisión humana.,unsupported,unsupported_case
+ATOM-V1-002,CAL-V1-006,key_point_3_claim_1,tldr,El decorador cifra automáticamente todas las respuestas GET.,unsupported,unsupported_case
+ATOM-V1-003,CAL-V1-014,question_1_explanation_claim_2,quiz,"Además, usar etiquetas HTML mejora automáticamente el posicionamiento SEO de una página.",unsupported,unsupported_case
+ATOM-V1-004,CAL-V1-015,card_2_back_claim_2,flashcards,"Bloques fundamentales, los mismos cuatro, sin una secuencia clara.",unsupported,unsupported_case
+ATOM-V1-005,CAL-V1-016,conclusion_claim_1,tldr,El paradigma dirigido por eventos desacopla la ocurrencia notificable de la lógica reactiva que procesa dicha señal.,unsupported,unsupported_case
+ATOM-V1-006,CAL-V1-018,card_1_back_claim_2,flashcards,También cifra automáticamente todo el tráfico del clúster por defecto.,unsupported,unsupported_case
+ATOM-V1-007,CAL-V1-020,scene_2_narration_claim_1,video_script,"Antes de eso, la serie enseña conceptos básicos de la nube.",unsupported,unsupported_case
+ATOM-V1-008,CAL-V1-020,scene_2_narration_claim_2,video_script,Después volvemos a los ejercicios y otra vez a los servicios de Azure.,unsupported,unsupported_case
+ATOM-V1-009,CAL-V1-001,question_1_explanation_claim_1,quiz,El módulo introduce los tipos de soluciones que la inteligencia artificial puede hacer posible y considera prácticas de inteligencia artificial responsable.,supported,supported_control
+ATOM-V1-010,CAL-V1-003,key_point_1_claim_1,tldr,Crear solicitudes eficaces para LLM.,supported,supported_control
+ATOM-V1-011,CAL-V1-005,card_1_back_claim_1,flashcards,"La clase FastAPI, importada desde el paquete fastapi mediante: from fastapi import FastAPI.",supported,supported_control
+ATOM-V1-012,CAL-V1-009,summary_claim_1,tldr,"El módulo enseña a almacenar y manipular datos en Python, incluyendo el uso de variables, operaciones numéricas y conversión de tipos.",supported,supported_control
+ATOM-V1-013,CAL-V1-013,scene_1_narration_claim_1,video_script,HTML es un lenguaje de marcado que indica a los navegadores web cómo estructurar las páginas que visitamos.,supported,supported_control
+ATOM-V1-014,CAL-V1-015,card_1_back_claim_1,flashcards,Funciones y eventos; y bucles; condicionales.,supported,supported_control
+ATOM-V1-015,CAL-V1-017,question_1_explanation_claim_1,quiz,El documento define Kubernetes como una plataforma portable y extensible de código abierto para administrar cargas de trabajo y servicios.,supported,supported_control
+ATOM-V1-016,CAL-V1-019,key_point_2_claim_1,tldr,La sección también presenta opciones para comenzar con Azure.,supported,supported_control
