@@ -1,0 +1,25 @@
+final_eval_id,review_status,atomization_class,atom_id,atom_order,atom_text,atom_type,review_notes
+FINAL-V1-001,non_propositional,,,,,,Sintagma nominal coordinado sin predicado factual explícito.
+FINAL-V1-002,valid_claim,atomic,FINAL-V1-002-A01,1,Los LLM forman parte del módulo.,factual_proposition,
+FINAL-V1-003,valid_claim,atomic,FINAL-V1-003-A01,1,El módulo espera considerar cómo crear solicitudes eficaces para los LLM.,factual_proposition,Una sola afirmación sobre el contenido esperado del módulo.
+FINAL-V1-004,non_propositional,,,,,,Frase infinitiva sin sujeto ni afirmación factual completa.
+FINAL-V1-005,valid_claim,atomic,FINAL-V1-005-A01,1,El objetivo aparece como una habilidad del módulo.,factual_proposition,
+FINAL-V1-006,valid_claim,atomic,FINAL-V1-006-A01,1,El módulo incluye conceptos básicos de agentes de IA y soluciones de inteligencia artificial agéntica.,factual_proposition,Los dos contenidos comparten el mismo predicado 'incluye' y se mantienen juntos.
+FINAL-V1-007,valid_claim,atomic,FINAL-V1-007-A01,1,@app.get('/') vincula una función con solicitudes GET dirigidas al path raíz.,factual_proposition,
+FINAL-V1-008,valid_claim,atomic,FINAL-V1-008-A01,1,El path configurado es '/'.,factual_proposition,
+FINAL-V1-009,valid_claim,atomic,FINAL-V1-009-A01,1,El decorador @app.get('/') indica que la función situada debajo manejará solicitudes GET dirigidas al path raíz '/'.,factual_proposition,La relación decorador-función-ruta constituye una sola afirmación funcional.
+FINAL-V1-010,valid_claim,atomic,FINAL-V1-010-A01,1,Una habilidad central del módulo es almacenar y actualizar valores mediante variables.,factual_proposition,
+FINAL-V1-011,non_propositional,,,,,,"Frase infinitiva que nombra una habilidad, sin predicado factual explícito."
+FINAL-V1-012,non_propositional,,,,,,Frase infinitiva sin afirmación factual completa.
+FINAL-V1-013,non_propositional,,,,,,Frase infinitiva sin sujeto ni predicado factual completo.
+FINAL-V1-014,non_propositional,,,,,,Sintagma nominal sin predicado factual explícito.
+FINAL-V1-015,non_propositional,,,,,,Fragmento mixto con sujeto y objetos omitidos; reconstruirlo requeriría inventar contexto.
+FINAL-V1-016,non_propositional,,,,,,Frase infinitiva que expresa una acción pero no una proposición factual completa.
+FINAL-V1-017,valid_claim,atomic,FINAL-V1-017-A01,1,Una interacción de click sobre un botón puede actuar como disparador de una rutina de respuesta.,factual_proposition,
+FINAL-V1-018,valid_claim,atomic,FINAL-V1-018-A01,1,La reacción asociada puede materializar información en un elemento de interfaz.,factual_proposition,
+FINAL-V1-019,valid_claim,compound,FINAL-V1-019-A01,1,Los eventos constituyen ocurrencias observables del runtime.,factual_proposition,
+FINAL-V1-019,valid_claim,compound,FINAL-V1-019-A02,2,La notificación de los eventos habilita mecanismos reactivos de respuesta.,factual_proposition,La cláusula relativa aporta una segunda afirmación independientemente evaluable.
+FINAL-V1-020,non_propositional,,,,,,Sintagma nominal descriptivo sin sujeto/predicado principal explícito.
+FINAL-V1-021,valid_claim,atomic,FINAL-V1-021-A01,1,El foco aquí está en la preparación previa del estudiante antes de avanzar en la ruta.,factual_proposition,"La expresión temporal funciona como parte del contenido de la preparación, no como una relación separada entre dos eventos explícitos."
+FINAL-V1-022,valid_claim,atomic,FINAL-V1-022-A01,1,Se mencionan conocimientos básicos de TI como requisito previo.,factual_proposition,
+FINAL-V1-023,valid_claim,atomic,FINAL-V1-023-A01,1,La ruta indica como requisito previo contar con conocimientos básicos de términos y conceptos de TI.,factual_proposition,
