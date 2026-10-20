@@ -14,7 +14,14 @@ from data_ai.evaluation.gemini_claim_atomizer import (
 )
 
 
-def test_requires_api_key():
+def test_requires_api_key(
+    monkeypatch,
+):
+    monkeypatch.delenv(
+        "DATA_IA_GEMINI_API_KEY",
+        raising=False,
+    )
+
     with pytest.raises(
         ValueError,
         match="DATA_IA_GEMINI_API_KEY",
@@ -25,7 +32,14 @@ def test_requires_api_key():
         )
 
 
-def test_requires_model():
+def test_requires_model(
+    monkeypatch,
+):
+    monkeypatch.delenv(
+        "DATA_IA_GEMINI_MODEL",
+        raising=False,
+    )
+
     with pytest.raises(
         ValueError,
         match="DATA_IA_GEMINI_MODEL",
