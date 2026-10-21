@@ -1,0 +1,21 @@
+holdout_id,calibration_id,source_claim_id,format,source_claim_text,human_support_label,annotation_priority,selection_reason
+HOLDOUT-V1-001,CAL-V1-003,conclusion_claim_1,tldr,"Por tanto, el objetivo es ese objetivo de solicitudes para LLM que el módulo espera considerar.",uncertain,medium,fresh_holdout_v1
+HOLDOUT-V1-002,CAL-V1-011,question_1_explanation_claim_4,quiz,La respuesta es agregación porque agregación es el concepto preguntado.,uncertain,medium,fresh_holdout_v1
+HOLDOUT-V1-003,CAL-V1-011,question_1_explanation_claim_2,quiz,El módulo la describe.,uncertain,medium,fresh_holdout_v1
+HOLDOUT-V1-004,CAL-V1-012,card_1_back_claim_1,flashcards,"Agregación de datos, agrupación de datos y visualizaciones de datos.",supported,low,fresh_holdout_v1
+HOLDOUT-V1-005,CAL-V1-008,question_1_answer_claim_1,quiz,La aplicación encapsula una funcionalidad web concreta; el proyecto actúa como agregado configuracional capaz de contener múltiples aplicaciones.,supported,medium,fresh_holdout_v1
+HOLDOUT-V1-006,CAL-V1-003,summary_claim_2,tldr,LLM.,supported,low,fresh_holdout_v1
+HOLDOUT-V1-007,CAL-V1-007,scene_1_narration_claim_1,video_script,"Al crear proyectos Django conviene evitar nombres que coincidan con componentes integrados de Python o Django, como django o test, porque pueden producir conflictos.",supported,medium,fresh_holdout_v1
+HOLDOUT-V1-008,CAL-V1-015,card_1_back_claim_2,flashcards,"Esas estructuras, las cuatro, aparecen en el módulo.",supported,medium,fresh_holdout_v1
+HOLDOUT-V1-009,CAL-V1-011,question_1_explanation_claim_1,quiz,Agregación de datos.,supported,low,fresh_holdout_v1
+HOLDOUT-V1-010,CAL-V1-006,key_point_2_claim_1,tldr,La operación HTTP utilizada es GET.,supported,high,fresh_holdout_v1
+HOLDOUT-V1-011,CAL-V1-013,scene_1_narration_claim_2,video_script,Sus elementos permiten marcar distintas partes del contenido para que aparezcan o actúen de una manera determinada.,supported,medium,fresh_holdout_v1
+HOLDOUT-V1-012,CAL-V1-002,card_1_back_claim_1,flashcards,"Una representación conceptual previa del aprendizaje automático resulta instrumental, aunque su posesión no constituye una condición normativa de acceso al itinerario formativo.",supported,medium,fresh_holdout_v1
+HOLDOUT-V1-013,CAL-V1-014,question_1_explanation_claim_1,quiz,Las etiquetas HTML pueden marcar diferentes partes del contenido para que aparezcan o actúen de cierta manera.,supported,high,fresh_holdout_v1
+HOLDOUT-V1-014,CAL-V1-003,summary_claim_3,tldr,Solicitudes.,supported,low,fresh_holdout_v1
+HOLDOUT-V1-015,CAL-V1-020,scene_1_narration_claim_1,video_script,La serie incluye ejercicios prácticos para implementar primeros servicios y ofrece una visión general de servicios de Azure.,supported,low,fresh_holdout_v1
+HOLDOUT-V1-016,CAL-V1-018,card_1_back_claim_1,flashcards,"Como una plataforma de contenedores, una plataforma de microservicios o una plataforma portable de nube.",supported,high,fresh_holdout_v1
+HOLDOUT-V1-017,CAL-V1-008,question_1_explanation_claim_1,quiz,La relación se entiende como una separación entre unidad funcional reutilizable y contenedor configuracional del sitio.,supported,medium,fresh_holdout_v1
+HOLDOUT-V1-018,CAL-V1-003,key_point_3_claim_1,tldr,Solicitudes eficaces; módulo; LLM; solicitudes eficaces.,supported,low,fresh_holdout_v1
+HOLDOUT-V1-019,CAL-V1-010,scene_1_narration_claim_1,video_script,"El módulo aborda la persistencia simbólica y la mutabilidad de valores mediante variables, la operatoria aritmética y la coerción explícita entre representaciones tipadas usando funciones integradas de Python.",supported,medium,fresh_holdout_v1
+HOLDOUT-V1-020,CAL-V1-015,card_2_back_claim_1,flashcards,"Eventos, funciones, después condicionales; bucles también.",supported,medium,fresh_holdout_v1

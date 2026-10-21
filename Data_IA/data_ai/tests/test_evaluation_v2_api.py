@@ -83,7 +83,18 @@ def test_evaluate_v2_returns_v2_contract():
     assert "rubric_version" in body
 
 
-def test_evaluate_v2_semantic_is_unavailable_without_provider():
+def test_evaluate_v2_semantic_is_unavailable_without_provider(
+    monkeypatch,
+):
+    monkeypatch.delenv(
+        "DATA_IA_GEMINI_API_KEY",
+        raising=False,
+    )
+    monkeypatch.delenv(
+        "DATA_IA_GEMINI_MODEL",
+        raising=False,
+    )
+
     response = client.post(
         "/evaluate/v2",
         json=_payload(),

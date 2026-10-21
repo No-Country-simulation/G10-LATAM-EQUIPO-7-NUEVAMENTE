@@ -1,0 +1,30 @@
+{
+  "version": "atomization-holdout-v1",
+  "selection_seed": "claim-atomization-holdout-v1",
+  "source_ground_truth": "data\\evaluation\\calibration_v1\\results\\content_support_claim_ground_truth_v1.csv",
+  "development_dataset": "data\\evaluation\\atomization_v1\\atomization_dataset_v1.csv",
+  "source_claim_count": 59,
+  "development_claim_count": 16,
+  "development_overlap_verified": 16,
+  "fresh_candidate_count": 43,
+  "holdout_claim_count": 20,
+  "development_holdout_overlap": 0,
+  "human_support_distribution": {
+    "uncertain": 3,
+    "supported": 17
+  },
+  "format_distribution": {
+    "tldr": 5,
+    "quiz": 6,
+    "flashcards": 5,
+    "video_script": 4
+  },
+  "annotation_priority_distribution": {
+    "medium": 11,
+    "low": 6,
+    "high": 3
+  },
+  "selection_policy": "all remaining uncertain, all remaining unsupported if available, then deterministic round-robin supported sampling by format",
+  "gemini_used_for_selection": false,
+  "model_results_used_for_selection": false
+}
