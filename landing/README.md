@@ -4,6 +4,12 @@ Presentación interactiva de seis momentos, pensada para acompañar un pitch de 
 
 ## Recorrido
 
+### Detalle del Investigador RAG
+
+El nodo Investigador abre un modal con `rag.html`, una página independiente con `rag.css` y `rag.js`, accesible también en `/landing/rag.html`. El modal conserva el documento principal y su pantalla completa, pausa el recorrido y permite volver con Cerrar o Escape.
+
+El diagrama muestra ChromaDB y BM25 como ramas de recuperación, RRF, Cross-Encoder y Top-K. Los selectores de objetivo ilustran nuevas recuperaciones, no ejecutan consultas ni muestran resultados reales. Para esta explicación se utiliza el flujo productivo del README de agentes: metadatos y cada formato recuperan su propio contexto, con formatos en serie; no el contexto compartido del grafo propuesto. Las ramas visuales no afirman ejecución concurrente de ChromaDB y BM25.
+
 1. **Del documento al conocimiento:** un documento conectado con cuatro perfiles.
 2. **Qué transforma NuevaMente:** documento → contexto → adaptación → cuatro formatos.
 3. **Verlo en acción:** transición al producto real en la misma pestaña. Atrás permite regresar a la presentación.
@@ -19,7 +25,7 @@ En escritorio, la presentación ocupa la altura disponible de la ventana: cabece
 
 - Navegación inferior, botones anterior/siguiente y teclas izquierda/derecha o PageUp/PageDown. Home/End llevan al inicio/cierre. Los atajos no interceptan controles interactivos ni el diálogo.
 - Enlaces directos: `#documento`, `#transformacion`, `#demo`, `#arquitectura`, `#equipo`, `#impacto`. El historial del navegador permite regresar entre vistas.
-- Arquitectura: el panel inferior tiene dos columnas, explicación del paso y controles compactos (Reiniciar, Reproducir, Pausa y nueva evidencia). Reproducir anima un recorrido conceptual de generación, evaluación y un caso que necesita corrección; termina con la respuesta de BackendAPI al Frontend, iluminando su flecha de retorno. Pausa conserva el paso; Reproducir continúa desde allí. Reiniciar restaura el diagrama general. Al terminar, cambiar de vista o salir de la pestaña, la reproducción se detiene. En móvil las columnas se apilan.
+- Arquitectura: explicación y controles compactos (Reiniciar, Reproducir, Pausa y nueva evidencia) forman una columna izquierda; el diagrama ocupa el espacio principal a la derecha. El marco OCI agrupa los contenedores administrados por Docker Compose. Multiagentes muestra recuperación compartida y generación paralela por formato, tomando el README de agentes como referencia y asumiendo sus integraciones completas para el Demo Day. Reproducir anima generación, evaluación y corrección; termina con la respuesta de BackendAPI al Frontend. Pausa conserva el paso; Reproducir continúa desde allí. Reiniciar restaura el diagrama general. Al terminar, cambiar de vista o salir de la pestaña, la reproducción se detiene. En móvil el panel queda debajo del diagrama.
 - Activar o desactivar “Requiere nueva evidencia” selecciona el camino del Revisor y reinicia la secuencia para mantenerla coherente.
 - Seleccionar un nodo muestra su responsabilidad. Data/IA siempre permanece como evaluador independiente; BackendAPI coordina ambos servicios.
 - Pantalla completa cuando el navegador la admite. Recursos del jurado en el cierre.
@@ -29,6 +35,14 @@ En escritorio, la presentación ocupa la altura disponible de la ventana: cabece
 **Alcance del diagrama (estado verificado al 15 de octubre de 2026):** es una explicación visual con animación local, no una simulación conectada a los servicios ni una prueba de que el flujo esté operativo. Agentes aún no expone `/api/v1/revise`; por tanto, la corrección automática de extremo a extremo no está disponible y el ciclo animado representa el flujo propuesto, no el comportamiento actual del producto. El recorrido termina en aprobación o al llegar al límite de correcciones solo como escenario conceptual; no representa una aprobación garantizada.
 
 ## Estética y fuentes
+
+### Validación offline
+
+`offline.html`, `offline.css` y `offline.js` implementan una vista independiente, accesible desde el nodo «Validación offline» sobre Data/IA. Se abre en el modal compartido y puede servirse directamente como `/landing/offline.html`. No participa en la secuencia de generación y corrección.
+
+La vista separa arquitectura experimental, benchmark V1/V2 y seis variantes de ablación. Usa el estudio congelado de 50 consultas y 121 chunks, Ground Truth v2 y Top-K 5. Las 32 cifras se contrastaron con los CSV de `Data_IA/data/evaluation/results/retrieval_v2_ablation/`: `ablation_global_metrics.csv`, `signal_ablation/signal_ablation_global_metrics.csv`, `weighted_rrf_ablation/weighted_rrf_global_metrics.csv` y `weighted_rrf_cross_ablation/weighted_rrf_cross_global_metrics.csv`. Se muestran tres decimales; los experimentos RRF 60/40 con y sin Cross-Encoder permanecen separados. El resumen de 11 casos críticos resueltos procede de la gráfica de benchmark proporcionada en `docs/Sprint 3/BenchmarkRetrieval.png`.
+
+Los botones cambian la vista; el selector de ablaciones actualiza componentes, métricas y lectura del experimento. Las conexiones animadas se pueden pausar y respetan movimiento reducido y cierre del modal. Las métricas son resultados guardados del estudio, no una ejecución en vivo.
 
 Fondos `#090c10`, `#121822` y `#1a2230`; acento principal dorado y ámbar (`#f59e0b`, `#fbbf24`, `#fef08a`), botones oficiales dorados y paleta cósmica unificada con el diseño del frontend. Tipografía local, sin fuentes remotas. Las relaciones de los diagramas se reconstruyen en SVG.
 

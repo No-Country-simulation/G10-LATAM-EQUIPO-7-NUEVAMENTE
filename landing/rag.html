@@ -1,0 +1,33 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Investigador RAG · NuevaMente</title>
+  <link rel="stylesheet" href="rag.css">
+  <link rel="stylesheet" href="detail-responsive.css">
+  <script src="rag.js" defer></script>
+</head>
+<body>
+  <main>
+    <header><div><p class="eyebrow">DENTRO DEL INVESTIGADOR</p><h1>Recuperación híbrida. <em>Evidencia específica por objetivo.</em></h1></div><a href="./#arquitectura" id="return-link">Volver a arquitectura ↗</a></header>
+    <div class="objectives" aria-label="Objetivos con recuperación propia"><span class="objectives-label">Una búsqueda independiente para:</span><span>Metadatos</span><span>Quiz</span><span>Flashcards</span><span>Resumen</span><span>Guion de video</span></div>
+    <div class="context"><span>Consulta explícita o derivada del contexto pedagógico</span><span class="filter">Filtro: document_id · K = resultados finales solicitados</span></div>
+    <div class="diagram">
+      <svg viewBox="0 0 1100 345" role="img" aria-labelledby="rag-title rag-description">
+        <title id="rag-title">Recuperación híbrida y selección de evidencia</title>
+        <desc id="rag-description">La consulta alimenta dos ramas: embeddings y búsqueda semántica en ChromaDB, y búsqueda léxica BM25. Los rankings se fusionan con Reciprocal Rank Fusion. Un Cross-Encoder reordena los candidatos y selecciona la evidencia Top-K para el modelo. Cada objetivo vuelve a recorrer este proceso.</desc>
+        <defs><marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M0 0L10 5L0 10Z" fill="#7dd3fc"/></marker></defs>
+        <g class="wires" fill="none" marker-end="url(#arrow)"><path d="M140 170H170V85H205"/><path d="M170 170V255H205"/><path d="M420 85H460V170H500"/><path d="M420 255H460V170"/><path d="M670 170H715"/><path d="M895 170H940"/></g>
+        <g class="stage input"><rect x="10" y="130" width="130" height="80" rx="14"/><text x="75" y="164">Consulta</text><text class="detail" x="75" y="184"><tspan x="75">específica para</tspan><tspan x="75" dy="14">cada objetivo</tspan></text></g>
+        <g class="stage semantic"><rect x="205" y="30" width="215" height="110" rx="14"/><text class="label" x="312" y="53">01A / SEMÁNTICA</text><text x="312" y="83">ChromaDB</text><text class="detail" x="312" y="106">Embeddings · Similitud coseno</text><text class="detail" x="312" y="125">Hasta 3 × K candidatos</text></g>
+        <g class="stage lexical"><rect x="205" y="200" width="215" height="110" rx="14"/><text class="label" x="312" y="223">01B / LÉXICA</text><text x="312" y="253">BM25</text><text class="detail" x="312" y="276">Coincidencia léxica · score &gt; 0</text><text class="detail" x="312" y="295">Hasta 3 × K candidatos</text></g>
+        <g class="stage fusion"><rect x="500" y="112" width="170" height="116" rx="14"/><text class="label" x="585" y="137">02 / FUSIÓN</text><text x="585" y="167">RRF</text><text class="detail" x="585" y="187"><tspan x="585">Fusiona ambos rankings</tspan><tspan x="585" dy="13">por ID</tspan></text><text class="detail" x="585" y="212">Retiene hasta 3 × K</text></g>
+        <g class="stage rerank"><rect x="715" y="112" width="180" height="116" rx="14"/><text class="label" x="805" y="137">03 / RERANKING</text><text x="805" y="167">Cross-Encoder</text><text class="detail" x="805" y="190">Consulta ↔ fragmento</text><text class="detail" x="805" y="212">Reordena por relevancia</text></g>
+        <g class="stage output"><rect x="940" y="112" width="150" height="116" rx="14"/><text class="label" x="1015" y="137">04 / EVIDENCIA</text><text x="1015" y="170">Top-K</text><text class="detail" x="1015" y="195">Hasta K evidencias</text><text class="detail" x="1015" y="215">↓ Modelo generativo</text></g>
+      </svg>
+    </div>
+    <footer><div><h2>Recuperar → seleccionar evidencia → generar. Repetir por objetivo.</h2><p>La evidencia puede coincidir o variar. No se reutiliza un único contexto para todas las salidas.</p></div><span class="note">RRF: Reciprocal Rank Fusion<br>Flujo productivo actual: formatos en serie.</span></footer>
+  </main>
+</body>
+</html>

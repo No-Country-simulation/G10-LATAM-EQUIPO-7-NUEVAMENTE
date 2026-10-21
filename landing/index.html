@@ -47,13 +47,26 @@
     </section>
 
     <section class="scene architecture-scene" id="arquitectura" aria-labelledby="title-arquitectura">
-      <div class="architecture-heading"><div><p class="eyebrow">04 / LO QUE OCURRE DETRÁS</p><h2 id="title-arquitectura" tabindex="-1">Un sistema que <em>genera, evalúa y corrige.</em></h2></div><span class="architecture-badge">BackendAPI<br><strong>Orquestador global</strong></span></div>
+      <div class="architecture-heading"><div><p class="eyebrow">04 / LO QUE OCURRE DETRÁS</p><h2 id="title-arquitectura" tabindex="-1">Un sistema que <em>genera, evalúa y corrige.</em></h2><p class="explore-hint"><span aria-hidden="true">↗</span> Arquitectura interactiva · clic para explorar</p></div><span class="architecture-badge">BackendAPI<br><strong>Orquestador global</strong></span></div>
+      <div class="architecture-workspace">
       <div class="system-canvas">
-        <svg id="system-map" viewBox="0 0 1020 505" role="group" aria-labelledby="map-title map-desc">
-          <title id="map-title">Arquitectura interactiva de NuevaMente</title><desc id="map-desc">Frontend se comunica con BackendAPI. BackendAPI coordina el sistema de Agentes y el evaluador independiente Data/IA. Dentro de Agentes, el Investigador RAG recupera evidencia, el Redactor genera contenido y el Revisor orienta las correcciones.</desc>
+        <svg id="system-map" viewBox="0 0 1060 620" role="group" aria-labelledby="map-title map-desc">
+          <title id="map-title">Arquitectura multiagentes de NuevaMente en OCI</title><desc id="map-desc">Una máquina OCI aloja los contenedores administrados por Docker Compose: Frontend, BackendAPI, Multiagentes, Data/IA y landing. BackendAPI coordina la generación y la evaluación independiente. El Investigador RAG recupera evidencia por objetivo, el Redactor genera formatos y el Revisor orienta las correcciones.</desc>
           <defs><marker id="arrowhead" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M0 0L10 5L0 10Z" fill="#f59e0b"/></marker></defs>
+          <rect class="oci-boundary" x="2" y="2" width="1056" height="616" rx="24"/>
+          <text class="infra-heading" x="26" y="34">OCI / MÁQUINA VIRTUAL</text>
+          <text class="infra-caption" x="1032" y="34" text-anchor="end">Docker Compose · Administración de contenedores</text>
+          <path class="infra-divider" d="M26 52H1034"/>
+          <g transform="translate(20 65)">
           <rect class="agent-boundary" id="agent-boundary" x="505" y="25" width="265" height="390" rx="20"/>
-          <text class="group-heading" x="525" y="58">SISTEMA DE AGENTES</text><text class="group-subtitle" x="525" y="78">Recuperación · Generación · Revisión</text>
+          <text class="group-heading" x="525" y="58">MULTIAGENTES</text><text class="group-subtitle" x="525" y="78">Contenedor · Generación y corrección</text>
+          <text class="container-label" x="20" y="163">CONTENEDOR / NGINX</text>
+          <text class="container-label" x="245" y="159">CONTENEDOR / BACKEND</text>
+          <text class="container-label" x="805" y="159">CONTENEDOR / DATA &amp; IA</text>
+          <path class="offline-link" d="M902 120V146" fill="none"/>
+          <g class="system-node offline-node" data-node="offline" role="button" tabindex="0" aria-haspopup="dialog" aria-label="Validación offline: explorar Ground Truth, benchmark y ablaciones">
+            <rect x="805" y="55" width="195" height="65" rx="10"/><text class="node-title agent-title" x="818" y="81">Validación offline</text><text class="node-detail" x="818" y="105">Ground Truth · Benchmark · Ablation</text><g class="explore-icon" aria-hidden="true"><circle cx="980" cy="76" r="11"/><text x="980" y="81">↗</text></g>
+          </g>
           <g class="edges" fill="none" marker-end="url(#arrowhead)">
             <path id="edge-front-back" d="M190 211H245"/>
             <path id="edge-back-front" d="M245 242H190"/>
@@ -62,9 +75,9 @@
             <path id="edge-writer-back" d="M525 220H477V250H450"/>
             <path id="edge-back-eval" d="M350 270V441H880V270"/>
             <path id="edge-eval-back" d="M925 270V480H310V270"/>
-            <path id="edge-back-reviewer" d="M425 270V340H525"/>
-            <path id="edge-reviewer-rag" d="M730 340H750V130H730"/>
-            <path id="edge-reviewer-writer" d="M627 310V250"/>
+            <path class="correction-edge" id="edge-back-reviewer" d="M425 270V340H525"/>
+            <path class="correction-edge" id="edge-reviewer-rag" d="M730 340H750V130H730"/>
+            <path class="correction-edge" id="edge-reviewer-writer" d="M627 310V250"/>
           </g>
           <text class="wire-label" x="475" y="433">Contenido + contexto + evidencia</text><text class="wire-label" x="475" y="473">Métricas + recomendaciones</text>
           <g class="system-node frontend-node" data-node="frontend" role="button" tabindex="0" aria-label="Frontend: interacción con el usuario">
@@ -73,23 +86,27 @@
           <g class="system-node backend-node" data-node="backend" role="button" tabindex="0" aria-label="BackendAPI: orquestador global">
             <rect x="245" y="170" width="205" height="100" rx="12"/><text class="node-kicker" x="266" y="196">ORQUESTADOR GLOBAL</text><text class="node-title" x="266" y="224">BackendAPI</text><text class="node-detail" x="266" y="247">Coordina · Persiste · Decide</text>
           </g>
-          <g class="system-node rag-node" data-node="rag" role="button" tabindex="0" aria-label="Investigador RAG: recupera evidencia">
-            <rect x="525" y="100" width="205" height="60" rx="10"/><text class="node-title agent-title" x="542" y="126">Investigador RAG</text><text class="node-detail" x="542" y="147">Recupera evidencia</text>
+          <g class="system-node rag-node" data-node="rag" role="button" tabindex="0" aria-haspopup="dialog" aria-label="Investigador RAG: abrir detalle de recuperación híbrida">
+            <rect x="525" y="100" width="205" height="60" rx="10"/><text class="node-title agent-title" x="542" y="126">Investigador RAG</text><text class="node-detail" x="542" y="147">Explorar recuperación híbrida</text><g class="explore-icon" aria-hidden="true"><circle cx="712" cy="120" r="11"/><text x="712" y="125">↗</text></g>
           </g>
           <g class="system-node writer-node" data-node="writer" role="button" tabindex="0" aria-label="Redactor Pedagógico: genera y corrige">
-            <rect x="525" y="190" width="205" height="60" rx="10"/><text class="node-title agent-title" x="542" y="216">Redactor Pedagógico</text><text class="node-detail" x="542" y="237">Genera y corrige</text>
+            <rect x="525" y="190" width="205" height="60" rx="10"/><text class="node-title agent-title" x="542" y="216">Redactor Pedagógico</text><text class="node-detail" x="542" y="237">Evidencia propia por formato</text>
           </g>
-          <g class="system-node reviewer-node" data-node="reviewer" role="button" tabindex="0" aria-label="Agente Revisor: interpreta recomendaciones">
-            <rect x="525" y="310" width="205" height="60" rx="10"/><text class="node-title agent-title" x="542" y="336">Agente Revisor</text><text class="node-detail" x="542" y="357">Orienta la corrección</text>
+          <g class="system-node reviewer-node" data-node="reviewer" role="button" tabindex="0" aria-haspopup="dialog" aria-label="Agente Revisor: abrir detalle del flujo de corrección">
+            <rect x="525" y="310" width="205" height="60" rx="10"/><text class="node-title agent-title" x="542" y="336">Agente Revisor</text><text class="node-detail" x="542" y="357">Orienta la corrección</text><g class="explore-icon" aria-hidden="true"><circle cx="712" cy="330" r="11"/><text x="712" y="335">↗</text></g>
           </g>
           <text class="optional-label" x="530" y="395">Nueva evidencia, solo si es necesaria</text>
-          <g class="system-node evaluator-node" data-node="evaluator" role="button" tabindex="0" aria-label="Data/IA: agente evaluador independiente">
-            <rect x="805" y="170" width="195" height="100" rx="12"/><text class="node-kicker" x="824" y="196">EVALUADOR INDEPENDIENTE</text><text class="node-title" x="824" y="224">Data/IA</text><text class="node-detail" x="824" y="247">Calidad y respaldo documental</text>
+          <g class="system-node evaluator-node" data-node="evaluator" role="button" tabindex="0" aria-haspopup="dialog" aria-label="Data/IA: abrir detalle de evaluación heurística y semántica">
+            <rect x="805" y="170" width="195" height="100" rx="12"/><text class="node-kicker" x="824" y="196">EVALUADOR INDEPENDIENTE</text><text class="node-title" x="824" y="224">Data/IA</text><text class="node-detail" x="824" y="244"><tspan x="824">Calidad pedagógica ·</tspan><tspan x="824" dy="14">fidelidad a la fuente</tspan></text><g class="explore-icon" aria-hidden="true"><circle cx="980" cy="220" r="11"/><text x="980" y="225">↗</text></g>
           </g>
+          </g>
+          <text class="infra-caption" x="40" y="594">Persistencia · SQLite · OCI Object Storage · ChromaDB</text>
+          <text class="infra-caption" x="1020" y="594" text-anchor="end">Contenedor adicional · Landing / Nginx</text>
         </svg>
       </div>
       <div class="sequence-bar"><div class="sequence-caption" role="status" aria-live="polite"><span id="step-count">EL SISTEMA</span><p id="step-description">Reproduce el recorrido completo: generación, evaluación y un caso que requiere corrección.</p></div><div class="architecture-toolbar" hidden><div class="playback-panel" role="group" aria-label="Reproducción del proceso completo"><div class="sequence-controls"><button type="button" id="step-reset">↺ Reiniciar</button><button type="button" id="step-play">▷ Reproducir</button><button type="button" id="step-pause" disabled>Ⅱ Pausa</button></div><label class="evidence-option"><input type="checkbox" id="new-evidence" checked> Requiere nueva evidencia</label></div></div></div>
-      <div class="architecture-footer"><span>Generación ≠ evaluación</span><span>Evidencia conservada</span><span>Correcciones limitadas</span><small>OCI · Docker · Persistencia</small></div>
+      </div>
+      <div class="architecture-footer"><span>Generación ≠ evaluación</span><span>Evidencia por objetivo</span><span>Correcciones limitadas</span><small>OCI · Docker Compose · Contenedores</small></div>
       <noscript><p class="fallback">Backend → Agentes → Backend → Data/IA → Backend. Si requiere corrección: Revisor → nueva evidencia opcional → Redactor → nueva evaluación. Activa JavaScript para recorrer los pasos.</p></noscript>
     </section>
 
