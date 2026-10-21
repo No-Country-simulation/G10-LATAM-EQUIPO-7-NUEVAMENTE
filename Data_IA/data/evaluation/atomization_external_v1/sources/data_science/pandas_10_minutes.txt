@@ -1,0 +1,284 @@
+10 minutes to pandas
+
+This is a short introduction to pandas, geared mainly for new users. You can see more complex recipes in the Cookbook.
+
+Customarily, we import as follows:
+
+Basic data structures in pandas
+
+pandas provides two types of classes for handling data:
+
+1. Series: a one-dimensional labeled array holding data of any type
+
+such as integers, strings, Python objects etc.
+2. DataFrame: a two-dimensional data structure that holds data like a two-dimension array or a table with rows and columns.
+
+Object creation
+
+See the Intro to data structures section.
+
+Creating a Series by passing a list of values, letting pandas create a default RangeIndex.
+
+Creating a DataFrame by passing a NumPy array with a datetime index using date_range() and labeled columns:
+
+Creating a DataFrame by passing a dictionary of objects where the keys are the column labels and the values are the column values.
+
+The columns of the resulting DataFrame have different dtypes:
+
+If you’re using IPython, tab completion for column names (as well as public attributes) is automatically enabled. Here’s a subset of the attributes that will be completed:
+
+As you can see, the columns A, B, C, and D are automatically tab completed. E and F are there as well; the rest of the attributes have been truncated for brevity.
+
+Viewing data
+
+See the Essential basic functionality section.
+
+Use DataFrame.head() and DataFrame.tail() to view the top and bottom rows of the frame respectively:
+
+Display the DataFrame.index or DataFrame.columns:
+
+Return a NumPy representation of the underlying data with DataFrame.to_numpy() without the index or column labels:
+
+Note
+
+NumPy arrays have one dtype for the entire array while pandas DataFrames have one dtype per column. When you call DataFrame.to_numpy(), pandas will find the NumPy dtype that can hold all of the dtypes in the DataFrame. If the common data type is object, DataFrame.to_numpy() will require copying data.
+
+describe() shows a quick statistic summary of your data:
+
+Transposing your data:
+
+DataFrame.sort_index() sorts by an axis:
+
+DataFrame.sort_values() sorts by values:
+
+Selection
+
+Note
+
+While standard Python / NumPy expressions for selecting and setting are intuitive and come in handy for interactive work, for production code, we recommend the optimized pandas data access methods, DataFrame.at(), DataFrame.iat(), DataFrame.loc() and DataFrame.iloc().
+
+See the indexing documentation Indexing and Selecting Data and MultiIndex / Advanced Indexing.
+
+Getitem ([])
+
+For a DataFrame, passing a single label selects a column and yields a Series:
+
+If the label only contains letters, numbers, and underscores, you can alternatively use the column name attribute:
+
+Passing a list of column labels selects multiple columns, which can be useful for getting a subset/rearranging:
+
+For a DataFrame, passing a slice : selects matching rows:
+
+Selection by label
+
+See more in Selection by Label using DataFrame.loc() or DataFrame.at().
+
+Selecting a row matching a label:
+
+Selecting all rows (:) with a select column labels:
+
+For label slicing, both endpoints are included:
+
+Selecting a single row and column label returns a scalar:
+
+For getting fast access to a scalar (equivalent to the prior method):
+
+Selection by position
+
+See more in Selection by Position using DataFrame.iloc() or DataFrame.iat().
+
+Select via the position of the passed integers:
+
+Integer slices acts similar to NumPy/Python:
+
+Lists of integer position locations:
+
+For slicing rows explicitly:
+
+For slicing columns explicitly:
+
+For getting a value explicitly:
+
+For getting fast access to a scalar (equivalent to the prior method):
+
+Boolean indexing
+
+Select rows where df.A is greater than 0.
+
+Selecting values from a DataFrame where a boolean condition is met:
+
+Using isin() method for filtering:
+
+Setting
+
+Setting a new column automatically aligns the data by the indexes:
+
+Setting values by label:
+
+Setting values by position:
+
+Setting by assigning with a NumPy array:
+
+The result of the prior setting operations:
+
+A where operation with setting:
+
+Missing data
+
+For NumPy data types, np.nan represents missing data. It is by default not included in computations. See the Missing Data section.
+
+Reindexing allows you to change/add/delete the index on a specified axis. This returns a copy of the data:
+
+DataFrame.dropna() drops any rows that have missing data:
+
+DataFrame.fillna() fills missing data:
+
+isna() gets the boolean mask where values are nan:
+
+Operations
+
+See the Basic section on Binary Ops.
+
+Stats
+
+Operations in general exclude missing data.
+
+Calculate the mean value for each column:
+
+Calculate the mean value for each row:
+
+Operating with another Series or DataFrame with a different index or column will align the result with the union of the index or column labels. In addition, pandas automatically broadcasts along the specified dimension and will fill unaligned labels with np.nan.
+
+User defined functions
+
+DataFrame.agg() and DataFrame.transform() applies a user defined function that reduces or broadcasts its result respectively.
+
+Value Counts
+
+See more at Histogramming and Discretization.
+
+String Methods
+
+Series is equipped with a set of string processing methods in the str attribute that make it easy to operate on each element of the array, as in the code snippet below. See more at Vectorized String Methods.
+
+Merge
+
+Concat
+
+pandas provides various facilities for easily combining together Series and DataFrame objects with various kinds of set logic for the indexes and relational algebra functionality in the case of join / merge-type operations.
+
+See the Merging section.
+
+Concatenating pandas objects together row-wise with concat():
+
+Note
+
+Adding a column to a DataFrame is relatively fast. However, adding a row requires a copy, and may be expensive. We recommend passing a pre-built list of records to the DataFrame constructor instead of building a DataFrame by iteratively appending records to it.
+
+Join
+
+merge() enables SQL style join types along specific columns. See the Database style joining section.
+
+merge() on unique keys:
+
+Grouping
+
+By “group by” we are referring to a process involving one or more of the following steps:
+
+- Splitting the data into groups based on some criteria
+- Applying a function to each group independently
+- Combining the results into a data structure
+
+See the Grouping section.
+
+Grouping by a column label, selecting column labels, and then applying the DataFrameGroupBy.sum() function to the resulting groups:
+
+Grouping by multiple columns label forms MultiIndex.
+
+Reshaping
+
+See the sections on Hierarchical Indexing and Reshaping.
+
+Stack
+
+The stack() method “compresses” a level in the DataFrame’s columns:
+
+With a “stacked” DataFrame or Series (having a MultiIndex as the index), the inverse operation of stack() is unstack(), which by default unstacks the last level:
+
+Pivot tables
+
+See the section on Pivot Tables.
+
+pivot_table() pivots a DataFrame specifying the values, index and columns
+
+Time series
+
+pandas has simple, powerful, and efficient functionality for performing resampling operations during frequency conversion (e.g., converting secondly data into 5-minutely data). This is extremely common in, but not limited to, financial applications. See the Time Series section.
+
+Series.tz_localize() localizes a time series to a time zone:
+
+Series.tz_convert() converts a timezones aware time series to another time zone:
+
+Adding a non-fixed duration (BusinessDay) to a time series:
+
+Categoricals
+
+pandas can include categorical data in a DataFrame. For full docs, see the categorical introduction and the API documentation.
+
+Converting the raw grades to a categorical data type:
+
+Rename the categories to more meaningful names:
+
+Reorder the categories and simultaneously add the missing categories (methods under Series.cat() return a new Series by default):
+
+Sorting is per order in the categories, not lexical order:
+
+Grouping by a categorical column with observed=False also shows empty categories:
+
+Plotting
+
+See the Plotting docs.
+
+We use the standard convention for referencing the matplotlib API:
+
+The plt.close method is used to close a figure window:
+
+../\_images/series_plot_basic.png
+
+Note
+
+When using Jupyter, the plot will appear using plot(). Otherwise use matplotlib.pyplot.show to show it or matplotlib.pyplot.savefig to write it to a file.
+
+plot() plots all columns:
+
+../\_images/frame_plot_basic.png
+
+Importing and exporting data
+
+See the IO Tools section.
+
+CSV
+
+Writing to a csv file: using DataFrame.to_csv()
+
+Reading from a csv file: using read_csv()
+
+Parquet
+
+Writing to a Parquet file:
+
+Reading from a Parquet file Store using read_parquet():
+
+Excel
+
+Reading and writing to Excel.
+
+Writing to an excel file using DataFrame.to_excel():
+
+Reading from an excel file using read_excel():
+
+Gotchas
+
+If you are attempting to perform a boolean operation on a Series or DataFrame you might see an exception like:
+
+See Comparisons and Gotchas for an explanation and what to do.

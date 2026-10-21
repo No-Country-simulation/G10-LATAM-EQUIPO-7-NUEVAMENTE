@@ -1,0 +1,19 @@
+{
+  "artifact": "external_claim_hygiene_replacements_v1",
+  "status": "replacement_candidates_not_adjudicated",
+  "seed": 20261021,
+  "target_per_source": 8,
+  "replacement_count": 10,
+  "replacement_needs": {
+    "ai/gemini_function_calling.txt": 1,
+    "ai/gemini_structured_outputs.txt": 2,
+    "data_science/pandas_groupby.txt": 6,
+    "frontend/mdn_html_forms.txt": 1
+  },
+  "selection_strategy": "deterministic per-source sampling from candidates not present in the original review pool",
+  "model_used": false,
+  "llm_used": false,
+  "claim_atomizer_v0_4_used": false,
+  "ground_truth_used": false,
+  "human_hygiene_review_required": true
+}

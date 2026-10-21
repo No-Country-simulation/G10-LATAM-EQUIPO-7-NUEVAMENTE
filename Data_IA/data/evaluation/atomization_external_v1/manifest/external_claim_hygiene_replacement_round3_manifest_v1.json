@@ -1,0 +1,13 @@
+{
+  "artifact": "external_claim_hygiene_replacement_round3_v1",
+  "status": "replacement_candidate_not_adjudicated",
+  "seed": 20261021,
+  "source_reference": "data_science/pandas_groupby.txt",
+  "replacement_count": 1,
+  "selection_strategy": "deterministic sampling from source candidates not previously reviewed in original pool, replacement round 1 or replacement round 2",
+  "model_used": false,
+  "llm_used": false,
+  "claim_atomizer_v0_4_used": false,
+  "ground_truth_used": false,
+  "human_hygiene_review_required": true
+}

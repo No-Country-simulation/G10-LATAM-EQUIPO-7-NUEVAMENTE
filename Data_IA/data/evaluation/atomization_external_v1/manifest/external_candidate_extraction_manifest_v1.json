@@ -1,0 +1,57 @@
+{
+  "experiment": "claim_atomization_external_validation_v1",
+  "stage": "candidate_extraction",
+  "component_under_test": "claim-atomizer-v0.4",
+  "model_executed": false,
+  "llm_used_for_extraction": false,
+  "prompt_tuning_performed": false,
+  "extraction_policy": "literal_source_text_only",
+  "source_directory": "data\\evaluation\\atomization_external_v1\\sources",
+  "supported_extensions": [
+    ".csv",
+    ".md",
+    ".txt"
+  ],
+  "source_file_count": 16,
+  "source_extension_distribution": {
+    ".csv": 1,
+    ".txt": 15
+  },
+  "source_domain_distribution": {
+    "ai": 3,
+    "backend": 3,
+    "cloud_devops": 3,
+    "data_science": 3,
+    "frontend": 3,
+    "unclassified": 1
+  },
+  "filters": {
+    "minimum_character_length": 8,
+    "maximum_character_length": 600,
+    "code_filter_enabled": true,
+    "noise_filter_enabled": true
+  },
+  "candidate_counts": {
+    "raw_extracted": 2377,
+    "duplicate_removed": 148,
+    "final_review_pool": 2229
+  },
+  "output": {
+    "candidate_file": "data\\evaluation\\atomization_external_v1\\dataset\\external_claim_candidates_v1.csv",
+    "candidate_file_sha256": "4a940a1d3b4836b1b9fd24bde45b3bd616cd883d16e4f2fd10f103533b7b01c3"
+  },
+  "human_review_required_for": [
+    "format",
+    "target_bucket",
+    "selection_status"
+  ],
+  "methodological_notes": [
+    "No LLM is used during candidate extraction.",
+    "Candidate text is extracted literally from source files.",
+    "The extractor does not assign atomization classes.",
+    "The extractor does not create ground truth.",
+    "Duplicate removal uses normalized exact text only.",
+    "Previous-corpus overlap is validated later by the external dataset builder."
+  ],
+  "status": "candidate_pool_requires_human_review"
+}

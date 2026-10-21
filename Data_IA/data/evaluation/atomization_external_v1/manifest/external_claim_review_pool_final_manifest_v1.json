@@ -1,0 +1,39 @@
+{
+  "artifact": "external_claim_review_pool_final_v1",
+  "status": "hygiene_complete_frozen_before_bucket_review",
+  "total_claims": 120,
+  "source_count": 15,
+  "domain_count": 5,
+  "claims_per_source": 8,
+  "claims_per_domain": 24,
+  "format": "source_text",
+  "composition": {
+    "original_review_pool": 110,
+    "replacement_round_1": 9,
+    "replacement_round_5": 1
+  },
+  "rejected_replacement_rounds": {
+    "round_2": {
+      "replacement_id": "EXT-REPL2-V1-001",
+      "reason": "numeric_output_noise"
+    },
+    "round_3": {
+      "replacement_id": "EXT-REPL3-V1-001",
+      "reason": "tabular_output_noise"
+    },
+    "round_4": {
+      "replacement_id": "EXT-REPL4-V1-001",
+      "reason": "tabular_output_noise"
+    }
+  },
+  "next_stage": "human structural bucket review before final balanced dataset selection",
+  "human_review_pending": [
+    "target_bucket",
+    "selection_status"
+  ],
+  "model_used": false,
+  "llm_used": false,
+  "claim_atomizer_v0_4_used": false,
+  "ground_truth_used": false,
+  "production_impact": false
+}
