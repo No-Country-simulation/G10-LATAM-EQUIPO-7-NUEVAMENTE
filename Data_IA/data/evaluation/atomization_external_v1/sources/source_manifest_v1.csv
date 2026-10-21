@@ -1,0 +1,16 @@
+source_id,domain,filename,source_url,source_organization,language,retrieved_date
+EXT-SRC-001,ai,gemini_get_started.txt,https://ai.google.dev/gemini-api/docs/get-started,Google AI,English,2026-10-20
+EXT-SRC-002,ai,gemini_structured_outputs.txt,https://ai.google.dev/gemini-api/docs/structured-output,Google AI,English,2026-10-20
+EXT-SRC-003,ai,gemini_function_calling.txt,https://ai.google.dev/gemini-api/docs/function-calling,Google AI,English,2026-10-20
+EXT-SRC-004,backend,fastapi_first_steps.txt,https://fastapi.tiangolo.com/es/tutorial/first-steps/,FastAPI,Spanish,2026-10-20
+EXT-SRC-005,backend,fastapi_path_params.txt,https://fastapi.tiangolo.com/es/tutorial/path-params/,FastAPI,Spanish,2026-10-20
+EXT-SRC-006,backend,fastapi_request_body.txt,https://fastapi.tiangolo.com/es/tutorial/body/,FastAPI,Spanish,2026-10-20
+EXT-SRC-007,cloud_devops,kubernetes_what_is.txt,https://kubernetes.io/es/docs/concepts/overview/what-is-kubernetes/,Kubernetes,Spanish,2026-10-20
+EXT-SRC-008,cloud_devops,kubernetes_concepts.txt,https://kubernetes.io/es/docs/concepts/,Kubernetes,Spanish,2026-10-20
+EXT-SRC-009,cloud_devops,kubernetes_objects.txt,https://kubernetes.io/docs/concepts/overview/working-with-objects/,Kubernetes,English,2026-10-20
+EXT-SRC-010,data_science,pandas_10_minutes.txt,https://pandas.pydata.org/docs/user_guide/10min.html,pandas,English,2026-10-20
+EXT-SRC-011,data_science,pandas_groupby.txt,https://pandas.pydata.org/docs/user_guide/groupby.html,pandas,English,2026-10-20
+EXT-SRC-012,data_science,sklearn_getting_started.txt,https://scikit-learn.org/stable/getting_started,scikit-learn,English,2026-10-20
+EXT-SRC-013,frontend,mdn_events.txt,https://developer.mozilla.org/es/docs/Learn_web_development/Core/Scripting/Events,MDN Web Docs,Spanish,2026-10-20
+EXT-SRC-014,frontend,mdn_html_forms.txt,https://developer.mozilla.org/es/docs/Learn_web_development/Core/Structuring_content/HTML_forms,MDN Web Docs,Spanish,2026-10-20
+EXT-SRC-015,frontend,mdn_what_is_javascript.txt,https://developer.mozilla.org/es/docs/Learn_web_development/Core/Scripting/What_is_JavaScript,MDN Web Docs,Spanish,2026-10-20

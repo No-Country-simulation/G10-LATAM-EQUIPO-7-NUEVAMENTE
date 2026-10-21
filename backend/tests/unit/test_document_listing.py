@@ -157,3 +157,38 @@ def test_list_active_documents_returns_newest_first() -> None:
         "doc_new",
         "doc_old",
     ]
+
+
+def test_list_active_documents_excludes_inactive_documents() -> None:
+    """Documentos inactivos deben excluirse del listado de biblioteca."""
+    repository = FakeDocumentRepository()
+    now = datetime.now(UTC)
+
+    active_doc = _build_document(
+        document_id="doc_active",
+        status=DocumentStatus.STORED,
+        oci_object_name="documents/doc_active/original.pdf",
+        created_at=now,
+    )
+    inactive_doc = _build_document(
+        document_id="doc_inactive",
+        status=DocumentStatus.STORED,
+        oci_object_name="documents/doc_inactive/original.pdf",
+        created_at=now + timedelta(seconds=1),
+    )
+    inactive_doc.deactivate()
+
+    repository.create(active_doc)
+    repository.create(inactive_doc)
+
+    service = DocumentService(repository)
+    documents = service.list_active_documents()
+
+    assert [doc.document_id for doc in documents] == ["doc_active"]
+
+    # Al reactivarse, vuelve a aparecer en biblioteca
+    inactive_doc.activate()
+    repository.update(inactive_doc)
+
+    documents_after = service.list_active_documents()
+    assert [doc.document_id for doc in documents_after] == ["doc_inactive", "doc_active"]

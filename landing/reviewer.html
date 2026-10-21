@@ -1,0 +1,42 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Agente Revisor · NuevaMente</title>
+  <link rel="stylesheet" href="rag.css"><link rel="stylesheet" href="reviewer.css"><link rel="stylesheet" href="detail-responsive.css">
+  <script src="reviewer.js" defer></script>
+</head>
+<body>
+<main>
+  <header><div><p class="eyebrow">DENTRO DEL REVISOR</p><h1>Del feedback a <em>una ruta de corrección.</em></h1></div><a href="./#arquitectura" id="return-link">Volver a arquitectura ↗</a></header>
+  <div class="context"><span><strong>Entrada desde Backend</strong> · Contenido anterior + contexto pedagógico + evidencias + evaluación V2</span><span class="filter">POST /api/v1/revise</span></div>
+  <div class="scenarios" role="group" aria-label="Escenario de revisión"><span>Ejemplos de hallazgos:</span><button type="button" data-case="direct" aria-pressed="true">Ajuste didáctico</button><button type="button" data-case="evidence" aria-pressed="false">Falta de respaldo</button><button type="button" id="motion" aria-pressed="false">Pausar animación</button></div>
+  <div class="diagram">
+    <svg viewBox="0 0 1100 390" role="img" aria-labelledby="review-title review-desc">
+      <title id="review-title">Decisión del Revisor y rutas de corrección</title>
+      <desc id="review-desc">El Revisor interpreta los hallazgos de la evaluación y decide si necesita nueva evidencia. Puede enviar directamente el feedback y la evidencia disponible al Redactor, o solicitar al Investigador RAG evidencia adicional del mismo documento antes de la reescritura. El resultado regresa al Backend para persistencia y reevaluación.</desc>
+      <defs><marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M0 0L10 5L0 10Z" fill="#7dd3fc"/></marker></defs>
+      <rect class="review-boundary" x="18" y="14" width="565" height="356" rx="18"/>
+      <text class="boundary-label" x="38" y="39">AGENTE REVISOR · INTERPRETA Y ENRUTA</text>
+      <g class="wires" fill="none" marker-end="url(#arrow)">
+        <path class="shared" d="M265 200H315"/>
+        <path class="route-direct" d="M555 200H800"/>
+        <path class="route-evidence" d="M435 145V95H620"/>
+        <path class="route-evidence" d="M780 95H890V155"/>
+        <path class="shared" d="M890 245V292"/>
+      </g>
+      <g class="stage inspect"><rect x="40" y="155" width="225" height="90" rx="12"/><text class="label" x="152" y="175">01 / INTERPRETAR</text><text x="152" y="199">Interpretar evaluación</text><text class="detail" x="152" y="219"><tspan x="152">Observaciones · recomendaciones ·</tspan><tspan x="152" dy="15">información no respaldada</tspan></text></g>
+      <g class="stage decide"><rect x="315" y="145" width="240" height="110" rx="14"/><text class="label" x="435" y="170">02 / DECIDIR</text><text x="435" y="198">¿Nueva evidencia?</text><text class="detail" x="435" y="222">Hallazgos de respaldo o contexto</text><text class="detail" x="435" y="241">determinan la ruta</text></g>
+      <text class="route-label route-evidence" x="480" y="82">SÍ · AMPLIAR</text>
+      <text class="route-label route-direct" x="618" y="187">NO · AJUSTAR</text>
+      <g class="stage integration route-evidence retrieve"><rect x="620" y="50" width="160" height="90" rx="12"/><text class="label" x="700" y="72">INTEGRACIÓN RAG</text><text x="700" y="98">Nueva evidencia</text><text class="detail" x="700" y="120">Mismo documento</text></g>
+      <g class="stage integration rewrite"><rect x="800" y="155" width="180" height="90" rx="12"/><text class="label" x="890" y="178">INTEGRACIÓN REDACTOR</text><text x="890" y="204">Reescribir</text><text class="detail" x="890" y="226">Feedback + evidencia</text></g>
+      <g class="stage output deliver"><rect x="760" y="292" width="300" height="78" rx="12"/><text class="label" x="910" y="313">SALIDA HACIA BACKEND</text><text x="910" y="338">Versión corregida + fuentes</text><text class="detail" x="910" y="357">Persistir → solicitar reevaluación V2</text></g>
+      <text class="boundary-note" x="40" y="335">Decisión de ruta: needs_new_evidence</text>
+    </svg>
+  </div>
+  <section class="case-detail" aria-live="polite"><span class="case-label" id="case-label">EJEMPLO · Ajuste didáctico</span><strong id="case-title">«Simplificar el lenguaje para el perfil destinatario»</strong><p><b>Ruta:</b> <span id="case-description">el Revisor puede enviar el feedback directamente al Redactor utilizando la evidencia disponible.</span></p></section>
+  <footer><div><h2>Una corrección por generación. Historial trazable.</h2><p>Backend habilita la revisión ante requires_revision o rejected con hallazgos accionables.<br>Conserva el original y vincula la corrección mediante revision_id y original_format_id.</p></div><span class="note">La reevaluación cierra el ciclo.<br>No inicia otra corrección ni garantiza aprobación.</span></footer>
+</main>
+</body>
+</html>

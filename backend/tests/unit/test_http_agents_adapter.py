@@ -239,6 +239,9 @@ def test_http_agents_adapter_maps_successful_formats_and_metadata() -> None:
                 == 15
             )
 
+            assert result.document_title is None
+            assert result.document_description is None
+
             assert len(
                 result.results
             ) == 2
@@ -527,6 +530,196 @@ def test_http_agents_adapter_translates_http_error() -> None:
     )
 
 
+def test_http_agents_adapter_preserves_partial_success_on_207() -> None:
+    """Un 207 con éxito parcial conserva el formato ok y la causa real del fallido.
+
+    Nota: 207 es un código 2xx, así que `raise_for_status()` nunca lo
+    interceptaba (ni antes de este fix). Este test fija ese contrato
+    con un payload mixto (no solo documenta que no regresiona), ya que
+    las pruebas previas solo cubrían 'todo éxito' o un único formato en
+    no_results.
+    """
+
+    evidence = [
+        {
+            "rank": 1,
+            "chunk_id": "chunk_1",
+            "document_id": "doc_123",
+            "score": 0.93,
+            "text": "Texto utilizado como evidencia.",
+        }
+    ]
+
+    response_payload = {
+        "document_id": "doc_123",
+        "learning_metadata": _learning_metadata_payload(),
+        "results": [
+            {
+                "format": "quiz",
+                "status": "success",
+                "content": {
+                    "title": "Quiz de prueba",
+                    "instructions": "Seleccione la respuesta correcta.",
+                    "questions": [
+                        {
+                            "question_id": "q_1",
+                            "question": "¿Qué componente orquesta el producto?",
+                            "options": ["BackendAPI", "Frontend"],
+                            "correct_answer": "BackendAPI",
+                            "explanation": "BackendAPI coordina las integraciones.",
+                        }
+                    ],
+                },
+                "sources_used": evidence,
+                "error_message": None,
+            },
+            {
+                "format": "flashcards",
+                "status": "failed",
+                "content": None,
+                "sources_used": [],
+                "error_message": (
+                    "Cuota de Gemini agotada. Intenta nuevamente más tarde."
+                ),
+                "error": {
+                    "code": "RESOURCE_EXHAUSTED",
+                    "message": "Cuota de Gemini agotada.",
+                    "retryable": True,
+                    "http_status": 429,
+                    "upstream_status": 429,
+                    "provider": "gemini",
+                },
+            },
+        ],
+    }
+
+    transport = httpx.MockTransport(
+        lambda request: httpx.Response(status_code=207, json=response_payload)
+    )
+
+    async def run_test() -> None:
+        async with httpx.AsyncClient(
+            transport=transport, base_url="http://agents.test"
+        ) as client:
+            adapter = HTTPAgentsAdapter(
+                client=client, generate_path="/api/v1/generate"
+            )
+
+            result = await adapter.generate_formats(_build_request())
+
+            assert len(result.results) == 2
+
+            quiz = next(
+                item for item in result.results if item.format_type == GeneratedFormatType.QUIZ
+            )
+            flashcards = next(
+                item
+                for item in result.results
+                if item.format_type == GeneratedFormatType.FLASHCARDS
+            )
+
+            assert quiz.status == GeneratedFormatStatus.SUCCESS
+            assert isinstance(quiz.content, QuizContent)
+
+            assert flashcards.status == GeneratedFormatStatus.FAILED
+            assert flashcards.content is None
+            assert flashcards.error_message == (
+                "Cuota de Gemini agotada. Intenta nuevamente más tarde."
+            )
+
+    asyncio.run(run_test())
+
+
+def test_http_agents_adapter_preserves_global_failure_causes() -> None:
+    """Un fallo global (todo falló) conserva la causa real por formato, no un mensaje genérico.
+
+    Este es el test de regresión del fix: con `response.raise_for_status()`
+    (comportamiento previo a este cambio) un 429 lanzaba HTTPStatusError
+    antes de leer el body, y este test fallaba con un AgentsError genérico
+    en vez de llegar a las aserciones. Verificado manualmente contra el
+    adapter anterior al fix.
+    """
+
+    response_payload = {
+        "document_id": "doc_123",
+        "learning_metadata": {
+            "key_concepts": ["Error al extraer conceptos"],
+            "prerequisites": ["No se pudieron determinar"],
+            "estimated_time_minutes": 0,
+        },
+        "results": [
+            {
+                "format": "quiz",
+                "status": "failed",
+                "content": None,
+                "sources_used": [],
+                "error_message": "Cuota de Gemini agotada.",
+                "error": {
+                    "code": "RESOURCE_EXHAUSTED",
+                    "message": "Cuota de Gemini agotada.",
+                    "retryable": True,
+                    "http_status": 429,
+                    "upstream_status": 429,
+                    "provider": "gemini",
+                },
+            },
+            {
+                "format": "flashcards",
+                "status": "failed",
+                "content": None,
+                "sources_used": [],
+                "error_message": "Timeout al esperar la respuesta de Gemini.",
+                "error": {
+                    "code": "PROVIDER_TIMEOUT",
+                    "message": "Timeout al esperar la respuesta de Gemini.",
+                    "retryable": True,
+                    "http_status": 504,
+                    "upstream_status": 504,
+                    "provider": "gemini",
+                },
+            },
+        ],
+    }
+
+    transport = httpx.MockTransport(
+        lambda request: httpx.Response(status_code=429, json=response_payload)
+    )
+
+    async def run_test() -> None:
+        async with httpx.AsyncClient(
+            transport=transport, base_url="http://agents.test"
+        ) as client:
+            adapter = HTTPAgentsAdapter(
+                client=client, generate_path="/api/v1/generate"
+            )
+
+            # No debe lanzar AgentsError: el body sigue el contrato acordado
+            # aun con un código de fallo global.
+            result = await adapter.generate_formats(_build_request())
+
+            assert len(result.results) == 2
+            assert all(
+                item.status == GeneratedFormatStatus.FAILED for item in result.results
+            )
+
+            quiz = next(
+                item for item in result.results if item.format_type == GeneratedFormatType.QUIZ
+            )
+            flashcards = next(
+                item
+                for item in result.results
+                if item.format_type == GeneratedFormatType.FLASHCARDS
+            )
+
+            # Cada formato conserva SU PROPIA causa real, no un mensaje genérico
+            # ni el mismo mensaje repetido para ambos.
+            assert quiz.error_message == "Cuota de Gemini agotada."
+            assert flashcards.error_message == "Timeout al esperar la respuesta de Gemini."
+            assert quiz.error_message != flashcards.error_message
+
+    asyncio.run(run_test())
+
+
 def test_http_agents_adapter_translates_timeout() -> None:
     """Traduce timeouts HTTP al contrato AgentsError."""
 
@@ -559,6 +752,50 @@ def test_http_agents_adapter_translates_timeout() -> None:
                 await adapter.generate_formats(
                     _build_request()
                 )
+
+    asyncio.run(
+        run_test()
+    )
+
+
+def test_http_agents_adapter_maps_document_title_and_description() -> None:
+    """Propaga document_title/document_description cuando Agentes los envía."""
+
+    response_payload = _success_response()
+    response_payload["document_title"] = "Fundamentos de BackendAPI"
+    response_payload["document_description"] = (
+        "Resumen breve generado por Agentes."
+    )
+
+    transport = httpx.MockTransport(
+        lambda request: httpx.Response(
+            status_code=200,
+            json=response_payload,
+        )
+    )
+
+    async def run_test() -> None:
+        async with httpx.AsyncClient(
+            transport=transport,
+            base_url="http://agents.test",
+        ) as client:
+            adapter = HTTPAgentsAdapter(
+                client=client,
+                generate_path="/api/v1/generate",
+            )
+
+            result = await adapter.generate_formats(
+                _build_request()
+            )
+
+            assert (
+                result.document_title
+                == "Fundamentos de BackendAPI"
+            )
+            assert (
+                result.document_description
+                == "Resumen breve generado por Agentes."
+            )
 
     asyncio.run(
         run_test()

@@ -1,0 +1,19 @@
+{
+  "artifact": "external_overlap_audit_v1",
+  "status": "pass",
+  "historical_partitions": {
+    "development": "data\\evaluation\\atomization_v1\\atomization_dataset_v1.csv",
+    "validation": "data\\evaluation\\atomization_v1\\holdout_v1\\atomization_holdout_dataset_v1.csv",
+    "final_eval": "data\\evaluation\\atomization_v1\\final_eval_v1\\atomization_final_eval_dataset_v1.csv"
+  },
+  "historical_total": 59,
+  "external_total": 80,
+  "historical_normalized_duplicates": 0,
+  "external_normalized_duplicates": 0,
+  "exact_normalized_overlap": 0,
+  "normalization": "Unicode NFKC, lowercase, whitespace collapse, punctuation-spacing normalization",
+  "semantic_near_duplicate_check": false,
+  "claim_atomizer_v0_4_used": false,
+  "llm_used": false,
+  "production_impact": false
+}

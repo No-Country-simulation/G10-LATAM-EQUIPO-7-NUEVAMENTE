@@ -1,0 +1,43 @@
+{
+  "calibration_id": "CAL-V1-018",
+  "source_case_id": "CLD-ES-001-Q05",
+  "document_id": "CLD-ES-001",
+  "category": "Cloud / DevOps",
+  "variant": "unsupported_claim",
+  "target_dimension": "content_support",
+  "expected_behavior": {
+    "semantic": "Debe detectar como no respaldada la afirmación sobre cifrado de todo el tráfico por defecto.",
+    "heuristic": "Puede penalizar content_support por términos no presentes en chunks_used."
+  },
+  "injected_unsupported_claim": "Kubernetes cifra automáticamente todo el tráfico del clúster por defecto.",
+  "evaluation_request": {
+    "document_id": "CLD-ES-001",
+    "format": "flashcards",
+    "generated_content": {
+      "title": "Cómo describir Kubernetes",
+      "instructions": "Lee el frente e intenta responder antes de ver el reverso.",
+      "cards": [
+        {
+          "card_id": "c1",
+          "front": "¿De qué formas puede describirse Kubernetes según el documento?",
+          "back": "Como una plataforma de contenedores, una plataforma de microservicios o una plataforma portable de nube. También cifra automáticamente todo el tráfico del clúster por defecto."
+        }
+      ]
+    },
+    "generation_context": {
+      "profile": "beginner",
+      "niche": "general",
+      "detail_level": "medium",
+      "learning_objective": null
+    },
+    "chunks_used": [
+      {
+        "chunk_id": "CLD-ES-001_CH_002",
+        "document_id": "CLD-ES-001",
+        "rank": 1,
+        "score": 1.0,
+        "text": "Kubernetes tiene varias características. Puedes pensar en Kubernetes como:\n\n- una plataforma de contenedores\n- una plataforma de microservicios\n- una plataforma portable de nube\n\ny mucho más.\n\nKubernetes ofrece un entorno de administración centrado en contenedores. Kubernetes orquesta la infraestructura de cómputo, redes y almacenamiento para que las cargas de trabajo de los usuarios no tengan que hacerlo. Esto ofrece la simplicidad de las Plataformas como Servicio (PaaS) con la flexibilidad de la Infraestructura como Servicio (IaaS) y permite la portabilidad entre proveedores de infraestructura."
+      }
+    ]
+  }
+}

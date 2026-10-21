@@ -1,0 +1,44 @@
+{
+  "calibration_id": "CAL-V1-013",
+  "source_case_id": "FE-ES-001-Q01",
+  "document_id": "FE-ES-001",
+  "category": "Frontend",
+  "variant": "clean_reference",
+  "target_dimension": "all",
+  "expected_behavior": {
+    "heuristic": "scores altos en las cuatro dimensiones",
+    "semantic": "scores altos, sin observaciones críticas ni unsupported_information"
+  },
+  "evaluation_request": {
+    "document_id": "FE-ES-001",
+    "format": "video_script",
+    "generated_content": {
+      "title": "¿Qué es HTML?",
+      "estimated_duration_minutes": 1,
+      "scenes": [
+        {
+          "scene_id": "scene_1",
+          "title": "HTML y la estructura de una página web",
+          "visual_description": "Mostrar una página web sencilla junto a etiquetas HTML básicas.",
+          "narration": "HTML es un lenguaje de marcado que indica a los navegadores web cómo estructurar las páginas que visitamos. Sus elementos permiten marcar distintas partes del contenido para que aparezcan o actúen de una manera determinada.",
+          "duration_seconds": 45
+        }
+      ]
+    },
+    "generation_context": {
+      "profile": "beginner",
+      "niche": "general",
+      "detail_level": "medium",
+      "learning_objective": null
+    },
+    "chunks_used": [
+      {
+        "chunk_id": "FE-ES-001_CH_002",
+        "document_id": "FE-ES-001",
+        "rank": 1,
+        "score": 1.0,
+        "text": "## ¿Qué es HTML?\n\nHTML (HyperText Markup Language, por sus siglas en inglés) es un lenguaje de marcado que indica a los navegadores web cómo estructurar las páginas web que visita. Puede ser tan complicado o tan simple como el desarrollador web quiera que sea. HTML consiste en una serie de elementos, que utiliza para encerrar, envolver o marcar diferentes partes del contenido para que aparezca o actúe de cierta manera. Las etiquetas pueden convertir el contenido en un hipervínculo para conectarse a otra página, poner palabras en cursiva, etc."
+      }
+    ]
+  }
+}

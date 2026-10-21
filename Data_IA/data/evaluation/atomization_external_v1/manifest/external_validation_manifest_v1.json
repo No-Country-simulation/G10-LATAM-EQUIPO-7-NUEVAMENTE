@@ -1,0 +1,25 @@
+{
+  "experiment": "claim_atomization_external_validation_v1",
+  "component": "claim-atomizer-v0.4",
+  "component_status": "frozen",
+  "evaluation_type": "external_structural_validation",
+  "dataset_target_size": 80,
+  "target_distribution": {
+    "atomic": 20,
+    "compound": 20,
+    "relational": 20,
+    "non_propositional": 20
+  },
+  "source_corpus_overlap_allowed": 0,
+  "ground_truth_before_predictions": true,
+  "prompt_tuning_allowed": false,
+  "production_impact": false,
+  "decision_thresholds": {
+    "exact_structure_accuracy_min": 0.9,
+    "count_accuracy_min": 0.95,
+    "non_propositional_recall_min": 0.85,
+    "non_propositional_precision_min": 0.9,
+    "coverage_min": 0.95
+  },
+  "status": "protocol_defined"
+}

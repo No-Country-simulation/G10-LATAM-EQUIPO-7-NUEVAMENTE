@@ -16,12 +16,14 @@ El objetivo es reducir el tiempo necesario para convertir documentación técnic
 - **fidelidad a la fuente**, utilizando como contexto los fragmentos recuperados del documento original;
 - **adaptación pedagógica**, ajustando lenguaje, profundidad y presentación al perfil solicitado.
 
-El alcance funcional de **Sprint 2** se concentra en dos formatos educativos:
+El producto genera y presenta cuatro formatos educativos:
 
 - **Quiz interactivo**, con opciones, respuesta correcta y justificación;
-- **Flashcards**, con concepto o pregunta y su correspondiente explicación.
+- **Flashcards**, con concepto o pregunta y su correspondiente explicación;
+- **Resumen ejecutivo** (`tldr`), con síntesis, puntos clave y conclusión;
+- **Guion de video** (`video_script`), organizado en escenas con narración y descripción visual.
 
-Otros formatos contemplados por el producto, como tutoriales y resúmenes, forman parte de iteraciones posteriores.
+El material se adapta al perfil, nicho temático, nivel de detalle y objetivo de aprendizaje definidos para cada documento.
 
 ---
 
@@ -31,120 +33,90 @@ NuevaMente está dividido en servicios desacoplados que se comunican mediante co
 
 | Módulo | Responsabilidad | Documentación |
 |---|---|---|
-| **Frontend** | Interfaz de usuario, carga de documentos, biblioteca y visualización de Quiz y Flashcards | [`frontend/README.md`](frontend/README.md) |
-| **BackendAPI** | Orquestación del producto, validación, persistencia, estados, OCI e integración con RAG/Agentes | [`backend/README.md`](backend/README.md) |
-| **RAG / Agentes** | Extracción, chunking, embeddings, búsqueda vectorial, recuperación por documento y generación educativa | [`agentes/README.md`](agentes/README.md) |
-| **Data/IA** | Ground Truth, métricas de retrieval, contratos de evaluación y evaluación de calidad del contenido generado | [`Data_IA/README.md`](Data_IA/README.md) |
-| **Infraestructura** | Contenerización, despliegue en OCI, red, persistencia y preparación de CI/CD | [`docs/`](docs) |
+| **Frontend** | Interfaz para cargar documentos, consultar la biblioteca y estudiar los formatos generados | [`frontend/README.md`](frontend/README.md) |
+| **BackendAPI** | Punto de entrada HTTP y orquestador del ciclo de vida documental, la generación y la evaluación | [`backend/README.md`](backend/README.md) |
+| **Agentes** | Indexación RAG, recuperación de evidencia y generación de contenido | [`agentes/README.md`](agentes/README.md) |
+| **Data/IA** | Evaluación de calidad de formatos generados y benchmark offline de retrieval | [`Data_IA/README.md`](Data_IA/README.md) |
+| **Infraestructura** | Contenedores, despliegue y recursos OCI | [`docs/`](docs) |
 
-Los cambios desarrollados en ramas de trabajo se integran mediante Pull Requests hacia `QA`, donde se realiza la validación conjunta antes de promover una versión estable.
+Cada módulo documenta por separado su arquitectura, contratos y operación. Este README resume cómo colaboran para entregar el producto.
 
----
+## Navegación
 
-## Arquitectura general
-
-```text
-                     ┌──────────────┐
-                     │   Usuario    │
-                     └──────┬───────┘
-                            │
-                            ▼
-                     ┌──────────────┐
-                     │   Frontend   │
-                     └──────┬───────┘
-                            │ HTTP
-                            ▼
-                 ┌──────────────────────┐
-                 │      BackendAPI      │
-                 │                      │
-                 │ orquestación         │
-                 │ estados              │
-                 │ persistencia         │
-                 └──────┬─────────┬─────┘
-                        │         │
-             documentos │         │ indexación /
-             y metadata │         │ generación
-                        ▼         ▼
-                ┌────────────┐  ┌──────────────┐
-                │ OCI Object │  │ RAG / Agentes│
-                │  Storage   │  │              │
-                └────────────┘  │ extracción   │
-                                │ chunking      │
-                                │ embeddings    │
-                                │ retrieval     │
-                                │ generación    │
-                                └──────┬───────┘
-                                       │
-                                       │ contenido generado
-                                       │ + chunks utilizados
-                                       ▼
-                                ┌──────────────┐
-                                │   Data / IA  │
-                                │              │
-                                │ evaluación   │
-                                │ de calidad   │
-                                └──────────────┘
-```
-
-BackendAPI funciona como **orquestador central del producto**.
-
-Frontend no accede directamente a OCI, al Vector Store ni a los servicios de Agentes. Backend mantiene el control del flujo y utiliza contratos HTTP desacoplados para comunicarse con los demás componentes.
-
-La integración de Data/IA con el flujo productivo completo no forma parte obligatoria del E2E de Sprint 2; durante este Sprint se dejó preparado su servicio de evaluación y los contratos necesarios para incorporarlo posteriormente al pipeline.
-
----
-## RAG y generación educativa
-
-El módulo RAG / Agentes procesa documentos reales mediante:
-
-```text
-extracción
-→ limpieza
-→ chunking
-→ embeddings
-→ almacenamiento vectorial
-→ retrieval
-→ generación educativa
-```
-
-La recuperación está filtrada por `document_id`, evitando mezclar información perteneciente a documentos distintos.
-
-Para cada generación se conservan también los chunks utilizados como evidencia.
-Esto permite mantener trazabilidad entre el contenido generado y las fuentes recuperadas.
-El servicio de generación recibe el contexto pedagógico solicitado y produce salidas estructuradas para Quiz y Flashcards.
+| Si buscas… | Consulta… |
+|---|---|
+| El recorrido de un documento y sus estados | [Arquitectura y flujo del producto](#arquitectura-y-flujo-del-producto) |
+| Tecnologías principales | [Stack tecnológico](#stack-tecnológico) |
+| Despliegue y documentación de infraestructura | [Infraestructura y despliegue](#infraestructura-y-despliegue) y [Documentación adicional](#documentación-adicional) |
+| Detalles de implementación de un servicio | README de [Frontend](frontend/README.md), [BackendAPI](backend/README.md), [Agentes](agentes/README.md) o [Data/IA](Data_IA/README.md) |
+| Prácticas transversales de seguridad | [Buenas prácticas de seguridad](#buenas-prácticas-de-seguridad) |
 
 ---
 
-## Evaluación — Data/IA
+## Arquitectura y flujo del producto
 
-Data/IA trabaja en dos tipos de evaluación diferentes.
+```mermaid
+flowchart TB
 
-### Evaluación de retrieval
+    U[Usuario]
+    FE[Frontend<br/>Carga, consulta, regeneración]
 
-Utiliza un corpus controlado y Ground Truth versionado para medir la capacidad del RAG de recuperar evidencia relevante.
+    BE[BackendAPI<br/>Orquestación global<br/>Persistencia<br/>Estados e historial]
 
-Métricas utilizadas:
+    subgraph AG[Agentes / LangGraph]
+        IR[Investigador RAG<br/>Recupera chunks]
+        RP[Redactor Pedagógico<br/>Genera y corrige contenido]
+        AR[Agente Revisor<br/>Aplica recomendaciones]
+    end
 
-```text
-Recall@K
-Precision@K
+    DI[Data/IA - Agente Evaluador<br/>Métricas, veredicto y recomendaciones]
+
+    DB[(SQLite<br/>documents<br/>generated_formats<br/>format_evaluations)]
+    OCI[(OCI Object Storage<br/>original.ext<br/>generated/content.json)]
+    VS[(Vector Store / ChromaDB<br/>chunks + embeddings)]
+    LLM[Gemini / LLM Provider]
+
+    U --> FE
+    FE <--> BE
+
+    BE <--> DB
+    BE <--> OCI
+
+    BE --> AG
+    AG --> BE
+
+    BE --> DI
+    DI --> BE
+
+    AG <--> VS
+    AG <--> LLM
 ```
 
-Actualmente existen versiones congeladas del Ground Truth que permiten comparar resultados de forma reproducible.
+El diagrama incluye el rol previsto del Agente Revisor; la corrección automática aún no está activa de extremo a extremo (ver [Evaluación y revisión](#evaluación-y-revisión)).
 
-El servicio valida primero los contratos estructurales y posteriormente aplica una evaluación de calidad.
+BackendAPI es el **orquestador central** y el único intermediario entre el Frontend y los servicios de procesamiento. Mantiene la metadata y los estados en SQLite; almacena el original y el paquete educativo vigente en OCI Object Storage; y coordina Agentes y Data/IA mediante sus adaptadores HTTP.
 
-Durante Sprint 2 se implementó un **baseline heurístico reproducible**, acompañado de una rúbrica de decisión y resultados estructurados.
+### Recorrido de un documento
 
-Estados posibles de evaluación:
+1. El usuario carga un PDF, Markdown o TXT y define el perfil, nicho, nivel de detalle y, opcionalmente, un objetivo de aprendizaje.
+2. Backend valida el archivo, asigna una identidad al documento, guarda el original e indexa el documento mediante Agentes. La carga espera a que la indexación termine correctamente antes de responder.
+3. Una vez indexado, Backend registra los cuatro formatos como `processing` y responde al Frontend. La generación continúa en segundo plano; el Frontend consulta los estados y resultados a través de Backend.
+4. Agentes recupera fragmentos del documento indexado y genera Quiz, Flashcards, resumen y guion de video. Los resultados incluyen metadata pedagógica y evidencia (`chunks_used`) para mantener la trazabilidad.
+5. Backend persiste los formatos y la metadata pedagógica, actualiza el paquete educativo en Object Storage y solicita a Data/IA evaluar cada formato generado que está listo para evaluación. Los resultados de evaluación se guardan como historial separado del contenido.
 
-```text
-aprobado
-requiere_revision
-rechazado
-```
+Los errores de generación y evaluación se registran por separado: un problema en la evaluación no convierte por sí solo un formato ya generado correctamente en un fallo de generación. La evaluación de calidad de formatos está integrada en el flujo de Backend; el benchmark de retrieval de Data/IA es un proceso offline independiente y no interviene en cada carga. El alcance técnico y los contratos de esos procesos están en los README de [Backend](backend/README.md), [Agentes](agentes/README.md) y [Data/IA](Data_IA/README.md).
 
-La evolución hacia evaluación semántica más avanzada y un Agente Revisor forma parte de las siguientes iteraciones del proyecto.
+### Estado observable
+
+El documento y cada formato tienen ciclos de estado distintos. La indexación debe concluir antes de comenzar la generación; los formatos pasan de `processing` a `success`, `failed` o `no_results`. La biblioteca puede mostrar resultados parciales mientras se completan los demás formatos. La evaluación tiene un resultado independiente del estado de generación: V1.1 utiliza `aprobado`, `requiere_revision` o `rechazado`; V2 expone el veredicto canónico `approved`, `requires_revision` o `rejected`.
+
+### Evaluación y revisión
+
+Backend solicita a Data/IA la evaluación V2 de los formatos exitosos. La respuesta conserva separados los scores heurísticos y semánticos: no se calcula un score combinado y el veredicto actual se deriva de la señal heurística. Si el proveedor semántico no está configurado, la evaluación semántica queda `unavailable`, pero la evaluación heurística puede continuar.
+
+Frontend presenta el veredicto, las métricas y los hallazgos recibidos desde Backend. También permite recorrer las evaluaciones del ciclo actual expuestas en `evaluations`; no consulta directamente el endpoint de historial completo por formato.
+
+La corrección automática **no está activa de extremo a extremo**: Backend la mantiene deshabilitada por defecto (`AUTO_REVISION_ENABLED=false`) y requiere `POST /api/v1/revise` en Agentes, que aún no está implementado. La regeneración manual de formatos sí está disponible y es distinta de esa corrección automática.
 
 ---
 
@@ -154,7 +126,7 @@ La evolución hacia evaluación semántica más avanzada y un Agente Revisor for
 |---|---|
 | Frontend | HTML5, CSS3, JavaScript ES6, Vite |
 | Backend | Python, FastAPI, Pydantic v2, SQLite, HTTPX |
-| RAG / Agentes | Python, FastAPI, ChromaDB, sentence-transformers, LangChain Text Splitters |
+| Agentes / RAG | Python, FastAPI, Gemini (`google-genai`), ChromaDB, BM25, Cross-Encoder, sentence-transformers |
 | Data/IA | Python, FastAPI, Pydantic, Pytest, Jupyter Notebooks |
 | Archivos | Oracle Cloud Infrastructure Object Storage |
 | Infraestructura | OCI Compute, Docker, Docker Compose, Nginx |
@@ -181,7 +153,7 @@ Docker Compose
 
 Frontend es servido mediante Nginx y utiliza el Backend como única puerta de entrada al producto.
 
-Los servicios internos de Backend, Agentes y Data/IA no necesitan exponerse directamente al usuario.
+El Frontend accede al Backend a través de Nginx; Agentes y Data/IA son dependencias internas y no forman parte de la API que consume la interfaz. Sin embargo, el `compose.yaml` actual publica los puertos de Backend, Agentes y Data/IA en el host, por lo que su exposición de red debe controlarse en la configuración de OCI.
 
 La infraestructura mantiene persistencia externa para:
 
@@ -193,26 +165,30 @@ cache de modelos
 
 Las credenciales y claves de OCI permanecen fuera de las imágenes Docker y fuera del repositorio.
 
-El despliegue se realiza actualmente de forma manual. La automatización mediante CI/CD y publicación de imágenes versionadas forma parte de la siguiente etapa de Infraestructura.
+El workflow de CI para la rama `QA` ejecuta pruebas y lint de Backend, pruebas de Agentes y Data/IA, y build de Frontend. El workflow `Deploy Main to OCI` permite desplegar mediante push a `main` o ejecución manual; conecta por SSH con la VM, actualiza el checkout y reconstruye los servicios con Docker Compose. No publica imágenes versionadas en un registry: consulta los workflows activos de [CI QA](.github/workflows/ci-qa.yml) y [Deploy Main to OCI](.github/workflows/deploy-main.yml).
 
 Más información:
 
-- [`docs/NuevaMente_Infraestructura_OCI.md`](docs/NuevaMente_Infraestructura_OCI.md)
-- [`docs/NuevaMente_Despliegue_Docker_CICD.md`](docs/NuevaMente_Despliegue_Docker_CICD.md)
+- [Infraestructura OCI](<docs/Infra & Arq/NuevaMente_Infraestructura_OCI.md>)
+- [Arquitectura de despliegue OCI](<docs/Infra & Arq/NuevaMente_Arquitectura_OCI.md>)
+- [Despliegue Docker y CI/CD](<docs/Infra & Arq/NuevaMente_Despliegue_Docker_CICD.md>)
 
 ---
+
 ## Documentación adicional
 
-La carpeta [`docs/`](docs) contiene documentación complementaria sobre:
+| Si buscas… | Consulta… |
+|---|---|
+| Implementación y contratos del Frontend | [frontend/README.md](frontend/README.md) |
+| Orquestación, estados y persistencia del BackendAPI | [backend/README.md](backend/README.md) |
+| Indexación, recuperación y generación de Agentes | [agentes/README.md](agentes/README.md) |
+| API evaluadora, rúbrica y benchmarks de Data/IA | [Data_IA/README.md](Data_IA/README.md) |
+| Arquitectura y recursos de OCI | [Infraestructura OCI](<docs/Infra & Arq/NuevaMente_Infraestructura_OCI.md>) y [arquitectura de despliegue](<docs/Infra & Arq/NuevaMente_Arquitectura_OCI.md>) |
+| Despliegue Docker y estado de CI/CD | [docs/Infra & Arq/NuevaMente_Despliegue_Docker_CICD.md](<docs/Infra & Arq/NuevaMente_Despliegue_Docker_CICD.md>) |
+| Planning y acuerdos de Sprint 4 (no certifica implementación) | [docs/README_Sprint_4_NuevaMente.md](docs/README_Sprint_4_NuevaMente.md) |
 
-- arquitectura;
-- infraestructura OCI;
-- Docker y despliegue;
-- integración de servicios;
-- flujo funcional del producto;
-- lineamientos técnicos del equipo.
-
-Cada módulo mantiene además su documentación específica en su propio README.
+La carpeta [`docs/`](docs) conserva además diagramas, evidencias y documentación
+complementaria del equipo.
 
 ---
 

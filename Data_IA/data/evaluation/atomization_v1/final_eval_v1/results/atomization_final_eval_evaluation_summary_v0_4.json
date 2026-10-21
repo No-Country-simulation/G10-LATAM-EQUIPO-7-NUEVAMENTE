@@ -1,0 +1,59 @@
+{
+  "candidate": "claim-atomizer-v0.4",
+  "evaluation_set": "atomization-final-eval-v1",
+  "methodology": {
+    "candidate_frozen_before_final_eval": true,
+    "predictions_frozen_before_human_gt": true,
+    "human_gt_blind_to_predictions": true,
+    "gemini_calls_during_evaluation": false,
+    "detection_positive_class": "non_propositional",
+    "exact_structure_definition": "class + atom count + atom-type sequence",
+    "literal_atom_text_match_used": false,
+    "structural_metric_denominator": "all human-valid claims"
+  },
+  "counts": {
+    "final_eval_items": 23,
+    "valid_claims": 14,
+    "non_propositional": 9,
+    "expected_atoms": 15,
+    "predicted_atoms_on_gt_valid": 15,
+    "provider_failed_final": 0
+  },
+  "propositional_detection": {
+    "tp": 5,
+    "fp": 0,
+    "fn": 4,
+    "tn": 14,
+    "precision": 1.0,
+    "recall": 0.5556,
+    "specificity": 1.0,
+    "accuracy": 0.8261,
+    "coverage": 1.0
+  },
+  "atomization_structure": {
+    "structurally_evaluable_claims": 14,
+    "structural_coverage": 1.0,
+    "class_accuracy": 0.9286,
+    "count_accuracy": 1.0,
+    "type_sequence_accuracy": 0.9286,
+    "exact_structure_accuracy": 0.9286,
+    "atom_delta": 0,
+    "atom_inflation_rate": 0.0,
+    "over_atomized_cases": 0,
+    "under_atomized_cases": 0
+  },
+  "provider_execution": {
+    "first_attempt_success": 16,
+    "first_attempt_failed": 7,
+    "retry_success": 7,
+    "retry_failed": 0,
+    "final_successful_items": 23,
+    "final_completion_rate": 1.0
+  },
+  "limitations": [
+    "Internal evaluation set derived from the same 59-claim calibration corpus.",
+    "Final GT is highly imbalanced: 13 atomic claims, 1 compound claim, 0 relational claims.",
+    "All 15 GT atoms are factual_proposition, so this set does not test generalization across atom types.",
+    "Seven provider failures occurred on the first execution and were completed in a targeted second attempt without changing the candidate."
+  ]
+}

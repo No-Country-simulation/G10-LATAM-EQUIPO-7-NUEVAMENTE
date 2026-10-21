@@ -1,0 +1,39 @@
+{
+  "version": "claim-atomizer-v0.4",
+  "holdout": "atomization-holdout-v1",
+  "methodology": {
+    "holdout_frozen_before_v0_4_run": true,
+    "prompt_modified_after_holdout_run": false,
+    "gemini_calls_during_evaluation_script": false,
+    "primary_atomization_scope": "human-valid claims only",
+    "detection_positive_class": "non_propositional"
+  },
+  "counts": {
+    "holdout_items": 20,
+    "valid_claims": 13,
+    "expected_atoms": 19,
+    "predicted_atoms": 21,
+    "provider_failed": 0
+  },
+  "propositional_detection": {
+    "tp": 7,
+    "fp": 0,
+    "fn": 0,
+    "tn": 13,
+    "precision": 1.0,
+    "recall": 1.0,
+    "specificity": 1.0,
+    "accuracy": 1.0,
+    "coverage": 1.0
+  },
+  "atomization": {
+    "class_accuracy": 0.7692,
+    "count_accuracy": 0.8462,
+    "type_sequence_accuracy": 0.8462,
+    "exact_structure_accuracy": 0.7692,
+    "atom_delta": 2,
+    "atom_inflation_rate": 0.1053,
+    "over_atomized_cases": 2,
+    "under_atomized_cases": 0
+  }
+}

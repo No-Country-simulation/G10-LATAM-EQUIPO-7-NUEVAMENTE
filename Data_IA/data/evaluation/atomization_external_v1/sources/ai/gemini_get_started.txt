@@ -1,0 +1,157 @@
+Cómo empezar
+
+En esta guía, se explica cómo comenzar a usar la API de Gemini con la API de Interactions. Realizarás tu primera llamada a la API en menos de un minuto y explorarás la generación de texto, la comprensión multimodal, la generación de imágenes, el resultado estructurado, las herramientas, las llamadas a funciones, los agentes y la ejecución en segundo plano.
+
+¿Estás creando con un agente de programación de IA? Instala la skill y, luego, pega la instrucción para comenzar a usar la API de Gemini con Interactions:
+
+La API de Interactions está disponible a través de los SDKs de Python y JavaScript, así como a través de REST.
+
+1. Obtén una clave de API
+Para usar la API de Gemini, necesitas una clave de API para autenticar tus solicitudes, aplicar límites de seguridad y hacer un seguimiento del uso de tu cuenta.
+
+Google AI Studio crea automáticamente un proyecto y una clave de API para los usuarios nuevos. Puedes copiarla desde la página Claves de API.
+Si necesitas una clave nueva, haz clic en Crear clave de API en AI Studio y sigue el diálogo para agregar un nuevo par clave-proyecto.
+Crea una clave de la API de Gemini
+
+Configura tu clave como una variable de entorno:
+
+Actualiza al nivel pagado
+Si actualizas al nivel pagado, aumentarán tus límites de frecuencia y deberás configurar la Facturación de Cloud.
+
+Haz clic en Configurar facturación en las páginas Claves de API o Proyectos de AI Studio.
+Sigue el diálogo de Facturación de Cloud para crear o vincular una cuenta de facturación, agregar una forma de pago y prepagar un mínimo de USD 5 (o el equivalente en la moneda local) en créditos pagados.
+Consulta el uso de la API en Google AI Studio en Panel > Uso.
+Consulta la página Facturación para obtener más información.
+
+2. Instala el SDK y haz tu primera llamada
+Instala el SDK y genera texto con una sola llamada a la API.
+
+Instala el SDK:
+
+Inicializa el cliente y realiza una solicitud:
+
+3. Transmite la respuesta
+Para lograr interacciones más fluidas, transmite la respuesta a medida que se genera. Cada evento step.delta entrega un fragmento de texto que puedes mostrar de inmediato.
+
+Para obtener una descripción detallada del manejo de eventos de transmisión y tipos de delta, consulta la guía de interacciones de transmisión.
+
+4. Conversaciones de varios turnos
+La API de Interactions admite conversaciones de varios turnos con dos enfoques:
+
+Con estado (recomendado): Continúa una conversación en el servidor con previous_interaction_id. Ideal para la mayoría de los flujos de trabajo de chat y con agentes en los que deseas que el servidor administre el historial y optimice el almacenamiento en caché.
+Sin estado: Administra el historial de conversaciones en el cliente pasando todos los turnos anteriores (incluidos los pasos intermedios de pensamiento del modelo y de herramientas) en cada solicitud.
+
+Con estado (recomendado)
+Sin estado
+Encadena interacciones pasando previous_interaction_id. El servidor administra todo el historial de conversaciones por ti.
+
+5. Comprensión multimodal
+Los modelos de Gemini comprenden imágenes, audio, video y documentos de forma nativa. Pasa contenido multimedia junto con texto en una sola solicitud.
+
+Explora cómo pasar imágenes, videos y archivos de audio en la guía de comprensión de imágenes.
+
+Comprensión de audio
+
+Transcribir, resumir o responder preguntas sobre archivos de audio
+
+Comprensión de videos
+
+Analizar contenido de video, ubicar eventos y describir acciones
+
+Procesamiento de documentos
+
+Extrae información de archivos PDF y otros formatos de documentos.
+
+6. Generación multimodal
+Gemini puede generar imágenes de forma nativa con los modelos de imágenes de Nano Banana.
+
+Generación de voz
+
+Genera una voz expresiva con varios oradores con Gemini 3.1 Flash TTS.
+
+Generación de música
+
+Crea clips y canciones completas con Lyria 3.5.
+
+7. Cómo usar resultados estructurados
+Configura el modelo para que devuelva un objeto JSON que coincida con un esquema que definas. Los resultados estructurados funcionan con Pydantic (Python) y Zod (JavaScript).
+
+El bloque de texto de salida contiene una cadena JSON válida que se ajusta exactamente al esquema solicitado. Para obtener información sobre cómo definir estructuras más complejas y esquemas recursivos, consulta la guía de resultados estructurados.
+
+8. Usar herramientas
+Fundamentar la respuesta del modelo en información en tiempo real con la Búsqueda de Google La API busca, procesa resultados y devuelve citas automáticamente.
+
+Los pasos de la búsqueda se detallan en el historial de interacción, y el resultado final incluye citas intercaladas que apuntan a fuentes web.
+
+Puedes aprender a extraer citas de la búsqueda en la guía de fundamentación de la Búsqueda de Google o ver cómo combinar varias herramientas en la guía de combinación de herramientas.
+
+Ejecución de código
+
+Ejecuta código de Python en un entorno de Borg seguro con zona de pruebas.
+
+Contexto de URL
+
+Pasa URLs web públicas directamente para fundamentar las respuestas en el contenido de la página web.
+
+Búsqueda de archivos
+
+Indexa y busca en los documentos y archivos multimedia subidos.
+
+Google Maps
+
+Fundamentar las respuestas en datos geoespaciales y de ubicación del mundo real
+
+Uso de la computadora
+
+Automatización del navegador e interacción con la pantalla
+
+9. Llama a tus propias funciones
+La llamada a funciones te permite conectar el modelo a tu código. Declaras el nombre y los parámetros de una función, el modelo decide cuándo llamarla y devuelve argumentos estructurados, y tú la ejecutas de forma local y envías el resultado.
+
+Con estado (recomendado)
+Sin estado
+
+"parameters": {
+"location": {
+
+"get_current_temperature": lambda location: {
+"location": location, "temperature": "22", "unit": "celsius"
+
+function_results.append({
+
+break
+
+Para conocer las funciones avanzadas, como la llamada a función paralela o los modos de elección de funciones, consulta la guía de llamadas a funciones.
+
+10. Ejecuta un agente administrado
+
+También puedes definir y guardar agentes personalizados con tus propias instrucciones, habilidades y fuentes de datos.
+
+Guía de inicio rápido
+
+Haz tu primera llamada al agente, transmite respuestas y crea un agente personalizado.
+
+Agente de Antigravity
+
+Funciones, herramientas, entrada multimodal y precios del agente predeterminado.
+
+Agentes en AI Studio
+
+Espacio de pruebas visual para crear prototipos de agentes sin escribir código.
+
+11. Ejecutar tareas en segundo plano
+
+break
+Lee sobre la ejecución asíncrona de modelos y agentes en la guía de ejecución en segundo plano.
+
+¿Qué sigue?
+Ejecución en segundo plano: Ejecuta tareas de larga duración de forma asíncrona y administra el estado.
+Generación de texto: Instrucciones del sistema, configuración de generación y patrones de texto avanzados.
+Generación de imágenes: Relaciones de aspecto, edición de imágenes y referencias de estilo
+Comprensión de imágenes: Clasificación, detección de objetos y preguntas y respuestas visuales
+Pensamiento: Usa el razonamiento de cadena de pensamiento para tareas complejas.
+Llamada a funciones: Modos de funciones paralelos, compositivos y restringidos.
+Búsqueda de Google: Fundamentación, citas y sugerencias de búsqueda
+Agentes administrados: Agentes prediseñados con ejecución de código y administración de archivos.
+Deep Research: Investigación autónoma de varios pasos con planificación y síntesis.
+Resultados estructurados: Esquemas JSON, enumeraciones y definiciones de tipos recursivos.

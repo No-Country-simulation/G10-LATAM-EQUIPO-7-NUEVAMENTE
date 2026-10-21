@@ -1,0 +1,21 @@
+main { grid-template-rows: auto auto auto minmax(150px, 1fr) auto auto; gap: 10px; }
+.scenarios { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; font-size: .72rem; color: #94a3b8; }
+.scenarios button { font: inherit; color: #cbd5e1; background: #142338; border: 1px solid #3b5877; border-radius: 6px; padding: 7px 12px; cursor: pointer; }
+.scenarios button[aria-pressed="true"] { color: #fde68a; border-color: #fbbf24; background: #29271e; }
+.scenarios #motion { margin-left: auto; background: transparent; }
+.review-boundary { fill: #14233855; stroke: #54718e; stroke-dasharray: 5 5; }
+.boundary-label { fill: #7dd3fc; font-size: 12px; letter-spacing: 1px; }
+.boundary-note { fill: #94a3b8; font-size: 12px; }
+.route-label { fill: #fde68a; font-size: 12px; font-weight: 700; }
+.muted { opacity: .22; }
+.wires path { transition: opacity .3s; }
+.wires path.selected { stroke: #7dd3fc; animation: flow 3s linear infinite; }
+.stage.current rect { stroke: #fde68a; filter: drop-shadow(0 0 5px #fbbf2433); }
+.case-detail { border-left: 3px solid #fbbf24; padding: 8px 14px; background: #182439; border-radius: 0 8px 8px 0; font-size: .8rem; }
+.case-detail strong { color: #fde68a; }
+.case-label { display: block; margin-bottom: 5px; color: #94a3b8; font-size: .65rem; letter-spacing: .06em; }
+.case-detail p { color: #cbd5e1; margin: 5px 0 0; line-height: 1.5; }
+body.paused .wires path { animation-play-state: paused; }
+@keyframes flow { to { stroke-dashoffset: -48; } }
+@media (prefers-reduced-motion: reduce) { .wires path.selected { animation: none; } }
+@media (max-width: 700px) { main { height: auto; min-height: 100dvh; } .diagram { min-height: 230px; } .scenarios #motion { margin-left: 0; } }

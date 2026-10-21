@@ -1,0 +1,5 @@
+calibration_id,source_case_id,document_id,category,format,variant,target_dimension,heuristic_relevance,heuristic_coherence,heuristic_didactic_adaptation,heuristic_content_support,heuristic_unsupported_information
+CAL-V1-004,AI-ES-002-Q05,AI-ES-002,IA,video_script,unsupported_claim,content_support,5,5,5,1,True
+CAL-V1-006,BE-ES-001-Q03,BE-ES-001,Backend,tldr,unsupported_claim,content_support,5,5,5,1,True
+CAL-V1-014,FE-ES-001-Q05,FE-ES-001,Frontend,quiz,unsupported_claim,content_support,5,5,5,3,False
+CAL-V1-018,CLD-ES-001-Q05,CLD-ES-001,Cloud / DevOps,flashcards,unsupported_claim,content_support,5,5,5,1,True

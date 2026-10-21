@@ -6,6 +6,8 @@
  */
 
 import { toFriendlyError } from '../utils/friendlyError.js';
+import { exportSummaryPdf } from '../utils/pdfExport.js';
+import { state } from '../state.js';
 
 export const summary = {
   elements: {},
@@ -25,7 +27,8 @@ export const summary = {
       chipsContainer: document.getElementById('sintesisTerminosChips'),
       terminosSection: document.getElementById('sintesisTerminosSection'),
       counterBadge: document.getElementById('sintesisCounterBadge'),
-      btnRegen: document.getElementById('btnRegenSintesis')
+      btnRegen: document.getElementById('btnRegenSintesis'),
+      btnDownload: document.getElementById('btnDownloadPdfSintesis')
     };
 
     if (this.elements.btnRegen) {
@@ -33,6 +36,13 @@ export const summary = {
         import('./studyHub.js').then(({ studyHub }) => {
           studyHub.triggerRegeneration(['tldr']);
         });
+      });
+    }
+
+    if (this.elements.btnDownload) {
+      this.elements.btnDownload.addEventListener('click', () => {
+        const doc = state.get().currentDocument;
+        exportSummaryPdf(doc, this.data);
       });
     }
   },
@@ -52,6 +62,7 @@ export const summary = {
 
     if (!resumenText || !puntosList) return;
 
+    this.data = sintesisData;
     this.meta = {
       status: sintesisData?.status || (sintesisData ? 'success' : 'empty'),
       errorMessage: sintesisData?.error_message || null,
@@ -61,6 +72,14 @@ export const summary = {
     const isBusy = this.meta.status === 'processing' || this.meta.status === 'pending';
     if (btnRegen) {
       btnRegen.disabled = isBusy;
+    }
+    const btnDownload = this.elements.btnDownload;
+    if (btnDownload) {
+      const isAvailable = !isBusy && this.meta.status === 'success' && Boolean(sintesisData?.content || sintesisData?.summary || sintesisData?.resumen_ejecutivo);
+      btnDownload.disabled = !isAvailable;
+      btnDownload.title = isAvailable
+        ? 'Descargar Síntesis Ejecutiva en formato PDF'
+        : (isBusy ? 'La Síntesis se está generando...' : 'Síntesis no disponible para descargar');
     }
 
     // Caso 1: En procesamiento o pendiente en el servidor
@@ -124,10 +143,29 @@ export const summary = {
       return;
     }
 
-    // Caso 3: Sin contenido o sin resultados
-    if (this.meta.status === 'no_results' || !sintesisData) {
+    // Caso 3: Formato no generado en versión previa del documento
+    if (!sintesisData || (!sintesisData.content && !sintesisData.format_id && this.meta.status !== 'no_results')) {
+      if (counterBadge) counterBadge.textContent = 'Síntesis (No disponible)';
+      if (titleText) titleText.textContent = 'Síntesis Ejecutiva';
+      if (btnRegen) {
+        btnRegen.disabled = true;
+        btnRegen.title = 'Este documento fue procesado antes de incorporar la Síntesis Ejecutiva. Sube el documento nuevamente para habilitarla.';
+      }
+      resumenText.textContent = 'Este documento fue indexado antes de la incorporación de la Síntesis Ejecutiva (TLDR). Para generar todos los formatos pedagógicos disponibles, vuelve a subir el documento desde el Catálogo.';
+      puntosList.innerHTML = '';
+      if (conclusionBox) conclusionBox.style.display = 'none';
+      if (terminosSection) terminosSection.style.display = 'none';
+      return;
+    }
+
+    // Caso 4: Sin resultados pedagógicos
+    if (this.meta.status === 'no_results') {
       if (counterBadge) counterBadge.textContent = 'Síntesis Ejecutiva';
       if (titleText) titleText.textContent = 'Síntesis Ejecutiva';
+      if (btnRegen) {
+        btnRegen.disabled = false;
+        btnRegen.title = 'Generar una nueva síntesis ejecutiva del documento';
+      }
       resumenText.textContent = 'El documento no contiene suficiente información para formular una síntesis ejecutiva.';
       puntosList.innerHTML = '';
       if (conclusionBox) conclusionBox.style.display = 'none';

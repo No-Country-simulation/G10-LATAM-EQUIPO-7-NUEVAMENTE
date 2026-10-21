@@ -294,6 +294,10 @@ class FormatGenerationService:
                 learning_metadata=(
                     result.learning_metadata
                 ),
+                document_title=result.document_title,
+                document_description=(
+                    result.document_description
+                ),
             )
         except (
             DocumentRepositoryError,
@@ -459,8 +463,15 @@ class FormatGenerationService:
         *,
         document_id: str,
         learning_metadata: LearningMetadata,
+        document_title: str | None = None,
+        document_description: str | None = None,
     ) -> None:
-        """Persiste metadata pedagógica una sola vez a nivel de documento."""
+        """Persiste metadata pedagógica una sola vez a nivel de documento.
+
+        También propaga ``document_title``/``document_description`` cuando
+        Agentes los devuelve, con la misma semántica de "solo una vez" que
+        la metadata pedagógica.
+        """
         document = (
             self._document_repository.find_by_id(
                 document_id
@@ -476,6 +487,11 @@ class FormatGenerationService:
 
         document.assign_learning_metadata(
             learning_metadata
+        )
+
+        document.assign_document_title_description(
+            document_title=document_title,
+            document_description=document_description,
         )
 
         self._document_repository.update(

@@ -109,7 +109,7 @@ export const notebook = {
     this.spreads.push({
       id: 'spread_cover',
       title: 'Portada',
-      instruction: `Explora el módulo de capacitación estructurado para: ${doc.title}`,
+      instruction: `Explora el módulo de capacitación estructurado para: ${doc.title || doc.filename || 'este documento'}`,
       element: coverSpread
     });
     this.elements.spreadsContainer.appendChild(coverSpread);
@@ -426,7 +426,7 @@ export const notebook = {
       studyHub: {
         ...state.get().studyHub,
         activeSectionId: sectionId,
-        activeFormat: 'flashcards',
+        activeFormat: 'sintesis',
         currentCardIndex: 0,
         isFlipped: false
       }

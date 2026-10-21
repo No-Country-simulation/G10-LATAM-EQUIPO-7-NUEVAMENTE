@@ -1,0 +1,21 @@
+holdout_id,gt_review_status,predicted_review_status,detection_result,gt_class,predicted_class,expected_atom_count,predicted_atom_count,atom_delta,gt_type_sequence,predicted_type_sequence,class_match,count_match,type_sequence_match,exact_structure_match
+HOLDOUT-V1-001,valid_claim,valid_claim,TN,atomic,atomic,1,1,0,factual_proposition,factual_proposition,1,1,1,1
+HOLDOUT-V1-002,valid_claim,valid_claim,TN,atomic,compound,1,2,1,causal_relation,factual_proposition > factual_proposition,0,0,0,0
+HOLDOUT-V1-003,valid_claim,valid_claim,TN,atomic,atomic,1,1,0,factual_proposition,factual_proposition,1,1,1,1
+HOLDOUT-V1-004,non_propositional,non_propositional,TP,,,0,0,,,,,,,
+HOLDOUT-V1-005,valid_claim,valid_claim,TN,compound,compound,2,2,0,factual_proposition > factual_proposition,factual_proposition > factual_proposition,1,1,1,1
+HOLDOUT-V1-006,non_propositional,non_propositional,TP,,,0,0,,,,,,,
+HOLDOUT-V1-007,valid_claim,valid_claim,TN,compound,relational,2,2,0,factual_proposition > causal_relation,factual_proposition > causal_relation,0,1,1,0
+HOLDOUT-V1-008,valid_claim,valid_claim,TN,atomic,atomic,1,1,0,factual_proposition,factual_proposition,1,1,1,1
+HOLDOUT-V1-009,non_propositional,non_propositional,TP,,,0,0,,,,,,,
+HOLDOUT-V1-010,valid_claim,valid_claim,TN,atomic,atomic,1,1,0,factual_proposition,factual_proposition,1,1,1,1
+HOLDOUT-V1-011,valid_claim,valid_claim,TN,atomic,compound,1,2,1,factual_proposition,factual_proposition > factual_proposition,0,0,0,0
+HOLDOUT-V1-012,valid_claim,valid_claim,TN,compound,compound,2,2,0,factual_proposition > negation_or_absence,factual_proposition > negation_or_absence,1,1,1,1
+HOLDOUT-V1-013,valid_claim,valid_claim,TN,atomic,atomic,1,1,0,factual_proposition,factual_proposition,1,1,1,1
+HOLDOUT-V1-014,non_propositional,non_propositional,TP,,,0,0,,,,,,,
+HOLDOUT-V1-015,valid_claim,valid_claim,TN,compound,compound,2,2,0,factual_proposition > factual_proposition,factual_proposition > factual_proposition,1,1,1,1
+HOLDOUT-V1-016,non_propositional,non_propositional,TP,,,0,0,,,,,,,
+HOLDOUT-V1-017,valid_claim,valid_claim,TN,atomic,atomic,1,1,0,factual_proposition,factual_proposition,1,1,1,1
+HOLDOUT-V1-018,non_propositional,non_propositional,TP,,,0,0,,,,,,,
+HOLDOUT-V1-019,valid_claim,valid_claim,TN,compound,compound,3,3,0,factual_proposition > factual_proposition > factual_proposition,factual_proposition > factual_proposition > factual_proposition,1,1,1,1
+HOLDOUT-V1-020,non_propositional,non_propositional,TP,,,0,0,,,,,,,

@@ -1,0 +1,11 @@
+﻿external_case_id,atom_index,atom_text,atom_type,gt_review_status
+EXT-VAL-V1-071,1,No limita el tipo de aplicaciones que soporta.,negation_or_absence,reviewed
+EXT-VAL-V1-072,1,Generar una imagen de contenedor al momento de la compilación permite tener un entorno consistente desde desarrollo hasta producción.,causal_relation,reviewed
+EXT-VAL-V1-073,1,"If a string matches both a column name and an index level name, a ValueError will be raised.",conditional_relation,reviewed
+EXT-VAL-V1-074,1,The groupby operation in pandas drops the name field of the columns Index object after the operation.,temporal_relation,reviewed
+EXT-VAL-V1-075,1,"Using a pipeline helps prevent data leakage, meaning testing data being disclosed in training data.",causal_relation,reviewed
+EXT-VAL-V1-076,1,"If you apply a preprocessing step to the whole dataset without using a pipeline and then perform cross-validation, you break the fundamental assumption of independence between training and testing data.",conditional_relation,reviewed
+EXT-VAL-V1-077,1,"Cuando el usuario no ha enviado los datos correctamente, como desarrollador quieres evitar el envío al servidor y mostrar un mensaje de error que indique qué está mal y qué hay que hacer para corregirlo.",conditional_relation,reviewed
+EXT-VAL-V1-078,1,"Cuando los usuarios con discapacidad visual usan un lector de pantalla para leer e interactuar con una página web, el lector lee en voz alta el texto de la etiqueta asociada al llegar a cada control.",temporal_relation,reviewed
+EXT-VAL-V1-079,1,"El código del lado del servidor genera dinámicamente contenido nuevo en el servidor, por ejemplo extrayendo datos de una base de datos, mientras que JavaScript del lado del cliente genera dinámicamente contenido nuevo dentro del navegador, por ejemplo creando una tabla HTML, llenándola con datos solicitados al servidor y mostrándola en una página web.",comparative_relation,reviewed
+EXT-VAL-V1-080,1,"Mientras que CSS usa elementos <link> para aplicar hojas de estilo externas y elementos <style> para aplicar hojas de estilo internas al HTML, JavaScript necesita el elemento <script> en HTML.",comparative_relation,reviewed

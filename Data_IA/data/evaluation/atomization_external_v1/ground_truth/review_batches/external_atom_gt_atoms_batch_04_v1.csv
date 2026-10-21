@@ -1,0 +1,26 @@
+﻿external_case_id,atom_index,atom_text,atom_type,gt_review_status
+EXT-VAL-V1-031,1,You can use the group_keys argument to control whether the grouped column or columns are included in the indices.,factual_proposition,reviewed
+EXT-VAL-V1-031,2,The group_keys argument defaults to True.,factual_proposition,reviewed
+EXT-VAL-V1-032,1,Transformer objects do not have a predict method.,negation_or_absence,reviewed
+EXT-VAL-V1-032,2,Transformer objects have a transform method that outputs a newly transformed sample matrix X.,factual_proposition,reviewed
+EXT-VAL-V1-033,1,The train_test_split helper splits a dataset into train and test sets.,factual_proposition,reviewed
+EXT-VAL-V1-033,2,"Scikit-learn provides other tools for model evaluation, particularly for cross-validation.",factual_proposition,reviewed
+EXT-VAL-V1-034,1,El ejemplo implementa una comprobación básica dentro de un manejador del evento submit para comprobar si los campos de texto están vacíos.,factual_proposition,reviewed
+EXT-VAL-V1-034,2,El evento submit se lanza en un formulario cuando el formulario se envía.,factual_proposition,reviewed
+EXT-VAL-V1-035,1,El modelo de eventos de Node.js se basa en detectores que escuchan eventos y emisores que los emiten.,factual_proposition,reviewed
+EXT-VAL-V1-035,2,El código de este modelo es bastante diferente del modelo de eventos descrito previamente.,comparative_relation,reviewed
+EXT-VAL-V1-035,3,La función on() se usa para registrar un detector de eventos.,factual_proposition,reviewed
+EXT-VAL-V1-035,4,La función once() registra un detector que se elimina después de ejecutarse una vez.,factual_proposition,reviewed
+EXT-VAL-V1-036,1,Algunas personas usan elementos <p> para separar los elementos de sus formularios.,factual_proposition,reviewed
+EXT-VAL-V1-036,2,"Otras personas usan elementos <div>, <section> o <li> para separar los elementos de sus formularios.",factual_proposition,reviewed
+EXT-VAL-V1-037,1,Los botones de opción y las casillas de verificación se implementan de forma muy parecida.,comparative_relation,reviewed
+EXT-VAL-V1-037,2,Los botones de opción y las casillas de verificación admiten el atributo checked para aparecer preseleccionados al cargar la página.,factual_proposition,reviewed
+EXT-VAL-V1-038,1,El atributo rows especifica cuántas filas de alto tendrá el área de texto de forma predeterminada.,factual_proposition,reviewed
+EXT-VAL-V1-038,2,El atributo cols especifica cuántas columnas de ancho tendrá el área de texto de forma predeterminada.,factual_proposition,reviewed
+EXT-VAL-V1-039,1,La API del DOM permite crear HTML.,factual_proposition,reviewed
+EXT-VAL-V1-039,2,La API del DOM permite eliminar HTML.,factual_proposition,reviewed
+EXT-VAL-V1-039,3,La API del DOM permite cambiar HTML.,factual_proposition,reviewed
+EXT-VAL-V1-039,4,La API del DOM permite aplicar dinámicamente nuevos estilos a una página.,factual_proposition,reviewed
+EXT-VAL-V1-040,1,Cada pestaña del navegador tiene su propio entorno de ejecución separado.,factual_proposition,reviewed
+EXT-VAL-V1-040,2,"Debido a que cada pestaña tiene un entorno de ejecución separado, en la mayoría de los casos el código de cada pestaña se ejecuta de forma completamente independiente.",causal_relation,reviewed
+EXT-VAL-V1-040,3,El código de una pestaña no puede afectar directamente al código de otra pestaña ni al código de otro sitio web.,negation_or_absence,reviewed

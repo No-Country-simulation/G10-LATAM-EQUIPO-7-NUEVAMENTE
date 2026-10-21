@@ -51,9 +51,12 @@ class SQLiteFormatEvaluationRepositoryAdapter:
                         observations_json,
                         evaluator_version,
                         rubric_version,
+                        verdict,
+                        heuristic_scores_json,
+                        semantic_evaluation_json,
                         created_at
                     )
-                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                     """,
                     (
                         record.evaluation_id,
@@ -73,6 +76,9 @@ class SQLiteFormatEvaluationRepositoryAdapter:
                         record.observations_json,
                         record.evaluator_version,
                         record.rubric_version,
+                        record.verdict,
+                        record.heuristic_scores_json,
+                        record.semantic_evaluation_json,
                         record.created_at,
                     ),
                 )

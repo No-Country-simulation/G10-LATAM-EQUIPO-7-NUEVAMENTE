@@ -112,9 +112,12 @@ export function toFriendlyError(err) {
     return {
       status: 409,
       code: 'FORMAT_CONTEXT_NOT_FOUND',
-      title: 'Contexto Pedagógico No Encontrado',
-      message: 'No existe un registro de generación previo para regenerar este formato en el documento.',
-      details: ['Intenta cargar el recurso nuevamente o solicitar la generación inicial.'],
+      title: 'Formato No Disponible',
+      message: 'No existe una generación previa de este formato para este documento. Para habilitarlo, vuelve a subir el documento al catálogo.',
+      details: [
+        'Este documento fue procesado con una versión previa del sistema.',
+        'Los documentos nuevos se generan automáticamente con los 4 formatos completos.'
+      ],
       isNetwork: false,
       actionText: 'Volver al Catálogo'
     };

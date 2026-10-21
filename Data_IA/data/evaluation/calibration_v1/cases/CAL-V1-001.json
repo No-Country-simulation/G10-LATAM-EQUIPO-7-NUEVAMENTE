@@ -1,0 +1,49 @@
+{
+  "calibration_id": "CAL-V1-001",
+  "source_case_id": "AI-ES-001-Q01",
+  "document_id": "AI-ES-001",
+  "category": "IA",
+  "variant": "clean_reference",
+  "target_dimension": "all",
+  "expected_behavior": {
+    "heuristic": "scores altos en las cuatro dimensiones",
+    "semantic": "scores altos, sin observaciones críticas ni unsupported_information"
+  },
+  "evaluation_request": {
+    "document_id": "AI-ES-001",
+    "format": "quiz",
+    "generated_content": {
+      "title": "Introducción a la inteligencia artificial",
+      "instructions": "Selecciona la respuesta correcta.",
+      "questions": [
+        {
+          "question_id": "q1",
+          "question": "¿Qué pretende introducir este módulo sobre inteligencia artificial?",
+          "options": [
+            "Los tipos de soluciones que la IA puede hacer posible y las prácticas de IA responsable",
+            "Únicamente técnicas avanzadas de programación",
+            "Solo modelos matemáticos de aprendizaje automático",
+            "Exclusivamente herramientas de visión por ordenador"
+          ],
+          "correct_answer": "Los tipos de soluciones que la IA puede hacer posible y las prácticas de IA responsable",
+          "explanation": "El módulo introduce los tipos de soluciones que la inteligencia artificial puede hacer posible y considera prácticas de inteligencia artificial responsable."
+        }
+      ]
+    },
+    "generation_context": {
+      "profile": "beginner",
+      "niche": "general",
+      "detail_level": "medium",
+      "learning_objective": null
+    },
+    "chunks_used": [
+      {
+        "chunk_id": "AI-ES-001_CH_001",
+        "document_id": "AI-ES-001",
+        "rank": 1,
+        "score": 1.0,
+        "text": "# Introducción a los conceptos de inteligencia artificial\n\n- Módulo\n\n- 10 Unidades\n\n¿Tiene curiosidad por la inteligencia artificial? ¿Quieres entender de qué trata el revuelo? En este módulo se presenta el mundo de la inteligencia artificial.\n\n## Objetivos de aprendizaje\n\nEn este módulo, obtendrá información sobre los tipos de soluciones que la inteligencia artificial puede hacer posible y tener en cuenta las prácticas de inteligencia artificial responsables.\n\n## Requisitos previos\n\nAunque no es necesario, un conocimiento conceptual del aprendizaje automático puede ser útil para este módulo. Considere la posibilidad de completar la introducción a los conceptos de Machine Learning antes de iniciar este módulo.\n\n- Introducción a la IA min"
+      }
+    ]
+  }
+}

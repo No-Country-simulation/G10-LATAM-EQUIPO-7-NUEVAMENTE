@@ -6,6 +6,8 @@
  */
 
 import { toFriendlyError } from '../utils/friendlyError.js';
+import { exportVideoGuidePdf } from '../utils/pdfExport.js';
+import { state } from '../state.js';
 
 export const videoGuide = {
   elements: {},
@@ -22,6 +24,7 @@ export const videoGuide = {
       videoScriptList: document.getElementById('videoScriptList'),
       counterBadge: document.getElementById('videoCounterBadge'),
       btnRegen: document.getElementById('btnRegenVideo'),
+      btnDownload: document.getElementById('btnDownloadPdfVideo'),
       playBtn: document.getElementById('videoPlayPreviewBtn')
     };
 
@@ -41,6 +44,13 @@ export const videoGuide = {
         }
       });
     }
+
+    if (this.elements.btnDownload) {
+      this.elements.btnDownload.addEventListener('click', () => {
+        const doc = state.get().currentDocument;
+        exportVideoGuidePdf(doc, this.videoData, this.scenes);
+      });
+    }
   },
 
   render(videoData) {
@@ -53,6 +63,7 @@ export const videoGuide = {
       formatId: videoData?.format_id || null
     };
 
+    this.videoData = videoData;
     const isBusy = this.meta.status === 'processing' || this.meta.status === 'pending';
     if (btnRegen) {
       btnRegen.disabled = isBusy;
@@ -134,11 +145,35 @@ export const videoGuide = {
       return;
     }
 
-    // Caso 3: Sin contenido o sin resultados
-    if (this.meta.status === 'no_results' || !videoData) {
+    // Caso 3: Formato no generado en versión previa del documento
+    if (!videoData || (!videoData.content && !videoData.format_id && this.meta.status !== 'no_results')) {
+      if (counterBadge) counterBadge.textContent = 'Guion (No disponible)';
+      videoTitle.textContent = 'Guion Audiovisual';
+      if (videoDuration) videoDuration.textContent = '0:00';
+      if (btnRegen) {
+        btnRegen.disabled = true;
+        btnRegen.title = 'Este documento fue procesado antes de incorporar el Guion Audiovisual. Sube el documento nuevamente para habilitarlo.';
+      }
+
+      videoScriptList.innerHTML = '';
+      const p = document.createElement('p');
+      p.style.textAlign = 'center';
+      p.style.padding = '1.5rem';
+      p.style.color = 'var(--text-secondary)';
+      p.textContent = 'Este documento fue indexado antes de la incorporación del Guion Audiovisual Formativo. Para generar todos los formatos pedagógicos disponibles, vuelve a subir el documento desde el Catálogo.';
+      videoScriptList.appendChild(p);
+      return;
+    }
+
+    // Caso 4: Sin resultados pedagógicos
+    if (this.meta.status === 'no_results') {
       if (counterBadge) counterBadge.textContent = 'Guion Didáctico';
       videoTitle.textContent = 'Guion de Capacitación';
       if (videoDuration) videoDuration.textContent = '0:00';
+      if (btnRegen) {
+        btnRegen.disabled = false;
+        btnRegen.title = 'Generar un nuevo guion didáctico para facilitadores';
+      }
 
       videoScriptList.innerHTML = '';
       const p = document.createElement('p');
@@ -165,7 +200,17 @@ export const videoGuide = {
     videoScriptList.innerHTML = '';
 
     // A. Contrato canónico: Arreglo de escenas estructuradas
-    const scenes = Array.isArray(content.scenes) ? content.scenes : [];
+    const scenes = Array.isArray(content.scenes) ? content.scenes : (Array.isArray(videoData?.scenes) ? videoData.scenes : []);
+    this.scenes = scenes;
+    const btnDownload = this.elements.btnDownload;
+    if (btnDownload) {
+      const hasScenes = scenes && scenes.length > 0;
+      const isAvailable = !isBusy && this.meta.status === 'success' && hasScenes;
+      btnDownload.disabled = !isAvailable;
+      btnDownload.title = isAvailable
+        ? 'Descargar Guion Formativo en formato PDF'
+        : (isBusy ? 'El Guion se está generando...' : 'Guion no disponible para descargar');
+    }
     if (scenes.length > 0) {
       scenes.forEach((scene, idx) => {
         const item = document.createElement('div');

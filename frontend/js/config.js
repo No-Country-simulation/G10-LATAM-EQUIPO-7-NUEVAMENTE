@@ -66,10 +66,27 @@ function resolveTimeoutMs() {
   return 30000;
 }
 
+function resolveLandingArchUrl() {
+  try {
+    if (typeof import.meta !== 'undefined' && import.meta.env && import.meta.env.VITE_LANDING_ARCH_URL) {
+      return import.meta.env.VITE_LANDING_ARCH_URL;
+    }
+  } catch {}
+  if (typeof window !== 'undefined' && window.__ENV__ && window.__ENV__.VITE_LANDING_ARCH_URL) {
+    return window.__ENV__.VITE_LANDING_ARCH_URL;
+  }
+  return 'http://155.181.154.104/landing/#arquitectura';
+}
+
 export const CONFIG = {
   APP_NAME: 'NuevaMente',
   VERSION: '1.0.0',
   HACKATHON: 'ONE · Grupo 10',
+
+  // Enlaces de documentación externa y presentación interactiva
+  LANDING: {
+    ARCHITECTURE_URL: resolveLandingArchUrl()
+  },
 
   // Configuración de Backend (FastAPI desacoplado)
   API: {
@@ -82,7 +99,8 @@ export const CONFIG = {
       DOCUMENT_DETAILS: (id) => `/documents/${id}`,
       DOCUMENT_DOWNLOAD: (id) => `/documents/${id}/download`,
       DOCUMENT_FORMATS: (id) => `/documents/${id}/formats`,
-      DOCUMENT_REGENERATE: (id) => `/documents/${id}/formats/regenerate`
+      DOCUMENT_REGENERATE: (id) => `/documents/${id}/formats/regenerate`,
+      DOCUMENT_INACTIVATE: (id) => `/documents/${id}/deactivate`
     },
     TIMEOUT_MS: resolveTimeoutMs(),
     PROCESSING_TIMEOUT_MS: 120000, // Timeout para almacenamiento OCI e indexación RAG síncrona (POST /documents)

@@ -44,6 +44,9 @@ document.addEventListener('DOMContentLoaded', () => {
     apiClient.checkHealth();
   }, 60000);
 
+  // 10. Configurar enlace a la arquitectura del sistema (Landing Demo Day)
+  setupHeaderArchitectureBtn();
+
   // 10. Captura global de excepciones y promesas no controladas (Resiliencia en tiempo de ejecución)
   window.addEventListener('unhandledrejection', (event) => {
     console.warn('[Global] Promesa no controlada interceptada:', event.reason);
@@ -80,21 +83,19 @@ function setupSystemStatusBar() {
   });
 }
 
+function setupHeaderArchitectureBtn() {
+  const btn = document.getElementById('btnHeaderArchitecture');
+  if (btn && CONFIG.LANDING && CONFIG.LANDING.ARCHITECTURE_URL) {
+    btn.href = CONFIG.LANDING.ARCHITECTURE_URL;
+  }
+}
+
 function setupBackendBadge() {
   const badge = document.querySelector('.header-connection-badge');
   if (!badge) return;
   const badgeLabel = badge.querySelector('span:not(.status-dot-pulse)') || badge;
 
-  badge.style.cursor = 'pointer';
-  badge.addEventListener('click', () => {
-    const current = CONFIG.API.DEFAULT_BASE_URL;
-    const nextUrl = prompt('Configurar URL del Backend (FastAPI):', current);
-    if (nextUrl !== null && nextUrl.trim() !== current) {
-      if (typeof window.setBackendUrl === 'function') {
-        window.setBackendUrl(nextUrl.trim());
-      }
-    }
-  });
+  badge.style.cursor = 'default';
 
   state.subscribe((s) => {
     const isConn = Boolean(s.isBackendConnected);
@@ -103,7 +104,7 @@ function setupBackendBadge() {
       badgeLabel.textContent = isConn ? 'Backend API' : 'Sin Conexión';
     }
     badge.title = isConn
-      ? `Conectado a Backend API: ${CONFIG.API.DEFAULT_BASE_URL} (Clic para cambiar)`
-      : `Sin conexión con Backend FastAPI (${CONFIG.API.DEFAULT_BASE_URL}). Clic para configurar URL`;
+      ? `Conectado a Backend API (${CONFIG.API.DEFAULT_BASE_URL})`
+      : `Sin conexión con Backend FastAPI (${CONFIG.API.DEFAULT_BASE_URL})`;
   });
 }

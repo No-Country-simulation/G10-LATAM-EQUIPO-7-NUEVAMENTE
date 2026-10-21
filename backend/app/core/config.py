@@ -9,11 +9,7 @@ from functools import lru_cache
 from typing import Annotated, Literal
 
 from pydantic import Field, field_validator
-from pydantic_settings import (
-    BaseSettings,
-    NoDecode,
-    SettingsConfigDict,
-)
+from pydantic_settings import BaseSettings, NoDecode, SettingsConfigDict
 
 
 class Settings(BaseSettings):
@@ -34,10 +30,7 @@ class Settings(BaseSettings):
     )
     VERSION: str = "0.1.0"
     ENVIRONMENT: Literal[
-        "local",
-        "development",
-        "staging",
-        "production",
+        "local", "development", "staging", "production"
     ] = "local"
     DEBUG: bool = True
 
@@ -49,13 +42,8 @@ class Settings(BaseSettings):
     PORT: int = 8000
 
     # --- CORS ---
-    BACKEND_CORS_ORIGINS: Annotated[
-        list[str],
-        NoDecode,
-    ] = Field(
-        default_factory=lambda: [
-            "http://localhost:3000"
-        ]
+    BACKEND_CORS_ORIGINS: Annotated[list[str], NoDecode] = Field(
+        default_factory=lambda: ["http://localhost:3000"]
     )
 
     # --- Documentos / almacenamiento temporal ---
@@ -63,9 +51,7 @@ class Settings(BaseSettings):
     UPLOAD_DIR: str = "storage/uploads"
 
     # --- Base de datos ---
-    DATABASE_URL: str = (
-        "sqlite:///storage/nuevamente.db"
-    )
+    DATABASE_URL: str = "sqlite:///storage/nuevamente.db"
 
     # --- OCI Object Storage ---
     OCI_NAMESPACE: str = ""
@@ -75,146 +61,77 @@ class Settings(BaseSettings):
     OCI_CONFIG_PROFILE: str = "DEFAULT"
 
     # --- RAG ---
-    RAG_BASE_URL: str = (
-        "http://localhost:8001"
-    )
+    RAG_BASE_URL: str = "http://localhost:8001"
     RAG_INDEX_PATH: str = "/api/v1/index"
-    RAG_TIMEOUT_SECONDS: float = Field(
-        default=30.0,
-        gt=0,
-    )
+    RAG_TIMEOUT_SECONDS: float = Field(default=30.0, gt=0)
 
     # --- Agentes ---
-    AGENTS_BASE_URL: str = (
-        "http://localhost:8001"
-    )
-    AGENTS_GENERATE_PATH: str = (
-        "/api/v1/generate"
-    )
-    AGENTS_TIMEOUT_SECONDS: float = Field(
-        default=60.0,
-        gt=0,
-    )
+    AGENTS_BASE_URL: str = "http://localhost:8001"
+    AGENTS_GENERATE_PATH: str = "/api/v1/generate"
+    AGENTS_REVISE_PATH: str = "/api/v1/revise"
+    AGENTS_TIMEOUT_SECONDS: float = Field(default=60.0, gt=0)
+    # Habilitar solo cuando Agentes publique POST /api/v1/revise.
+    AUTO_REVISION_ENABLED: bool = False
 
     # --- Data/IA ---
-    DATA_IA_BASE_URL: str = (
-        "http://localhost:8002"
-    )
-    DATA_IA_EVALUATE_PATH: str = (
-        "/evaluate"
-    )
-    DATA_IA_TIMEOUT_SECONDS: float = Field(
-        default=60.0,
-        gt=0,
-    )
+    DATA_IA_BASE_URL: str = "http://localhost:8002"
+    DATA_IA_EVALUATE_PATH: str = "/evaluate/v2"
+    DATA_IA_TIMEOUT_SECONDS: float = Field(default=60.0, gt=0)
 
-    @field_validator(
-        "BACKEND_CORS_ORIGINS",
-        mode="before",
-    )
+    @field_validator("BACKEND_CORS_ORIGINS", mode="before")
     @classmethod
-    def _parse_origins(
-        cls,
-        value: object,
-    ) -> object:
+    def _parse_origins(cls, value: object) -> object:
         """Acepta una lista JSON o una cadena separada por comas."""
-        if not isinstance(
-            value,
-            str,
-        ):
+        if not isinstance(value, str):
             return value
-
         raw = value.strip()
-
         if raw.startswith("["):
-            return json.loads(
-                raw
-            )
-
-        return [
-            origin.strip()
-            for origin in raw.split(",")
-            if origin.strip()
-        ]
+            return json.loads(raw)
+        return [origin.strip() for origin in raw.split(",") if origin.strip()]
 
     @field_validator(
-        "RAG_BASE_URL",
-        "AGENTS_BASE_URL",
-        "DATA_IA_BASE_URL",
+        "RAG_BASE_URL", "AGENTS_BASE_URL", "DATA_IA_BASE_URL"
     )
     @classmethod
-    def _validate_service_base_url(
-        cls,
-        value: str,
-    ) -> str:
+    def _validate_service_base_url(cls, value: str) -> str:
         """Valida y normaliza URLs base de servicios externos."""
-        normalized = (
-            value.strip().rstrip("/")
-        )
-
-        if not normalized.startswith(
-            (
-                "http://",
-                "https://",
-            )
-        ):
+        normalized = value.strip().rstrip("/")
+        if not normalized.startswith(("http://", "https://")):
             raise ValueError(
-                "Las URLs de servicios externos deben "
-                "utilizar http:// o https://."
+                "Las URLs de servicios externos deben utilizar http:// o https://."
             )
-
         return normalized
 
     @field_validator(
         "RAG_INDEX_PATH",
         "AGENTS_GENERATE_PATH",
+        "AGENTS_REVISE_PATH",
         "DATA_IA_EVALUATE_PATH",
     )
     @classmethod
-    def _validate_service_path(
-        cls,
-        value: str,
-    ) -> str:
+    def _validate_service_path(cls, value: str) -> str:
         """Valida rutas HTTP configuradas para integraciones."""
         normalized = value.strip()
-
         if not normalized.startswith("/"):
             raise ValueError(
-                "Las rutas HTTP de servicios externos "
-                "deben comenzar con '/'."
+                "Las rutas HTTP de servicios externos deben comenzar con '/'."
             )
-
         return normalized
 
     @property
     def is_production(self) -> bool:
         """Indica si la aplicación se ejecuta en producción."""
-        return (
-            self.ENVIRONMENT
-            == "production"
-        )
+        return self.ENVIRONMENT == "production"
 
     @property
-    def max_upload_size_bytes(
-        self,
-    ) -> int:
+    def max_upload_size_bytes(self) -> int:
         """Convierte el límite de carga configurado de MB a bytes."""
-        return (
-            self.MAX_UPLOAD_SIZE_MB
-            * 1024
-            * 1024
-        )
+        return self.MAX_UPLOAD_SIZE_MB * 1024 * 1024
 
     @property
-    def docs_url(
-        self,
-    ) -> str | None:
+    def docs_url(self) -> str | None:
         """Deshabilita Swagger en producción."""
-        return (
-            None
-            if self.is_production
-            else "/docs"
-        )
+        return None if self.is_production else "/docs"
 
 
 @lru_cache

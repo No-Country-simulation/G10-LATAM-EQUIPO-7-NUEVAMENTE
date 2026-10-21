@@ -1,0 +1,5 @@
+calibration_id,heuristic_content_support,semantic_content_support,heuristic_unsupported,semantic_unsupported_count,model,heuristic_detected,semantic_detected
+CAL-V1-004,1,2.0,True,1,gemini-3.8-flash,True,True
+CAL-V1-006,1,2.5,True,1,gemini-3.8-flash,True,True
+CAL-V1-014,3,3.0,False,1,gemini-3.8-flash,True,True
+CAL-V1-018,1,2.5,True,1,gemini-3.8-flash,True,True

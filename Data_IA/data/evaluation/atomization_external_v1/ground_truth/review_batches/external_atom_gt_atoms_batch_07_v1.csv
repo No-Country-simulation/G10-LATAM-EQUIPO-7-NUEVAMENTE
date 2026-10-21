@@ -1,0 +1,11 @@
+﻿external_case_id,atom_index,atom_text,atom_type,gt_review_status
+EXT-VAL-V1-061,1,Llama a varias funciones a la vez cuando sean independientes.,conditional_relation,reviewed
+EXT-VAL-V1-062,1,No es necesario que el modelo genere texto antes de las llamadas a herramientas.,negation_or_absence,reviewed
+EXT-VAL-V1-063,1,"En este ejemplo, el uso de anyOf para esquemas condicionales y enum para la clasificación permite que la estructura de salida varíe según el contenido.",causal_relation,reviewed
+EXT-VAL-V1-064,1,Los esquemas muy grandes o con un nivel de anidamiento profundo pueden ser rechazados.,conditional_relation,reviewed
+EXT-VAL-V1-065,1,"Si no has iniciado sesión, se abrirá tu navegador para completar el proceso de autenticación.",conditional_relation,reviewed
+EXT-VAL-V1-066,1,No puedes redefinir una path operation.,negation_or_absence,reviewed
+EXT-VAL-V1-067,1,"Fue rigurosamente probado en la fase de diseño, antes de cualquier implementación, para garantizar que funcionaría con todos los editores.",temporal_relation,reviewed
+EXT-VAL-V1-068,1,"Si usas PyCharm como tu editor, puedes usar el Pydantic PyCharm Plugin.",conditional_relation,reviewed
+EXT-VAL-V1-069,1,"When you create an object in Kubernetes, you must provide the object spec that describes its desired state, as well as some basic information about the object, such as a name.",conditional_relation,reviewed
+EXT-VAL-V1-070,1,"Starting with Kubernetes v1.25, the API server offers server-side field validation that detects unrecognized or duplicate fields in an object.",temporal_relation,reviewed

@@ -1,0 +1,287 @@
+{
+  "candidate": "claim-atomizer-v0.4",
+  "evaluation_set": "atomization-external-validation-v1",
+  "analysis_type": "offline_failure_analysis",
+  "gemini_calls": false,
+  "model_modified": false,
+  "ground_truth_modified": false,
+  "predictions_modified": false,
+  "counts": {
+    "total_cases": 80,
+    "detection_failures": 6,
+    "structural_failures": 37
+  },
+  "detection": {
+    "confusion_counts": {
+      "FN": 5,
+      "FP": 1,
+      "TN": 59,
+      "TP": 15
+    },
+    "failure_counts": {
+      "FP": 1,
+      "FN": 5
+    }
+  },
+  "structure": {
+    "failure_direction_counts": {
+      "count_equal_structure_wrong": 8,
+      "over_atomized": 22,
+      "under_atomized": 7
+    },
+    "failures_by_bucket": {
+      "atomic": 9,
+      "compound": 11,
+      "relational": 17
+    },
+    "failures_by_domain": {
+      "ai": 7,
+      "backend": 5,
+      "cloud_devops": 6,
+      "data_science": 7,
+      "frontend": 12
+    },
+    "exact_by_bucket": {
+      "atomic": {
+        "total": 20,
+        "exact": 11,
+        "failed": 9,
+        "exact_accuracy": 0.55
+      },
+      "compound": {
+        "total": 20,
+        "exact": 9,
+        "failed": 11,
+        "exact_accuracy": 0.45
+      },
+      "relational": {
+        "total": 20,
+        "exact": 3,
+        "failed": 17,
+        "exact_accuracy": 0.15
+      }
+    }
+  },
+  "relational": {
+    "failure_count": 17,
+    "failures_by_subtype": {
+      "causal_relation": 3,
+      "comparative_relation": 2,
+      "conditional_relation": 7,
+      "negation_or_absence": 1,
+      "temporal_relation": 4
+    }
+  },
+  "class_confusion": [
+    {
+      "gt_class": "relational",
+      "predicted_class": "relational",
+      "count": 7
+    },
+    {
+      "gt_class": "relational",
+      "predicted_class": "compound",
+      "count": 7
+    },
+    {
+      "gt_class": "atomic",
+      "predicted_class": "compound",
+      "count": 6
+    },
+    {
+      "gt_class": "compound",
+      "predicted_class": "compound",
+      "count": 6
+    },
+    {
+      "gt_class": "compound",
+      "predicted_class": "relational",
+      "count": 3
+    },
+    {
+      "gt_class": "relational",
+      "predicted_class": "atomic",
+      "count": 3
+    },
+    {
+      "gt_class": "atomic",
+      "predicted_class": "relational",
+      "count": 2
+    },
+    {
+      "gt_class": "compound",
+      "predicted_class": "atomic",
+      "count": 2
+    },
+    {
+      "gt_class": "atomic",
+      "predicted_class": "non_propositional",
+      "count": 1
+    }
+  ],
+  "type_sequence_confusion": [
+    {
+      "gt_type_sequence": "factual_proposition",
+      "predicted_type_sequence": "factual_proposition > factual_proposition",
+      "count": 6
+    },
+    {
+      "gt_type_sequence": "factual_proposition > factual_proposition",
+      "predicted_type_sequence": "factual_proposition",
+      "count": 2
+    },
+    {
+      "gt_type_sequence": "conditional_relation",
+      "predicted_type_sequence": "factual_proposition > conditional_relation",
+      "count": 2
+    },
+    {
+      "gt_type_sequence": "factual_proposition",
+      "predicted_type_sequence": "factual_proposition > conditional_relation",
+      "count": 1
+    },
+    {
+      "gt_type_sequence": "factual_proposition",
+      "predicted_type_sequence": "none",
+      "count": 1
+    },
+    {
+      "gt_type_sequence": "factual_proposition",
+      "predicted_type_sequence": "factual_proposition > causal_relation",
+      "count": 1
+    },
+    {
+      "gt_type_sequence": "negation_or_absence > factual_proposition",
+      "predicted_type_sequence": "factual_proposition > factual_proposition",
+      "count": 1
+    },
+    {
+      "gt_type_sequence": "factual_proposition > causal_relation > causal_relation",
+      "predicted_type_sequence": "factual_proposition > factual_proposition",
+      "count": 1
+    },
+    {
+      "gt_type_sequence": "comparative_relation > negation_or_absence > causal_relation",
+      "predicted_type_sequence": "comparative_relation > causal_relation",
+      "count": 1
+    },
+    {
+      "gt_type_sequence": "factual_proposition > factual_proposition",
+      "predicted_type_sequence": "factual_proposition > factual_proposition > factual_proposition",
+      "count": 1
+    },
+    {
+      "gt_type_sequence": "factual_proposition > comparative_relation > factual_proposition > factual_proposition",
+      "predicted_type_sequence": "factual_proposition > factual_proposition > factual_proposition",
+      "count": 1
+    },
+    {
+      "gt_type_sequence": "comparative_relation > factual_proposition",
+      "predicted_type_sequence": "factual_proposition > factual_proposition",
+      "count": 1
+    },
+    {
+      "gt_type_sequence": "factual_proposition > factual_proposition > factual_proposition > factual_proposition",
+      "predicted_type_sequence": "factual_proposition > factual_proposition > factual_proposition",
+      "count": 1
+    },
+    {
+      "gt_type_sequence": "factual_proposition > causal_relation > negation_or_absence",
+      "predicted_type_sequence": "factual_proposition > factual_proposition > negation_or_absence",
+      "count": 1
+    },
+    {
+      "gt_type_sequence": "causal_relation",
+      "predicted_type_sequence": "factual_proposition > factual_proposition > factual_proposition",
+      "count": 1
+    },
+    {
+      "gt_type_sequence": "temporal_relation",
+      "predicted_type_sequence": "temporal_relation > factual_proposition",
+      "count": 1
+    },
+    {
+      "gt_type_sequence": "conditional_relation",
+      "predicted_type_sequence": "factual_proposition",
+      "count": 1
+    },
+    {
+      "gt_type_sequence": "conditional_relation",
+      "predicted_type_sequence": "factual_proposition > factual_proposition",
+      "count": 1
+    },
+    {
+      "gt_type_sequence": "temporal_relation",
+      "predicted_type_sequence": "factual_proposition > factual_proposition",
+      "count": 1
+    },
+    {
+      "gt_type_sequence": "causal_relation",
+      "predicted_type_sequence": "causal_relation > factual_proposition",
+      "count": 1
+    },
+    {
+      "gt_type_sequence": "conditional_relation",
+      "predicted_type_sequence": "factual_proposition > factual_proposition > conditional_relation",
+      "count": 1
+    },
+    {
+      "gt_type_sequence": "temporal_relation",
+      "predicted_type_sequence": "factual_proposition",
+      "count": 1
+    },
+    {
+      "gt_type_sequence": "causal_relation",
+      "predicted_type_sequence": "factual_proposition > factual_proposition > causal_relation",
+      "count": 1
+    },
+    {
+      "gt_type_sequence": "conditional_relation",
+      "predicted_type_sequence": "causal_relation",
+      "count": 1
+    },
+    {
+      "gt_type_sequence": "conditional_relation",
+      "predicted_type_sequence": "factual_proposition > factual_proposition > factual_proposition",
+      "count": 1
+    },
+    {
+      "gt_type_sequence": "temporal_relation",
+      "predicted_type_sequence": "factual_proposition > factual_proposition > conditional_relation",
+      "count": 1
+    },
+    {
+      "gt_type_sequence": "comparative_relation",
+      "predicted_type_sequence": "factual_proposition > factual_proposition",
+      "count": 1
+    },
+    {
+      "gt_type_sequence": "comparative_relation",
+      "predicted_type_sequence": "factual_proposition > factual_proposition > factual_proposition",
+      "count": 1
+    }
+  ],
+  "dominant_patterns": {
+    "relational_over_atomization": {
+      "count": 13,
+      "total_relational_cases": 20,
+      "rate": 0.65
+    },
+    "compound_under_atomization": {
+      "count": 6,
+      "total_compound_cases": 20,
+      "rate": 0.3
+    },
+    "atomic_over_atomization": {
+      "count": 8,
+      "total_atomic_cases": 20,
+      "rate": 0.4
+    }
+  },
+  "interpretation_guardrails": [
+    "This analysis identifies observed failure patterns only.",
+    "It does not redesign or tune claim-atomizer-v0.4.",
+    "No conclusion about production integration should be made from a single failure category alone.",
+    "The benchmark is deliberately balanced and does not represent natural production prevalence."
+  ]
+}

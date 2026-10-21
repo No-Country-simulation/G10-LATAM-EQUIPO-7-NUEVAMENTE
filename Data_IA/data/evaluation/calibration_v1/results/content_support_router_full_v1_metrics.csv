@@ -1,0 +1,3 @@
+router,tp,fp,fn,tn,precision,recall,specificity,accuracy,case_review_rate
+legacy,5,12,0,3,0.29411764705882354,1.0,0.2,0.4,0.85
+normalized,5,12,0,3,0.29411764705882354,1.0,0.2,0.4,0.85

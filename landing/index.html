@@ -1,0 +1,140 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#090c10">
+  <meta name="description" content="NuevaMente: presentación visual para el Demo Day. Del documento técnico al aprendizaje adaptado, con generación, evaluación y corrección.">
+  <title>NuevaMente · Demo Day</title>
+  <link rel="icon" href="assets/favicon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="styles.css">
+  <script src="script.js" defer></script>
+</head>
+<body>
+  <a class="skip" href="#documento">Saltar a la presentación</a>
+  <header class="header">
+    <a class="brand" href="#documento" aria-label="NuevaMente, inicio">
+      <img src="assets/logo.png" alt="NuevaMente · Conocimiento que Transforma" class="header-brand-logo">
+    </a>
+    <span class="event">DEMO DAY <i></i> ONE · ALURA <span>GRUPO 10 / EQUIPO 7 · LATAM</span></span>
+    <button class="quiet fullscreen" type="button" hidden>Pantalla completa ↗</button>
+  </header>
+  <main id="deck">
+    <section class="scene opening" id="documento" aria-labelledby="title-documento">
+      <div class="scene-heading"><p class="eyebrow">01 / DEL DOCUMENTO AL CONOCIMIENTO</p><h1 id="title-documento" tabindex="-1">Documentar no es lo mismo<br>que <em>transmitir conocimiento.</em></h1><p>Un mismo documento. Diferentes personas. Distintas formas de explicar.</p></div>
+      <div class="audience-map">
+        <svg class="audience-lines" viewBox="0 0 1000 330" aria-hidden="true"><path d="M500 165H245V65H130M500 165H245V265H130M500 165H755V65H870M500 165H755V265H870"/><circle cx="500" cy="165" r="130"/><circle cx="500" cy="165" r="155"/></svg>
+        <div class="audience beginner"><span aria-hidden="true">01</span><strong>Principiante</strong><small>Construir las bases</small></div>
+        <div class="audience developer"><span aria-hidden="true">02</span><strong>Desarrollador</strong><small>Comprender la aplicación</small></div>
+        <div class="source-document"><svg viewBox="0 0 60 70" aria-hidden="true"><path d="M10 3H36L51 18V65H10Z M36 3V18H51 M19 31H42 M19 41H42 M19 51H34"/></svg><strong>Documento técnico</strong><small>El conocimiento original</small></div>
+        <div class="audience architect"><span aria-hidden="true">03</span><strong>Arquitecto</strong><small>Entender la estructura</small></div>
+        <div class="audience executive"><span aria-hidden="true">04</span><strong>Perfil ejecutivo</strong><small>Identificar lo esencial</small></div>
+      </div>
+      <div class="scene-foot"><span>Lenguaje</span><span>Profundidad</span><span>Contexto</span><strong>Una condición: fidelidad a la fuente.</strong></div>
+    </section>
+
+    <section class="scene transformation" id="transformacion" aria-labelledby="title-transformacion">
+      <div class="scene-heading"><p class="eyebrow">02 / QUÉ TRANSFORMA NUEVAMENTE</p><h2 id="title-transformacion" tabindex="-1">Del contenido técnico<br>a <em>material para aprender.</em></h2></div>
+      <div class="transformation-line"><div class="input-node"><span class="node-icon" aria-hidden="true">▤</span><strong>Documento técnico</strong><small>PDF · Markdown · TXT</small></div><span class="arrow" aria-hidden="true">→</span><div class="context-node"><span class="node-caption">ADAPTACIÓN PEDAGÓGICA</span><strong>Perfil · Contexto · Profundidad</strong><small>Objetivo de aprendizaje</small></div><span class="arrow" aria-hidden="true">→</span><div class="engine-node"><span class="node-caption">NUEVAMENTE</span><strong>Recupera + adapta</strong><small>Evidencia específica por formato</small></div></div>
+      <div class="output-connector" aria-hidden="true"><span>↓</span></div>
+      <div class="format-grid"><article><span class="format-icon" aria-hidden="true">≡</span><h3>Resumen</h3><p>Comprender lo esencial</p></article><article><span class="format-icon" aria-hidden="true">▤</span><h3>Flashcards</h3><p>Repasar y memorizar</p></article><article><span class="format-icon" aria-hidden="true">✓</span><h3>Quiz</h3><p>Comprobar comprensión</p></article><article><span class="format-icon" aria-hidden="true">▷</span><h3>Guion formativo</h3><p>Narración + sugerencias visuales</p></article></div>
+      <div class="scene-foot"><strong>También orienta el aprendizaje</strong><span>Conceptos clave</span><span>Prerrequisitos</span><span>Tiempo estimado</span></div>
+    </section>
+
+    <section class="scene demo-scene" id="demo" aria-labelledby="title-demo">
+      <div class="demo-copy"><p class="eyebrow">03 / VERLO EN ACCIÓN</p><h2 id="title-demo" tabindex="-1">Ahora, el<br><em>producto real.</em></h2><p>Del archivo original<br>al centro de capacitación.</p><a class="button" href="/">Abrir NuevaMente <span aria-hidden="true">→</span></a><small class="demo-hint">Se abre aquí. Usa Atrás para volver a la presentación.</small></div>
+      <div class="demo-journey"><div class="journey-heading"><span class="live-dot"></span> RECORRIDO DE LA DEMO</div><ol><li><span>01</span><div><strong>Cargar</strong><small>Documento + contexto pedagógico</small></div></li><li><span>02</span><div><strong>Explorar</strong><small>Resumen · Flashcards · Quiz · Guion</small></div></li><li><span>03</span><div><strong>Reutilizar</strong><small>Biblioteca · Regeneración · Original</small></div></li></ol><div class="journey-note">Un documento indexado.<br><strong>Nuevas versiones sin volver a cargarlo.</strong></div></div>
+    </section>
+
+    <section class="scene architecture-scene" id="arquitectura" aria-labelledby="title-arquitectura">
+      <div class="architecture-heading"><div><p class="eyebrow">04 / LO QUE OCURRE DETRÁS</p><h2 id="title-arquitectura" tabindex="-1">Un sistema que <em>genera, evalúa y corrige.</em></h2><p class="explore-hint"><span aria-hidden="true">↗</span> Arquitectura interactiva · clic para explorar</p></div><span class="architecture-badge">BackendAPI<br><strong>Orquestador global</strong></span></div>
+      <div class="architecture-workspace">
+      <div class="system-canvas">
+        <svg id="system-map" viewBox="0 0 1060 620" role="group" aria-labelledby="map-title map-desc">
+          <title id="map-title">Arquitectura multiagentes de NuevaMente en OCI</title><desc id="map-desc">Una máquina OCI aloja los contenedores administrados por Docker Compose: Frontend, BackendAPI, Multiagentes, Data/IA y landing. BackendAPI coordina la generación y la evaluación independiente. El Investigador RAG recupera evidencia por objetivo, el Redactor genera formatos y el Revisor orienta las correcciones.</desc>
+          <defs><marker id="arrowhead" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M0 0L10 5L0 10Z" fill="#f59e0b"/></marker></defs>
+          <rect class="oci-boundary" x="2" y="2" width="1056" height="616" rx="24"/>
+          <text class="infra-heading" x="26" y="34">OCI / MÁQUINA VIRTUAL</text>
+          <text class="infra-caption" x="1032" y="34" text-anchor="end">Docker Compose · Administración de contenedores</text>
+          <path class="infra-divider" d="M26 52H1034"/>
+          <g transform="translate(20 65)">
+          <rect class="agent-boundary" id="agent-boundary" x="505" y="25" width="265" height="390" rx="20"/>
+          <text class="group-heading" x="525" y="58">MULTIAGENTES</text><text class="group-subtitle" x="525" y="78">Contenedor · Generación y corrección</text>
+          <text class="container-label" x="20" y="163">CONTENEDOR / NGINX</text>
+          <text class="container-label" x="245" y="159">CONTENEDOR / BACKEND</text>
+          <text class="container-label" x="805" y="159">CONTENEDOR / DATA &amp; IA</text>
+          <path class="offline-link" d="M902 120V146" fill="none"/>
+          <g class="system-node offline-node" data-node="offline" role="button" tabindex="0" aria-haspopup="dialog" aria-label="Validación offline: explorar Ground Truth, benchmark y ablaciones">
+            <rect x="805" y="55" width="195" height="65" rx="10"/><text class="node-title agent-title" x="818" y="81">Validación offline</text><text class="node-detail" x="818" y="105">Ground Truth · Benchmark · Ablation</text><g class="explore-icon" aria-hidden="true"><circle cx="980" cy="76" r="11"/><text x="980" y="81">↗</text></g>
+          </g>
+          <g class="edges" fill="none" marker-end="url(#arrowhead)">
+            <path id="edge-front-back" d="M190 211H245"/>
+            <path id="edge-back-front" d="M245 242H190"/>
+            <path id="edge-back-rag" d="M450 195H477V130H525"/>
+            <path id="edge-rag-writer" d="M627 160V190"/>
+            <path id="edge-writer-back" d="M525 220H477V250H450"/>
+            <path id="edge-back-eval" d="M350 270V441H880V270"/>
+            <path id="edge-eval-back" d="M925 270V480H310V270"/>
+            <path class="correction-edge" id="edge-back-reviewer" d="M425 270V340H525"/>
+            <path class="correction-edge" id="edge-reviewer-rag" d="M730 340H750V130H730"/>
+            <path class="correction-edge" id="edge-reviewer-writer" d="M627 310V250"/>
+          </g>
+          <text class="wire-label" x="475" y="433">Contenido + contexto + evidencia</text><text class="wire-label" x="475" y="473">Métricas + recomendaciones</text>
+          <g class="system-node frontend-node" data-node="frontend" role="button" tabindex="0" aria-label="Frontend: interacción con el usuario">
+            <rect x="20" y="174" width="170" height="85" rx="12"/><text class="node-kicker" x="40" y="198">EXPERIENCIA</text><text class="node-title" x="40" y="223">Frontend</text><text class="node-detail" x="40" y="244">Carga y aprendizaje</text>
+          </g>
+          <g class="system-node backend-node" data-node="backend" role="button" tabindex="0" aria-label="BackendAPI: orquestador global">
+            <rect x="245" y="170" width="205" height="100" rx="12"/><text class="node-kicker" x="266" y="196">ORQUESTADOR GLOBAL</text><text class="node-title" x="266" y="224">BackendAPI</text><text class="node-detail" x="266" y="247">Coordina · Persiste · Decide</text>
+          </g>
+          <g class="system-node rag-node" data-node="rag" role="button" tabindex="0" aria-haspopup="dialog" aria-label="Investigador RAG: abrir detalle de recuperación híbrida">
+            <rect x="525" y="100" width="205" height="60" rx="10"/><text class="node-title agent-title" x="542" y="126">Investigador RAG</text><text class="node-detail" x="542" y="147">Explorar recuperación híbrida</text><g class="explore-icon" aria-hidden="true"><circle cx="712" cy="120" r="11"/><text x="712" y="125">↗</text></g>
+          </g>
+          <g class="system-node writer-node" data-node="writer" role="button" tabindex="0" aria-label="Redactor Pedagógico: genera y corrige">
+            <rect x="525" y="190" width="205" height="60" rx="10"/><text class="node-title agent-title" x="542" y="216">Redactor Pedagógico</text><text class="node-detail" x="542" y="237">Evidencia propia por formato</text>
+          </g>
+          <g class="system-node reviewer-node" data-node="reviewer" role="button" tabindex="0" aria-haspopup="dialog" aria-label="Agente Revisor: abrir detalle del flujo de corrección">
+            <rect x="525" y="310" width="205" height="60" rx="10"/><text class="node-title agent-title" x="542" y="336">Agente Revisor</text><text class="node-detail" x="542" y="357">Orienta la corrección</text><g class="explore-icon" aria-hidden="true"><circle cx="712" cy="330" r="11"/><text x="712" y="335">↗</text></g>
+          </g>
+          <text class="optional-label" x="530" y="395">Nueva evidencia, solo si es necesaria</text>
+          <g class="system-node evaluator-node" data-node="evaluator" role="button" tabindex="0" aria-haspopup="dialog" aria-label="Data/IA: abrir detalle de evaluación heurística y semántica">
+            <rect x="805" y="170" width="195" height="100" rx="12"/><text class="node-kicker" x="824" y="196">EVALUADOR INDEPENDIENTE</text><text class="node-title" x="824" y="224">Data/IA</text><text class="node-detail" x="824" y="244"><tspan x="824">Calidad pedagógica ·</tspan><tspan x="824" dy="14">fidelidad a la fuente</tspan></text><g class="explore-icon" aria-hidden="true"><circle cx="980" cy="220" r="11"/><text x="980" y="225">↗</text></g>
+          </g>
+          </g>
+          <text class="infra-caption" x="40" y="594">Persistencia · SQLite · OCI Object Storage · ChromaDB</text>
+          <text class="infra-caption" x="1020" y="594" text-anchor="end">Contenedor adicional · Landing / Nginx</text>
+        </svg>
+      </div>
+      <div class="sequence-bar"><div class="sequence-caption" role="status" aria-live="polite"><span id="step-count">EL SISTEMA</span><p id="step-description">Reproduce el recorrido completo: generación, evaluación y un caso que requiere corrección.</p></div><div class="architecture-toolbar" hidden><div class="playback-panel" role="group" aria-label="Reproducción del proceso completo"><div class="sequence-controls"><button type="button" id="step-reset">↺ Reiniciar</button><button type="button" id="step-play">▷ Reproducir</button><button type="button" id="step-pause" disabled>Ⅱ Pausa</button></div><label class="evidence-option"><input type="checkbox" id="new-evidence" checked> Requiere nueva evidencia</label></div></div></div>
+      </div>
+      <div class="architecture-footer"><span>Generación ≠ evaluación</span><span>Evidencia por objetivo</span><span>Correcciones limitadas</span><small>OCI · Docker Compose · Contenedores</small></div>
+      <noscript><p class="fallback">Backend → Agentes → Backend → Data/IA → Backend. Si requiere corrección: Revisor → nueva evidencia opcional → Redactor → nueva evaluación. Activa JavaScript para recorrer los pasos.</p></noscript>
+    </section>
+
+  <section class="scene team-scene" id="equipo" aria-labelledby="team-title">
+    <div class="scene-heading"><p class="eyebrow">05 / EL EQUIPO · G10-LATAM-Equipo-7</p>
+    <h2 id="team-title" tabindex="-1">Las personas detrás de <em>NuevaMente.</em></h2></div>
+    <div class="people-grid">
+      <article class="person-card"><div class="person-heading"><span class="person-avatar" aria-hidden="true">TP</span><div><h3>Tara Padilla</h3><span class="person-role">Project Manager</span></div><a class="person-link" href="https://www.linkedin.com/in/ingtcampos/" target="_blank" rel="noopener noreferrer" aria-label="LinkedIn de Tara Padilla">in ↗</a></div><p>Lideró la planificación, coordinación e integración del equipo, desde la definición del producto hasta el Demo Day.</p></article>
+      <article class="person-card"><div class="person-heading"><span class="person-avatar" aria-hidden="true">MA</span><div><h3>Matías Abalo</h3><span class="person-role">Frontend</span></div><a class="person-link" href="https://www.linkedin.com/in/matias-abalo/" target="_blank" rel="noopener noreferrer" aria-label="LinkedIn de Matías Abalo">in ↗</a></div><p>Lideró la experiencia visual y construyó una interfaz completa, funcional y alineada con el flujo real del producto.</p></article>
+      <article class="person-card"><div class="person-heading"><span class="person-avatar" aria-hidden="true">MV</span><div><h3>María Fernanda Velderrain</h3><span class="person-role">Data &amp; IA</span></div><a class="person-link" href="https://www.linkedin.com/in/maria-fernanda-velderrain-parra/" target="_blank" rel="noopener noreferrer" aria-label="LinkedIn de María Fernanda Velderrain">in ↗</a></div><p>Lideró Data/IA: evaluación de calidad, Ground Truth y métricas de retrieval, impulsando la validación sistemática de resultados.</p></article>
+      <article class="person-card"><div class="person-heading"><span class="person-avatar" aria-hidden="true">JS</span><div><h3>Juan Camilo Sarabino</h3><span class="person-role">Backend</span></div><a class="person-link" href="https://www.linkedin.com/in/jsarabino/" target="_blank" rel="noopener noreferrer" aria-label="LinkedIn de Juan Camilo Sarabino">in ↗</a></div><p>Fue uno de los principales responsables del BackendAPI: arquitectura, persistencia, integración y orquestación de servicios.</p></article>
+      <article class="person-card"><div class="person-heading"><span class="person-avatar" aria-hidden="true">DR</span><div><h3>Davo Ruiz</h3><span class="person-role">Agentes &amp; RAG</span></div></div><p>Asumió el servicio de Agentes: generación con IA, recuperación de información y evolución hacia la arquitectura multiagente.</p></article>
+      <article class="person-card"><div class="person-heading"><span class="person-avatar" aria-hidden="true">LZ</span><div><h3>Luis Andrés Zepeda</h3><span class="person-role">Data &amp; IA</span></div><a class="person-link" href="https://www.linkedin.com/in/luismigcavero/" target="_blank" rel="noopener noreferrer" aria-label="LinkedIn de Luis Andrés Zepeda">in ↗</a></div><p>Contribuyó a la evaluación, experimentación y validación de resultados, al análisis de retrieval y al componente evaluador.</p></article>
+
+      <article class="person-card"><div class="person-heading"><span class="person-avatar" aria-hidden="true">SP</span><div><h3>Santiago Pereyra</h3><span class="person-role">Frontend / Soporte técnico</span></div><a class="person-link" href="https://www.linkedin.com/in/santiago-pereyra-7886112a0/" target="_blank" rel="noopener noreferrer" aria-label="LinkedIn de Santiago Pereyra">in ↗</a></div><p>Apoyó el frontend y tareas puntuales de integración, aportando funcionalidades y adaptándose a las necesidades técnicas del proyecto.</p></article>
+      <article class="person-card"><div class="person-heading"><span class="person-avatar" aria-hidden="true">ÓM</span><div><h3>Óscar Muñoz</h3><span class="person-role">Backend / Soporte técnico</span></div></div><p>Contribuyó en tareas concretas de backend e integración, atendiendo requerimientos y apoyando el cierre técnico de funcionalidades.</p></article>
+    </div>
+    <div class="contributors"><span>COLABORADORES</span><div><a href="https://www.linkedin.com/in/fgaleanc/" target="_blank" rel="noopener noreferrer">Federico Galeano Cords <small>Software Engineer ↗</small></a><a href="https://www.linkedin.com/in/vdominguez-dev/" target="_blank" rel="noopener noreferrer">Verónica Nicoll Domínguez Centurión <small>Full Stack Developer ↗</small></a></div></div>
+  </section>
+    <section class="scene closing" id="impacto" aria-labelledby="title-impacto">
+      <div class="scene-heading"><p class="eyebrow">06 / POR QUÉ IMPORTA</p><h2 id="title-impacto" tabindex="-1">Conocimiento técnico.<br><em>Más accesible. Más enseñable.</em></h2></div>
+      <div class="impact-grid"><article><span class="impact-icon" aria-hidden="true">↗</span><h3>Aprendizaje adaptado</h3><p>Distintos perfiles.<br>Cuatro formatos complementarios.</p><small>MENOS ESFUERZO PARA PREPARAR CAPACITACIÓN</small></article><article><span class="impact-icon" aria-hidden="true">◎</span><h3>Calidad con evidencia</h3><p>Trazabilidad.<br>Evaluación independiente y corrección.</p><small>CONTENIDO VINCULADO CON SU FUENTE</small></article><article><span class="impact-icon" aria-hidden="true">⬡</span><h3>Producto integrado</h3><p>Flujo de extremo a extremo.<br>Regeneración y arquitectura modular.</p><small>UNA BASE REUTILIZABLE E INTEGRABLE</small></article></div>
+      <div class="team-strip"><strong>G10-LATAM-Equipo-7 · NUEVAMENTE</strong><p>Frontend · Backend · Agentes · Data/IA · Infraestructura · QA</p><div class="team-invitation"><small>Sprints · Revisión entre pares · Pruebas y CI/CD · Despliegue OCI</small></div></div>
+      <div class="closing-links"><a class="button" href="/">Probar NuevaMente →</a><button class="quiet" type="button" id="open-resources" hidden>Recursos para el jurado ↗</button><a class="quiet" href="https://github.com/No-Country-simulation/G10-LATAM-EQUIPO-7-NUEVAMENTE" target="_blank" rel="noopener noreferrer">Repositorio ↗</a></div>
+    </section>
+  </main>
+  <footer class="deck-footer"><button type="button" id="previous-scene" class="quiet" hidden aria-label="Vista anterior">←</button><nav aria-label="Momentos del pitch"><a href="#documento"><span>01</span> El documento</a><a href="#transformacion"><span>02</span> La transformación</a><a href="#demo"><span>03</span> El producto</a><a href="#arquitectura"><span>04</span> La arquitectura</a><a href="#equipo"><span>05</span> El equipo</a><a href="#impacto"><span>06</span> El valor</a></nav><div class="deck-position"><span id="scene-position">01 / 06</span><button type="button" id="next-scene" class="quiet" hidden aria-label="Vista siguiente">→</button></div></footer>
+  <dialog id="resources-dialog" aria-labelledby="resources-title"><div class="dialog-heading"><p class="eyebrow">DESPUÉS DEL DEMO DAY</p><button type="button" id="close-resources" class="quiet" aria-label="Cerrar recursos">✕</button></div><h2 id="resources-title">Explorar el proyecto</h2><div class="resource-list"><a href="assets/panorama-demo-day.md" download>Panorama base del pitch <span>↓</span></a><a href="assets/arquitectura-sprint4.png" target="_blank" rel="noopener noreferrer">Arquitectura general · Sprint 4 <span>↗</span></a><a href="assets/flujo-sprint4.png" target="_blank" rel="noopener noreferrer">Flujo de generación y corrección <span>↗</span></a><a href="assets/ciclo-evaluacion.png" target="_blank" rel="noopener noreferrer">Ciclo de evaluación <span>↗</span></a><a href="https://github.com/No-Country-simulation/G10-LATAM-EQUIPO-7-NUEVAMENTE" target="_blank" rel="noopener noreferrer">Repositorio y documentación <span>↗</span></a></div></dialog>
+
+</body>
+</html>

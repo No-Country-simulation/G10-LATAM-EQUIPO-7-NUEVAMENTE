@@ -1,0 +1,55 @@
+{
+  "candidate": "claim-atomizer-v0.4",
+  "experiment": "Claim Atomization v1",
+  "test_a": {
+    "status": "INVESTIGATE",
+    "source": "data\\evaluation\\atomization_external_v1\\results\\atomization_external_evaluation_summary_v0_4.json",
+    "key_results": {
+      "exact_structure_accuracy": {
+        "passed": false,
+        "observed": 0.3833,
+        "threshold": 0.9
+      },
+      "count_accuracy": {
+        "passed": false,
+        "observed": 0.5167,
+        "threshold": 0.95
+      },
+      "non_propositional_recall": {
+        "passed": false,
+        "observed": 0.75,
+        "threshold": 0.85
+      },
+      "non_propositional_precision": {
+        "passed": true,
+        "observed": 0.9375,
+        "threshold": 0.9
+      },
+      "detection_coverage": {
+        "passed": true,
+        "observed": 1.0,
+        "threshold": 0.95
+      }
+    }
+  },
+  "test_b": {
+    "status": "COMPLETED",
+    "provider_success_rate": 0.9792,
+    "fully_stable_rate": 0.6875,
+    "stability_among_successes_rate": 0.6875,
+    "source": "data\\evaluation\\atomization_external_v1\\results\\atomization_external_stability_summary_v0_4.json"
+  },
+  "test_c": {
+    "status": "SKIPPED",
+    "reason": "External structural validation did not meet the frozen minimum quality criteria. Running content-support A/B would confound downstream effects with known atomization errors."
+  },
+  "final_decision": "STOP_V0_4_FOR_PRODUCTION_INTEGRATION",
+  "production_integration": false,
+  "prompt_tuning_performed_during_external_validation": false,
+  "future_work": {
+    "v0_4_should_be_modified": false,
+    "possible_future_candidate": "A future v0.5 may be designed as a new experiment using the frozen external failure analysis as hypothesis-generation evidence.",
+    "important": "Any future candidate should be evaluated on a newly protected benchmark rather than tuned directly against this external set."
+  },
+  "final_interpretation": "claim-atomizer-v0.4 remains a useful experimental artifact but did not demonstrate sufficient external structural generalization for production integration."
+}

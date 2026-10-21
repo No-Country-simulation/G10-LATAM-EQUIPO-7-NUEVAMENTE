@@ -8,7 +8,7 @@ import { getRandomSpineColor } from '../config.js';
 import { apiClient } from '../api/apiClient.js';
 import { router } from './router.js';
 import { statusDialog } from './statusDialog.js';
-import { notifyError, notifyWarning, notifySuccess } from './notifications.js';
+import { notifyError, notifyWarning, notifySuccess, notifyInfo } from './notifications.js';
 import { toFriendlyError } from '../utils/friendlyError.js';
 
 export const bookshelf = {
@@ -52,17 +52,22 @@ export const bookshelf = {
 
       if (Array.isArray(docs) && docs.length > 0) {
         this.booksFromBackend = docs.map((doc, idx) => {
-          const rawTitle = doc.title || doc.filename || doc.original_filename || `Documento ${idx + 1}`;
-          const cleanTitle = rawTitle.replace(/\.[^/.]+$/, '').replace(/[-_]/g, ' ').trim();
-          const formattedTitle = cleanTitle.charAt(0).toUpperCase() + cleanTitle.slice(1);
+          // Título principal: utilizar title generado por IA si existe.
+          // Fallback a filename únicamente cuando title no esté disponible.
+          const hasTitle = Boolean(doc.title && typeof doc.title === 'string' && doc.title.trim().length > 0);
+          const rawFallback = doc.filename || doc.original_filename || `Documento ${idx + 1}`;
+          const cleanFallback = rawFallback.replace(/\.[^/.]+$/, '').replace(/[-_]/g, ' ').trim();
+          const formattedFallback = cleanFallback.charAt(0).toUpperCase() + cleanFallback.slice(1);
+          const finalTitle = hasTitle ? doc.title.trim() : formattedFallback;
+
           const docId = doc.document_id || doc.id || `doc_${idx}`;
           const ext = (doc.filename || doc.original_filename || 'pdf').split('.').pop().toUpperCase();
-          const discipline = doc.discipline || this.inferDiscipline(cleanTitle);
+          const discipline = doc.discipline || this.inferDiscipline(finalTitle);
 
           return {
             id: docId,
-            title: formattedTitle,
-            filename: doc.filename || doc.original_filename || `${cleanTitle}.pdf`,
+            title: finalTitle,
+            filename: doc.filename || doc.original_filename || `${cleanFallback}.pdf`,
             discipline: discipline,
             spineColor: doc.spineColor || getRandomSpineColor(),
             description: doc.summary || doc.description || `Documento persistido en Backend y OCI Object Storage.`,
@@ -88,8 +93,8 @@ export const bookshelf = {
             sections: doc.sections || [
               {
                 id: `sec_${docId}`,
-                title: formattedTitle,
-                summary: doc.summary || `Contenido de ${formattedTitle} analizado por NuevaMente.`,
+                title: finalTitle,
+                summary: doc.summary || `Contenido de ${finalTitle} analizado por NuevaMente.`,
                 key_concepts: Array.isArray(doc.key_concepts) && doc.key_concepts.length > 0
                   ? doc.key_concepts
                   : [discipline, 'Concepto Clave', 'Persistencia OCI']
@@ -154,14 +159,17 @@ export const bookshelf = {
       btnCloseOverlay: document.getElementById('btnCloseNotebookOverlay'),
       btnStartStudying: document.getElementById('btnStartStudying'),
       btnDownloadOriginalDoc: document.getElementById('btnDownloadOriginalDoc'),
+      btnInactivateDoc: document.getElementById('btnInactivateDoc'),
 
       // Campos de la Hoja Izquierda
       openedBadge: document.getElementById('openedDocBadge'),
       openedTitle: document.getElementById('openedDocTitle'),
+      openedFilename: document.getElementById('openedDocFilename'),
       openedSummary: document.getElementById('openedDocSummary'),
       openedTime: document.getElementById('openedDocTime'),
-      openedSections: document.getElementById('openedDocSections'),
       openedLevel: document.getElementById('openedDocLevel'),
+      openedNiche: document.getElementById('openedDocNiche'),
+      openedDetail: document.getElementById('openedDocDetail'),
       openedChips: document.getElementById('openedDocChips'),
 
       // Opciones de Estudio de la Hoja Derecha
@@ -546,7 +554,16 @@ export const bookshelf = {
 
       const h3 = document.createElement('h3');
       h3.style.cssText = 'font-size: 1.05rem; font-weight: 700; color: #ffffff; margin: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;';
-      h3.textContent = book.title || 'Documento sin título';
+      h3.textContent = book.title || book.filename || 'Documento sin título';
+      titleMetaCol.appendChild(h3);
+
+      // Subtítulo secundario y discreto con el nombre del archivo original
+      if (book.filename && book.filename !== book.title) {
+        const fileSub = document.createElement('div');
+        fileSub.className = 'catalog-doc-filename-sub';
+        fileSub.textContent = `📄 ${book.filename}`;
+        titleMetaCol.appendChild(fileSub);
+      }
 
       const metaRow = document.createElement('div');
       metaRow.style.cssText = 'display: flex; align-items: center; gap: 0.6rem; font-size: 0.78rem; color: var(--text-secondary); margin-top: 0.3rem; flex-wrap: wrap;';
@@ -586,7 +603,6 @@ export const bookshelf = {
       metaRow.appendChild(sizeSpan);
       metaRow.appendChild(tagSpan);
 
-      titleMetaCol.appendChild(h3);
       titleMetaCol.appendChild(metaRow);
 
       infoContainer.appendChild(formatTag);
@@ -596,14 +612,6 @@ export const bookshelf = {
       const actionsContainer = document.createElement('div');
       actionsContainer.className = 'catalog-card-actions';
       actionsContainer.style.cssText = 'display: flex; align-items: center; gap: 0.65rem; flex-shrink: 0;';
-
-      const quizPill = document.createElement('span');
-      quizPill.className = 'catalog-format-pill quiz-pill';
-      quizPill.textContent = 'Quiz';
-
-      const flashcardsPill = document.createElement('span');
-      flashcardsPill.className = 'catalog-format-pill flashcards-pill';
-      flashcardsPill.textContent = 'Flashcards';
 
       const btnStudy = document.createElement('button');
       btnStudy.type = 'button';
@@ -616,25 +624,22 @@ export const bookshelf = {
         this.selectBookAndStudy(book, 'flashcards');
       });
 
-      actionsContainer.appendChild(quizPill);
-      actionsContainer.appendChild(flashcardsPill);
       actionsContainer.appendChild(btnStudy);
 
-      if (isCustom) {
-        const btnDelete = document.createElement('button');
-        btnDelete.type = 'button';
-        btnDelete.className = 'btn-delete-doc-item';
-        btnDelete.dataset.bookId = book.id || '';
-        btnDelete.title = 'Eliminar documento';
-        btnDelete.textContent = '×';
+      const btnInactivate = document.createElement('button');
+      btnInactivate.type = 'button';
+      btnInactivate.className = 'btn-delete-doc-item';
+      btnInactivate.dataset.bookId = book.id || '';
+      btnInactivate.title = 'Eliminar módulo de capacitación';
+      btnInactivate.setAttribute('aria-label', `Eliminar módulo ${book.title || ''}`);
+      btnInactivate.textContent = '×';
 
-        btnDelete.addEventListener('click', (e) => {
-          e.stopPropagation();
-          this.deleteCustomBook(book.id);
-        });
+      btnInactivate.addEventListener('click', (e) => {
+        e.stopPropagation();
+        this.handleInactivateDocument(book);
+      });
 
-        actionsContainer.appendChild(btnDelete);
-      }
+      actionsContainer.appendChild(btnInactivate);
 
       card.appendChild(infoContainer);
       card.appendChild(actionsContainer);
@@ -655,6 +660,54 @@ export const bookshelf = {
       localStorage.setItem('nuevamente_custom_books', JSON.stringify(updated));
     } catch {}
     this.renderShelf();
+  },
+
+  /**
+   * Inactiva / elimina de forma lógica un módulo de capacitación (Punto 9 - Sprint 3/4)
+   * Compatible con custom books y backend documents persistidos
+   * @param {Object} book
+   */
+  async handleInactivateDocument(book) {
+    if (!book) return;
+    const bookTitle = book.title || book.filename || 'este documento';
+    const confirmMessage = `¿Estás seguro de que deseas eliminar el módulo "${bookTitle}"? Ya no estará visible en el catálogo de capacitaciones.`;
+
+    if (!window.confirm(confirmMessage)) return;
+
+    const isCustom = (state.get().customBooks || []).some(b => b.id === book.id);
+
+    if (isCustom) {
+      this.deleteCustomBook(book.id);
+      this.closeBookModal();
+      notifySuccess('Módulo Eliminado', `El módulo "${bookTitle}" fue eliminado del catálogo.`);
+      return;
+    }
+
+    try {
+      if (this.elements.btnInactivateDoc) {
+        this.elements.btnInactivateDoc.disabled = true;
+      }
+      notifyInfo('Procesando', `Eliminando "${bookTitle}" en el servidor...`);
+      await apiClient.inactivateDocument(book.id);
+
+      // Retirar del catálogo y actualizar UI ÚNICAMENTE cuando Backend confirme la operación
+      this.booksFromBackend = this.booksFromBackend.filter(b => b.id !== book.id);
+      if (state.get().currentDocument?.id === book.id) {
+        state.set({ currentDocument: null });
+      }
+      this.closeBookModal();
+      this.renderShelf();
+
+      notifySuccess('Módulo Eliminado', `El módulo "${bookTitle}" fue eliminado correctamente.`);
+    } catch (err) {
+      console.warn('[Bookshelf] Error al inactivar documento en Backend:', err);
+      const friendly = toFriendlyError(err);
+      notifyError(friendly.title || 'Error al Eliminar', friendly.message || 'No fue posible eliminar el módulo en el servidor.');
+    } finally {
+      if (this.elements.btnInactivateDoc) {
+        this.elements.btnInactivateDoc.disabled = false;
+      }
+    }
   },
 
   updateBackendMetric(isConnected) {
@@ -679,69 +732,96 @@ export const bookshelf = {
   },
 
   getShortDisciplineTag(discipline) {
-    if (!discipline) return 'MÓDULO';
+    if (!discipline) return 'DOC';
     const map = {
-      'Ingeniería de Software': 'SOFTWARE',
-      'Arquitectura de Software': 'SOFTWARE',
-      'Desarrollo Web & UX': 'DEV WEB',
-      'Ciencia de Datos': 'DATA SCI',
-      'Inteligencia Artificial': 'IA & DATA',
-      'Cloud & DevOps': 'DEVOPS',
+      'Ingeniería de Software': 'DEV',
+      'Arquitectura de Software': 'DEV',
+      'Desarrollo Web & UX': 'WEB',
+      'Ciencia de Datos': 'DATA',
+      'Inteligencia Artificial': 'IA',
+      'Cloud & DevOps': 'CLOUD',
       'Neurociencias & Medicina': 'NEURO',
-      'Ciencias Médicas & Biología': 'MEDICINA',
-      'Derecho & Ciberseguridad': 'LEYES',
-      'Ciencias Jurídicas & Derecho': 'DERECHO',
-      'Economía & Negocios': 'ECONOMÍA',
-      'Economía & Finanzas': 'FINANZAS',
-      'Biología & Genética': 'GENÉTICA',
-      'Ciberseguridad': 'SEGURIDAD',
-      'Humanidades & Filosofía': 'HISTORIA',
-      'Humanidades & Ciencias Sociales': 'HUMANID',
-      'Psicología & Neurociencia': 'PSICOLOGÍA',
-      'Física & Ciencias Exactas': 'FÍSICA',
-      'Ciencias Generales': 'CIENCIA',
-      'Ciencias & Disciplinas Generales': 'CIENCIA'
+      'Ciencias Médicas & Biología': 'MED',
+      'Derecho & Ciberseguridad': 'LEGAL',
+      'Ciencias Jurídicas & Derecho': 'DER',
+      'Economía & Negocios': 'ECON',
+      'Economía & Finanzas': 'FIN',
+      'Biología & Genética': 'BIO',
+      'Ciberseguridad': 'SEG',
+      'Humanidades & Filosofía': 'HUM',
+      'Humanidades & Ciencias Sociales': 'HUM',
+      'Psicología & Neurociencia': 'PSIC',
+      'Física & Ciencias Exactas': 'FÍS',
+      'Ciencias Generales': 'CIEN',
+      'Ciencias & Disciplinas Generales': 'CIEN',
+      'Educación & Pedagogía': 'EDU',
+      'Gestión & Liderazgo': 'GEST'
     };
     if (map[discipline]) return map[discipline];
     const firstWord = discipline.split(' ')[0].toUpperCase();
-    return firstWord.length > 8 ? firstWord.slice(0, 8) : firstWord;
+    return firstWord.length > 5 ? firstWord.slice(0, 5) : firstWord;
   },
 
   getLevelLabel(perfil) {
     const map = {
+      beginner: 'Inicial / Inducción',
       principiante: 'Inicial / Inducción',
+      intermediate: 'Operativo / Especialista',
       intermedio: 'Operativo / Especialista',
+      advanced: 'Avanzado / Liderazgo',
       avanzado: 'Avanzado / Liderazgo'
     };
     return map[(perfil || '').toLowerCase()] || 'Corporativo';
+  },
+
+  getNicheLabel(niche) {
+    const map = {
+      general: 'General',
+      backend: 'Tecnología & Software',
+      health: 'Seguridad & Bioseguridad',
+      legal: 'Legal & Compliance',
+      business: 'Finanzas & Negocios',
+      humanities: 'Recursos Humanos & Cultura'
+    };
+    return map[(niche || '').toLowerCase()] || 'General';
+  },
+
+  getDetailLabel(detailLevel) {
+    const map = {
+      detailed: 'Exhaustivo / Paso a paso',
+      standard: 'Estándar / Equilibrado',
+      concise: 'Sintético / Crítico'
+    };
+    return map[(detailLevel || '').toLowerCase()] || 'Estándar / Equilibrado';
   },
 
   createBookSpine(book) {
     const spine = document.createElement('div');
     const colorClass = `spine-${book.spineColor || 'navy'}`;
     spine.className = `book-spine ${colorClass}`;
-    spine.setAttribute('data-book-id', book.id);
-    spine.title = `${book.title} (${book.discipline})`;
-
-    const shortTag = this.getShortDisciplineTag(book.discipline);
+    if (book.id) {
+      spine.setAttribute('data-book-id', book.id);
+    }
+    const bookTitle = book.title || book.filename || 'Documento';
+    if (book.filename && book.filename !== book.title) {
+      spine.title = `${book.title} (${book.filename}) · ${book.discipline}`;
+    } else {
+      spine.title = `${bookTitle} (${book.discipline})`;
+    }
 
     const topRib = document.createElement('div');
     topRib.className = 'spine-top-rib';
 
-    const titleSpan = document.createElement('span');
-    titleSpan.className = 'spine-title-vertical';
-    titleSpan.textContent = book.title || 'Documento';
+    const titleEl = document.createElement('div');
+    titleEl.className = 'spine-title-vertical';
 
-    const codeSpan = document.createElement('span');
-    codeSpan.className = 'spine-code-tag';
-    codeSpan.textContent = shortTag;
+    this.formatSpineTitle(titleEl, bookTitle);
 
     const bottomRib = document.createElement('div');
     bottomRib.className = 'spine-bottom-rib';
 
     spine.appendChild(topRib);
-    spine.appendChild(titleSpan);
-    spine.appendChild(codeSpan);
+    spine.appendChild(titleEl);
     spine.appendChild(bottomRib);
 
     spine.addEventListener('click', () => {
@@ -751,6 +831,62 @@ export const bookshelf = {
     return spine;
   },
 
+  /**
+   * Da formato al título del lomo: si es largo, lo divide de forma equilibrada
+   * en 2 líneas para permitir una tipografía más grande y legible (DOM Seguro).
+   */
+  formatSpineTitle(container, fullTitle) {
+    container.textContent = '';
+    const clean = (fullTitle || 'Documento').trim();
+
+    if (clean.length <= 22) {
+      const lineSpan = document.createElement('span');
+      lineSpan.className = 'spine-title-line';
+      lineSpan.textContent = clean;
+      container.appendChild(lineSpan);
+      return;
+    }
+
+    const words = clean.split(/\s+/);
+    if (words.length <= 1) {
+      const lineSpan = document.createElement('span');
+      lineSpan.className = 'spine-title-line';
+      lineSpan.textContent = clean;
+      container.appendChild(lineSpan);
+      return;
+    }
+
+    // Calcular el punto medio óptimo entre palabras
+    const midChar = Math.floor(clean.length / 2);
+    let accumulated = 0;
+    let splitIndex = 1;
+    let bestDiff = Infinity;
+
+    for (let i = 0; i < words.length - 1; i++) {
+      accumulated += words[i].length + (i > 0 ? 1 : 0);
+      const diff = Math.abs(accumulated - midChar);
+      if (diff < bestDiff) {
+        bestDiff = diff;
+        splitIndex = i + 1;
+      }
+    }
+
+    const part1 = words.slice(0, splitIndex).join(' ');
+    const part2 = words.slice(splitIndex).join(' ');
+
+    const line1 = document.createElement('span');
+    line1.className = 'spine-title-line';
+    line1.textContent = part1;
+
+    const line2 = document.createElement('span');
+    line2.className = 'spine-title-line';
+    line2.textContent = part2;
+
+    container.classList.add('spine-multiline');
+    container.appendChild(line1);
+    container.appendChild(line2);
+  },
+
   createUploadSlotSpine() {
     const spine = document.createElement('div');
     spine.className = 'book-spine book-spine-upload';
@@ -758,8 +894,10 @@ export const bookshelf = {
 
     spine.innerHTML = `
       <div class="spine-top-rib"></div>
-      <span class="spine-title-vertical">SUBIR NUEVO PDF</span>
-      <span class="spine-code-tag">NUEVO</span>
+      <div class="spine-title-vertical spine-multiline">
+        <span class="spine-title-line">SUBIR NUEVO</span>
+        <span class="spine-title-line">DOCUMENTO</span>
+      </div>
       <div class="spine-bottom-rib"></div>
     `;
 
@@ -777,20 +915,31 @@ export const bookshelf = {
     this.currentSelectedBook = book;
     const {
       openBookOverlay, openedBadge, openedTitle, openedSummary,
-      openedTime, openedSections, openedLevel, openedChips
+      openedTime, openedLevel, openedNiche, openedDetail, openedChips
     } = this.elements;
 
     if (!openBookOverlay) return;
 
     // Poblar Hoja Izquierda
     if (openedBadge) openedBadge.textContent = book.discipline;
-    if (openedTitle) openedTitle.textContent = book.title;
+    if (openedTitle) openedTitle.textContent = book.title || book.filename || 'Módulo de Capacitación';
+    if (this.elements.openedFilename) {
+      const origFile = book.filename || '';
+      const docTitle = book.title || '';
+      if (origFile && origFile !== docTitle) {
+        this.elements.openedFilename.textContent = `Archivo original: ${origFile}`;
+        this.elements.openedFilename.style.display = 'block';
+      } else {
+        this.elements.openedFilename.style.display = 'none';
+      }
+    }
     if (openedSummary) openedSummary.textContent = book.description;
 
     const meta = book.metadatos || {};
     if (openedTime) openedTime.textContent = meta.tiempo_estudio || '10 min';
-    if (openedSections) openedSections.textContent = book.sections?.length || 1;
     if (openedLevel) openedLevel.textContent = this.getLevelLabel(meta.perfil);
+    if (openedNiche) openedNiche.textContent = this.getNicheLabel(meta.niche);
+    if (openedDetail) openedDetail.textContent = this.getDetailLabel(meta.detail_level);
 
     // Chips de conceptos clave de la primera sección (Renderizado seguro con textContent)
     if (openedChips) {
@@ -807,12 +956,12 @@ export const bookshelf = {
     // Mostrar modal
     openBookOverlay.style.display = 'flex';
 
-    // Diagrama C: Consulta GET /documents/{id} para validar y enriquecer metadata
-    if (book.id && !book.id.startsWith('mock_')) {
+    // Consulta GET /documents/{id} para validar y enriquecer metadata
+    if (book.id) {
       apiClient.getDocumentById(book.id).then(docDetail => {
         if (docDetail) {
-          if (docDetail.filename && !book.title) {
-            if (openedTitle) openedTitle.textContent = docDetail.filename;
+          if (docDetail.filename) {
+            book.filename = docDetail.filename;
           }
 
           // Enriquecimiento con metadatos pedagógicos del documento (Sprint 3 / PR #63)
@@ -872,6 +1021,25 @@ export const bookshelf = {
             prereqsContainer.style.display = 'none';
           }
 
+          if (docDetail.title && typeof docDetail.title === 'string' && docDetail.title.trim()) {
+            const trimmedTitle = docDetail.title.trim();
+            book.title = trimmedTitle;
+            if (openedTitle) openedTitle.textContent = trimmedTitle;
+          } else if (docDetail.filename && !book.title) {
+            if (openedTitle) openedTitle.textContent = docDetail.filename;
+          }
+
+          if (this.elements.openedFilename) {
+            const origFile = book.filename || '';
+            const docTitle = book.title || '';
+            if (origFile && origFile !== docTitle) {
+              this.elements.openedFilename.textContent = `Archivo original: ${origFile}`;
+              this.elements.openedFilename.style.display = 'block';
+            } else {
+              this.elements.openedFilename.style.display = 'none';
+            }
+          }
+
           if (docDetail.summary && openedSummary) {
             openedSummary.textContent = docDetail.summary;
             book.description = docDetail.summary;
@@ -899,7 +1067,7 @@ export const bookshelf = {
   },
 
   setupModalEvents() {
-    const { openBookOverlay, btnCloseOverlay, btnStartStudying, btnDownloadOriginalDoc, studyChoiceCards } = this.elements;
+    const { openBookOverlay, btnCloseOverlay, btnStartStudying, btnDownloadOriginalDoc, btnInactivateDoc, studyChoiceCards } = this.elements;
 
     if (btnCloseOverlay) {
       btnCloseOverlay.addEventListener('click', () => this.closeBookModal());
@@ -928,19 +1096,27 @@ export const bookshelf = {
       });
     }
 
+    if (btnInactivateDoc) {
+      btnInactivateDoc.addEventListener('click', () => {
+        if (this.currentSelectedBook) {
+          this.handleInactivateDocument(this.currentSelectedBook);
+        }
+      });
+    }
+
     // Botón "Comenzar a Estudiar"
     if (btnStartStudying) {
       btnStartStudying.addEventListener('click', () => {
         if (!this.currentSelectedBook) return;
-        this.selectBookAndStudy(this.currentSelectedBook, 'flashcards');
+        this.selectBookAndStudy(this.currentSelectedBook, 'sintesis');
       });
     }
 
-    // Tarjetas de estudio directo (Flashcards, Quiz, Video, Resumen)
+    // Tarjetas de estudio directo (Síntesis, Flashcards, Video, Quiz)
     studyChoiceCards.forEach(card => {
       card.addEventListener('click', () => {
         if (!this.currentSelectedBook) return;
-        const targetFormat = card.getAttribute('data-study-format') || 'flashcards';
+        const targetFormat = card.getAttribute('data-study-format') || 'sintesis';
         this.selectBookAndStudy(this.currentSelectedBook, targetFormat);
       });
     });
@@ -958,7 +1134,7 @@ export const bookshelf = {
     });
   },
 
-  async selectBookAndStudy(book, targetFormat) {
+  async selectBookAndStudy(book, targetFormat = 'sintesis') {
     this.closeBookModal();
 
     // Estado inmediato para navegación rápida

@@ -2,6 +2,9 @@
 
 from pydantic import Field
 
+from app.application.current_cycle_evaluations_service import (
+    CurrentCycleEvaluations,
+)
 from app.domain.enums import (
     DocumentFormatsStatus,
     GeneratedFormatStatus,
@@ -20,6 +23,7 @@ from app.domain.generated_format import (
     GeneratedFormat,
 )
 from app.schemas.common import BaseSchema
+from app.schemas.revision_cycle import RevisionEvaluationResponse
 
 
 class QuizQuestionResponse(BaseSchema):
@@ -266,14 +270,19 @@ class GeneratedFormatResponse(BaseSchema):
     format_id: str = Field(
         min_length=1,
     )
+    revision_of_format_id: str | None = None
     status: GeneratedFormatStatus
     content: GeneratedContentResponse | None = None
     error_message: str | None = None
+    evaluation: RevisionEvaluationResponse | None = None
+    evaluations: list[RevisionEvaluationResponse] = Field(default_factory=list)
 
     @classmethod
     def from_domain(
         cls,
         generated_format: GeneratedFormat,
+        *,
+        cycle_evaluations: CurrentCycleEvaluations | None = None,
     ) -> "GeneratedFormatResponse":
         """Convierte GeneratedFormat al contrato HTTP."""
         content = generated_format.content
@@ -326,9 +335,24 @@ class GeneratedFormatResponse(BaseSchema):
 
         return cls(
             format_id=generated_format.format_id,
+            revision_of_format_id=generated_format.revision_of_format_id,
             status=generated_format.status,
             content=response_content,
             error_message=generated_format.error_message,
+            evaluation=(
+                RevisionEvaluationResponse.from_domain(cycle_evaluations.evaluation)
+                if cycle_evaluations is not None
+                and cycle_evaluations.evaluation is not None
+                else None
+            ),
+            evaluations=(
+                [
+                    RevisionEvaluationResponse.from_domain(item)
+                    for item in cycle_evaluations.evaluations
+                ]
+                if cycle_evaluations is not None
+                else []
+            ),
         )
 
 

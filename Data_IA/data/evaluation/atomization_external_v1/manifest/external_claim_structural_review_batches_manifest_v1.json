@@ -1,0 +1,57 @@
+{
+  "artifact": "external_claim_structural_review_batches_v1",
+  "status": "human_review_batches_created",
+  "input_path": "data\\evaluation\\atomization_external_v1\\dataset\\external_claim_structural_review_v1.csv",
+  "batch_size": 20,
+  "batch_count": 6,
+  "total_claims": 120,
+  "batches": [
+    {
+      "batch": 1,
+      "start_id": "EXT-POOL-V1-001",
+      "end_id": "EXT-POOL-V1-020",
+      "rows": 20,
+      "path": "data\\evaluation\\atomization_external_v1\\review_batches\\external_structural_review_batch_01_v1.csv"
+    },
+    {
+      "batch": 2,
+      "start_id": "EXT-POOL-V1-021",
+      "end_id": "EXT-POOL-V1-040",
+      "rows": 20,
+      "path": "data\\evaluation\\atomization_external_v1\\review_batches\\external_structural_review_batch_02_v1.csv"
+    },
+    {
+      "batch": 3,
+      "start_id": "EXT-POOL-V1-041",
+      "end_id": "EXT-POOL-V1-060",
+      "rows": 20,
+      "path": "data\\evaluation\\atomization_external_v1\\review_batches\\external_structural_review_batch_03_v1.csv"
+    },
+    {
+      "batch": 4,
+      "start_id": "EXT-POOL-V1-061",
+      "end_id": "EXT-POOL-V1-080",
+      "rows": 20,
+      "path": "data\\evaluation\\atomization_external_v1\\review_batches\\external_structural_review_batch_04_v1.csv"
+    },
+    {
+      "batch": 5,
+      "start_id": "EXT-POOL-V1-081",
+      "end_id": "EXT-POOL-V1-100",
+      "rows": 20,
+      "path": "data\\evaluation\\atomization_external_v1\\review_batches\\external_structural_review_batch_05_v1.csv"
+    },
+    {
+      "batch": 6,
+      "start_id": "EXT-POOL-V1-101",
+      "end_id": "EXT-POOL-V1-120",
+      "rows": 20,
+      "path": "data\\evaluation\\atomization_external_v1\\review_batches\\external_structural_review_batch_06_v1.csv"
+    }
+  ],
+  "model_used": false,
+  "llm_used": false,
+  "claim_atomizer_v0_4_used": false,
+  "predictions_available_to_reviewer": false,
+  "production_impact": false
+}

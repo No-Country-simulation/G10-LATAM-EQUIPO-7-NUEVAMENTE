@@ -1,0 +1,129 @@
+Llamada a función con la API de Gemini
+
+La llamada a función te permite conectar modelos a herramientas y APIs externas. En lugar de generar respuestas de texto, el modelo determina cuándo llamar a funciones específicas y proporciona los parámetros necesarios para ejecutar acciones en el mundo real. Esto permite que el modelo actúe como un puente entre el lenguaje natural y las acciones y los datos del mundo real. Las llamadas a función tienen 3 casos de uso principales:
+
+Realizar acciones: Interactúa con sistemas externos a través de APIs, como programar citas, crear facturas, enviar correos electrónicos o controlar dispositivos inteligentes para la casa.
+Aumentar el conocimiento: Accede a información de fuentes externas, como bases de datos, APIs y bases de conocimiento.
+Extender capacidades: Usa herramientas externas para realizar cálculos y extender las limitaciones del modelo, como usar una calculadora o crear gráficos.
+A continuación, puedes explorar ejemplos de estos casos de uso:
+
+Programar reunión
+En este ejemplo, se muestra cómo definir una función que programa una reunión con los asistentes a una hora específica, lo que permite que el modelo analice las solicitudes de los usuarios y devuelva argumentos estructurados para activar acciones en sistemas externos.
+
+Obtener el clima
+En este ejemplo, se muestra cómo definir una función que recupera datos de temperatura para una ubicación, lo que permite que el modelo llame a APIs externas para responder preguntas que requieren información externa o en tiempo real.
+
+Crear gráfico
+En este ejemplo, se muestra cómo definir una función que genera un gráfico de barras a partir de datos estructurados, lo que demuestra cómo el modelo puede usar herramientas externas para realizar cálculos o crear recursos visuales:
+
+Cómo funciona la llamada a función
+Descripción general de las llamadas a funciones
+
+La llamada a funciones implica una interacción estructurada entre tu aplicación, el modelo y las funciones externas:
+
+Define Function Declaration: Define el nombre, los parámetros y el propósito de la función para el modelo.
+Llama al LLM con declaraciones de funciones: Envía la instrucción del usuario junto con las declaraciones de funciones al modelo.
+Ejecutar código de función (tu responsabilidad): El modelo no ejecuta la función en sí. Extrae el nombre y los argumentos, y ejecútalos en tu aplicación.
+Crea una respuesta fácil de usar: Envía el resultado al modelo para obtener una respuesta final y fácil de usar.
+Este proceso se puede repetir varias veces. El modelo admite llamadas a varias funciones en un solo turno (llamada a función paralela) y en secuencia (llamada a función compositiva).
+
+Paso 1: Define una declaración de función
+
+"""Set the brightness and color temperature of a room light."""
+Paso 2: Llama al modelo con declaraciones de funciones
+
+Paso 3: Ejecuta la función
+
+Paso 4: Envía el resultado al modelo
+
+Llamada a funciones sin estado
+También puedes usar la llamada a funciones en modo sin estado administrando el historial de conversaciones del cliente y configurando store=false.
+
+history.append({
+
+Declaraciones de funciones
+Se pasa una declaración de función como herramienta y se incluye lo siguiente:
+
+type (cadena): Debe ser "function" para las funciones personalizadas.
+name (cadena): Nombre único de la función (usa guiones bajos o camelCase).
+description (cadena): Explicación clara del propósito de la función.
+parameters (objeto): Son los parámetros de entrada que espera la función.
+type (cadena): Tipo de datos general, como object.
+properties (objeto): Son parámetros individuales con tipo y descripción.
+required (array): Nombres de parámetros obligatorios.
+Llamada a función con modelos de pensamiento
+Los modelos de la serie Gemini 3 utilizan un proceso interno de "pensamiento" que mejora las llamadas a funciones. Los SDKs controlan automáticamente las firmas de pensamiento por ti.
+
+Llamada a función paralela
+Llama a varias funciones a la vez cuando sean independientes:
+
+Llamada a funciones compositiva
+Encadenar varias llamadas a funciones para solicitudes complejas (p. ej., primero obtener la ubicación y, luego, obtener el clima para esa ubicación)
+
+get_weather_forecast_declaration,
+set_thermostat_temperature_declaration,
+
+Modos de llamada a funciones
+
+auto (predeterminado): El modelo decide si llamar a una función o responder directamente.
+
+Uso de herramientas múltiples
+Puedes habilitar varias herramientas y combinar las integradas con la llamada a funciones en la misma solicitud. Los modelos de Gemini 3 pueden combinar herramientas integradas con llamadas a funciones listas para usar en Interacciones. Si pasas previous_interaction_id, se hace circular automáticamente el contexto de la herramienta integrada.
+
+{"type": "google_search"},
+get_weather
+
+Respuestas de funciones multimodales
+En el caso de los modelos de la serie Gemini 3, puedes incluir contenido multimodal en las partes de la respuesta de la función que envías al modelo. El modelo puede procesar este contenido multimodal en su siguiente turno para producir una respuesta más fundamentada.
+
+En el siguiente ejemplo, se muestra cómo enviar una respuesta de función que contiene datos de imágenes al modelo en una interacción:
+
+{"type": "text", "text": "instrument.jpg"},
+
+Llamada a funciones con resultados estructurados
+En el caso de los modelos de la serie Gemini 3, combina la llamada a funciones con el resultado estructurado para obtener respuestas con un formato coherente.
+
+MCP (Protocolo de contexto del modelo) remoto
+La API de Interactions admite la conexión a servidores de MCP remotos para brindar al modelo acceso a herramientas y servicios externos. Proporcionas el servidor name y url en la configuración de las herramientas.
+
+Cuando uses Remote MCP, ten en cuenta las siguientes restricciones:
+
+Tipos de servidores: El MCP remoto solo funciona con servidores HTTP transmitibles. No se admiten los servidores de SSE (eventos enviados por el servidor).
+Campo	Tipo	Obligatorio	Descripción
+type	string	Sí	Debe ser "mcp_server".
+name	string	No	Es un nombre visible para el servidor de MCP.
+url	string	No	Es la URL completa del extremo del servidor de MCP.
+headers	object	No	Pares clave-valor enviados como encabezados HTTP con cada solicitud al servidor (por ejemplo, tokens de autenticación).
+Ejemplo
+
+Llama a herramientas de transmisión
+Cuando se usan herramientas con transmisión, el modelo genera llamadas a funciones como una secuencia de eventos step.delta en la transmisión. Los argumentos de la herramienta se pueden transmitir como argumentos parciales con arguments. Debes agregar estos deltas para reconstruir las llamadas a herramientas completas antes de ejecutarlas.
+
+current_calls[event.index] = {
+
+tool_calls.append({
+
+Prácticas recomendadas
+Descripciones de funciones y parámetros: Sé claro y específico.
+Tipificación fuerte: Usa tipos específicos (número entero, cadena, enumeración).
+Selección de herramientas: Mantén el conjunto activo en un máximo de 10 a 20 herramientas.
+Ingeniería de instrucciones: Proporciona contexto y especificaciones.
+Manejo de errores: Implementa un manejo de errores sólido.
+Soluciones alternativas para los requisitos de texto previos a la herramienta
+
+Indica al modelo que escriba notas como encabezados de Markdown (# UPDATE, ## PLAN) en lugar de texto estructurado.
+No es necesario que el modelo genere texto antes de las llamadas a herramientas.
+Solución alternativa preferida: Envuelve las notas de trabajo en una llamada a función dedicada
+En lugar de la instrucción original, se debe usar la siguiente:
+
+Usa esta instrucción actualizada:
+
+Y actualiza todas las referencias al formato XML <UPDATE> antiguo en la solicitud del cliente. Luego, agrega la declaración de función correspondiente para la función de actualización:
+
+"external"
+Luego, el modelo realizará dos llamadas en el mismo paso: la llamada update() que reemplaza el XML estructurado y la llamada a la función real que desea realizar.
+
+Notas y limitaciones
+Solo se admite un subconjunto del esquema de OpenAPI.
+En el modo any, la API puede rechazar esquemas muy grandes o anidados de forma profunda.
+Los tipos de parámetros admitidos en Python son limitados.
