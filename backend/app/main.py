@@ -17,6 +17,9 @@ from app.application.adaptation_orchestration_service import (
 from app.application.document_service import (
     DocumentService,
 )
+from app.application.format_auto_revision_service import (
+    FormatAutoRevisionService,
+)
 from app.application.format_evaluation_service import (
     FormatEvaluationService,
 )
@@ -25,6 +28,12 @@ from app.application.format_generation_service import (
 )
 from app.application.format_regeneration_service import (
     FormatRegenerationService,
+)
+from app.application.format_revision_history_service import (
+    FormatRevisionHistoryService,
+)
+from app.application.format_revision_service import (
+    FormatRevisionService,
 )
 from app.application.generated_format_query_service import (
     GeneratedFormatQueryService,
@@ -40,6 +49,9 @@ from app.core.exceptions import (
     register_exception_handlers,
 )
 from app.core.logging import setup_logging
+from app.infrastructure.integrations.http_agent_revision_adapter import (
+    HTTPAgentRevisionAdapter,
+)
 from app.infrastructure.integrations.http_agents_adapter import (
     HTTPAgentsAdapter,
 )
@@ -83,6 +95,12 @@ async def lifespan(
         create_format_evaluation_repository(
             settings.DATABASE_URL
         )
+    )
+
+    revision_history_service = FormatRevisionHistoryService(
+        document_repository=document_repository,
+        generated_format_repository=generated_format_repository,
+        evaluation_repository=format_evaluation_repository,
     )
 
     document_service = DocumentService(
@@ -150,6 +168,11 @@ async def lifespan(
             ),
         )
 
+        agent_revision_adapter = HTTPAgentRevisionAdapter(
+            client=agents_http_client,
+            revise_path=settings.AGENTS_REVISE_PATH,
+        )
+
         data_ia_adapter = HTTPDataIAAdapter(
             client=data_ia_http_client,
             evaluate_path=(
@@ -193,6 +216,22 @@ async def lifespan(
             )
         )
 
+        format_revision_service = FormatRevisionService(
+            generated_format_repository=generated_format_repository,
+            agent_revision=agent_revision_adapter,
+        )
+
+        # Desactivado por defecto hasta que Agentes publique /api/v1/revise.
+        format_auto_revision_service = (
+            FormatAutoRevisionService(
+                generated_format_repository=generated_format_repository,
+                format_revision_service=format_revision_service,
+                format_evaluation_service=format_evaluation_service,
+            )
+            if settings.AUTO_REVISION_ENABLED
+            else None
+        )
+
         format_regeneration_service = (
             FormatRegenerationService(
                 document_repository=(
@@ -224,6 +263,7 @@ async def lifespan(
                 format_evaluation_service=(
                     format_evaluation_service
                 ),
+                format_auto_revision_service=format_auto_revision_service,
             )
         )
 
@@ -234,6 +274,7 @@ async def lifespan(
         app.state.generated_format_query_service = (
             generated_format_query_service
         )
+        app.state.format_revision_history_service = revision_history_service
 
         app.state.generated_package_storage_service = (
             generated_package_storage_service
@@ -245,6 +286,10 @@ async def lifespan(
 
         app.state.format_evaluation_service = (
             format_evaluation_service
+        )
+
+        app.state.format_revision_service = (
+            format_revision_service
         )
 
         app.state.format_regeneration_service = (

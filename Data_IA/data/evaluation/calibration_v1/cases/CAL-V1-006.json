@@ -1,0 +1,49 @@
+{
+  "calibration_id": "CAL-V1-006",
+  "source_case_id": "BE-ES-001-Q03",
+  "document_id": "BE-ES-001",
+  "category": "Backend",
+  "variant": "unsupported_claim",
+  "target_dimension": "content_support",
+  "expected_behavior": {
+    "semantic": "Debe detectar la afirmación sobre cifrado automático como no respaldada.",
+    "heuristic": "Debe penalizar content_support por términos ajenos a los chunks."
+  },
+  "injected_unsupported_claim": "El decorador @app.get('/') cifra automáticamente todas las respuestas GET.",
+  "evaluation_request": {
+    "document_id": "BE-ES-001",
+    "format": "tldr",
+    "generated_content": {
+      "title": "El decorador @app.get('/') en FastAPI",
+      "summary": "El decorador @app.get('/') indica que la función situada debajo manejará solicitudes GET dirigidas al path raíz '/'.",
+      "key_points": [
+        "El path configurado es '/'.",
+        "La operación HTTP utilizada es GET.",
+        "El decorador cifra automáticamente todas las respuestas GET."
+      ],
+      "conclusion": "@app.get('/') vincula una función con solicitudes GET dirigidas al path raíz."
+    },
+    "generation_context": {
+      "profile": "beginner",
+      "niche": "general",
+      "detail_level": "medium",
+      "learning_objective": null
+    },
+    "chunks_used": [
+      {
+        "chunk_id": "BE-ES-001_CH_013",
+        "document_id": "BE-ES-001",
+        "rank": 1,
+        "score": 1.0,
+        "text": "Normalmente usas:\n\n- POST : para crear datos.\n- GET : para leer datos.\n- PUT : para actualizar datos.\n- DELETE : para eliminar datos.\n\nAsí que, en OpenAPI, cada uno de los métodos HTTP se llama una operación.\n\n#### Define un path operation decorator\n\nfrom fastapi import FastAPI\n\napp = FastAPI()\n\n@app.get(\"/\")\nasync def root():\n    return {\"message\": \"Hello World\"}\n\nEl @app.get(\"/\") le dice a FastAPI que la función justo debajo se encarga de manejar requests que vayan al path / usando una operación get."
+      },
+      {
+        "chunk_id": "BE-ES-001_CH_014",
+        "document_id": "BE-ES-001",
+        "rank": 2,
+        "score": 1.0,
+        "text": "La sintaxis @algo en Python se llama un decorador. Lo pones encima de una función. Un decorador toma la función de abajo y hace algo con ella. En este caso, este decorador le dice a FastAPI que la función de abajo corresponde al path / con una operación get. Es el path operation decorator. También puedes usar @app.post(), @app.put(), @app.delete(), @app.options(), @app.head(), @app.patch() y @app.trace()."
+      }
+    ]
+  }
+}

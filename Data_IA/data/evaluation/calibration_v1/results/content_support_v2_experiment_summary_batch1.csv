@@ -1,0 +1,5 @@
+calibration_id,format,total_claims,factual_claims,pedagogical_claims,provisionally_supported_claims,semantic_review_claims,semantic_review_rate
+CAL-OCI-001,tldr,4,4,0,1,3,0.75
+CAL-V1-005,flashcards,2,1,1,0,1,1.0
+CAL-V1-013,video_script,2,2,0,1,1,0.5
+CAL-V1-014,quiz,4,3,1,2,1,0.3333333333333333

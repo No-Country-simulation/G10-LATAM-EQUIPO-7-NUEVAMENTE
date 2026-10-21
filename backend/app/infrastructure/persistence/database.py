@@ -15,6 +15,9 @@ CREATE TABLE IF NOT EXISTS documents (
     status TEXT NOT NULL,
     oci_object_name TEXT,
     learning_metadata_json TEXT,
+    document_title TEXT,
+    document_description TEXT,
+    is_active INTEGER NOT NULL DEFAULT 1,
     created_at TEXT NOT NULL,
     updated_at TEXT NOT NULL
 );
@@ -24,6 +27,7 @@ _GENERATED_FORMATS_TABLE_SQL = """
 CREATE TABLE IF NOT EXISTS generated_formats (
     format_id TEXT PRIMARY KEY,
     document_id TEXT NOT NULL,
+    revision_of_format_id TEXT,
 
     format_type TEXT NOT NULL
         CHECK (
@@ -68,6 +72,7 @@ _GENERATED_FORMATS_MIGRATION_TABLE_SQL = """
 CREATE TABLE generated_formats_migrated (
     format_id TEXT PRIMARY KEY,
     document_id TEXT NOT NULL,
+    revision_of_format_id TEXT,
 
     format_type TEXT NOT NULL
         CHECK (
@@ -113,26 +118,40 @@ CREATE TABLE IF NOT EXISTS format_evaluations (
     evaluation_id TEXT PRIMARY KEY,
     format_id TEXT NOT NULL,
 
-    status TEXT NOT NULL
+    -- V1 (Evaluator heurístico 1.1): NULL en una evaluación V2 pura.
+    status TEXT
         CHECK (
-            status IN (
+            status IS NULL
+            OR status IN (
                 'aprobado',
                 'requiere_revision',
                 'rechazado'
             )
         ),
 
-    relevance_score INTEGER NOT NULL
-        CHECK (relevance_score BETWEEN 1 AND 5),
+    relevance_score INTEGER
+        CHECK (
+            relevance_score IS NULL
+            OR relevance_score BETWEEN 1 AND 5
+        ),
 
-    coherence_score INTEGER NOT NULL
-        CHECK (coherence_score BETWEEN 1 AND 5),
+    coherence_score INTEGER
+        CHECK (
+            coherence_score IS NULL
+            OR coherence_score BETWEEN 1 AND 5
+        ),
 
-    didactic_adaptation_score INTEGER NOT NULL
-        CHECK (didactic_adaptation_score BETWEEN 1 AND 5),
+    didactic_adaptation_score INTEGER
+        CHECK (
+            didactic_adaptation_score IS NULL
+            OR didactic_adaptation_score BETWEEN 1 AND 5
+        ),
 
-    content_support_score INTEGER NOT NULL
-        CHECK (content_support_score BETWEEN 1 AND 5),
+    content_support_score INTEGER
+        CHECK (
+            content_support_score IS NULL
+            OR content_support_score BETWEEN 1 AND 5
+        ),
 
     unsupported_information INTEGER NOT NULL
         CHECK (
@@ -144,6 +163,20 @@ CREATE TABLE IF NOT EXISTS format_evaluations (
     evaluator_version TEXT,
     rubric_version TEXT,
 
+    -- V2 (Evaluation Contract V2, Sprint 4): NULL en una evaluación V1.
+    verdict TEXT
+        CHECK (
+            verdict IS NULL
+            OR verdict IN (
+                'approved',
+                'requires_revision',
+                'rejected'
+            )
+        ),
+
+    heuristic_scores_json TEXT,
+    semantic_evaluation_json TEXT,
+
     created_at TEXT NOT NULL,
 
     FOREIGN KEY (format_id)
@@ -151,6 +184,14 @@ CREATE TABLE IF NOT EXISTS format_evaluations (
         ON DELETE CASCADE
 );
 """
+
+_FORMAT_EVALUATIONS_MIGRATION_TABLE_SQL = (
+    _FORMAT_EVALUATIONS_TABLE_SQL
+    .replace(
+        "IF NOT EXISTS format_evaluations",
+        "format_evaluations_migrated",
+    )
+)
 
 _SCHEMA_INDEXES_SQL = (
     """
@@ -170,6 +211,12 @@ _SCHEMA_INDEXES_SQL = (
     CREATE INDEX IF NOT EXISTS
         idx_format_evaluations_format
     ON format_evaluations(format_id);
+    """,
+    """
+    CREATE UNIQUE INDEX IF NOT EXISTS
+        idx_generated_formats_revision_unique
+    ON generated_formats(revision_of_format_id)
+    WHERE revision_of_format_id IS NOT NULL;
     """,
 )
 
@@ -268,8 +315,8 @@ class SQLiteDatabase:
                 connection
             )
 
-            connection.execute(
-                _FORMAT_EVALUATIONS_TABLE_SQL
+            self._ensure_format_evaluations_schema(
+                connection
             )
 
             for statement in (
@@ -299,6 +346,30 @@ class SQLiteDatabase:
                 """
                 ALTER TABLE documents
                 ADD COLUMN learning_metadata_json TEXT
+                """
+            )
+
+        if "is_active" not in columns:
+            connection.execute(
+                """
+                ALTER TABLE documents
+                ADD COLUMN is_active INTEGER NOT NULL DEFAULT 1
+                """
+            )
+
+        if "document_title" not in columns:
+            connection.execute(
+                """
+                ALTER TABLE documents
+                ADD COLUMN document_title TEXT
+                """
+            )
+
+        if "document_description" not in columns:
+            connection.execute(
+                """
+                ALTER TABLE documents
+                ADD COLUMN document_description TEXT
                 """
             )
 
@@ -348,6 +419,15 @@ class SQLiteDatabase:
         )
 
         if schema_is_current:
+            existing_columns = {
+                column["name"] for column in connection.execute(
+                    "PRAGMA table_info(generated_formats)"
+                ).fetchall()
+            }
+            if "revision_of_format_id" not in existing_columns:
+                connection.execute(
+                    "ALTER TABLE generated_formats ADD COLUMN revision_of_format_id TEXT"
+                )
             return
 
         connection.execute(
@@ -370,11 +450,21 @@ class SQLiteDatabase:
                 _GENERATED_FORMATS_MIGRATION_TABLE_SQL
             )
 
+            legacy_columns = {
+                column["name"] for column in connection.execute(
+                    "PRAGMA table_info(generated_formats)"
+                ).fetchall()
+            }
+            revision_source = (
+                "revision_of_format_id" if "revision_of_format_id" in legacy_columns
+                else "NULL"
+            )
             connection.execute(
-                """
+                f"""
                 INSERT INTO generated_formats_migrated (
                     format_id,
                     document_id,
+                    revision_of_format_id,
                     format_type,
                     status,
                     content_json,
@@ -390,6 +480,7 @@ class SQLiteDatabase:
                 SELECT
                     format_id,
                     document_id,
+                    {revision_source},
                     format_type,
                     status,
                     content_json,
@@ -423,6 +514,180 @@ class SQLiteDatabase:
             if violations:
                 raise sqlite3.IntegrityError(
                     "La migración de generated_formats "
+                    "produjo referencias inválidas."
+                )
+
+            connection.commit()
+
+        except Exception:
+            if connection.in_transaction:
+                connection.rollback()
+            raise
+
+        finally:
+            connection.execute(
+                "PRAGMA foreign_keys = ON"
+            )
+
+    @staticmethod
+    def _ensure_format_evaluations_schema(
+        connection: sqlite3.Connection,
+    ) -> None:
+        """Garantiza el esquema V1+V2 vigente de ``format_evaluations``.
+
+        Sprint 4 relaja a nullable las columnas V1 (``status`` y los
+        cuatro scores heurísticos enteros) y agrega las columnas V2
+        (``verdict``, ``heuristic_scores_json``, ``semantic_evaluation_json``).
+        SQLite no permite modificar directamente ``NOT NULL`` ni un
+        ``CHECK`` existente, así que -igual que con ``generated_formats``-
+        la tabla se reconstruye dentro de una transacción conservando
+        todas las evaluaciones ya persistidas.
+        """
+        schema_row = connection.execute(
+            """
+            SELECT sql
+            FROM sqlite_master
+            WHERE
+                type = 'table'
+                AND name = 'format_evaluations'
+            """
+        ).fetchone()
+
+        if schema_row is None:
+            connection.execute(
+                _FORMAT_EVALUATIONS_TABLE_SQL
+            )
+            return
+
+        columns = {
+            row["name"]
+            for row in connection.execute(
+                "PRAGMA table_info(format_evaluations)"
+            ).fetchall()
+        }
+
+        schema_is_current = (
+            "verdict" in columns
+            and "heuristic_scores_json" in columns
+            and "semantic_evaluation_json" in columns
+        )
+
+        if schema_is_current:
+            return
+
+        connection.execute(
+            "PRAGMA foreign_keys = OFF"
+        )
+
+        try:
+            connection.execute(
+                "BEGIN"
+            )
+
+            connection.execute(
+                """
+                DROP TABLE IF EXISTS
+                    format_evaluations_migrated
+                """
+            )
+
+            connection.execute(
+                _FORMAT_EVALUATIONS_MIGRATION_TABLE_SQL
+            )
+
+            # Tolerante a tablas legacy que ni siquiera tengan todavía
+            # las columnas V1 completas (p. ej. un stub mínimo con solo
+            # evaluation_id/format_id): cada columna ausente se reemplaza
+            # por un literal SQL que cumple el NOT NULL/CHECK del esquema
+            # nuevo, en vez de asumir que siempre existió.
+            column_sources = {
+                "evaluation_id": "evaluation_id",
+                "format_id": "format_id",
+                "status": (
+                    "status" if "status" in columns else "NULL"
+                ),
+                "relevance_score": (
+                    "relevance_score"
+                    if "relevance_score" in columns
+                    else "NULL"
+                ),
+                "coherence_score": (
+                    "coherence_score"
+                    if "coherence_score" in columns
+                    else "NULL"
+                ),
+                "didactic_adaptation_score": (
+                    "didactic_adaptation_score"
+                    if "didactic_adaptation_score" in columns
+                    else "NULL"
+                ),
+                "content_support_score": (
+                    "content_support_score"
+                    if "content_support_score" in columns
+                    else "NULL"
+                ),
+                "unsupported_information": (
+                    "unsupported_information"
+                    if "unsupported_information" in columns
+                    else "0"
+                ),
+                "observations_json": (
+                    "observations_json"
+                    if "observations_json" in columns
+                    else "'[]'"
+                ),
+                "evaluator_version": (
+                    "evaluator_version"
+                    if "evaluator_version" in columns
+                    else "NULL"
+                ),
+                "rubric_version": (
+                    "rubric_version"
+                    if "rubric_version" in columns
+                    else "NULL"
+                ),
+                "created_at": (
+                    "created_at"
+                    if "created_at" in columns
+                    else "'1970-01-01T00:00:00+00:00'"
+                ),
+            }
+
+            insert_columns = ", ".join(
+                column_sources.keys()
+            )
+            select_expressions = ", ".join(
+                column_sources.values()
+            )
+
+            connection.execute(
+                f"""
+                INSERT INTO format_evaluations_migrated (
+                    {insert_columns}
+                )
+                SELECT {select_expressions}
+                FROM format_evaluations
+                """
+            )
+
+            connection.execute(
+                "DROP TABLE format_evaluations"
+            )
+
+            connection.execute(
+                """
+                ALTER TABLE format_evaluations_migrated
+                RENAME TO format_evaluations
+                """
+            )
+
+            violations = connection.execute(
+                "PRAGMA foreign_key_check"
+            ).fetchall()
+
+            if violations:
+                raise sqlite3.IntegrityError(
+                    "La migración de format_evaluations "
                     "produjo referencias inválidas."
                 )
 

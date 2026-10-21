@@ -1,0 +1,48 @@
+{
+  "calibration_id": "CAL-V1-020",
+  "source_case_id": "CLD-ES-002-Q05",
+  "document_id": "CLD-ES-002",
+  "category": "Cloud / DevOps",
+  "variant": "low_coherence",
+  "target_dimension": "coherence",
+  "perturbation_design": "Los hechos son fieles, pero el guion invierte la progresión y repite ideas de forma desordenada.",
+  "evaluation_request": {
+    "document_id": "CLD-ES-002",
+    "format": "video_script",
+    "generated_content": {
+      "title": "Introducción a la infraestructura en la nube",
+      "estimated_duration_minutes": 1,
+      "scenes": [
+        {
+          "scene_id": "scene_1",
+          "title": "Cierre",
+          "visual_description": "Azure y nube.",
+          "narration": "La serie incluye ejercicios prácticos para implementar primeros servicios y ofrece una visión general de servicios de Azure.",
+          "duration_seconds": 20
+        },
+        {
+          "scene_id": "scene_2",
+          "title": "Inicio después del cierre",
+          "visual_description": "Conceptos básicos.",
+          "narration": "Antes de eso, la serie enseña conceptos básicos de la nube. Después volvemos a los ejercicios y otra vez a los servicios de Azure.",
+          "duration_seconds": 25
+        }
+      ]
+    },
+    "generation_context": {
+      "profile": "beginner",
+      "niche": "general",
+      "detail_level": "medium",
+      "learning_objective": null
+    },
+    "chunks_used": [
+      {
+        "chunk_id": "CLD-ES-002_CH_002",
+        "document_id": "CLD-ES-002",
+        "rank": 1,
+        "score": 1.0,
+        "text": "¿Primera experiencia con la nube? Introducción a la infraestructura en la nube es una serie de cuatro partes que le enseña conceptos básicos de la nube, proporciona una visión general simplificada de muchos servicios de Azure y le guía con ejercicios prácticos para implementar sus primeros servicios de forma gratuita. Complete todas las rutas de aprendizaje de la serie si está preparando el examen AZ-900: Aspectos básicos de Microsoft Azure.\n\nEsta es la primera ruta de aprendizaje de la serie Introducción a la infraestructura en la nube: Descripción de los conceptos de la nube. Las otras rutas son parte 2: Descripción de la arquitectura y los servicios de Azure, parte 3: Descripción de la administración y gobernanza de Azure y parte 4: Aplicación de aptitudes de Azure en proyectos guiados."
+      }
+    ]
+  }
+}

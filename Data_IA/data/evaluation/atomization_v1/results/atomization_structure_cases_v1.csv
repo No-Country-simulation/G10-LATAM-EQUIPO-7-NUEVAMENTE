@@ -1,0 +1,17 @@
+dataset_id,expected_class,predicted_class,class_match,expected_count,predicted_count,count_match,expected_types,predicted_types,type_sequence_match,exact_structure,atomization_error
+ATOM-V1-001,atomic,relational,False,1,2,False,factual_proposition,factual_proposition | negation_or_absence,False,False,over_atomized
+ATOM-V1-002,atomic,relational,False,1,2,False,factual_proposition,factual_proposition | scope_or_quantifier,False,False,over_atomized
+ATOM-V1-003,atomic,relational,False,1,2,False,factual_proposition,causal_relation | scope_or_quantifier,False,False,over_atomized
+ATOM-V1-004,compound,compound,True,2,2,True,factual_proposition | negation_or_absence,factual_proposition | negation_or_absence,True,True,count_exact
+ATOM-V1-005,relational,relational,True,1,2,False,factual_proposition,factual_proposition | causal_relation,False,False,over_atomized
+ATOM-V1-006,atomic,relational,False,1,3,False,factual_proposition,factual_proposition | scope_or_quantifier | scope_or_quantifier,False,False,over_atomized
+ATOM-V1-007,relational,relational,True,2,2,True,factual_proposition | temporal_relation,factual_proposition | temporal_relation,True,True,count_exact
+ATOM-V1-008,relational,relational,True,3,3,True,factual_proposition | factual_proposition | temporal_relation,factual_proposition | factual_proposition | temporal_relation,True,True,count_exact
+ATOM-V1-009,compound,compound,True,2,2,True,factual_proposition | factual_proposition,factual_proposition | factual_proposition,True,True,count_exact
+ATOM-V1-010,atomic,atomic,True,1,1,True,factual_proposition,factual_proposition,True,True,count_exact
+ATOM-V1-011,compound,compound,True,2,3,False,factual_proposition | factual_proposition,factual_proposition | factual_proposition | factual_proposition,False,False,over_atomized
+ATOM-V1-012,compound,compound,True,4,4,True,factual_proposition | factual_proposition | factual_proposition | factual_proposition,factual_proposition | factual_proposition | factual_proposition | factual_proposition,True,True,count_exact
+ATOM-V1-013,compound,compound,True,2,2,True,factual_proposition | factual_proposition,factual_proposition | factual_proposition,True,True,count_exact
+ATOM-V1-014,atomic,compound,False,1,4,False,factual_proposition,factual_proposition | factual_proposition | factual_proposition | factual_proposition,False,False,over_atomized
+ATOM-V1-015,atomic,compound,False,1,2,False,factual_proposition,factual_proposition | factual_proposition,False,False,over_atomized
+ATOM-V1-016,atomic,atomic,True,1,1,True,factual_proposition,factual_proposition,True,True,count_exact

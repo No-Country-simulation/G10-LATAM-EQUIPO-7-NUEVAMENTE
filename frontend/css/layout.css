@@ -254,6 +254,7 @@ body {
   overflow-x: hidden;
   scroll-behavior: smooth;
   animation: fadeInView 0.25s ease forwards;
+  padding-bottom: 2rem;
 }
 
 /* Scrollbar sutil y elegante que solo aparece cuando el contenido desborda */
@@ -295,18 +296,9 @@ body {
   }
 }
 
-/* Barra Inferior de Estado del Sistema */
+/* Barra Inferior de Estado del Sistema (Oculta: el estado vive en el badge superior del header) */
 .system-status-bar {
-  border-top: 1px solid var(--border-ui);
-  background: var(--surface-glass);
-  backdrop-filter: blur(8px);
-  padding: 0.5rem clamp(1rem, 2vw, 2rem);
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  font-size: 0.82rem;
-  color: var(--text-muted);
-  z-index: 50;
+  display: none !important;
 }
 
 .status-indicator {
@@ -355,8 +347,22 @@ body {
   }
 }
 
-/* Fallback responsive para pantallas móviles o de baja altura */
-@media (max-width: 768px), (max-height: 600px) {
+/* Monitores grandes de escritorio (24"+ / Full HD y superiores) */
+@media (min-width: 1600px) {
+  .app-header {
+    padding: 0.75rem clamp(2rem, 3.5vw, 4rem);
+  }
+  .header-brand-logo {
+    height: 42px;
+  }
+  .nav-tab-btn {
+    padding: 0.58rem 1.35rem;
+    font-size: 0.94rem;
+  }
+}
+
+/* Adaptación para dispositivos móviles (teléfonos y tablets en vertical) */
+@media (max-width: 768px) {
   body {
     height: auto;
     min-height: 100vh;
@@ -364,8 +370,28 @@ body {
   }
   .app-container {
     overflow: visible;
+    min-height: 0;
   }
   .tab-view {
     overflow: visible;
+    min-height: 0;
+  }
+}
+
+/* Adaptación para PC de escritorio y laptops compactas (1366x768, 1440x900, monitores 17") */
+@media (min-width: 769px) and (max-height: 800px) {
+  .app-header {
+    padding: 0.35rem 1.25rem;
+  }
+  .header-brand-logo {
+    height: 32px;
+  }
+  .nav-tab-btn {
+    padding: 0.35rem 0.85rem;
+    font-size: 0.82rem;
+  }
+  .system-status-bar {
+    padding: 0.35rem 1.25rem;
+    font-size: 0.78rem;
   }
 }

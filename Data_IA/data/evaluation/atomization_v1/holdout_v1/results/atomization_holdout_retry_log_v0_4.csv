@@ -1,0 +1,4 @@
+timestamp_utc,holdout_id,attempt,status,latency_ms,error_message,root_cause
+2026-10-20T06:23:04.923389+00:00,HOLDOUT-V1-018,2,success,1179,,
+2026-10-20T06:23:11.222113+00:00,HOLDOUT-V1-019,2,success,1258,,
+2026-10-20T06:23:17.220298+00:00,HOLDOUT-V1-020,2,success,970,,

@@ -134,11 +134,35 @@ export const videoGuide = {
       return;
     }
 
-    // Caso 3: Sin contenido o sin resultados
-    if (this.meta.status === 'no_results' || !videoData) {
+    // Caso 3: Formato no generado en versión previa del documento
+    if (!videoData || (!videoData.content && !videoData.format_id && this.meta.status !== 'no_results')) {
+      if (counterBadge) counterBadge.textContent = 'Guion (No disponible)';
+      videoTitle.textContent = 'Guion Audiovisual';
+      if (videoDuration) videoDuration.textContent = '0:00';
+      if (btnRegen) {
+        btnRegen.disabled = true;
+        btnRegen.title = 'Este documento fue procesado antes de incorporar el Guion Audiovisual. Sube el documento nuevamente para habilitarlo.';
+      }
+
+      videoScriptList.innerHTML = '';
+      const p = document.createElement('p');
+      p.style.textAlign = 'center';
+      p.style.padding = '1.5rem';
+      p.style.color = 'var(--text-secondary)';
+      p.textContent = 'Este documento fue indexado antes de la incorporación del Guion Audiovisual Formativo. Para generar todos los formatos pedagógicos disponibles, vuelve a subir el documento desde el Catálogo.';
+      videoScriptList.appendChild(p);
+      return;
+    }
+
+    // Caso 4: Sin resultados pedagógicos
+    if (this.meta.status === 'no_results') {
       if (counterBadge) counterBadge.textContent = 'Guion Didáctico';
       videoTitle.textContent = 'Guion de Capacitación';
       if (videoDuration) videoDuration.textContent = '0:00';
+      if (btnRegen) {
+        btnRegen.disabled = false;
+        btnRegen.title = 'Generar un nuevo guion didáctico para facilitadores';
+      }
 
       videoScriptList.innerHTML = '';
       const p = document.createElement('p');

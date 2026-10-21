@@ -68,8 +68,20 @@
   align-items: center;
   gap: clamp(0.85rem, 1.6vh, 1.35rem);
   cursor: pointer;
+  overflow-y: auto;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(245, 158, 11, 0.4) transparent;
   animation: floatPortadaContent 6s ease-in-out infinite;
   transition: transform 0.35s ease, box-shadow 0.35s ease, border-color 0.35s ease;
+}
+
+.portada-card::-webkit-scrollbar {
+  width: 5px;
+}
+
+.portada-card::-webkit-scrollbar-thumb {
+  background: rgba(245, 158, 11, 0.35);
+  border-radius: 3px;
 }
 
 .portada-card:hover {
@@ -130,7 +142,7 @@
   width: 540px;
   max-width: 90%;
   height: 130px;
-  background: radial-gradient(ellipse at center, rgba(255, 255, 255, 0.16) 0%, rgba(6, 182, 212, 0.12) 45%, transparent 75%);
+  background: radial-gradient(ellipse at center, rgba(255, 255, 255, 0.14) 0%, rgba(245, 158, 11, 0.16) 45%, transparent 75%);
   pointer-events: none;
   z-index: 0;
   filter: blur(12px);
@@ -154,13 +166,13 @@
   width: 92%;
   height: auto;
   object-fit: contain;
-  filter: drop-shadow(0 0 18px rgba(255, 255, 255, 0.35)) drop-shadow(0 10px 32px rgba(0, 0, 0, 0.85)) drop-shadow(0 0 35px rgba(6, 182, 212, 0.45));
+  filter: drop-shadow(0 0 16px rgba(255, 255, 255, 0.25)) drop-shadow(0 10px 32px rgba(0, 0, 0, 0.85)) drop-shadow(0 0 32px rgba(245, 158, 11, 0.4));
   transition: transform 0.35s ease, filter 0.35s ease;
 }
 
 .portada-title-logo:hover {
   transform: scale(1.025);
-  filter: drop-shadow(0 0 24px rgba(255, 255, 255, 0.45)) drop-shadow(0 14px 44px rgba(0, 0, 0, 0.95)) drop-shadow(0 0 45px rgba(6, 182, 212, 0.65));
+  filter: drop-shadow(0 0 22px rgba(255, 255, 255, 0.35)) drop-shadow(0 14px 44px rgba(0, 0, 0, 0.95)) drop-shadow(0 0 42px rgba(245, 158, 11, 0.6));
 }
 
 /* Descripción Flotante */
@@ -262,6 +274,50 @@
   transform: translateX(5px);
 }
 
+/* Botón Secundario: Acceso a la Landing / Presentación Demo Day */
+.btn-landing-access {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.6rem;
+  padding: clamp(0.5rem, 1vh, 0.7rem) clamp(1.4rem, 2.5vw, 2rem);
+  font-size: clamp(0.9rem, 1.15vw, 1.05rem);
+  font-weight: 700;
+  font-family: inherit;
+  color: #fef08a;
+  background: rgba(14, 22, 36, 0.75);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(254, 240, 138, 0.45);
+  border-radius: 50px;
+  text-decoration: none;
+  cursor: pointer;
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.5), 0 0 18px rgba(245, 158, 11, 0.15);
+  transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+  margin-top: 0.15rem;
+}
+
+.btn-landing-access:hover {
+  background: rgba(26, 36, 56, 0.9);
+  border-color: rgba(254, 240, 138, 0.85);
+  color: #ffffff;
+  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.7), 0 0 28px rgba(245, 158, 11, 0.4);
+  transform: translateY(-2px);
+}
+
+.btn-landing-access:active {
+  transform: translateY(0) scale(0.98);
+}
+
+.btn-landing-icon {
+  font-size: 1.05rem;
+  transition: transform 0.25s ease;
+}
+
+.btn-landing-access:hover .btn-landing-icon {
+  transform: translate(2px, -2px);
+}
+
 /* Indicador de ayuda al pie */
 .portada-click-anywhere-hint {
   font-size: clamp(0.88rem, 1.1vw, 0.98rem);
@@ -308,5 +364,80 @@
     width: 100%;
     padding: 0.95rem 1.75rem;
     font-size: 1.05rem;
+  }
+  .btn-landing-access {
+    width: 100%;
+    padding: 0.75rem 1.4rem;
+    font-size: 0.95rem;
+  }
+}
+
+/* Adaptación para pantallas de PC con baja altura vertical (1366x768, 1440x900, monitores 17" y laptops) */
+@media (max-height: 800px) and (min-width: 769px) {
+  .welcome-portada {
+    padding: 0.75rem;
+  }
+  .portada-card {
+    padding: 1.15rem 1.8rem 1rem;
+    gap: 0.55rem;
+    max-height: calc(100vh - 1.5rem);
+    border-radius: 22px;
+  }
+  .crest-badge {
+    font-size: 0.76rem;
+    padding: 0.22rem 0.85rem;
+  }
+  .portada-welcome-prefix {
+    font-size: 1.45rem;
+  }
+  .portada-title-logo {
+    max-width: 320px;
+  }
+  .portada-description {
+    font-size: 0.86rem;
+    line-height: 1.38;
+    max-width: 620px;
+  }
+  .portada-stats-pill-row {
+    gap: 0.4rem;
+    margin: 0.1rem 0;
+  }
+  .portada-stat-pill {
+    font-size: 0.74rem;
+    padding: 0.22rem 0.65rem;
+  }
+  .btn-enter-library {
+    padding: 0.62rem 1.5rem;
+    font-size: 0.9rem;
+    border-radius: 12px;
+  }
+  .btn-landing-access {
+    padding: 0.42rem 1.25rem;
+    font-size: 0.82rem;
+    border-radius: 12px;
+  }
+  .portada-click-anywhere-hint {
+    font-size: 0.78rem;
+    margin-top: 0.1rem;
+  }
+}
+
+/* Monitores grandes de escritorio (24"+ / Full HD y 2K superiores) */
+@media (min-width: 1600px) and (min-height: 850px) {
+  .portada-card {
+    max-width: 960px;
+    padding: 2.8rem 3.5rem;
+    gap: 1.5rem;
+  }
+  .portada-title-logo {
+    max-width: 500px;
+  }
+  .portada-description {
+    font-size: 1.05rem;
+    max-width: 760px;
+  }
+  .btn-enter-library {
+    padding: 0.95rem 2.4rem;
+    font-size: 1.1rem;
   }
 }

@@ -23,6 +23,9 @@ class Document:
         status: Estado actual dentro del flujo de procesamiento.
         oci_object_name: Identificador del objeto persistido en OCI.
         learning_metadata: Metadatos pedagógicos de la adaptación vigente.
+        document_title: Título enriquecido devuelto por Agentes, si existe.
+        document_description: Descripción breve devuelta por Agentes, si existe.
+        is_active: Estado lógico de activación en biblioteca.
         created_at: Fecha de creación del registro.
         updated_at: Fecha de última modificación.
     """
@@ -36,6 +39,9 @@ class Document:
     status: DocumentStatus = DocumentStatus.RECEIVED
     oci_object_name: str | None = None
     learning_metadata: LearningMetadata | None = None
+    document_title: str | None = None
+    document_description: str | None = None
+    is_active: bool = True
 
     created_at: datetime = field(
         default_factory=lambda: datetime.now(UTC)
@@ -85,6 +91,16 @@ class Document:
         self.oci_object_name = None
         self.updated_at = datetime.now(UTC)
 
+    def deactivate(self) -> None:
+        """Marca el documento como inactivo y actualiza su fecha de modificación."""
+        self.is_active = False
+        self.updated_at = datetime.now(UTC)
+
+    def activate(self) -> None:
+        """Marca el documento como activo y actualiza su fecha de modificación."""
+        self.is_active = True
+        self.updated_at = datetime.now(UTC)
+
     def assign_learning_metadata(
         self,
         learning_metadata: LearningMetadata,
@@ -121,3 +137,36 @@ class Document:
             learning_metadata
         )
         self.updated_at = datetime.now(UTC)
+
+    def assign_document_title_description(
+        self,
+        *,
+        document_title: str | None,
+        document_description: str | None,
+    ) -> None:
+        """Asocia título y descripción enriquecidos a nivel de documento.
+
+        Al igual que la metadata pedagógica, una regeneración posterior no
+        debe pisar un título o descripción ya persistidos: cada campo se
+        asigna únicamente mientras siga en ``None``.
+        """
+        changed = False
+
+        if (
+            self.document_title is None
+            and document_title is not None
+        ):
+            self.document_title = document_title
+            changed = True
+
+        if (
+            self.document_description is None
+            and document_description is not None
+        ):
+            self.document_description = (
+                document_description
+            )
+            changed = True
+
+        if changed:
+            self.updated_at = datetime.now(UTC)

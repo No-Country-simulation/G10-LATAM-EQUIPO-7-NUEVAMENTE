@@ -14,61 +14,25 @@ El frontend se encuentra en [`../frontend`](../frontend).
 
 ## Estado actual
 
-El flujo principal se encuentra integrado de extremo a extremo desde BackendAPI y, a partir de Sprint 3, **la indexación RAG y la generación de formatos tienen ciclos de ejecución separados**.
+El flujo principal está integrado de extremo a extremo. **La indexación RAG y la generación de formatos tienen ciclos de ejecución separados**: la indexación termina antes de que BackendAPI registre los formatos y programe su generación en segundo plano.
 
-Actualmente están implementados:
+La evaluación V2 está configurada en BackendAPI y se solicita para los formatos exitosos. La corrección automática está implementada en BackendAPI, pero permanece desactivada por defecto (`AUTO_REVISION_ENABLED=false`) y depende de que Agentes publique `POST /api/v1/revise`; ese endpoint no forma parte actualmente de `agentes/api.py`. Por tanto, los detalles de revisión más adelante describen capacidad condicional de BackendAPI, no un flujo activo de extremo a extremo.
 
-### Documentos y almacenamiento
+### Alcance funcional
 
-- API FastAPI y configuración centralizada.
-- Endpoint de salud.
-- `POST /api/v1/documents` como entrada pública para cargar, almacenar e indexar un documento y programar su generación pedagógica inicial.
-- `GET /api/v1/documents` para listar documentos disponibles en la biblioteca.
-- `GET /api/v1/documents/{document_id}` para consultar metadata técnica, metadata pedagógica y estado del documento.
-- `GET /api/v1/documents/{document_id}/download` para recuperar desde OCI el archivo original mediante BackendAPI.
-- `GET /api/v1/documents/{document_id}/formats` para consultar Quiz, Flashcards, TLDR y Video Script persistidos.
-- `POST /api/v1/documents/{document_id}/formats/regenerate` para iniciar una nueva generación de uno o varios formatos reutilizando el contexto pedagógico persistido.
-- Contrato transversal de errores con `code`, `detail`, `errors[]` y `timestamp`, independiente de los mensajes de UI de Frontend.
-- Admisión de archivos PDF, Markdown (`.md`) y TXT.
-- Validación de extensión y MIME type declarado.
-- Rechazo de archivos vacíos.
-- Control de tamaño máximo de carga.
-- Lectura del upload por bloques durante el staging temporal.
-- Almacenamiento temporal desacoplado mediante `TemporaryStoragePort`.
-- Implementación local mediante `LocalTemporaryStorageAdapter`.
-- Eliminación del archivo temporal después del almacenamiento persistente o ante fallos.
-- Identificación de documentos mediante SHA-256.
-- Detección de contenido duplicado mediante SHA-256.
-- La identidad lógica del documento depende del contenido (SHA-256), no del nombre del archivo.
-- Mismo SHA-256 reutiliza el mismo `document_id` y evita una nueva carga del original a OCI.
-- Mismo nombre de archivo con contenido diferente genera un nuevo `document_id` y un objeto OCI independiente, sin sobrescribir el original previo.
-- Generación de `document_id` canónico para documentos nuevos.
-- Persistencia de metadata técnica, metadata pedagógica y estado mediante `DocumentRepositoryPort`.
-- Implementación SQLite mediante `SQLiteDocumentRepositoryAdapter`.
-- Persistencia del archivo original en OCI mediante `ObjectStoragePort`.
-- Implementación OCI mediante `OCIObjectStorageAdapter`.
-- Convención del original en OCI: `documents/{document_id}/original.ext`.
-- Persistencia de `oci_object_name`.
-- Persistencia del paquete educativo generado en el **mismo bucket OCI** mediante `documents/{document_id}/generated/content.json`.
-- Escritura del paquete JSON en memoria mediante `ObjectStoragePort.upload_bytes(...)`, sin archivo temporal adicional.
-- Reconstrucción del paquete desde el estado canónico persistido de BackendAPI, sin guardar directamente la respuesta bruta de Agentes.
-- El paquete OCI incluye `document_id`, `learning_metadata` y los formatos educativos vigentes.
-- `chunks_used`, `GenerationContext` y la evaluación de Data/IA no forman parte del paquete OCI actual.
-- Integración HTTP BackendAPI → Data/IA mediante `DataIAPort` y `HTTPDataIAAdapter`.
-- Evaluación automática de cada `GeneratedFormat` exitoso después de la generación.
-- Persistencia histórica de evaluaciones mediante `FormatEvaluationRepositoryPort` y SQLite.
-- Un fallo de Data/IA no degrada un formato ya generado con `success` ni impide conservar el snapshot educativo.
-- Recepción de `learning_metadata` desde Agentes a nivel raíz del contrato de generación.
-- Persistencia de `learning_metadata` una sola vez a nivel de documento mediante `learning_metadata_json`.
-- Exposición de `learning_metadata` mediante `GET /api/v1/documents/{document_id}`.
-- Recuperación interna: `document_id → metadata → oci_object_name → bytes`.
-- La misma recuperación se reutiliza para indexación RAG y para la descarga pública del original.
-- Representación del documento recuperado mediante `RetrievedDocument`.
-- Descarga HTTP del original con su `Content-Type` persistido y `Content-Disposition: attachment`.
-- Exposición CORS de `Content-Disposition` para que Frontend pueda recuperar el nombre original.
-- Compensación cuando OCI finaliza correctamente pero falla la actualización final en BD.
-- Eliminación compensatoria del objeto OCI para evitar objetos huérfanos.
-- Manejo explícito mediante `DocumentStorageConsistencyError` cuando no puede garantizarse consistencia entre OCI y la BD.
+Esta sección resume las capacidades del BackendAPI; los contratos, reglas y
+detalles de implementación se documentan una sola vez en sus secciones
+especializadas.
+
+| Tema | Referencia |
+|---|---|
+| Rutas HTTP, campos de request y respuestas | [Endpoints públicos actuales](#endpoints-publicos-actuales) |
+| Validación, errores HTTP y códigos funcionales | [Manejo de errores](#manejo-de-errores-del-flujo-integrado) |
+| Ciclo de vida de documentos y estados de indexación | [Flujo de estados del documento](#flujo-de-estados-del-documento) |
+| Deduplicación por contenido e identidad del documento | [Identidad, deduplicación y no sobrescritura](#identidad-deduplicacion-y-no-sobrescritura) |
+| Repositorios, historial de generación y datos en SQLite | [Persistencia](#persistencia) |
+| Almacenamiento del original y del paquete vigente en OCI | [Persistencia del contenido educativo en OCI](#persistencia-del-contenido-educativo-en-oci) |
+| Integración con RAG, Agentes y evaluación Data/IA | [Arquitectura](#arquitectura) y [Fronteras del sistema](#fronteras-del-sistema) |
 
 ### Orquestación de adaptación: indexación y generación separadas
 
@@ -78,7 +42,7 @@ Después de almacenar un documento, BackendAPI utiliza internamente:
 AdaptationOrchestrationService
 ```
 
-En Sprint 3, el orquestador separa tres responsabilidades:
+El orquestador separa tres responsabilidades:
 
 ```text
 ensure_document_indexed()
@@ -111,10 +75,8 @@ prepare_default_formats()
 
 Esta etapa:
 
-- crea un intento para `quiz`;
-- crea un intento para `flashcards`;
-- persiste ambos con estado `processing`;
-- asigna un `format_id` estable a cada intento;
+- crea un intento para cada formato soportado: `quiz`, `flashcards`, `tldr` y `video_script`;
+- persiste cada intento con estado `processing` y un `format_id` estable;
 - conserva el contexto pedagógico de generación;
 - ocurre **antes** de registrar la tarea de segundo plano y antes de responder al Frontend.
 
@@ -136,8 +98,10 @@ La tarea:
 4. persiste `learning_metadata` a nivel del documento cuando corresponde;
 5. actualiza los mismos `format_id`;
 6. termina cada intento en uno de estos estados;
-7. reconstruye el paquete educativo terminal vigente;
-8. persiste `documents/{document_id}/generated/content.json` en OCI:
+7. evalúa en Data/IA los formatos exitosos y persiste las evaluaciones disponibles;
+8. si la corrección automática está habilitada y la evaluación V2 aporta feedback accionable, puede crear una única revisión;
+9. reconstruye el paquete educativo terminal vigente;
+10. persiste `documents/{document_id}/generated/content.json` en OCI:
 
 ```text
 success
@@ -162,6 +126,8 @@ BackendAPI solicita automáticamente:
 ```text
 quiz
 flashcards
+tldr
+video_script
 ```
 
 El endpoint público independiente:
@@ -179,20 +145,13 @@ La adaptación permanece como un caso de uso interno iniciado desde `POST /api/v
 ### Contexto pedagógico recibido desde Frontend
 
 `POST /api/v1/documents` recibe mediante `multipart/form-data`:
-
-\| Campo | Tipo | Obligatorio | Valores / descripción |
-
-\|---|---|---:|---|
-
-\| `file` | archivo | Sí | PDF, Markdown o TXT |
-
-\| `profile` | string | Sí | `beginner`, `intermediate`, `advanced` |
-
-\| `niche` | string | Sí | `general`, `backend`, `health`, `legal`, `business`, `humanities` |
-
-\| `detail_level` | string | Sí | Texto no vacío |
-
-\| `learning_objective` | string | No | Objetivo específico de aprendizaje |
+| Campo | Tipo | Obligatorio | Valores / descripción |
+|---|---|---:|---|
+| `file` | archivo | Sí | PDF, Markdown o TXT |
+| `profile` | string | Sí | `beginner`, `intermediate`, `advanced` |
+| `niche` | string | Sí | `general`, `backend`, `health`, `legal`, `business`, `humanities` |
+| `detail_level` | string | Sí | Texto no vacío |
+| `learning_objective` | string | No | Objetivo específico de aprendizaje |
 
 Frontend **no envía**:
 
@@ -424,11 +383,13 @@ sin modificar código de aplicación.
 
 ### Modelo de generación de formatos
 
-BackendAPI trabaja públicamente con:
+BackendAPI expone los siguientes tipos de formato:
 
 ```text
 quiz
 flashcards
+tldr
+video_script
 ```
 
 `FormatGenerationService` divide el lifecycle en dos operaciones.
@@ -515,9 +476,21 @@ Contrato:
       "status": "success",
       "content": {},
       "error_message": null
+    },
+    "tldr": {
+      "format_id": "fmt_tldr_1",
+      "status": "success",
+      "content": {},
+      "error_message": null
+    },
+    "video_script": {
+      "format_id": "fmt_video_script_1",
+      "status": "success",
+      "content": {},
+      "error_message": null
     }
   }
-}
+  }
 ```
 
 Selección estable por tipo:
@@ -602,7 +575,9 @@ Solicitud HTTP esperada:
   "document_id": "doc_123",
   "formats": [
     "quiz",
-    "flashcards"
+    "flashcards",
+    "tldr",
+    "video_script"
   ],
   "profile": "intermediate",
   "niche": "backend",
@@ -639,6 +614,20 @@ Respuesta esperada:
     },
     {
       "format": "flashcards",
+      "status": "success",
+      "content": {},
+      "sources_used": [],
+      "error_message": null
+    },
+    {
+      "format": "tldr",
+      "status": "success",
+      "content": {},
+      "sources_used": [],
+      "error_message": null
+    },
+    {
+      "format": "video_script",
       "status": "success",
       "content": {},
       "sources_used": [],
@@ -693,7 +682,7 @@ Reglas:
 - BackendAPI lo recibe desde Agentes, lo valida, lo convierte a dominio y lo persiste en `documents`;
 - durante la generación inicial puede permanecer en `null` hasta que exista una respuesta válida de Agentes;
 - la primera metadata pedagógica útil queda estable a nivel de documento;
-- regenerar Quiz o Flashcards no reemplaza metadata pedagógica útil ya persistida;
+- regenerar un formato no reemplaza metadata pedagógica útil ya persistida;
 - el fallback de Agentes puede producir listas vacías y `estimated_time_minutes = 0` sin romper el flujo;
 - si el documento solo conserva ese fallback vacío, una generación posterior puede reemplazarlo por metadata útil.
 
@@ -773,6 +762,35 @@ Reglas principales:
 - `front` y `back` no deben ser idénticos;
 - `card_id` debe ser único dentro del conjunto.
 
+#### TLDRContent
+
+```json
+{
+  "title": "Resumen",
+  "summary": "Síntesis breve del contenido.",
+  "key_points": ["Punto principal"],
+  "conclusion": "Conclusión."
+}
+```
+
+#### VideoScriptContent
+
+```json
+{
+  "title": "Guion",
+  "estimated_duration_minutes": 2,
+  "scenes": [
+    {
+      "scene_id": "scene_1",
+      "title": "Introducción",
+      "visual_description": "Descripción visual.",
+      "narration": "Narración de la escena.",
+      "duration_seconds": 30
+    }
+  ]
+}
+```
+
 ### Evidencias utilizadas durante la generación
 
 Agentes devuelve las evidencias utilizadas durante retrieval:
@@ -828,28 +846,23 @@ error
 ```
 
 Interpretación:
+| Estado | Significado |
+|---|---|
+| `pending` | El documento existe pero todavía no hay intentos persistidos para exponer. |
+| `processing` | Existe al menos un intento vigente en `processing`, o el documento aún está indexándose sin historial de formatos. |
+| `ready` | No existen intentos activos, Quiz y Flashcards (baseline de compatibilidad) están en `success` y todos los formatos que tienen intentos están en `success`. |
+| `partial` | No hay intentos activos y existe al menos un formato exitoso, pero no todos. |
+| `error` | No hay intentos activos ni formatos exitosos vigentes. |
 
-\| Estado | Significado |
+Cuando aún no hay intentos, `formats` es `null`; el `status` se deriva del
+estado del documento (`pending`, `processing` o `error`). Cuando ya existen
+intentos, `formats` contiene el resultado vigente de cada tipo disponible.
 
-\|---|---|
-
-\| `pending` | El documento existe pero todavía no hay intentos persistidos para exponer. |
-
-\| `processing` | Existe al menos un intento vigente en `processing`, o el documento aún está indexándose sin historial de formatos. |
-
-\| `ready` | No existen intentos activos, el baseline Quiz + Flashcards está en `success` y todos los formatos actualmente intentados están en `success`. Documentos históricos con solo el baseline exitoso conservan `ready`. |
-
-\| `partial` | No hay intentos activos y existe al menos un formato exitoso, pero no todos. |
-
-\| `error` | No hay intentos activos ni formatos exitosos vigentes. |
-
-La generación inicial actual registra los cuatro formatos. Por tanto, para
-documentos nuevos el estado natural `ready` implica que Quiz, Flashcards,
-TLDR y Video Script finalizaron correctamente. La regla conserva compatibilidad
-con documentos históricos creados cuando el baseline estaba compuesto solo por
-Quiz y Flashcards: si esos dos formatos son exitosos y no existen intentos
-adicionales fallidos o activos, el documento continúa reportándose como `ready`.
-
+Los documentos nuevos registran los cuatro formatos, por lo que `ready`
+significa que los cuatro terminaron correctamente. Quiz y Flashcards se
+mantienen como baseline de compatibilidad: un documento histórico puede ser
+`ready` si ambos tienen éxito y no existen otros formatos intentados fallidos o
+activos.
 
 #### Durante generación
 
@@ -868,6 +881,18 @@ Ejemplo:
 },
 "flashcards": {
 "format_id": "fmt_flashcards_1",
+"status": "processing",
+"content": null,
+"error_message": null
+},
+"tldr": {
+"format_id": "fmt_tldr_1",
+"status": "processing",
+"content": null,
+"error_message": null
+},
+"video_script": {
+"format_id": "fmt_video_script_1",
 "status": "processing",
 "content": null,
 "error_message": null
@@ -891,12 +916,25 @@ status = processing
 "formats": {
 "quiz": {
 "format_id": "fmt_quiz_1",
+"revision_of_format_id": null,
 "status": "success",
 "content": {},
 "error_message": null
 },
 "flashcards": {
 "format_id": "fmt_flashcards_1",
+"status": "success",
+"content": {},
+"error_message": null
+},
+"tldr": {
+"format_id": "fmt_tldr_1",
+"status": "success",
+"content": {},
+"error_message": null
+},
+"video_script": {
+"format_id": "fmt_video_script_1",
 "status": "success",
 "content": {},
 "error_message": null
@@ -920,6 +958,18 @@ status = processing
 },
 "flashcards": {
 "format_id": "fmt_flashcards_1",
+"status": "failed",
+"content": null,
+"error_message": "Agentes no pudo generar los formatos del documento doc_123."
+},
+"tldr": {
+"format_id": "fmt_tldr_1",
+"status": "failed",
+"content": null,
+"error_message": "Agentes no pudo generar los formatos del documento doc_123."
+},
+"video_script": {
+"format_id": "fmt_video_script_1",
 "status": "failed",
 "content": null,
 "error_message": "Agentes no pudo generar los formatos del documento doc_123."
@@ -1163,7 +1213,7 @@ DataIAPort
 ↑
 HTTPDataIAAdapter
 ↓
-POST /evaluate
+POST /evaluate/v2
 ```
 
 Data/IA recibe únicamente contenido **ya generado exitosamente**. No genera material educativo y no controla el estado de generación.
@@ -1243,24 +1293,15 @@ Ports
 ↑
 Infrastructure implementa los Ports
 ```
-
-\| Capa | Responsabilidad |
-
-\|---|---|
-
-\| `api/` | Endpoints HTTP, dependencias FastAPI y traducción de errores de aplicación a HTTP |
-
-\| `schemas/` | Contratos externos de entrada y salida |
-
-\| `domain/` | Entidades, estados, contenido canónico y reglas de dominio |
-
-\| `application/` | Casos de uso y orquestación |
-
-\| `ports/` | Contratos hacia persistencia e integraciones externas |
-
-\| `infrastructure/` | Adapters e implementaciones concretas |
-
-\| `core/` | Configuración, logging, excepciones y utilidades |
+| Capa | Responsabilidad |
+|---|---|
+| `api/` | Endpoints HTTP, dependencias FastAPI y traducción de errores de aplicación a HTTP |
+| `schemas/` | Contratos externos de entrada y salida |
+| `domain/` | Entidades, estados, contenido canónico y reglas de dominio |
+| `application/` | Casos de uso y orquestación |
+| `ports/` | Contratos hacia persistencia e integraciones externas |
+| `infrastructure/` | Adapters e implementaciones concretas |
+| `core/` | Configuración, logging, excepciones y utilidades |
 
 ### Fronteras del sistema
 
@@ -1328,7 +1369,9 @@ INDEXED
 ▼
 prepare_default_formats()
 ├─ quiz = processing
-└─ flashcards = processing
+├─ flashcards = processing
+├─ tldr = processing
+└─ video_script = processing
 │
 ▼
 registrar BackgroundTask
@@ -1343,16 +1386,17 @@ complete_default_generation()
 ▼
 POST /api/v1/generate
 ├─ Quiz
-└─ Flashcards
+├─ Flashcards
+├─ TLDR
+└─ Video Script
 │
 ▼
-mismos format_id → estado terminal
+cada format_id → estado terminal independiente
 │
-├─ success → FormatEvaluationService
-│             ↓
-│          Data/IA /evaluate
-│             ↓
-│          format_evaluations
+├─ success → FormatEvaluationService → Data/IA /evaluate/v2
+│             └─ format_evaluations
+├─ failed
+└─ no_results
 │
 ▼
 GeneratedPackageStorageService
@@ -1399,7 +1443,7 @@ mismos nuevos format_id
 ↓
 success | failed | no_results
 ↓
-success → Data/IA /evaluate
+success → Data/IA /evaluate/v2
 ↓
 persistir evaluación histórica cuando esté disponible
 ↓
@@ -1447,20 +1491,38 @@ DocumentStatus = INDEXED
 mientras:
 
 ```text
-quiz        = processing
-flashcards  = processing
+quiz         = processing
+flashcards   = processing
+tldr         = processing
+video_script = processing
 ```
 
 o:
 
 ```text
-quiz        = failed
-flashcards  = failed
+quiz         = failed
+flashcards   = failed
+tldr         = failed
+video_script = failed
 ```
 
 ---
 
 ## Endpoints públicos actuales
+
+| Método | Ruta | Uso |
+|---|---|---|
+| `GET` | `/api/v1/health` | Estado básico de la aplicación. |
+| `POST` | `/api/v1/documents` | Carga, indexa y programa la generación inicial. |
+| `GET` | `/api/v1/documents` | Lista documentos activos. |
+| `GET` | `/api/v1/documents/{document_id}` | Consulta metadata y estado del documento. |
+| `GET` | `/api/v1/documents/{document_id}/download` | Descarga el original almacenado. |
+| `GET` | `/api/v1/documents/{document_id}/formats` | Consulta formatos vigentes, estados y evaluaciones del ciclo. |
+| `POST` | `/api/v1/documents/{document_id}/formats/regenerate` | Inicia la regeneración de formatos. |
+| `GET` | `/api/v1/documents/{document_id}/formats/{format_type}/history` | Consulta los ciclos, revisiones y evaluaciones. |
+| `PATCH` | `/api/v1/documents/{document_id}/deactivate` | Inactiva lógicamente el documento. |
+
+`POST /api/v1/revise` no es una ruta de BackendAPI, sino una dependencia externa de Agentes para la corrección automática. Su estado actual se detalla en [Pendientes y dependencias de integración](#pendientes-y-dependencias-de-integración).
 
 ### Salud
 
@@ -1560,25 +1622,17 @@ HTTP/1.1 200 OK
 }
 ```
 
-La respuesta **no contiene `formats`**. Frontend debe usar el endpoint de consulta de formatos cuando necesite mostrar Quiz o Flashcards.
+La respuesta **no contiene `formats`**. Frontend consulta el endpoint de formatos para mostrar Quiz, Flashcards, TLDR o Video Script.
 
 Errores principales de la etapa síncrona:
-
-\| HTTP | Caso |
-
-\|---:|---|
-
-\| `400` | Documento vacío o inválido |
-
-\| `409` | Estado del documento incompatible con la indexación |
-
-\| `413` | Archivo supera el tamaño máximo permitido |
-
-\| `415` | Extensión o MIME type no soportado |
-
-\| `422` | Faltan parámetros obligatorios o el contexto pedagógico es inválido |
-
-\| `502` | Fallo de OCI, recuperación del original o indexación RAG |
+| HTTP | Caso |
+|---:|---|
+| `400` | Documento vacío o inválido |
+| `409` | Estado del documento incompatible con la indexación |
+| `413` | Archivo supera el tamaño máximo permitido |
+| `415` | Extensión o MIME type no soportado |
+| `422` | Faltan parámetros obligatorios o el contexto pedagógico es inválido |
+| `502` | Fallo de OCI, recuperación del original o indexación RAG |
 
 > El endpoint es síncrono hasta completar la indexación. Los errores de generación que ocurren después no modifican la respuesta ya enviada; su resultado se consulta mediante `/formats`.
 
@@ -1688,7 +1742,6 @@ Para TXT y Markdown se conserva igualmente el MIME type persistido. Si no existe
 `Content-Disposition` utiliza `filename` como fallback compatible y `filename*` para conservar correctamente nombres UTF-8.
 
 Errores principales:
-
 | HTTP | `code` | Caso |
 |---:|---|---|
 | `404` | `DOCUMENT_NOT_FOUND` | El `document_id` no existe. |
@@ -1713,6 +1766,7 @@ Ejemplo con formatos disponibles:
 "formats": {
 "quiz": {
 "format_id": "fmt_quiz_1",
+"revision_of_format_id": null,
 "status": "success",
 "content": {
 "title": "Quiz",
@@ -1730,10 +1784,13 @@ Ejemplo con formatos disponibles:
 }
 ]
 },
-"error_message": null
+"error_message": null,
+"evaluation": null,
+"evaluations": []
 },
 "flashcards": {
 "format_id": "fmt_flashcards_1",
+"revision_of_format_id": null,
 "status": "success",
 "content": {
 "title": "Flashcards",
@@ -1746,7 +1803,27 @@ Ejemplo con formatos disponibles:
 }
 ]
 },
-"error_message": null
+"error_message": null,
+"evaluation": null,
+"evaluations": []
+},
+"tldr": {
+"format_id": "fmt_tldr_1",
+"revision_of_format_id": null,
+"status": "success",
+"content": {},
+"error_message": null,
+"evaluation": null,
+"evaluations": []
+},
+"video_script": {
+"format_id": "fmt_video_script_1",
+"revision_of_format_id": null,
+"status": "success",
+"content": {},
+"error_message": null,
+"evaluation": null,
+"evaluations": []
 }
 }
 }
@@ -1848,18 +1925,12 @@ GET /api/v1/documents/{document_id}/formats
 ```
 
 Errores principales:
-
-\| HTTP | Caso |
-
-\|---:|---|
-
-\| `404` | `document_id` inexistente |
-
-\| `409` | Documento no `INDEXED`, formato solicitado en `processing` o ausencia/conflicto de contexto previo reutilizable |
-
-\| `422` | `formats` vacío, duplicado o con un formato no soportado |
-
-\| `500` | No fue posible registrar los nuevos intentos |
+| HTTP | Caso |
+|---:|---|
+| `404` | `document_id` inexistente |
+| `409` | Documento no `INDEXED`, formato solicitado en `processing` o ausencia/conflicto de contexto previo reutilizable |
+| `422` | `formats` vacío, duplicado o con un formato no soportado |
+| `500` | No fue posible registrar los nuevos intentos |
 
 La regeneración no vuelve a almacenar el archivo original en OCI y no ejecuta una nueva indexación RAG. Después de alcanzar estados terminales, Backend reconstruye el paquete educativo y actualiza `documents/{document_id}/generated/content.json`, conservando los formatos vigentes que no fueron regenerados.
 
@@ -1895,20 +1966,13 @@ La respuesta estándar es:
 ```
 
 Responsabilidad de cada campo:
-
-\| Campo | Responsabilidad |
-
-\|---|---|
-
-\| HTTP status | Semántica del protocolo (`404`, `409`, `422`, `500`, `502`, etc.). |
-
-\| `code` | Identificador funcional estable consumible por Frontend. |
-
-\| `detail` | Mensaje seguro y legible para el cliente. |
-
-\| `errors[]` | Detalles estructurados, especialmente validaciones por campo. |
-
-\| `timestamp` | Momento en que Backend construyó la respuesta de error. |
+| Campo | Responsabilidad |
+|---|---|
+| HTTP status | Semántica del protocolo (`404`, `409`, `422`, `500`, `502`, etc.). |
+| `code` | Identificador funcional estable consumible por Frontend. |
+| `detail` | Mensaje seguro y legible para el cliente. |
+| `errors[]` | Detalles estructurados, especialmente validaciones por campo. |
+| `timestamp` | Momento en que Backend construyó la respuesta de error. |
 
 Los códigos públicos se centralizan en:
 
@@ -1964,50 +2028,28 @@ cada elemento de `errors[]` conserva el identificador específico producido por
 la validación.
 
 ### Códigos funcionales expuestos
-
-\| `code` | HTTP | Caso principal |
-
-\|---|---:|---|
-
-\| `DOCUMENT_FILENAME_REQUIRED` | `400` | El archivo no tiene un nombre válido. |
-
-\| `DOCUMENT_EMPTY` | `400` | El archivo recibido tiene cero bytes. |
-
-\| `DOCUMENT_NOT_FOUND` | `404` | El `document_id` solicitado no existe. |
-
-\| `DOCUMENT_STATE_CONFLICT` | `409` | El documento no permite la transición solicitada. |
-
-\| `DOCUMENT_NOT_INDEXED` | `409` | Se intenta generar/regenerar sin estado `INDEXED`. |
-
-\| `FILE_TOO_LARGE` | `413` | El archivo supera el máximo configurado. |
-
-\| `UNSUPPORTED_FILE_TYPE` | `415` | La extensión no está soportada. |
-
-\| `MIME_TYPE_MISMATCH` | `415` | El MIME type declarado no corresponde al formato admitido. |
-
-\| `REQUEST_VALIDATION_ERROR` | `422` | El request no cumple el schema HTTP. |
-
-\| `DOCUMENT_STORAGE_FAILED` | `502` | Falló el almacenamiento del original en OCI. |
-
-\| `DOCUMENT_RETRIEVAL_FAILED` | `502` | No fue posible recuperar el original desde Object Storage. |
-
-\| `RAG_INDEXING_FAILED` | `502` | Falló la integración/indexación RAG. |
-
-\| `FORMAT_REGISTRATION_FAILED` | `500` | No fue posible registrar los intentos iniciales de generación. |
-
-\| `FORMAT_REGENERATION_IN_PROGRESS` | `409` | Algún formato solicitado ya tiene un intento `processing`. |
-
-\| `FORMAT_CONTEXT_NOT_FOUND` | `409` | No existe contexto pedagógico previo reutilizable. |
-
-\| `FORMAT_CONTEXT_CONFLICT` | `409` | Los formatos solicitados no comparten un contexto reutilizable. |
-
-\| `FORMAT_REGENERATION_REGISTRATION_FAILED` | `500` | No fue posible registrar los nuevos intentos de regeneración. |
-
-\| `PERSISTENCE_ERROR` | `500` | Fallo conocido al acceder a la persistencia. |
-
-\| `INTERNAL_SERVER_ERROR` | `500` | Excepción no controlada. |
-
-\| `HTTP_ERROR` | variable | `HTTPException` de framework/ruta sin una causa funcional clasificada. |
+| `code` | HTTP | Caso principal |
+|---|---:|---|
+| `DOCUMENT_FILENAME_REQUIRED` | `400` | El archivo no tiene un nombre válido. |
+| `DOCUMENT_EMPTY` | `400` | El archivo recibido tiene cero bytes. |
+| `DOCUMENT_NOT_FOUND` | `404` | El `document_id` solicitado no existe. |
+| `DOCUMENT_STATE_CONFLICT` | `409` | El documento no permite la transición solicitada. |
+| `DOCUMENT_NOT_INDEXED` | `409` | Se intenta generar/regenerar sin estado `INDEXED`. |
+| `FILE_TOO_LARGE` | `413` | El archivo supera el máximo configurado. |
+| `UNSUPPORTED_FILE_TYPE` | `415` | La extensión no está soportada. |
+| `MIME_TYPE_MISMATCH` | `415` | El MIME type declarado no corresponde al formato admitido. |
+| `REQUEST_VALIDATION_ERROR` | `422` | El request no cumple el schema HTTP. |
+| `DOCUMENT_STORAGE_FAILED` | `502` | Falló el almacenamiento del original en OCI. |
+| `DOCUMENT_RETRIEVAL_FAILED` | `502` | No fue posible recuperar el original desde Object Storage. |
+| `RAG_INDEXING_FAILED` | `502` | Falló la integración/indexación RAG. |
+| `FORMAT_REGISTRATION_FAILED` | `500` | No fue posible registrar los intentos iniciales de generación. |
+| `FORMAT_REGENERATION_IN_PROGRESS` | `409` | Algún formato solicitado ya tiene un intento `processing`. |
+| `FORMAT_CONTEXT_NOT_FOUND` | `409` | No existe contexto pedagógico previo reutilizable. |
+| `FORMAT_CONTEXT_CONFLICT` | `409` | Los formatos solicitados no comparten un contexto reutilizable. |
+| `FORMAT_REGENERATION_REGISTRATION_FAILED` | `500` | No fue posible registrar los nuevos intentos de regeneración. |
+| `PERSISTENCE_ERROR` | `500` | Fallo conocido al acceder a la persistencia. |
+| `INTERNAL_SERVER_ERROR` | `500` | Excepción no controlada. |
+| `HTTP_ERROR` | variable | `HTTPException` de framework/ruta sin una causa funcional clasificada. |
 
 `BAD_REQUEST` permanece disponible en el catálogo para errores `400` genéricos
 
@@ -2168,38 +2210,21 @@ de excepciones al cliente.
 ---
 
 ## Stack
-
-\| Componente | Tecnología |
-
-\|---|---|
-
-\| API | FastAPI |
-
-\| Servidor | Uvicorn |
-
-\| Validación | Pydantic v2 |
-
-\| Configuración | Pydantic Settings |
-
-\| Uploads | python-multipart |
-
-\| Cliente HTTP interno | httpx |
-
-\| Staging temporal | Sistema de archivos local |
-
-\| Persistencia de negocio | SQLite |
-
-\| Persistencia futura posible | PostgreSQL / Supabase mediante nuevos adapters |
-
-\| Object Storage | OCI Object Storage |
-
-\| SDK Cloud | OCI Python SDK |
-
-\| RAG / Vector Store externo | Servicio Agentes/RAG |
-
-\| Testing | pytest / httpx |
-
-\| Calidad | Ruff |
+| Componente | Tecnología |
+|---|---|
+| API | FastAPI |
+| Servidor | Uvicorn |
+| Validación | Pydantic v2 |
+| Configuración | Pydantic Settings |
+| Uploads | python-multipart |
+| Cliente HTTP interno | httpx |
+| Staging temporal | Sistema de archivos local |
+| Persistencia de negocio | SQLite |
+| Object Storage | OCI Object Storage |
+| SDK Cloud | OCI Python SDK |
+| RAG / Vector Store externo | Servicio Agentes/RAG |
+| Testing | pytest / httpx |
+| Calidad | Ruff |
 
 Python soportado:
 
@@ -2209,7 +2234,10 @@ Python >= 3.11
 
 ---
 
-## Estructura actual
+## Estructura de referencia
+
+Se muestran los módulos principales; los archivos auxiliares y de pruebas se
+omiten cuando no son necesarios para ubicar una responsabilidad.
 
 ```text
 backend/
@@ -2223,13 +2251,15 @@ backend/
 │   │       └── endpoints/
 │   │           ├── health.py
 │   │           ├── documents.py
-│   │           └── format_regeneration.py
+│   │           ├── format_regeneration.py
+│   │           └── format_revision_history.py
 │   ├── schemas/
 │   │   ├── common.py
 │   │   ├── adaptation.py
 │   │   ├── document.py
 │   │   ├── generated_format.py
-│   │   └── format_regeneration.py
+│   │   ├── format_regeneration.py
+│   │   └── revision_cycle.py
 │   ├── domain/
 │   │   ├── document.py
 │   │   ├── enums.py
@@ -2237,7 +2267,8 @@ backend/
 │   │   ├── generated_educational_package.py
 │   │   ├── generated_format.py
 │   │   ├── learning_metadata.py
-│   │   └── format_evaluation.py
+│   │   ├── format_evaluation.py
+│   │   └── revision_feedback.py
 │   ├── application/
 │   │   ├── adaptation_orchestration_service.py
 │   │   ├── document_service.py
@@ -2246,7 +2277,14 @@ backend/
 │   │   ├── format_regeneration_service.py
 │   │   ├── generated_format_query_service.py
 │   │   ├── generated_package_storage_service.py
-│   │   └── format_evaluation_service.py
+│   │   ├── format_evaluation_service.py
+│   │   ├── current_cycle_evaluations_service.py
+│   │   ├── format_evaluation_feedback_mapper.py
+│   │   ├── revision_contract_v2.py
+│   │   ├── format_revision_service.py
+│   │   ├── format_revision_history_service.py
+│   │   ├── format_auto_revision_service.py
+│   │   └── stale_revision_recovery_service.py
 │   ├── ports/
 │   │   ├── document_repository_port.py
 │   │   ├── temporary_storage_port.py
@@ -2255,19 +2293,24 @@ backend/
 │   │   ├── agents_port.py
 │   │   ├── generated_format_repository_port.py
 │   │   ├── format_evaluation_repository_port.py
-│   │   └── data_ia_port.py
+│   │   ├── data_ia_port.py
+│   │   ├── agent_revision_port.py
+│   │   └── stale_revision_recovery_port.py
 │   ├── infrastructure/
 │   │   ├── integrations/
 │   │   │   ├── http_rag_adapter.py
 │   │   │   ├── http_agents_adapter.py
-│   │   │   └── http_data_ia_adapter.py
+│   │   │   ├── http_data_ia_adapter.py
+│   │   │   ├── http_data_ia_v2_mapper.py
+│   │   │   └── http_agent_revision_adapter.py
 │   │   ├── persistence/
 │   │   │   ├── database.py
 │   │   │   ├── models.py
 │   │   │   ├── repository_factory.py
 │   │   │   ├── sqlite_document_repository_adapter.py
 │   │   │   ├── sqlite_generated_format_repository_adapter.py
-│   │   │   └── sqlite_format_evaluation_repository_adapter.py
+│   │   │   ├── sqlite_format_evaluation_repository_adapter.py
+│   │   │   └── sqlite_stale_revision_recovery_adapter.py
 │   │   └── storage/
 │   │       ├── local_temporary_storage_adapter.py
 │   │       └── oci_object_storage_adapter.py
@@ -2281,46 +2324,9 @@ backend/
 ├── tests/
 │   ├── conftest.py
 │   ├── fakes.py
-│   ├── integration/
-│   │   ├── test_agents_generation_integration.py
-│   │   ├── test_document_download_api.py
-│   │   ├── test_document_formats_api.py
-│   │   ├── test_documents_api.py
-│   │   ├── test_document_overwrite_behavior.py
-│   │   ├── test_error_contract.py
-│   │   ├── test_format_regeneration_api.py
-│   │   ├── test_learning_metadata_api.py
-│   │   └── test_regeneration_existing_content_api.py
-│   └── unit/
-│       ├── test_adaptation_orchestration_service.py
-│       ├── test_application_wiring.py
-│       ├── test_database.py
-│       ├── test_document_domain.py
-│       ├── test_document_learning_metadata.py
-│       ├── test_document_indexing_state.py
-│       ├── test_document_listing.py
-│       ├── test_document_repository.py
-│       ├── test_document_schemas.py
-│       ├── test_document_service.py
-│       ├── test_documents_list_api.py
-│       ├── test_format_generation_service.py
-│       ├── test_format_regeneration_service.py
-│       ├── test_generated_content.py
-│       ├── test_generated_educational_package.py
-│       ├── test_generated_format_query_service.py
-│       ├── test_generated_format_repository.py
-│       ├── test_generated_package_storage_service.py
-│       ├── test_hashing.py
-│       ├── test_http_agents_adapter.py
-│       ├── test_http_data_ia_adapter.py
-│       ├── test_http_rag_adapter.py
-│       ├── test_learning_metadata.py
-│       ├── test_learning_metadata_migration.py
-│       ├── test_local_temporary_storage_adapter.py
-│       ├── test_oci_object_storage_adapter.py
-│       ├── test_persistence_models.py
-│       ├── test_rag_integration_service.py
-│       └── test_repository_factory.py
+│   ├── test_health.py
+│   ├── integration/          # Contratos HTTP y flujos entre componentes
+│   └── unit/                 # Dominio, casos de uso, adapters y persistencia
 ├── storage/
 ├── .env.example
 ├── .gitignore
@@ -2361,7 +2367,7 @@ DATABASE_URL=sqlite:///storage/nuevamente.db
 OCI_NAMESPACE=
 OCI_BUCKET_NAME=
 OCI_REGION=
-OCI_CONFIG_FILE=\~/.oci/config
+OCI_CONFIG_FILE=~/.oci/config
 OCI_CONFIG_PROFILE=DEFAULT
 # --- RAG ---
 RAG_BASE_URL=http://localhost:8001
@@ -2370,10 +2376,13 @@ RAG_TIMEOUT_SECONDS=30
 # --- Agentes ---
 AGENTS_BASE_URL=http://localhost:8001
 AGENTS_GENERATE_PATH=/api/v1/generate
+AGENTS_REVISE_PATH=/api/v1/revise
 AGENTS_TIMEOUT_SECONDS=60
+# Requiere que Agentes publique /api/v1/revise; desactivado por defecto.
+AUTO_REVISION_ENABLED=false
 # --- Data/IA ---
 DATA_IA_BASE_URL=http://localhost:8002
-DATA_IA_EVALUATE_PATH=/evaluate
+DATA_IA_EVALUATE_PATH=/evaluate/v2
 DATA_IA_TIMEOUT_SECONDS=60
 ```
 
@@ -2388,6 +2397,9 @@ DATA_IA_BASE_URL=http://data-ia:8002
 RAG, generación y evaluación mantienen configuraciones independientes. La configuración concreta del despliegue pertenece a Infraestructura.
 
 Nunca versionar credenciales, claves privadas ni `.env` con datos sensibles.
+Para usar Object Storage localmente, completa el namespace, bucket y región, y
+configura el archivo OCI indicado por `OCI_CONFIG_FILE` con un perfil autorizado.
+Mantén el archivo de configuración y la clave privada fuera del repositorio.
 
 ---
 
@@ -2481,7 +2493,7 @@ Respuesta esperada:
 BackendAPI utiliza por defecto:
 
 ```text
-http://localhost:8002/evaluate
+http://localhost:8002/evaluate/v2
 ```
 
 ---
@@ -2618,13 +2630,14 @@ La suite cubre, entre otros:
 
 ---
 
-## Validación E2E de Sprint 3
+## Registro histórico de validación E2E (2026-10-06 a 2026-10-07)
 
-> **Nota histórica:** las validaciones E2E documentadas en las secciones
-> iniciales de este bloque se realizaron cuando la generación por defecto
-> incluía únicamente Quiz y Flashcards. Se conservan como evidencia de las
-> tarjetas ejecutadas en ese momento. El contrato vigente de BackendAPI soporta
-> cuatro formatos: Quiz, Flashcards, TLDR y Video Script.
+> Este registro conserva resultados manuales de pruebas ejecutadas en esas
+> fechas; no representa el estado actual de un entorno desplegado. Las primeras
+> pruebas de generación automática se hicieron cuando el baseline incluía Quiz
+> y Flashcards. La API actual registra los cuatro formatos: Quiz, Flashcards,
+> TLDR y Video Script. Para el estado vigente, consultar las secciones de flujo
+> y los tests automatizados.
 
 
 La separación entre indexación y generación y el lifecycle de estados fueron validados funcionalmente en local.
@@ -3211,7 +3224,7 @@ No se requiere un endpoint adicional de estado.
 
 ---
 
-## Data/IA y pendientes complementarios
+## Integraciones y limitaciones operativas
 
 ### Integración Data/IA
 
@@ -3234,7 +3247,7 @@ GeneratedFormat success
 ↓
 FormatEvaluationService
 ↓
-POST Data/IA /evaluate
+POST Data/IA /evaluate/v2
 ↓
 FormatEvaluation
 ↓
@@ -3283,14 +3296,16 @@ Sin embargo, si el proceso de Backend termina abruptamente mientras existe una g
 
 Por ello, la implementación actual **no debe interpretarse como garantía absoluta ante crash o reinicio de proceso**.
 
-Opciones futuras:
+La recuperación automática de tareas interrumpidas no está implementada.
+Alternativas para una evolución futura:
 
 - recuperación de intentos `processing` obsoletos;
 - reconciliación al iniciar Backend;
 - cola durable de trabajos;
 - worker externo.
 
-No es necesario mezclar esta mejora con el alcance actual mientras el equipo no defina explícitamente el mecanismo de recuperación.
+Antes de implementarla se debe definir cómo detectar intentos obsoletos y si el
+mecanismo será una reconciliación al iniciar Backend o una cola durable.
 
 La misma limitación aplica a las regeneraciones, ya que reutilizan `FastAPI BackgroundTasks`.
 
@@ -3376,7 +3391,7 @@ Quiz v2 + Flashcards v1 + TLDR v1 + Video Script v1
 
 Una regeneración fallida no reemplaza un `success` histórico previo dentro del snapshot OCI.
 
-La evaluación de Data/IA permanece excluida del JSON hasta que el equipo cierre su contrato de evaluación.
+La evaluación de Data/IA permanece excluida del JSON educativo; sus resultados se conservan en SQLite asociados a cada intento de generación.
 
 ### Persistencia alternativa
 
@@ -3440,7 +3455,7 @@ POST responde
                                 ↓
                    success | failed | no_results
                                 ↓
-              success → Data/IA /evaluate
+              success → Data/IA /evaluate/v2
                                 ↓
                  persistir evaluación
                                 ↓
@@ -3498,7 +3513,7 @@ BackendAPI
                                 ↓
              mismos nuevos format_id → estado terminal
                                 ↓
-              success → Data/IA /evaluate
+              success → Data/IA /evaluate/v2
                                 ↓
                  persistir evaluación
                                 ↓
@@ -3514,3 +3529,428 @@ polling hasta ready | partial | error
 ```
 
 El objetivo arquitectónico se mantiene: **Frontend conoce BackendAPI; BackendAPI orquesta; RAG/Agentes resuelve recuperación y generación; Data/IA evalúa calidad de contenido ya generado mediante un contrato desacoplado.**
+
+<!-- BEGIN BACKENDAPI_SPRINT4_2026 -->
+
+---
+
+## Sprint 4 — Orquestación de revisión pedagógica y Evaluation V2
+
+> **Estado de implementación en BackendAPI.** Esta sección actualiza los
+> apartados históricos de evaluación (`/evaluate` V1.1) y la llamada aislada
+> al revisor. La configuración vigente para el nuevo flujo usa
+> `DATA_IA_EVALUATE_PATH=/evaluate/v2`. La corrección automática permanece
+> **deshabilitada por defecto** hasta completar la integración y las pruebas
+> extremo a extremo con los servicios reales. Las pruebas locales se realizaron
+> con SQLite y transporte HTTP simulado; no constituyen una certificación E2E.
+
+### Responsabilidades y límites
+
+BackendAPI es el orquestador de producto. Agentes genera y corrige formatos;
+Data/IA produce evaluaciones pedagógicas. No se invoca Data/IA directamente
+desde Agentes. Los casos de uso y adaptadores de BackendAPI se mantienen
+separados por capa (`application`, `domain`, `ports`, `infrastructure`, `api`).
+
+```text
+Generación inicial mediante Agentes
+    ↓
+GeneratedFormat original (success) + chunks_used → SQLite
+    ↓
+FormatEvaluationService → Data/IA POST /evaluate/v2
+    ↓
+Evaluación V2 persistida → decisión de BackendAPI
+    ├── approved / verdict null / sin feedback accionable
+    │       └── conservar generación sin corregir
+    └── requires_revision / rejected + feedback accionable
+            │ si AUTO_REVISION_ENABLED=true y Agentes expone /revise
+            │ (desactivado por defecto; integración externa pendiente)
+            ↓
+        reservar revisión processing en SQLite
+            ↓
+        POST Agentes /api/v1/revise
+            ↓
+        persistir versión corregida (success / failed / no_results)
+            ↓  si success
+        Data/IA POST /evaluate/v2 → persistir reevaluación
+            ↓
+        reconstruir snapshot educativo terminal en OCI
+```
+
+La **regeneración manual** (`POST /api/v1/documents/{document_id}/formats/regenerate`)
+crea un nuevo ciclo de generación a petición del usuario y no debe confundirse
+con la **corrección automática** motivada por una evaluación negativa.
+
+### Evaluación de formatos V2
+
+`FormatEvaluationService` reutiliza `DataIAPort` y `HTTPDataIAAdapter`. Para la
+ruta `/evaluate/v2`, el adaptador valida el contrato semántico y heurístico con
+`http_data_ia_v2_mapper.py` y conserva los resultados en `format_evaluations`:
+
+| Campo | Descripción |
+|---|---|
+| `verdict` | `approved`, `requires_revision`, `rejected` o `null` |
+| `heuristic_scores` | Cuatro dimensiones de calidad de 1.0 a 5.0, si existen |
+| `semantic_evaluation` | Estado (`success`, `failed`, `unavailable`), puntajes, observaciones, recomendaciones, información sin respaldo y error técnico |
+| `evaluator_version`, `rubric_version` | Versiones de evaluador y rúbrica |
+
+La ruta V2 es independiente del formato histórico de `/evaluate` V1.1. La
+persistencia permite consultar evaluaciones antiguas y nuevas. Un fallo de
+Data/IA **no transforma** un `GeneratedFormat.success` en `failed`. El estado
+`verdict=null` no se interpreta como una aprobación ni como un rechazo.
+
+### Historial de generaciones, correcciones y evaluaciones
+
+Endpoint público de BackendAPI:
+
+```http
+GET /api/v1/documents/{document_id}/formats/{format_type}/history
+```
+
+`FormatRevisionHistoryService` devuelve ciclos independientes: cada ciclo
+contiene su **generación original**, su **corrección opcional** y las
+**evaluaciones asociadas a cada versión**. La evaluación vigente del ciclo
+pertenece a la versión corregida, si existe; nunca se reutiliza la puntuación
+de otro ciclo ni se atribuye una evaluación original a su corrección.
+
+`GeneratedFormat.revision_of_format_id` vincula la corrección con su versión
+original. SQLite conserva el contenido original y sus evidencias y aplica una
+restricción `UNIQUE` parcial sobre `revision_of_format_id`. Esta restricción
+impide más de una corrección por raíz, también ante concurrencia. No se
+permiten referencias a otra identidad de documento, otro tipo de formato ni
+revisiones encadenadas.
+
+### Decisión y orquestación de una única corrección
+
+`AdaptationOrchestrationService` evalúa cada resultado generado que está listo
+para evaluación. Si `AUTO_REVISION_ENABLED=true`, delega a
+`FormatAutoRevisionService` la decisión, la reserva del nuevo intento, la
+solicitud de corrección y la reevaluación posterior.
+
+**Reglas de negocio:**
+
+1. La corrección solo aplica a una generación raíz exitosa con contenido,
+   contexto pedagógico y `chunks_used` válidos.
+2. Se requiere una evaluación V2 con `verdict=requires_revision` o
+   `verdict=rejected` y hallazgos accionables. `approved`, `null` y evaluaciones
+   V1.1 no producen corrección automática.
+3. Antes de llamar a Agentes se registra un intento independiente con estado
+   `processing` e identificador `revision_id`.
+4. Una versión corregida **no solicita una segunda corrección**. Como máximo
+   se realiza una corrección pedagógica por generación raíz.
+5. Ante éxito se persiste la versión y se intenta una nueva evaluación V2.
+   Ante fallo de reevaluación se conserva la corrección `success`, sin fabricar
+   un veredicto aprobado.
+6. Ante fallos HTTP o de contrato del revisor se conserva la generación
+   original. El intento de revisión registra su estado y error terminal.
+7. Política inicial: **una llamada HTTP por revisión reservada y cero
+   reintentos automáticos de transporte**. No se reenvían timeouts hasta que
+   Agentes demuestre deduplicación por `revision_id`.
+
+### Contrato HTTP BackendAPI → Agentes, revisión V2
+
+Contrato esperado para la integración externa consumida por BackendAPI. Este
+endpoint todavía no está implementado en el `api.py` actual de Agentes; el
+adaptador de BackendAPI está preparado para consumirlo cuando se publique:
+
+```http
+POST /api/v1/revise
+Content-Type: application/json
+```
+
+El request transporta las siguientes propiedades canónicas:
+
+```json
+{
+  "revision_id": "fmt_rev_abc123",
+  "original_format_id": "fmt_tldr_001",
+  "document_id": "doc_123",
+  "format": "tldr",
+  "generation_context": {
+    "profile": "intermediate",
+    "niche": "backend",
+    "detail_level": "detailed",
+    "learning_objective": "Comprender APIs"
+  },
+  "previous_content": {
+    "title": "Resumen original",
+    "summary": "Contenido anterior",
+    "key_points": ["Primer concepto"],
+    "conclusion": "Conclusión original"
+  },
+  "chunks_used": [
+    {
+      "chunk_id": "chunk_1",
+      "document_id": "doc_123",
+      "rank": 1,
+      "score": 0.9,
+      "text": "Evidencia documental recuperada"
+    }
+  ],
+  "evaluator_response": {
+    "document_id": "doc_123",
+    "format": "tldr",
+    "verdict": "requires_revision",
+    "heuristic_scores": {
+      "relevance": 4.0,
+      "coherence": 3.0,
+      "didactic_adaptation": 2.0,
+      "content_support": 4.0
+    },
+    "semantic_evaluation": {
+      "status": "unavailable",
+      "scores": null,
+      "observations": [],
+      "recommendations": [{
+        "dimension": "didactic_adaptation",
+        "message": "Simplificar el contenido",
+        "item_id": null
+      }],
+      "unsupported_information": [],
+      "error_code": "not_configured",
+      "error_message": null,
+      "model": null,
+      "prompt_version": null,
+      "latency_ms": null
+    },
+    "evaluator_version": "2.0",
+    "rubric_version": "2.0"
+  }
+}
+```
+
+El `evaluator_response` preserva estructura y valores tipados de la evaluación
+V2 persistida; no garantiza conservar byte por byte el JSON HTTP original.
+El campo `previous_content` debe cumplir el contrato canónico del tipo de
+formato, no contener una estructura genérica. Las evidencias de entrada se
+llaman `chunks_used`; la respuesta de Agentes debe utilizar `sources_used`.
+
+Respuesta exitosa (los datos de ejemplo ilustran la estructura):
+
+```json
+{
+  "revision_id": "fmt_rev_abc123",
+  "original_format_id": "fmt_tldr_001",
+  "document_id": "doc_123",
+  "format": "tldr",
+  "status": "success",
+  "content": {
+    "title": "Resumen corregido",
+    "summary": "Contenido revisado",
+    "key_points": ["Concepto aclarado"],
+    "conclusion": "Conclusión revisada"
+  },
+  "sources_used": [
+    {
+      "chunk_id": "chunk_1",
+      "document_id": "doc_123",
+      "rank": 1,
+      "score": 0.9,
+      "text": "Evidencia documental recuperada"
+    }
+  ],
+  "execution_time_seconds": 1.25,
+  "error_message": null,
+  "error": null
+}
+```
+
+En respuestas `failed`, `content=null`, se conserva la identidad de la
+revisión y el campo `error` puede contener `code`, `message`, `retryable`,
+`http_status`, `upstream_status` y `provider`. El status HTTP debe ser coherente
+con `error.http_status`. `HTTPAgentRevisionAdapter` valida el documento, tipo
+y ambos identificadores y no reemplaza el original ante respuestas
+incompatibles.
+
+**Idempotencia:** Backend utiliza la misma identidad de reserva como
+`revision_id`; Agentes debe garantizar deduplicación del procesamiento antes
+de permitir reintentos técnicos. Solo transmitir un identificador no ofrece
+por sí mismo esa garantía.
+
+### Otros contratos públicos de BackendAPI incorporados en Sprint 4
+
+- `PATCH /api/v1/documents/{document_id}/deactivate` aplica **inactivación
+  lógica** del documento para la biblioteca; no equivale a borrar el archivo
+  original de OCI ni sus registros históricos.
+- `GET /api/v1/documents/{document_id}` expone `title` y `summary` como campos
+  opcionales procedentes de `document_title` y `document_description` de la
+  generación de Agentes. Pueden permanecer en `null` si Agentes todavía no
+  devuelve los valores. El backend los persiste sin reemplazar silenciosamente
+  metadatos enriquecidos útiles ya existentes.
+
+### Recuperación operativa de revisiones interrumpidas
+
+Una caída abrupta después de crear la reserva puede dejar una revisión en
+`processing` sin resultado terminal. La recuperación del Sprint 4 se implementa
+sin una cola de trabajos y **no intenta completar ni volver a invocar al LLM**.
+
+Capas y responsabilidades:
+
+| Componente | Responsabilidad |
+|---|---|
+| `StaleRevisionRecoveryService` | Selección temporal y ejecución de la política |
+| `StaleRevisionRecoveryPort` | Contrato abstracto de búsqueda y transición |
+| `SQLiteStaleRevisionRecoveryAdapter` | Consulta y cambio transaccional de revisiones antiguas |
+| `app.operations.recover_stale_revisions` | Interfaz CLI explícita, independiente de FastAPI |
+| `SQLiteGeneratedFormatRepositoryAdapter` | Protección contra escrituras tardías sobre revisiones terminales |
+
+Inspección sin modificar datos (desde `backend/`):
+
+```powershell
+python -m app.operations.recover_stale_revisions --database-url sqlite:///storage/nuevamente.db --older-than-minutes 60
+```
+
+Para cerrar los intentos obsoletos, **primero debe detenerse cualquier
+trabajador de generación o revisión, verificarse un respaldo de SQLite y
+confirmarse que no hay solicitudes pendientes**:
+
+```powershell
+python -m app.operations.recover_stale_revisions --database-url sqlite:///storage/nuevamente.db --older-than-minutes 60 --apply --acknowledge-workers-stopped
+```
+
+La CLI presenta `candidates`, `recovered_ids`, `cutoff` y `applied` en JSON.
+La vista previa es el comportamiento predeterminado. La operación afecta solo
+revisiones con `revision_of_format_id IS NOT NULL`, `status=processing` y
+`updated_at` anterior al umbral. Cambia `processing → failed`, mantiene intacta
+la raíz y **no libera** una segunda corrección de la misma raíz. La transición
+se protege transaccionalmente; una respuesta tardía del revisor no puede
+restablecer `success` sobre una revisión que ya llegó a `failed`.
+
+Esta es una **reconciliación manual de revisiones**, no una cola durable ni
+una recuperación automática de generaciones o regeneraciones iniciales.
+El flag `--acknowledge-workers-stopped` declara una confirmación operativa;
+no comprueba por sí mismo que todos los procesos hayan terminado.
+
+### Configuración de Sprint 4
+
+Tomar los valores de `backend/.env.example` y ajustar URLs a cada entorno:
+
+```env
+AGENTS_REVISE_PATH=/api/v1/revise
+AUTO_REVISION_ENABLED=false
+DATA_IA_EVALUATE_PATH=/evaluate/v2
+```
+
+`AGENTS_BASE_URL`, `AGENTS_TIMEOUT_SECONDS`, `DATA_IA_BASE_URL` y
+`DATA_IA_TIMEOUT_SECONDS` conservan su configuración independiente. Dejar
+`AUTO_REVISION_ENABLED=false` hasta validar el endpoint real de Agentes y el
+recorrido completo. La operación de recuperación de estados es manual y no se
+activa al iniciar la aplicación.
+
+### Pruebas y validación
+
+**Pruebas automatizadas locales** (desde `backend/`):
+
+```powershell
+python -m ruff check .
+python -m pytest -q tests/unit/test_revision_cycle.py
+python -m pytest -q tests/unit/test_agent_revision_v2_contract.py
+python -m pytest -q tests/integration/test_revision_flow_v2_sqlite.py
+python -m pytest -q tests/integration/test_stale_revision_recovery.py
+python -m pytest -q
+git diff --check
+```
+
+La suite cubre persistencia/historial SQLite, identidades del contrato,
+resultados `approved`, `requires_revision`, `rejected` y `null`, limitación de
+correcciones, manejo de respuestas incompatibles, timeout, errores del
+proveedor, caída de reevaluación, snapshot OCI mediante doble de prueba y
+recuperación transaccional de estados `processing` obsoletos. El transporte
+HTTP se simula con `httpx.MockTransport` y no representa comunicación real
+entre servicios.
+
+Los puntos abiertos y las dependencias de servicios externos se centralizan
+al final en [Pendientes y dependencias de integración](#pendientes-y-dependencias-de-integración).
+
+### Mapa de componentes añadidos en Sprint 4
+
+```text
+backend/app/
+├── api/v1/endpoints/format_revision_history.py
+├── application/
+│   ├── current_cycle_evaluations_service.py
+│   ├── format_revision_service.py
+│   ├── format_revision_history_service.py
+│   ├── format_evaluation_feedback_mapper.py
+│   ├── revision_contract_v2.py
+│   ├── format_auto_revision_service.py
+│   └── stale_revision_recovery_service.py
+├── operations/
+│   └── recover_stale_revisions.py
+├── ports/
+│   ├── agent_revision_port.py
+│   └── stale_revision_recovery_port.py
+├── infrastructure/
+│   ├── integrations/http_agent_revision_adapter.py
+│   └── persistence/sqlite_stale_revision_recovery_adapter.py
+└── schemas/revision_cycle.py
+
+backend/tests/
+├── unit/
+│   ├── test_revision_cycle.py
+│   └── test_agent_revision_v2_contract.py
+└── integration/
+    ├── test_revision_flow_v2_sqlite.py
+    ├── test_stale_revision_recovery.py
+    └── test_current_cycle_evaluations_api.py
+```
+
+<!-- END BACKENDAPI_SPRINT4_2026 -->
+
+---
+
+## Sprint 4 — Salida de evaluaciones del ciclo vigente
+
+`GET /api/v1/documents/{document_id}/formats` conserva el contrato público de
+contenido y estado por formato, y añade dos campos a cada formato persistido:
+
+- `evaluation`: última evaluación de **la versión cuyo `format_id` se muestra**,
+  o `null` si esa versión no ha sido evaluada. No hereda el veredicto del original
+  cuando el contenido seleccionado es una corrección nueva.
+- `evaluations`: evaluaciones de la generación raíz y su revisión (cuando
+  exista) dentro del **mismo ciclo**, en orden de la más reciente a la más
+  antigua. Es `[]` si aún no hay evaluaciones en ese ciclo.
+
+Las métricas usan `RevisionEvaluationResponse`, el mismo contrato tipado del
+endpoint histórico, con campos V1/V2 (`verdict`, `heuristic_scores`,
+`semantic_evaluation`, `observations`, versiones y fechas). No se calculan
+scores adicionales ni se reevalúa al consultar formatos.
+
+La selección del ciclo se hace por `format_id` del contenido que
+`GeneratedFormatQueryService` considera vigente. Si una regeneración más
+reciente falló, la consulta conserva el último contenido exitoso y muestra
+únicamente sus evaluaciones, sin mezclar intentos de regeneración. Mientras una
+regeneración está `processing`, sus evaluaciones no heredan las anteriores.
+
+**Nota de integración Frontend:** `evaluation=null` significa que la versión
+mostrada no tiene una evaluación propia, incluso si `evaluations` contiene una
+evaluación histórica de la generación original. Frontend debe respetar esta
+distinción antes de atribuir un veredicto a una corrección todavía no evaluada.
+
+El endpoint histórico por formato (`/documents/{document_id}/formats/
+{format_type}/history`) sigue ofreciendo todos los ciclos. Esta ampliación de
+`/formats` no altera su contrato.
+
+## Pendientes y dependencias de integración
+
+Esta sección reúne las brechas observadas al contrastar la documentación con
+el código. Son pendientes técnicos y validaciones por completar; no representan
+por sí solos compromisos aprobados del backlog.
+
+- **Publicar el endpoint de revisión en Agentes.** BackendAPI tiene preparado
+  el adaptador para `POST /api/v1/revise`, pero la ruta no está implementada en
+  el servicio Agentes (`../agentes/api.py`). Hasta que exista un servicio
+  compatible, mantener `AUTO_REVISION_ENABLED=false`.
+- **Validar el contrato V2 con Data/IA real.** BackendAPI configura
+  `DATA_IA_EVALUATE_PATH=/evaluate/v2`; las pruebas locales descritas en este
+  README simulan el transporte y no certifican el intercambio real entre
+  servicios.
+- **Completar una prueba E2E de la revisión V2 con servicios desplegados.**
+  Verificar generación, evaluación, corrección y reevaluación entre BackendAPI,
+  Agentes, Data/IA y Frontend, incluyendo SQLite y OCI Object Storage.
+- **Acordar la selección pedagógica del contenido vigente.** La consulta
+  favorece el último `success` técnico, incluso si esa versión fue evaluada
+  como `rejected` o todavía no tiene evaluación; la política de producto debe
+  confirmar si ese comportamiento es el esperado.
+- **Evaluar durabilidad de tareas en segundo plano.** La generación y
+  regeneración usan `FastAPI BackgroundTasks`; no hay una cola durable para
+  recuperarlas automáticamente después de una caída abrupta del proceso.

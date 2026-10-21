@@ -1,0 +1,51 @@
+{
+  "calibration_id": "CAL-V1-015",
+  "source_case_id": "FE-ES-002-Q01",
+  "document_id": "FE-ES-002",
+  "category": "Frontend",
+  "variant": "low_coherence",
+  "target_dimension": "coherence",
+  "perturbation_design": "Toda la información está respaldada, pero hay redundancia, orden inconsistente y formulación fragmentaria.",
+  "evaluation_request": {
+    "document_id": "FE-ES-002",
+    "format": "flashcards",
+    "generated_content": {
+      "title": "Estructuras cubiertas en JavaScript",
+      "instructions": "Revisa las tarjetas.",
+      "cards": [
+        {
+          "card_id": "c1",
+          "front": "Condicionales, bucles... ¿qué más?",
+          "back": "Funciones y eventos; y bucles; condicionales. Esas estructuras, las cuatro, aparecen en el módulo."
+        },
+        {
+          "card_id": "c2",
+          "front": "¿Qué bloques se cubren?",
+          "back": "Eventos, funciones, después condicionales; bucles también. Bloques fundamentales, los mismos cuatro, sin una secuencia clara."
+        }
+      ]
+    },
+    "generation_context": {
+      "profile": "beginner",
+      "niche": "general",
+      "detail_level": "medium",
+      "learning_objective": null
+    },
+    "chunks_used": [
+      {
+        "chunk_id": "FE-ES-002_CH_001",
+        "document_id": "FE-ES-002",
+        "rank": 1,
+        "score": 1.0,
+        "text": "# Elementos básicos de JavaScript\n\nEn este módulo, continuamos nuestra cobertura de todas las características clave de JavaScript, tornando nuestra atención a tipos de código comúnmente encontrados tales como enunciados condicionales, bucles (loops), funciones, y eventos. Ya has visto estas cosas en este curso, pero solo de pasada aquí lo hablaremos mas explícitamente."
+      },
+      {
+        "chunk_id": "FE-ES-002_CH_007",
+        "document_id": "FE-ES-002",
+        "rank": 2,
+        "score": 1.0,
+        "text": "La siguiente evaluación probara tu entendimiento de lo básico de Javascript cubierto en las guias anteriores.\n\nAhora que hemos visto los bloques constructores fundamentales de JavaScript, probaremos tus conocimientos en bucles, funciones, condicionales y eventos construyendo un item bastante común en muchos sitios web — una galería de imágenes creada con JavaScript."
+      }
+    ]
+  }
+}

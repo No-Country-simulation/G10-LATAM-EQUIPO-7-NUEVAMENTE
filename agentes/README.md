@@ -16,9 +16,11 @@ La arquitectura evolucionó hacia un sistema de grafos de estado para garantizar
 * **Búsqueda Híbrida + RRF:** Búsqueda semántica combinada con lexical (BM25) y Cross-Encoder.
 * **Inyección Dinámica de Nicho:** El parámetro `niche` adapta los conceptos clave y prerrequisitos estrictamente al dominio solicitado.
 
----
+El módulo contiene estos recorridos, que comparten el motor de recuperación, pero tienen objetivos distintos:
 
-## Estructura del Módulo
+1. **Recorrido de aplicación:** recibe documentos por HTTP, indexa sus chunks y permite generar formatos educativos con evidencia de un documento.
+2. **Recorrido de evaluación:** carga un corpus congelado desde CSV y produce respuestas bajo el contrato de retrieval `2.0`, para medir recuperación de evidencia.
+3. **Grafo interno de generación:** `graph.py` expone funciones para una generación con recuperación compartida y fan-out de formatos, además de un subgrafo que puede recibir feedback para reescribir. Las diferencias entre este grafo y el flujo activo se resumen en [Pendientes técnicos identificados](#pendientes-técnicos-identificados).
 
     agentes/
     ├── rag/                           # RAG Core (Motor de Ingesta y Recuperación)
@@ -62,9 +64,17 @@ La arquitectura evolucionó hacia un sistema de grafos de estado para garantizar
     ├── README.md                      # Documentación técnica del módulo
     └── requirements.txt               # Dependencias del entorno
 
----
+## Arquitectura y recorrido de llamadas
 
-## Configuración y Despliegue Local
+```text
+POST /api/v1/index
+  api.index_document
+    -> rag.extractor.extract_document
+    -> rag.cleaner.clean_text
+    -> rag.chunker.create_chunks
+    -> rag.embeddings.MultilingualEmbedding
+    -> rag.vector_store.VectorStore.add_chunks
+    -> ChromaDB
 
 1. Crea un archivo `.env` en la **raíz principal del proyecto**:
     
@@ -89,7 +99,7 @@ La arquitectura evolucionó hacia un sistema de grafos de estado para garantizar
     ```
     Accede a la interfaz interactiva (Swagger UI) en: http://127.0.0.1:8001/docs
 
----
+El endpoint HTTP `/generate` itera por los formatos en serie: cada resultado es independiente, pero no se genera en paralelo. La extracción de metadatos y la generación de cada formato hacen sus propias búsquedas, todas filtradas por `document_id`.
 
 ## Contratos de Datos y API v1
 
@@ -102,10 +112,13 @@ Recibe feedback desde el evaluador de Data/IA e invoca el subgrafo. Si se detect
 ### 3. Evaluación Data/IA (Contrato V2.0)
 Endpoints de evaluación (`/evaluate/retrieval` y `/evaluate/retrieval/batch`) para testear el performance del híbrido RAG.
 
----
+Las pruebas relevantes se distribuyen por componente: `test_rag.py` cubre primitivas RAG; `test_retrieval_v2.py` y `test_evaluation_endpoints.py` cubren retrieval y sus rutas; `test_api_metadata.py`, `test_generation_formats.py` y `test_error_propagation.py` cubren la API de aplicación; `test_graph.py`, `test_nodes.py` y `test_state.py` cubren el grafo interno y sus contratos; `test_agente.py` integra el agente con el corpus de evaluación.
 
-## Ejecución de Pruebas Automatizadas (QA)
+## Pendientes técnicos identificados
 
 El módulo cuenta con una suite que valida el comportamiento end-to-end del grafo, inyección de nichos y propagación correcta de los códigos HTTP ante caídas de red o cuota.
 
-    python -m pytest agentes/tests/
+- **Conectar el grafo a la generación HTTP, si ese es el flujo objetivo.** Actualmente `/api/v1/generate` usa el flujo directo de `AgentV1`; no invoca `compilar_grafo_generacion`. Por eso el endpoint vuelve a recuperar contexto por cada formato y los procesa secuencialmente.
+- **Integrar la evaluación semántica y la corrección automática.** `traducir_respuesta_evaluador` valida y traduce una respuesta V2 recibida, y el subgrafo puede consumir `feedback` inyectado; el código de agentes no solicita la evaluación ni encadena evaluador y redactor automáticamente.
+- **Definir e implementar la ruta HTTP de revisión, si se requiere.** No existe actualmente un endpoint `/revise` en `api.py`; el subgrafo de formato es una función interna y no está expuesto como endpoint.
+- **Conectar el router de revisión al subgrafo, si se requiere reintentar automáticamente.** Aunque `nodes.py` define `ruta_tras_redactor` y lógica para reescrituras, `compilar_subgrafo_formato` compila el recorrido lineal `redactor -> finalizar`; no usa ese router.

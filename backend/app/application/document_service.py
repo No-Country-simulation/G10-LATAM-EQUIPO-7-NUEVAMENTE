@@ -1,4 +1,4 @@
-﻿"""Casos de uso relacionados con documentos."""
+"""Casos de uso relacionados con documentos."""
 
 import logging
 from dataclasses import dataclass
@@ -103,6 +103,12 @@ class DocumentService:
         )
 
         if existing_document is not None:
+            if not existing_document.is_active:
+                existing_document.activate()
+                self._repository.update(
+                    existing_document
+                )
+
             return DocumentRegistrationResult(
                 document=existing_document,
                 created=False,
@@ -276,8 +282,9 @@ class DocumentService:
     ) -> list[Document]:
         """Obtiene los documentos disponibles en la biblioteca.
 
-        Un documento se considera activo para consulta cuando tiene
-        asociado un objeto persistente en OCI Object Storage.
+        Un documento se considera disponible en la biblioteca cuando tiene
+        asociado un objeto persistente en OCI Object Storage y su estado
+        lógico es activo (is_active = True).
 
         Esta operación consulta únicamente metadata persistida. No
         descarga archivos ni dispara indexación o generación.
@@ -288,7 +295,54 @@ class DocumentService:
             document
             for document in documents
             if document.oci_object_name is not None
+            and document.is_active
         ]
+
+    def deactivate_document(
+        self,
+        document_id: str,
+    ) -> Document:
+        """Inactiva lógicamente un documento existente.
+
+        Esta operación es idempotente: si el documento ya está inactivo,
+        no produce efectos secundarios ni errores.
+        """
+        document = self.get_document(
+            document_id
+        )
+
+        if not document.is_active:
+            return document
+
+        document.deactivate()
+        self._repository.update(
+            document
+        )
+
+        return document
+
+    def activate_document(
+        self,
+        document_id: str,
+    ) -> Document:
+        """Reactiva lógicamente un documento inactivo.
+
+        Esta operación es idempotente: si el documento ya está activo,
+        no produce efectos secundarios ni errores.
+        """
+        document = self.get_document(
+            document_id
+        )
+
+        if document.is_active:
+            return document
+
+        document.activate()
+        self._repository.update(
+            document
+        )
+
+        return document
 
     def get_document(
         self,

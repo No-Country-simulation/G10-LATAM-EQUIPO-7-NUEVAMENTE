@@ -1,0 +1,2 @@
+source_claims,expected_atoms,predicted_atoms,atom_delta,atom_inflation_rate,class_accuracy,count_accuracy,type_sequence_accuracy,exact_structure_accuracy,over_atomized_cases,under_atomized_cases
+16,26,37,11,0.4230769230769231,0.625,0.5,0.5,0.5,8,0

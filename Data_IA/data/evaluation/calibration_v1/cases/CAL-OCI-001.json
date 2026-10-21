@@ -1,0 +1,59 @@
+{
+  "calibration_id": "CAL-OCI-001",
+  "source_case_id": "OCI-E2E-001",
+  "document_id": "doc_test_001",
+  "category": "backend",
+  "format": "tldr",
+  "variant": "real_oci_disagreement",
+  "target_dimension": "content_support",
+  "expected_issue": "heuristic_semantic_disagreement",
+  "notes": "Caso real obtenido en OCI. El heuristico dio content_support=1 y verdict=rejected, mientras que el evaluador semantico con Gemini dio content_support=5 sin unsupported_information.",
+  "evaluation_request": {
+    "document_id": "doc_test_001",
+    "format": "tldr",
+    "generated_content": {
+      "title": "Introduccion a REST",
+      "summary": "REST es un estilo arquitectonico para sistemas distribuidos.",
+      "key_points": [
+        "Utiliza recursos",
+        "Emplea metodos HTTP"
+      ],
+      "conclusion": "REST facilita la construccion de APIs."
+    },
+    "generation_context": {
+      "profile": "junior",
+      "niche": "backend",
+      "detail_level": "medium",
+      "learning_objective": "Comprender los fundamentos de APIs REST"
+    },
+    "chunks_used": [
+      {
+        "rank": 1,
+        "chunk_id": "chunk_001",
+        "document_id": "doc_test_001",
+        "score": 0.95,
+        "text": "REST es un estilo arquitectonico que utiliza recursos y metodos HTTP."
+      }
+    ]
+  },
+  "observed_oci_result": {
+    "verdict": "rejected",
+    "heuristic_scores": {
+      "relevance": 5,
+      "coherence": 5,
+      "didactic_adaptation": 5,
+      "content_support": 1
+    },
+    "semantic_scores": {
+      "relevance": 5,
+      "coherence": 5,
+      "didactic_adaptation": 5,
+      "content_support": 5
+    },
+    "semantic_status": "success",
+    "semantic_model": "gemini-3.5-flash-lite",
+    "semantic_prompt_version": "semantic-evaluator-v0.1",
+    "semantic_latency_ms": 5841,
+    "unsupported_information_count": 0
+  }
+}

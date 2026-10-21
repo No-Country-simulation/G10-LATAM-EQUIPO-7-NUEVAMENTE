@@ -85,16 +85,7 @@ function setupBackendBadge() {
   if (!badge) return;
   const badgeLabel = badge.querySelector('span:not(.status-dot-pulse)') || badge;
 
-  badge.style.cursor = 'pointer';
-  badge.addEventListener('click', () => {
-    const current = CONFIG.API.DEFAULT_BASE_URL;
-    const nextUrl = prompt('Configurar URL del Backend (FastAPI):', current);
-    if (nextUrl !== null && nextUrl.trim() !== current) {
-      if (typeof window.setBackendUrl === 'function') {
-        window.setBackendUrl(nextUrl.trim());
-      }
-    }
-  });
+  badge.style.cursor = 'default';
 
   state.subscribe((s) => {
     const isConn = Boolean(s.isBackendConnected);
@@ -103,7 +94,7 @@ function setupBackendBadge() {
       badgeLabel.textContent = isConn ? 'Backend API' : 'Sin Conexión';
     }
     badge.title = isConn
-      ? `Conectado a Backend API: ${CONFIG.API.DEFAULT_BASE_URL} (Clic para cambiar)`
-      : `Sin conexión con Backend FastAPI (${CONFIG.API.DEFAULT_BASE_URL}). Clic para configurar URL`;
+      ? `Conectado a Backend API (${CONFIG.API.DEFAULT_BASE_URL})`
+      : `Sin conexión con Backend FastAPI (${CONFIG.API.DEFAULT_BASE_URL})`;
   });
 }
