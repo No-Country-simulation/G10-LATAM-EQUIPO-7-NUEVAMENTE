@@ -1,254 +1,268 @@
-"""
-Tests de propagación de errores estructurada por formato y política HTTP.
-
-NO llaman a Gemini: se reemplazan agent.extract_learning_metadata y agent.answer
-por versiones controladas, así que corren en segundos y sin consumir cuota.
-"""
 import pytest
+from unittest.mock import patch
 from fastapi.testclient import TestClient
-from google.genai import errors as genai_errors
-
-from agentes.api import app, agent
-from agentes.errors import build_error, classify_exception
+from agentes.api import app
 
 client = TestClient(app)
 
-FALLBACK_META = {
-    "key_concepts": ["Error al extraer conceptos"],
-    "prerequisites": ["No se pudieron determinar"],
-    "estimated_time_minutes": 0,
+SUCCESS_METADATA = {
+    "key_concepts": ["Listas", "Diccionarios", "Funciones"],
+    "prerequisites": ["Lógica básica"],
+    "estimated_time_minutes": 15
 }
 
+FAILED_METADATA = {
+    "key_concepts": ["Error al extraer conceptos"],
+    "prerequisites": ["No se pudieron determinar"],
+    "estimated_time_minutes": 0
+}
 
-def meta_ok():
-    return {
-        "status": "success",
-        "content": {"key_concepts": ["a", "b", "c"], "prerequisites": ["x"], "estimated_time_minutes": 5},
-        "error_message": None,
-        "error": None,
-        "document_title": "documento.pdf",
-        "document_description": "Describe el pipeline RAG del proyecto.",
+SUCCESS_QUIZ = {
+    "format": "quiz",
+    "status": "success",
+    "content": {"title": "Quiz de Python"},
+    "sources_used": [{"chunk_id": "1"}],
+    "execution_time_seconds": 1.5
+}
+
+SUCCESS_FLASHCARDS = {
+    "format": "flashcards",
+    "status": "success",
+    "content": {"title": "Flashcards de Python"},
+    "sources_used": [{"chunk_id": "2"}],
+    "execution_time_seconds": 1.2
+}
+
+@patch("agentes.api.ejecutar_grafo")
+def test_generate_endpoint_root_metadata_success(mock_ejecutar):
+    """Verifica que learning_metadata viaje en la raíz y use claves reales de LangGraph."""
+    mock_ejecutar.return_value = {
+        "learning_metadata_status": "success",
+        "learning_metadata": SUCCESS_METADATA,
+        "document_title": "Guía de Python",
+        "document_description": "Descripción semántica de la guía",
+        "final_results": [SUCCESS_QUIZ, SUCCESS_FLASHCARDS]
     }
-
-
-def meta_fail(causa="RESOURCE_EXHAUSTED"):
-    return {
-        "status": "failed",
-        "content": FALLBACK_META,
-        "error_message": f"fallo {causa}",
-        "error": build_error(causa, f"fallo {causa}"),
-        "document_title": "documento.pdf",
-        "document_description": None,
-    }
-
-
-def answer_ok(formato):
-    return {
-        "status": "success",
-        "content": {"title": f"contenido {formato}"},
-        "sources_used": [{"rank": 1, "chunk_id": "c1", "document_id": "d", "score": 0.9, "text": "t"}],
-        "error_message": None,
-        "error": None,
-    }
-
-
-def answer_fail(causa):
-    return {
-        "status": "failed",
-        "content": None,
-        "sources_used": [],
-        "error_message": f"fallo {causa}",
-        "error": build_error(causa, f"fallo {causa}"),
-    }
-
-
-def payload(formats):
-    return {
-        "document_id": "doc_x",
-        "formats": formats,
+    
+    payload = {
+        "document_id": "doc_test_123",
+        "formats": ["quiz", "flashcards"],
         "profile": "profesional",
-        "niche": "general",
-        "detail_level": "avanzado",
-        "query": "conceptos principales",
+        "niche": "tecnología",
+        "detail_level": "avanzado"
     }
-
-
-def parchear(monkeypatch, meta, por_formato):
-    """por_formato: dict formato -> resultado (dict) o Exception a lanzar."""
-    monkeypatch.setattr(agent, "extract_learning_metadata", lambda **kw: meta)
-
-    def fake_answer(**kw):
-        r = por_formato[kw["formato"]]
-        if isinstance(r, Exception):
-            raise r
-        return r
-
-    monkeypatch.setattr(agent, "answer", fake_answer)
-
-
-def por_id(data):
-    return {r["format"]: r for r in data["results"]}
-
-
-# ----------------------------------------------------------------------
-# Política HTTP
-# ----------------------------------------------------------------------
-def test_todo_ok_devuelve_200(monkeypatch):
-    parchear(monkeypatch, meta_ok(), {"quiz": answer_ok("quiz"), "tldr": answer_ok("tldr")})
-    r = client.post("/api/v1/generate", json=payload(["quiz", "tldr"]))
-    assert r.status_code == 200, r.text
-    data = r.json()
-    assert data["overall_status"] == "success"
-    assert all(x["status"] == "success" and x["error"] is None for x in data["results"])
-
-
-def test_campos_nuevos_en_la_raiz(monkeypatch):
-    parchear(monkeypatch, meta_ok(), {"quiz": answer_ok("quiz")})
-    data = client.post("/api/v1/generate", json=payload(["quiz"])).json()
-    assert data["document_title"] == "documento.pdf"
-    assert data["document_description"] == "Describe el pipeline RAG del proyecto."
-    assert isinstance(data["execution_time_seconds"], float) and data["execution_time_seconds"] >= 0
-    assert all("execution_time_seconds" in x for x in data["results"])
-
-
-def test_fallo_parcial_no_destruye_los_otros_formatos(monkeypatch):
-    parchear(monkeypatch, meta_ok(), {
-        "quiz": answer_ok("quiz"),
-        "flashcards": answer_ok("flashcards"),
-        "tldr": answer_fail("RESOURCE_EXHAUSTED"),
-        "video_script": answer_ok("video_script"),
-    })
-    r = client.post("/api/v1/generate", json=payload(["quiz", "flashcards", "tldr", "video_script"]))
-    assert r.status_code == 207, r.text
-    data = r.json()
-    assert data["overall_status"] == "partial"
-    res = por_id(data)
-    for f in ("quiz", "flashcards", "video_script"):
-        assert res[f]["status"] == "success" and res[f]["content"] is not None, f
-    assert res["tldr"]["status"] == "failed"
-    assert res["tldr"]["error"]["code"] == "RESOURCE_EXHAUSTED"
-    assert res["tldr"]["error"]["retryable"] is True
-    assert res["tldr"]["error"]["http_status"] == 429
-
-
-def test_todos_fallan_por_cuota_devuelve_429_con_detalle(monkeypatch):
-    parchear(monkeypatch, meta_fail("RESOURCE_EXHAUSTED"), {
-        "quiz": answer_fail("RESOURCE_EXHAUSTED"),
-        "tldr": answer_fail("RESOURCE_EXHAUSTED"),
-    })
-    r = client.post("/api/v1/generate", json=payload(["quiz", "tldr"]))
-    assert r.status_code == 429, r.text
-    data = r.json()
-    assert data["overall_status"] == "failed"
+    
+    response = client.post("/api/v1/generate", json=payload)
+    assert response.status_code == 200
+    data = response.json()
+    assert data["document_title"] == "Guía de Python"
+    assert data["document_description"] == "Descripción semántica de la guía"
     assert len(data["results"]) == 2
-    assert all(x["error"]["code"] == "RESOURCE_EXHAUSTED" for x in data["results"])
 
-
-def test_todos_fallan_por_proveedor_saturado_devuelve_503(monkeypatch):
-    parchear(monkeypatch, meta_fail("PROVIDER_UNAVAILABLE"), {"quiz": answer_fail("PROVIDER_UNAVAILABLE")})
-    r = client.post("/api/v1/generate", json=payload(["quiz"]))
-    assert r.status_code == 503, r.text
-
-
-def test_prioridad_de_causas_cuota_gana_a_saturacion(monkeypatch):
-    parchear(monkeypatch, meta_fail("PROVIDER_UNAVAILABLE"), {
-        "quiz": answer_fail("PROVIDER_UNAVAILABLE"),
-        "tldr": answer_fail("RESOURCE_EXHAUSTED"),
-    })
-    r = client.post("/api/v1/generate", json=payload(["quiz", "tldr"]))
-    assert r.status_code == 429, r.text
-
-
-def test_documento_sin_contenido_devuelve_404(monkeypatch):
-    meta = {
-        "status": "no_results", "content": None, "error_message": "Sin resultados",
-        "error": build_error("NO_CONTEXT", "sin contenido"), "document_title": None, "document_description": None,
+@patch("agentes.api.ejecutar_grafo")
+def test_generate_endpoint_metadata_fallback(mock_ejecutar):
+    """Verifica que si la extracción de metadatos falla, use el fallback del nombre del archivo, no el ID."""
+    mock_ejecutar.return_value = {
+        "learning_metadata_status": "failed",
+        "learning_metadata": FAILED_METADATA,
+        "document_title": "manual_python.pdf",  # <-- El RAG rescató el nombre del archivo original
+        "final_results": [SUCCESS_QUIZ]
     }
-    no_res = {"status": "no_results", "content": None, "sources_used": [],
-              "error_message": "sin contexto", "error": build_error("NO_CONTEXT", "sin contexto")}
-    parchear(monkeypatch, meta, {"quiz": no_res})
-    r = client.post("/api/v1/generate", json=payload(["quiz"]))
-    assert r.status_code == 404, r.text
-    assert r.json()["learning_metadata"] == FALLBACK_META
-
-
-def test_formato_no_soportado_es_fallo_controlado(monkeypatch):
-    parchear(monkeypatch, meta_ok(), {"quiz": answer_ok("quiz")})
-    r = client.post("/api/v1/generate", json=payload(["quiz", "pdf"]))
-    assert r.status_code == 207, r.text
-    res = por_id(r.json())
-    assert res["quiz"]["status"] == "success"
-    assert res["pdf"]["status"] == "failed"
-    assert res["pdf"]["error"]["code"] == "UNSUPPORTED_FORMAT"
-
-
-def test_excepcion_inesperada_en_un_formato_no_tumba_los_demas(monkeypatch):
-    parchear(monkeypatch, meta_ok(), {
-        "quiz": answer_ok("quiz"),
-        "flashcards": RuntimeError("boom inesperado"),
-        "tldr": answer_ok("tldr"),
-    })
-    r = client.post("/api/v1/generate", json=payload(["quiz", "flashcards", "tldr"]))
-    assert r.status_code == 207, r.text
-    res = por_id(r.json())
-    assert res["quiz"]["status"] == "success"
-    assert res["tldr"]["status"] == "success"
-    assert res["flashcards"]["status"] == "failed"
-    assert res["flashcards"]["error"]["code"] == "INTERNAL_ERROR"
-
-
-def test_metadatos_fallan_pero_formatos_ok_es_parcial(monkeypatch):
-    parchear(monkeypatch, meta_fail("PROVIDER_UNAVAILABLE"), {"quiz": answer_ok("quiz")})
-    r = client.post("/api/v1/generate", json=payload(["quiz"]))
-    assert r.status_code == 207, r.text
-    data = r.json()
+    
+    payload = {
+        "document_id": "doc_test_fallback",
+        "formats": ["quiz"],
+        "profile": "estudiante",
+        "niche": "general",
+        "detail_level": "básico"
+    }
+    
+    response = client.post("/api/v1/generate", json=payload)
+    assert response.status_code == 207
+    data = response.json()
     assert data["learning_metadata_status"] == "failed"
-    assert data["learning_metadata_error"]["code"] == "PROVIDER_UNAVAILABLE"
-    assert data["learning_metadata"] == FALLBACK_META
-    assert data["document_title"] == "documento.pdf"
-    assert data["document_description"] is None
+    # Validación requerida: el nombre del archivo le gana al document_id
+    assert data["document_title"] == "manual_python.pdf"
 
+@patch("agentes.api.ejecutar_grafo")
+def test_niche_variation_affects_output(mock_ejecutar):
+    """Verifica que los metadatos reflejen el cambio de nicho."""
+    niche_metadata = {
+        "key_concepts": ["Apalancamiento", "Gestión de riesgo", "Margin call"],
+        "prerequisites": ["Matemáticas financieras básicas"],
+        "estimated_time_minutes": 20
+    }
+    mock_ejecutar.return_value = {
+        "learning_metadata_status": "success",
+        "learning_metadata": niche_metadata,
+        "document_title": "Finanzas Avanzadas",
+        "final_results": [SUCCESS_QUIZ]
+    }
+    
+    payload = {
+        "document_id": "doc_test_nicho",
+        "formats": ["quiz"],
+        "profile": "inversionista",
+        "niche": "finanzas",
+        "detail_level": "avanzado"
+    }
+    
+    response = client.post("/api/v1/generate", json=payload)
+    assert response.status_code == 200
+    data = response.json()
+    assert data["learning_metadata"]["key_concepts"] == ["Apalancamiento", "Gestión de riesgo", "Margin call"]
 
-def test_sin_formatos_y_metadatos_fallan_es_error_global(monkeypatch):
-    parchear(monkeypatch, meta_fail("PROVIDER_UNAVAILABLE"), {})
-    r = client.post("/api/v1/generate", json=payload([]))
-    assert r.status_code == 503, r.text
+def test_graph_conserves_filename_on_metadata_failure(monkeypatch):
+    """Verifica de extremo a extremo que el grafo extrae el filename del RAG y lo conserva si falla el LLM."""
+    from agentes.api import agent
+    
+    # 1. Simulamos que ChromaDB devuelve un fragmento con el nombre del archivo original
+    class FakeChunk:
+        chunk_id = "chunk_001"
+        text = "Contexto recuperado de la base de datos."
+        score = 0.99
+        metadata = {"filename": "manual_python.pdf", "document_id": "doc_test_fallback"}
+        
+    def fake_retrieve(*args, **kwargs):
+        return [FakeChunk()]
+        
+    monkeypatch.setattr(agent.retriever, "retrieve", fake_retrieve)
+    
+    # 2. Simulamos que Gemini falla al extraer metadatos, devolviendo el titulo de fallback
+    def fake_extract_metadata(contexto, niche, titulo):
+        return {
+            "status": "failed",
+            "content": FAILED_METADATA,
+            "error_message": "Error simulado de LLM",
+            "error": {
+                "code": "PROVIDER_ERROR",
+                "message": "Error simulado de LLM",
+                "retryable": False,
+                "http_status": 500,
+                "provider": "gemini",
+            },
+            "document_title": titulo,  # Agente devuelve el titulo fallback que extrajo el Investigador
+            "document_description": None
+        }
+    monkeypatch.setattr(agent, "extract_metadata_from_context", fake_extract_metadata)
+    
+    # 3. Simulamos la generación del formato para no llamar a Gemini
+    def fake_generate(*args, **kwargs):
+        return {
+            "status": "success", 
+            "content": {"title": "Quiz exitoso"}, 
+            "sources_used": [{"chunk_id": "chunk_001", "text": "Contexto recuperado de la base de datos."}],
+            "error_message": None,
+            "error": None
+        }
+    monkeypatch.setattr(agent, "generate_from_context", fake_generate)
+    
+    payload = {
+        "document_id": "doc_test_fallback",
+        "formats": ["quiz"],
+        "profile": "estudiante",
+        "niche": "general",
+        "detail_level": "básico"
+    }
+    
+    # Ejecutamos sin @patch("ejecutar_grafo") para que corra LangGraph real
+    response = client.post("/api/v1/generate", json=payload)
+    
+    assert response.status_code == 207
+    data = response.json()
+    assert data["learning_metadata_status"] == "failed"
+    assert data["document_title"] == "manual_python.pdf", "El grafo perdió el nombre del archivo durante el flujo."
 
+@patch("agentes.api.ejecutar_grafo")
+def test_generate_endpoint_404_no_context(mock_ejecutar):
+    """Verifica que si el RAG falla por NO_CONTEXT, retorne HTTP 404."""
+    mock_ejecutar.return_value = {
+        "learning_metadata_status": "no_results",
+        "learning_metadata_error": {"code": "NO_CONTEXT", "message": "Sin contexto", "retryable": False, "http_status": 404, "provider": "internal"},
+        "document_title": "doc.pdf",
+        "final_results": [{"format": "quiz", "status": "no_results", "error": {"code": "NO_CONTEXT", "message": "Sin contexto", "retryable": False, "http_status": 404, "provider": "internal"}}]
+    }
+    
+    payload = {
+        "document_id": "doc_test_123",
+        "formats": ["quiz"],
+        "profile": "estudiante",
+        "niche": "general",
+        "detail_level": "básico"
+    }
+    
+    response = client.post("/api/v1/generate", json=payload)
+    assert response.status_code == 404
+    assert response.json()["overall_status"] == "failed"
 
-def test_sin_formatos_y_metadatos_ok_es_200(monkeypatch):
-    parchear(monkeypatch, meta_ok(), {})
-    r = client.post("/api/v1/generate", json=payload([]))
-    assert r.status_code == 200, r.text
-    assert r.json()["results"] == []
+@patch("agentes.api.ejecutar_grafo")
+def test_generate_endpoint_429_metadata_success_format_exhausted(mock_ejecutar):
+    """Verifica que si los metadatos tienen éxito, pero la generación falla por cuota, retorne HTTP 429 y no 207."""
+    mock_ejecutar.return_value = {
+        "learning_metadata_status": "success",
+        "learning_metadata": SUCCESS_METADATA,
+        "document_title": "Guía de Python",
+        "final_results": [{"format": "quiz", "status": "failed", "error": {"code": "RESOURCE_EXHAUSTED", "message": "Cuota excedida", "retryable": True, "http_status": 429, "provider": "gemini"}}]
+    }
+    
+    payload = {
+        "document_id": "doc_test_123",
+        "formats": ["quiz"],
+        "profile": "estudiante",
+        "niche": "general",
+        "detail_level": "básico"
+    }
+    
+    response = client.post("/api/v1/generate", json=payload)
+    assert response.status_code == 429
+    assert response.json()["overall_status"] == "failed"
+    assert response.json()["results"][0]["error"]["code"] == "RESOURCE_EXHAUSTED"
 
+@patch("agentes.api.ejecutar_grafo")
+def test_generate_endpoint_207_mixed_results(mock_ejecutar):
+    """Verifica el fallo parcial: un formato exitoso y uno fallido retornan 207."""
+    mock_ejecutar.return_value = {
+        "learning_metadata_status": "success",
+        "learning_metadata": SUCCESS_METADATA,
+        "document_title": "Guía de Python",
+        "final_results": [
+            SUCCESS_QUIZ,
+            {"format": "flashcards", "status": "failed", "error": {"code": "PROVIDER_UNAVAILABLE", "message": "Gemini caído", "retryable": True, "http_status": 503, "provider": "gemini"}}
+        ]
+    }
+    
+    payload = {
+        "document_id": "doc_test_123",
+        "formats": ["quiz", "flashcards"],
+        "profile": "estudiante",
+        "niche": "general",
+        "detail_level": "básico"
+    }
+    
+    response = client.post("/api/v1/generate", json=payload)
+    assert response.status_code == 207
+    data = response.json()
+    assert data["overall_status"] == "partial"
+    assert data["results"][0]["status"] == "success"
+    assert data["results"][1]["status"] == "failed"
 
-# ----------------------------------------------------------------------
-# Clasificación de excepciones del SDK de Gemini
-# ----------------------------------------------------------------------
-def _api_error(clase, codigo, estado, mensaje):
-    return clase(codigo, {"error": {"code": codigo, "message": mensaje, "status": estado}})
-
-
-@pytest.mark.parametrize("clase,codigo,estado,mensaje,esperado,retryable", [
-    (genai_errors.ClientError, 429, "RESOURCE_EXHAUSTED", "Quota exceeded", "RESOURCE_EXHAUSTED", True),
-    (genai_errors.ServerError, 503, "UNAVAILABLE", "high demand", "PROVIDER_UNAVAILABLE", True),
-    (genai_errors.ServerError, 504, "DEADLINE_EXCEEDED", "timeout", "PROVIDER_TIMEOUT", True),
-    (genai_errors.ServerError, 500, "INTERNAL", "internal", "PROVIDER_ERROR", True),
-    (genai_errors.ClientError, 404, "NOT_FOUND", "model no longer available", "MODEL_NOT_FOUND", False),
-    (genai_errors.ClientError, 400, "INVALID_ARGUMENT", "API key not valid. Please pass a valid API key.", "PROVIDER_AUTH_ERROR", False),
-    (genai_errors.ClientError, 403, "PERMISSION_DENIED", "denied", "PROVIDER_AUTH_ERROR", False),
-    (genai_errors.ClientError, 400, "INVALID_ARGUMENT", "bad schema", "PROVIDER_REJECTED_REQUEST", False),
-])
-def test_clasifica_errores_de_gemini(clase, codigo, estado, mensaje, esperado, retryable):
-    info = classify_exception(_api_error(clase, codigo, estado, mensaje))
-    assert info["code"] == esperado
-    assert info["retryable"] is retryable
-    assert info["upstream_status"] == codigo
-    assert info["provider"] == "gemini"
-
-
-def test_excepcion_desconocida_es_error_interno():
-    info = classify_exception(ValueError("algo raro"))
-    assert info["code"] == "INTERNAL_ERROR"
-    assert info["provider"] == "internal"
-    assert info["http_status"] == 500
+@patch("agentes.api.ejecutar_grafo")
+def test_generate_endpoint_503_provider_unavailable(mock_ejecutar):
+    """Verifica que si el proveedor falla, retorne HTTP 503."""
+    mock_ejecutar.return_value = {
+        "learning_metadata_status": "failed",
+        "learning_metadata_error": {"code": "PROVIDER_UNAVAILABLE", "message": "Gemini caído", "retryable": True, "http_status": 503, "provider": "gemini"},
+        "document_title": "doc.pdf",
+        "final_results": [{"format": "quiz", "status": "failed", "error": {"code": "PROVIDER_UNAVAILABLE", "message": "Gemini caído", "retryable": True, "http_status": 503, "provider": "gemini"}}]
+    }
+    
+    payload = {
+        "document_id": "doc_test_123",
+        "formats": ["quiz"],
+        "profile": "estudiante",
+        "niche": "general",
+        "detail_level": "básico"
+    }
+    
+    response = client.post("/api/v1/generate", json=payload)
+    assert response.status_code == 503

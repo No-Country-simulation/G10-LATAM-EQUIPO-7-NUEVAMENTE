@@ -139,7 +139,8 @@ class FormatState(TypedDict, total=False):
     # Lazo Redactor <-> Revisor
     current_content: Optional[Dict[str, Any]]   # JSON del Redactor
     current_error: Optional[ErrorInfo]          # fallo del último intento (None si salió bien)
-    feedback: Optional[ReviewFeedback]          # último veredicto del Revisor
+    feedback: Optional[ReviewFeedback] 
+    needs_new_evidence: bool         # último veredicto del Revisor
     feedback_history: Annotated[List[ReviewFeedback], operator.add]  # para que el Redactor no repita errores
     revision_count: int                         # reescrituras ya hechas; lo incrementa SOLO el Redactor
 
@@ -217,6 +218,7 @@ def new_format_state(state: AgentState, formato: str) -> FormatState:
         "current_content": None,
         "current_error": None,
         "feedback": None,
+        "needs_new_evidence": False,
         "feedback_history": [],
         "revision_count": 0,
         "outcome": None,

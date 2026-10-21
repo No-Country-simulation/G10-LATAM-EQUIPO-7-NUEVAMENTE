@@ -1,57 +1,49 @@
 import pytest
-from fastapi.testclient import TestClient
 from unittest.mock import patch
+from fastapi.testclient import TestClient
 from agentes.api import app
 
-# Inicializamos el cliente de pruebas de FastAPI
 client = TestClient(app)
 
-# ==========================================
-# MOCKS (Simulaciones de respuesta de Gemini)
-# ==========================================
 SUCCESS_METADATA = {
-    "status": "success",
-    "content": {
-        "key_concepts": ["Concepto A", "Concepto B"],
-        "prerequisites": ["Conocimiento previo"],
-        "estimated_time_minutes": 15
-    }
+    "key_concepts": ["Listas", "Diccionarios", "Funciones"],
+    "prerequisites": ["Lógica básica"],
+    "estimated_time_minutes": 15
 }
 
 FAILED_METADATA = {
-    "status": "failed",
-    "content": None
+    "key_concepts": ["Error al extraer conceptos"],
+    "prerequisites": ["No se pudieron determinar"],
+    "estimated_time_minutes": 0
 }
 
 SUCCESS_QUIZ = {
+    "format": "quiz",
     "status": "success",
-    "content": {"title": "Quiz", "instructions": "Instrucciones", "questions": []},
-    "sources_used": []
+    "content": {"title": "Quiz de Python"},
+    "sources_used": [{"chunk_id": "1"}],
+    "execution_time_seconds": 1.5
 }
 
 SUCCESS_FLASHCARDS = {
+    "format": "flashcards",
     "status": "success",
-    "content": {"title": "Flashcards", "instructions": "Instrucciones", "cards": []},
-    "sources_used": []
+    "content": {"title": "Flashcards de Python"},
+    "sources_used": [{"chunk_id": "2"}],
+    "execution_time_seconds": 1.2
 }
 
-# ==========================================
-# PRUEBAS AUTOMATIZADAS
-# ==========================================
-
-@patch("agentes.api.agent.extract_learning_metadata")
-@patch("agentes.api.agent.answer")
-def test_generate_endpoint_root_metadata_success(mock_answer, mock_extract):
-    """
-    Validación 1 y 3: Verifica que learning_metadata viaje en la raíz y que 
-    los resultados de Quiz/Flashcards mantengan su contrato limpio.
-    """
-    # Configuramos el mock de metadatos para que sea exitoso
-    mock_extract.return_value = SUCCESS_METADATA
+@patch("agentes.api.ejecutar_grafo")
+def test_generate_endpoint_root_metadata_success(mock_ejecutar):
+    """Verifica que learning_metadata viaje en la raíz y use claves reales de LangGraph."""
+    mock_ejecutar.return_value = {
+        "learning_metadata_status": "success",
+        "learning_metadata": SUCCESS_METADATA,
+        "document_title": "Guía de Python",
+        "document_description": "Descripción semántica de la guía",
+        "final_results": [SUCCESS_QUIZ, SUCCESS_FLASHCARDS]
+    }
     
-    # Configuramos el mock de answer para que devuelva Quiz y luego Flashcards
-    mock_answer.side_effect = [SUCCESS_QUIZ, SUCCESS_FLASHCARDS]
-
     payload = {
         "document_id": "doc_test_123",
         "formats": ["quiz", "flashcards"],
@@ -59,43 +51,23 @@ def test_generate_endpoint_root_metadata_success(mock_answer, mock_extract):
         "niche": "tecnología",
         "detail_level": "avanzado"
     }
-
+    
     response = client.post("/api/v1/generate", json=payload)
     assert response.status_code == 200
     data = response.json()
+    assert data["document_title"] == "Guía de Python"
+    assert len(data["results"]) == 2
 
-    # Validación 1: Llaves en la raíz
-    assert "document_id" in data
-    assert "learning_metadata" in data
-    assert "results" in data
-
-    # Verificamos que los datos se inyectaron bien
-    assert data["learning_metadata"]["estimated_time_minutes"] == 15
+@patch("agentes.api.ejecutar_grafo")
+def test_generate_endpoint_metadata_fallback(mock_ejecutar):
+    """Verifica que si la extracción de metadatos falla, se use el nombre original del archivo."""
+    mock_ejecutar.return_value = {
+        "learning_metadata_status": "failed",
+        "learning_metadata": FAILED_METADATA,
+        "document_title": "manual_python.pdf", # Simulando que el fallback de agent_v1 rescató el archivo
+        "final_results": [SUCCESS_QUIZ]
+    }
     
-    # Validación 3: Los formatos mantienen su contrato y no incluyen learning_metadata
-    results = data["results"]
-    assert len(results) == 2
-    assert results[0]["format"] == "quiz"
-    assert "learning_metadata" not in results[0]["content"]
-    
-    assert results[1]["format"] == "flashcards"
-    assert "learning_metadata" not in results[1]["content"]
-
-
-@patch("agentes.api.agent.extract_learning_metadata")
-@patch("agentes.api.agent.answer")
-def test_generate_endpoint_metadata_fallback(mock_answer, mock_extract):
-    """
-    Validación 2: Verifica que si la extracción de metadatos falla, 
-    se devuelva el fallback por defecto y se sigan generando los formatos.
-    Ahora devuelve 207 (Multi-Status) porque es un fallo parcial controlado.
-    """
-    # Configuramos el mock para simular que Gemini falló sacando los metadatos
-    mock_extract.return_value = FAILED_METADATA
-    
-    # El formato (Quiz) sigue funcionando normal
-    mock_answer.return_value = SUCCESS_QUIZ
-
     payload = {
         "document_id": "doc_test_fallback",
         "formats": ["quiz"],
@@ -103,54 +75,38 @@ def test_generate_endpoint_metadata_fallback(mock_answer, mock_extract):
         "niche": "general",
         "detail_level": "básico"
     }
-
+    
     response = client.post("/api/v1/generate", json=payload)
-    # AHORA ESPERA 207 (Fallo parcial) en lugar de 200
     assert response.status_code == 207
     data = response.json()
+    assert data["learning_metadata_status"] == "failed"
+    # Validamos que se devuelve el nombre original del archivo y no un ID genérico o un Título no generado
+    assert data["document_title"] == "manual_python.pdf"
 
-    # Validación 2: Comportamiento estricto de Fallback (Alineado con API Sprint 3)
-    fallback_metadata = data["learning_metadata"]
-    assert fallback_metadata["key_concepts"] == ["Error al extraer conceptos"]
-    assert fallback_metadata["prerequisites"] == ["No se pudieron determinar"]
-    assert fallback_metadata["estimated_time_minutes"] == 0
-
-    # Verificamos que el formato no se rompió por culpa del fallo de los metadatos
-    assert len(data["results"]) == 1
-    assert data["results"][0]["status"] == "success"
-
-
-@patch("agentes.api.agent.extract_learning_metadata")
-@patch("agentes.api.agent.answer")
-def test_niche_variation_affects_output(mock_answer, mock_extract):
-    """
-    Validación PM: Verifica que al cambiar el nicho, los metadatos y salidas 
-    reflejen el cambio de contexto temático.
-    """
-    # Simulamos que Gemini extrajo conceptos orientados específicamente a FINANZAS
-    mock_extract.return_value = {
-        "status": "success",
-        "content": {
-            "key_concepts": ["Apalancamiento", "Gestión de riesgo", "Margin call"],
-            "prerequisites": ["Matemáticas financieras básicas"],
-            "estimated_time_minutes": 20
-        }
+@patch("agentes.api.ejecutar_grafo")
+def test_niche_variation_affects_output(mock_ejecutar):
+    """Verifica que los metadatos reflejen el cambio."""
+    niche_metadata = {
+        "key_concepts": ["Apalancamiento", "Gestión de riesgo", "Margin call"],
+        "prerequisites": ["Matemáticas financieras básicas"],
+        "estimated_time_minutes": 20
     }
-    mock_answer.return_value = SUCCESS_QUIZ
-
-    # El payload simula un cambio radical de nicho por parte del usuario
+    mock_ejecutar.return_value = {
+        "learning_metadata_status": "success",
+        "learning_metadata": niche_metadata,
+        "document_title": "Finanzas Avanzadas",
+        "final_results": [SUCCESS_QUIZ]
+    }
+    
     payload = {
         "document_id": "doc_test_nicho",
         "formats": ["quiz"],
         "profile": "inversionista",
-        "niche": "finanzas",  # <-- El nicho validado
+        "niche": "finanzas",
         "detail_level": "avanzado"
     }
-
+    
     response = client.post("/api/v1/generate", json=payload)
     assert response.status_code == 200
     data = response.json()
-
-    # Validamos que el JSON de salida realmente inyectó y respetó los conceptos del nicho
-    concepts = data["learning_metadata"]["key_concepts"]
-    assert "Apalancamiento" in concepts or "Margin call" in concepts
+    assert data["learning_metadata"]["key_concepts"] == ["Apalancamiento", "Gestión de riesgo", "Margin call"]

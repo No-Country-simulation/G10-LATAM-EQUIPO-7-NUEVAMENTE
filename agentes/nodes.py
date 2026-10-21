@@ -28,7 +28,6 @@ if TYPE_CHECKING:
 
 logger = logging.getLogger(__name__)
 
-# Tope del JSON anterior que se le muestra al modelo al reescribir (evita prompts enormes).
 MAX_CHARS_CONTENIDO_PREVIO = 6000
 
 
@@ -43,11 +42,6 @@ def _sin_duplicados(items: Iterable[str]) -> List[str]:
 
 
 def construir_instrucciones_revision(state: FormatState) -> str:
-    """
-    Texto del modo reescritura. Devuelve "" si no hay nada que corregir (modo creación).
-    Reúne el error estructural previo, los problemas y sugerencias del Revisor (último
-    veredicto más el historial, sin repetir) y la versión anterior del contenido.
-    """
     error_previo = state.get("current_error")
     feedback = state.get("feedback")
     if not error_previo and not feedback:
@@ -78,25 +72,20 @@ def construir_instrucciones_revision(state: FormatState) -> str:
 
 
 def crear_nodo_revisor(agente: "AgentV1") -> Callable[[FormatState], Dict[str, Any]]:
-    """
-    Nodo Revisor activo: analiza el feedback y determina si requiere nueva evidencia o ajuste directo.
-    """
     def nodo_revisor(state: FormatState) -> Dict[str, Any]:
         feedback = state.get("feedback")
+        
         if not feedback or feedback.get("approved"):
             return {"needs_new_evidence": False}
 
         issues = feedback.get("issues", [])
         requiere_busqueda = any("respaldo" in issue.lower() or "contexto" in issue.lower() for issue in issues)
-        
+                
         return {"needs_new_evidence": requiere_busqueda}
     return nodo_revisor
 
 
 def crear_nodo_nueva_evidencia(agente: "AgentV1", top_k: int = 5) -> Callable[[FormatState], Dict[str, Any]]:
-    """
-    Recupera nueva evidencia de ChromaDB si el revisor determinó que el feedback lo exige.
-    """
     def nodo_nueva_evidencia(state: FormatState) -> Dict[str, Any]:
         document_id = state["document_id"]
         niche = state["niche"]
@@ -134,27 +123,17 @@ def crear_nodo_nueva_evidencia(agente: "AgentV1", top_k: int = 5) -> Callable[[F
 
 
 def decidir_ruta_revision(state: FormatState) -> str:
-    """Enrutamiento condicional: si necesita nueva evidencia, va al buscador; si no, directo al redactor."""
     if state.get("needs_new_evidence", False):
         return "nueva_evidencia"
     return "redactor"
 
 
 def crear_nodo_redactor(agente: "AgentV1") -> Callable[[FormatState], Dict[str, Any]]:
-    """
-    Fábrica del nodo Redactor Pedagógico.
-    """
     def nodo_redactor(state: FormatState) -> Dict[str, Any]:
         formato = state["format"]
         es_reescritura = bool(state.get("current_error") or state.get("feedback"))
         revision = state.get("revision_count", 0) + (1 if es_reescritura else 0)
         instrucciones = construir_instrucciones_revision(state) if es_reescritura else ""
-
-        logger.info(
-            "Redactor: formato=%s modo=%s reescrituras=%d/%d",
-            formato, "reescritura" if es_reescritura else "creación",
-            revision, state.get("max_revisions", DEFAULT_MAX_REVISIONS),
-        )
 
         try:
             resultado = agente.generate_from_context(
@@ -182,16 +161,12 @@ def crear_nodo_redactor(agente: "AgentV1") -> Callable[[FormatState], Dict[str, 
         error = resultado.get("error") or build_error(
             "INTERNAL_ERROR", resultado.get("error_message") or "Fallo sin detalle."
         )
-        logger.warning("Redactor: fallo en %s: %s", formato, error["code"])
         return {"revision_count": revision, "current_error": error}
 
     return nodo_redactor
 
 
 def ruta_tras_redactor(state: FormatState) -> str:
-    """
-    Router posterior al Redactor.
-    """
     error = state.get("current_error")
     if error is None:
         return "revisor"
@@ -201,7 +176,6 @@ def ruta_tras_redactor(state: FormatState) -> str:
 
 
 def nodo_finalizar(state: FormatState) -> Dict[str, Any]:
-    """Único lugar donde se construye el outcome del formato."""
     error = state.get("current_error")
     if error is not None:
         estado = "no_results" if error.get("code") == "NO_CONTEXT" else "failed"
