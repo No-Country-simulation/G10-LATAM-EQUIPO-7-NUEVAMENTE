@@ -44,6 +44,9 @@ document.addEventListener('DOMContentLoaded', () => {
     apiClient.checkHealth();
   }, 60000);
 
+  // 10. Configurar enlace a la arquitectura del sistema (Landing Demo Day)
+  setupHeaderArchitectureBtn();
+
   // 10. Captura global de excepciones y promesas no controladas (Resiliencia en tiempo de ejecución)
   window.addEventListener('unhandledrejection', (event) => {
     console.warn('[Global] Promesa no controlada interceptada:', event.reason);
@@ -78,6 +81,13 @@ function setupSystemStatusBar() {
         : 'Explorando el Catálogo de Capacitaciones';
     }
   });
+}
+
+function setupHeaderArchitectureBtn() {
+  const btn = document.getElementById('btnHeaderArchitecture');
+  if (btn && CONFIG.LANDING && CONFIG.LANDING.ARCHITECTURE_URL) {
+    btn.href = CONFIG.LANDING.ARCHITECTURE_URL;
+  }
 }
 
 function setupBackendBadge() {

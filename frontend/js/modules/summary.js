@@ -6,6 +6,8 @@
  */
 
 import { toFriendlyError } from '../utils/friendlyError.js';
+import { exportSummaryPdf } from '../utils/pdfExport.js';
+import { state } from '../state.js';
 
 export const summary = {
   elements: {},
@@ -25,7 +27,8 @@ export const summary = {
       chipsContainer: document.getElementById('sintesisTerminosChips'),
       terminosSection: document.getElementById('sintesisTerminosSection'),
       counterBadge: document.getElementById('sintesisCounterBadge'),
-      btnRegen: document.getElementById('btnRegenSintesis')
+      btnRegen: document.getElementById('btnRegenSintesis'),
+      btnDownload: document.getElementById('btnDownloadPdfSintesis')
     };
 
     if (this.elements.btnRegen) {
@@ -33,6 +36,13 @@ export const summary = {
         import('./studyHub.js').then(({ studyHub }) => {
           studyHub.triggerRegeneration(['tldr']);
         });
+      });
+    }
+
+    if (this.elements.btnDownload) {
+      this.elements.btnDownload.addEventListener('click', () => {
+        const doc = state.get().currentDocument;
+        exportSummaryPdf(doc, this.data);
       });
     }
   },
@@ -52,6 +62,7 @@ export const summary = {
 
     if (!resumenText || !puntosList) return;
 
+    this.data = sintesisData;
     this.meta = {
       status: sintesisData?.status || (sintesisData ? 'success' : 'empty'),
       errorMessage: sintesisData?.error_message || null,
@@ -61,6 +72,14 @@ export const summary = {
     const isBusy = this.meta.status === 'processing' || this.meta.status === 'pending';
     if (btnRegen) {
       btnRegen.disabled = isBusy;
+    }
+    const btnDownload = this.elements.btnDownload;
+    if (btnDownload) {
+      const isAvailable = !isBusy && this.meta.status === 'success' && Boolean(sintesisData?.content || sintesisData?.summary || sintesisData?.resumen_ejecutivo);
+      btnDownload.disabled = !isAvailable;
+      btnDownload.title = isAvailable
+        ? 'Descargar Síntesis Ejecutiva en formato PDF'
+        : (isBusy ? 'La Síntesis se está generando...' : 'Síntesis no disponible para descargar');
     }
 
     // Caso 1: En procesamiento o pendiente en el servidor
