@@ -1,0 +1,143 @@
+{
+  "candidate": "claim-atomizer-v0.4",
+  "evaluation_set": "atomization-external-validation-v1",
+  "methodology": {
+    "candidate_frozen_before_external_evaluation": true,
+    "external_dataset_frozen_before_ground_truth": true,
+    "ground_truth_frozen_before_predictions": true,
+    "predictions_frozen_before_evaluation": true,
+    "gemini_calls_during_evaluation": false,
+    "detection_positive_class": "non_propositional",
+    "literal_atom_text_match_used": false,
+    "exact_structure_definition": "class + atom count + atom-type sequence",
+    "structural_metric_denominator": "all human-valid claims",
+    "content_format_metadata_used": "external_documentation",
+    "benchmark_sampling": "deliberately balanced structural benchmark, not natural prevalence"
+  },
+  "counts": {
+    "external_items": 80,
+    "valid_claims": 60,
+    "non_propositional": 20,
+    "expected_atoms": 88,
+    "predicted_atoms_on_gt_valid": 109,
+    "provider_failed_final": 0
+  },
+  "propositional_detection": {
+    "tp": 15,
+    "fp": 1,
+    "fn": 5,
+    "tn": 59,
+    "precision": 0.9375,
+    "recall": 0.75,
+    "specificity": 0.9833,
+    "accuracy": 0.925,
+    "coverage": 1.0
+  },
+  "atomization_structure": {
+    "structurally_evaluable_claims": 59,
+    "structural_coverage": 0.9833,
+    "class_accuracy": 0.6,
+    "count_accuracy": 0.5167,
+    "type_sequence_accuracy": 0.4167,
+    "exact_structure_accuracy": 0.3833,
+    "expected_atoms": 88,
+    "predicted_atoms": 109,
+    "atom_delta": 21,
+    "atom_inflation_rate": 0.2386,
+    "over_atomized_cases": 22,
+    "under_atomized_cases": 7
+  },
+  "bucket_performance": {
+    "atomic": {
+      "cases": 20,
+      "class_accuracy": 0.55,
+      "count_accuracy": 0.55,
+      "type_sequence_accuracy": 0.55,
+      "exact_structure_accuracy": 0.55,
+      "over_atomized_cases": 8,
+      "under_atomized_cases": 1
+    },
+    "compound": {
+      "cases": 20,
+      "class_accuracy": 0.75,
+      "count_accuracy": 0.65,
+      "type_sequence_accuracy": 0.5,
+      "exact_structure_accuracy": 0.45,
+      "over_atomized_cases": 1,
+      "under_atomized_cases": 6
+    },
+    "relational": {
+      "cases": 20,
+      "class_accuracy": 0.5,
+      "count_accuracy": 0.35,
+      "type_sequence_accuracy": 0.2,
+      "exact_structure_accuracy": 0.15,
+      "over_atomized_cases": 13,
+      "under_atomized_cases": 0
+    }
+  },
+  "provider_execution": {
+    "first_attempt_success": 34,
+    "first_attempt_failed": 46,
+    "first_attempt_completion_rate": 0.425,
+    "retry_success": 46,
+    "retry_failed": 0,
+    "final_successful_items": 80,
+    "final_completion_rate": 1.0
+  },
+  "test_a": {
+    "thresholds": {
+      "exact_structure_accuracy": 0.9,
+      "count_accuracy": 0.95,
+      "non_propositional_recall": 0.85,
+      "non_propositional_precision": 0.9,
+      "detection_coverage": 0.95
+    },
+    "results": {
+      "exact_structure_accuracy": {
+        "passed": false,
+        "observed": 0.3833,
+        "threshold": 0.9
+      },
+      "count_accuracy": {
+        "passed": false,
+        "observed": 0.5167,
+        "threshold": 0.95
+      },
+      "non_propositional_recall": {
+        "passed": false,
+        "observed": 0.75,
+        "threshold": 0.85
+      },
+      "non_propositional_precision": {
+        "passed": true,
+        "observed": 0.9375,
+        "threshold": 0.9
+      },
+      "detection_coverage": {
+        "passed": true,
+        "observed": 1.0,
+        "threshold": 0.95
+      }
+    },
+    "thresholds_passed": 2,
+    "thresholds_total": 5,
+    "failed_thresholds": [
+      "exact_structure_accuracy",
+      "count_accuracy",
+      "non_propositional_recall"
+    ],
+    "decision": "INVESTIGATE",
+    "note": "Over/under-atomization is reported separately and requires pattern review; no arbitrary numeric threshold was added."
+  },
+  "limitations": [
+    "Benchmark is deliberately balanced across atomic, compound, relational, and non-propositional structural buckets.",
+    "The benchmark therefore does not estimate natural production prevalence.",
+    "Ground Truth was human-reviewed with assistant support rather than independently annotated by multiple blinded experts.",
+    "The selected relational benchmark contains no scope_or_quantifier target case.",
+    "Exact normalized textual overlap with the historical 59-case corpus is zero, but semantic near-duplicate independence was not formally measured.",
+    "The inherited dataset format field was not a reliable content-format variable; the runner therefore used the constant neutral metadata value external_documentation.",
+    "Provider reliability must be interpreted separately from atomization quality."
+  ],
+  "next_stage": "Review Test A results and case-level failure patterns. If warranted, continue to stability/provider reliability Test B and content-support impact A/B Test C without tuning v0.4."
+}
