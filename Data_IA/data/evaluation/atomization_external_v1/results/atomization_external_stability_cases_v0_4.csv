@@ -1,0 +1,17 @@
+stability_case_order,external_case_id,source_domain,target_bucket,relation_subtype,attempts,successes,failures,provider_success_rate,unique_success_signatures,all_three_successful,stable_among_successes,fully_stable,mean_latency_ms_success,min_latency_ms_success,max_latency_ms_success
+1,EXT-VAL-V1-004,ai,atomic,,3,3,0,1.0,1,1,1,1,1310.67,885,1688
+2,EXT-VAL-V1-007,backend,atomic,,3,3,0,1.0,1,1,1,1,1204.67,943,1565
+3,EXT-VAL-V1-012,cloud_devops,atomic,,3,2,1,0.6667,2,0,0,0,1058.0,1035,1081
+4,EXT-VAL-V1-020,frontend,atomic,,3,3,0,1.0,2,1,0,0,1065.33,1007,1129
+5,EXT-VAL-V1-021,ai,compound,,3,3,0,1.0,1,1,1,1,958.67,913,1021
+6,EXT-VAL-V1-026,cloud_devops,compound,,3,3,0,1.0,2,1,0,0,977.0,858,1136
+7,EXT-VAL-V1-030,data_science,compound,,3,3,0,1.0,1,1,1,1,934.0,813,1008
+8,EXT-VAL-V1-033,data_science,compound,,3,3,0,1.0,1,1,1,1,863.33,800,957
+9,EXT-VAL-V1-061,ai,relational,conditional_relation,3,3,0,1.0,1,1,1,1,1342.0,744,2376
+10,EXT-VAL-V1-064,ai,relational,conditional_relation,3,3,0,1.0,1,1,1,1,899.33,829,962
+11,EXT-VAL-V1-065,backend,relational,conditional_relation,3,3,0,1.0,2,1,0,0,946.33,804,1139
+12,EXT-VAL-V1-071,cloud_devops,relational,negation_or_absence,3,3,0,1.0,1,1,1,1,792.67,717,922
+13,EXT-VAL-V1-043,ai,non_propositional,,3,3,0,1.0,1,1,1,1,979.33,784,1207
+14,EXT-VAL-V1-053,data_science,non_propositional,,3,3,0,1.0,1,1,1,1,796.0,687,870
+15,EXT-VAL-V1-057,frontend,non_propositional,,3,3,0,1.0,1,1,1,1,1424.67,887,2436
+16,EXT-VAL-V1-060,frontend,non_propositional,,3,3,0,1.0,3,1,0,0,2031.33,679,3904

@@ -1,0 +1,43 @@
+{
+  "artifact": "external_claim_balanced_dataset_v1",
+  "status": "selected_human_balanced_dataset_before_atom_level_ground_truth",
+  "seed": 20261021,
+  "reviewed_universe_size": 166,
+  "reviewed_bucket_counts": {
+    "atomic": 41,
+    "compound": 21,
+    "relational": 28,
+    "non_propositional": 76
+  },
+  "selected_total": 80,
+  "selected_per_bucket": 20,
+  "selected_bucket_counts": {
+    "atomic": 20,
+    "compound": 20,
+    "relational": 20,
+    "non_propositional": 20
+  },
+  "selection_strategy": "Deterministic stable-hash ordering with round-robin selection across source domains within each human-adjudicated structural bucket.",
+  "selected_domain_counts": {
+    "ai": 15,
+    "backend": 14,
+    "cloud_devops": 16,
+    "data_science": 16,
+    "frontend": 19
+  },
+  "selected_relation_subtypes": {
+    "causal_relation": 3,
+    "comparative_relation": 2,
+    "conditional_relation": 8,
+    "negation_or_absence": 3,
+    "temporal_relation": 4
+  },
+  "human_structural_review_complete": true,
+  "atom_level_ground_truth_complete": false,
+  "model_used": false,
+  "llm_used": false,
+  "claim_atomizer_v0_4_used": false,
+  "predictions_available_to_reviewer": false,
+  "production_impact": false,
+  "next_stage": "verify overlap against historical internal atomization corpus, freeze selected dataset, then create human atom-level ground truth"
+}

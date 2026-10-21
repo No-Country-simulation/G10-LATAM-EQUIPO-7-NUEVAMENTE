@@ -1,0 +1,80 @@
+Resultados estructurados
+
+Puedes configurar los modelos de Gemini para que generen respuestas que se adhieran a un esquema JSON proporcionado. Esto garantiza resultados predecibles y con seguridad de tipos, y simplifica la extracción de datos estructurados de texto no estructurado.
+
+El uso de resultados estructurados es ideal para lo siguiente:
+
+Extracción de datos: Extrae información específica, como nombres y fechas, de un texto.
+Clasificación estructurada: Clasifica texto en categorías predefinidas.
+Flujos de trabajo basados en agentes: Genera entradas estructuradas para herramientas o APIs.
+Además de admitir el esquema JSON en la API de REST, los SDKs de Google GenAI permiten definir esquemas con Pydantic (Python) y Zod (JavaScript).
+
+Ejemplos de resultados estructurados
+Extractor de recetas
+En este ejemplo, se muestra cómo extraer datos estructurados de texto con tipos básicos de esquema JSON, como object, array, string y integer.
+
+1 teaspoon of salt, 1 cup of unsalted butter (softened), 3/4 cup of granulated sugar,
+3/4 cup of packed brown sugar, 1 teaspoon of vanilla extract, and 2 large eggs.
+baking soda, and salt. In a large bowl, cream together the butter, granulated sugar, and brown sugar
+until light and fluffy. Beat in the vanilla and eggs, one at a time. Gradually beat in the dry
+ingredients until just combined. Finally, stir in the chocolate chips. Drop by rounded tablespoons
+onto ungreased baking sheets and bake for 9 to 11 minutes.
+"""
+
+Ejemplo de respuesta:
+
+Moderación de contenido
+En este ejemplo, se muestra anyOf para esquemas condicionales y enum para la clasificación, lo que permite que la estructura de salida varíe según el contenido.
+
+"""
+
+Ejemplo de respuesta:
+
+Estructuras recursivas
+En este ejemplo, se ilustra cómo definir un esquema recursivo, como un organigrama.
+
+"""Represents an employee in an organization."""
+
+"""
+
+Ejemplo de respuesta:
+
+Resultados de transmisión
+Puedes transmitir salidas estructuradas, lo que te permite comenzar a procesar la respuesta a medida que se genera. Los fragmentos transmitidos son cadenas JSON parciales válidas que se pueden concatenar para formar el objeto JSON final.
+
+Resultados estructurados con herramientas
+Versión preliminar: Esta función solo está disponible para los modelos de la serie Gemini 3.
+Gemini 3 te permite combinar salidas estructuradas con herramientas integradas, como Fundamentación con la Búsqueda de Google, contexto de URL, ejecución de código, búsqueda de archivos y llamada a funciones.
+
+Compatibilidad con el esquema JSON
+Para generar un objeto JSON, configura response_format con un objeto (o un array que contenga un objeto) de tipo text y establece su mime_type en application/json. El esquema debe proporcionarse en el campo schema.
+
+El modo de salida estructurada de Gemini admite un subconjunto de la especificación del esquema JSON.
+
+Se admiten los siguientes valores de type:
+
+Estas propiedades descriptivas ayudan a guiar el modelo:
+
+Propiedades específicas del tipo
+Para los valores de object, haz lo siguiente:
+
+Restricciones de recuento no admitidas: minProperties y maxProperties no se aplican durante la decodificación restringida y el servidor las ignora. Si es necesario, valida los recuentos de propiedades en el código de la aplicación.
+Para los valores de string, haz lo siguiente:
+
+Restricciones de longitud no admitidas: minLength y maxLength no se aplican durante la decodificación restringida y el servidor las ignora. Si es necesario, valida las longitudes de las cadenas en el código de la aplicación.
+Para los valores number y integer:
+
+Para los valores de array, haz lo siguiente:
+
+Resultados estructurados frente a llamadas a funciones
+Función	Caso de uso principal
+Salidas estructuradas	Dar formato a la respuesta final Úsala cuando quieras que la respuesta del modelo tenga un formato específico.
+Llamada a funciones	Cómo realizar acciones durante una conversación Úsala cuando el modelo deba pedirte que realices una tarea antes de proporcionar una respuesta final.
+Prácticas recomendadas
+Descripciones claras: Usa el campo description para guiar al modelo.
+Tipado fuerte: Usa tipos específicos (integer, string, enum).
+Ingeniería de instrucciones: Indica con claridad lo que quieres que haga el modelo.
+Manejo de errores: Implementa un manejo de errores sólido para los resultados que cumplen con el esquema, pero que son semánticamente incorrectos.
+Limitaciones
+Subconjunto de esquemas: No se admiten todas las funciones del esquema JSON.
+Complejidad del esquema: Es posible que se rechacen los esquemas muy grandes o con un nivel de anidamiento profundo.

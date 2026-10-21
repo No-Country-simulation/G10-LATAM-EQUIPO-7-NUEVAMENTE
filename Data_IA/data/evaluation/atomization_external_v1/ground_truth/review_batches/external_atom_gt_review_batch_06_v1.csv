@@ -1,0 +1,11 @@
+﻿external_case_id,source_claim_id,claim_text_final,target_bucket,relation_subtype,source_domain,source_reference,expected_atom_count,gt_review_status,gt_notes
+EXT-VAL-V1-051,EXT-CAND-V1-0667,¿Qué es Kubernetes?,non_propositional,,cloud_devops,cloud_devops/kubernetes_what_is.txt,0,reviewed,Question rather than a factual proposition.
+EXT-VAL-V1-052,EXT-CAND-V1-0671,Tiene un ecosistema grande y en rápido crecimiento.,non_propositional,,cloud_devops,cloud_devops/kubernetes_what_is.txt,0,reviewed,Context-dependent statement because the subject referred to by 'Tiene' is omitted.
+EXT-VAL-V1-053,EXT-CAND-V1-0796,Selection by position,non_propositional,,data_science,data_science/pandas_10_minutes.txt,0,reviewed,Section heading.
+EXT-VAL-V1-054,EXT-CAND-V1-0832,Value Counts,non_propositional,,data_science,data_science/pandas_10_minutes.txt,0,reviewed,Section heading.
+EXT-VAL-V1-055,EXT-CAND-V1-0868,Categoricals,non_propositional,,data_science,data_science/pandas_10_minutes.txt,0,reviewed,Section heading.
+EXT-VAL-V1-056,EXT-CAND-V1-1107,Compute the skew of the values in each group,non_propositional,,data_science,data_science/pandas_groupby.txt,0,reviewed,Imperative/instruction rather than an independently checkable factual proposition.
+EXT-VAL-V1-057,EXT-CAND-V1-1671,"Los atributos de manejador de eventos en línea, y por qué no deberías usarlos.",non_propositional,,frontend,frontend/mdn_events.txt,0,reviewed,Topic heading describing inline event handler attributes and why they should not be used.
+EXT-VAL-V1-058,EXT-CAND-V1-1676,Objetos evento,non_propositional,,frontend,frontend/mdn_events.txt,0,reviewed,Section heading.
+EXT-VAL-V1-059,EXT-CAND-V1-1803,Los distintos tipos de botones.,non_propositional,,frontend,frontend/mdn_html_forms.txt,0,reviewed,Section heading/topic label.
+EXT-VAL-V1-060,EXT-CAND-V1-1952,"Sin embargo, al hacerlo, te complicas la vida a ti y a tus usuarios.",non_propositional,,frontend,frontend/mdn_html_forms.txt,0,reviewed,Context-dependent statement because 'al hacerlo' refers to omitted preceding content.

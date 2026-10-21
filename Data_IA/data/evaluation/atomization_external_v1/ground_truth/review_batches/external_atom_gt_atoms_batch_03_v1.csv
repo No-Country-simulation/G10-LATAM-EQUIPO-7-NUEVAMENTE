@@ -1,0 +1,24 @@
+﻿external_case_id,atom_index,atom_text,atom_type,gt_review_status
+EXT-VAL-V1-021,1,"En este ejemplo, se muestra cómo definir una función que genera un gráfico de barras a partir de datos estructurados.",factual_proposition,reviewed
+EXT-VAL-V1-021,2,El modelo puede usar herramientas externas para realizar cálculos o crear recursos visuales.,factual_proposition,reviewed
+EXT-VAL-V1-022,1,El bloque de texto de salida contiene una cadena JSON válida.,factual_proposition,reviewed
+EXT-VAL-V1-022,2,La cadena JSON del bloque de salida se ajusta exactamente al esquema solicitado.,factual_proposition,reviewed
+EXT-VAL-V1-023,1,Las restricciones minLength y maxLength no se aplican durante la decodificación restringida.,negation_or_absence,reviewed
+EXT-VAL-V1-023,2,El servidor ignora las restricciones minLength y maxLength.,factual_proposition,reviewed
+EXT-VAL-V1-024,1,Enviar un body con un request GET tiene un comportamiento indefinido en las especificaciones.,factual_proposition,reviewed
+EXT-VAL-V1-024,2,FastAPI soporta enviar un body con un request GET solo para casos de uso muy complejos o extremos.,factual_proposition,reviewed
+EXT-VAL-V1-025,1,FastAPI reconocerá cada uno de ellos.,factual_proposition,reviewed
+EXT-VAL-V1-025,2,FastAPI tomará los datos del lugar correcto.,factual_proposition,reviewed
+EXT-VAL-V1-026,1,El Master de Kubernetes es un conjunto de tres daemons.,factual_proposition,reviewed
+EXT-VAL-V1-026,2,Los tres daemons del Master de Kubernetes se ejecutan en un único nodo del clúster.,factual_proposition,reviewed
+EXT-VAL-V1-026,3,Ese nodo se denomina nodo master.,factual_proposition,reviewed
+EXT-VAL-V1-027,1,Los Controladores se basan en los objetos básicos.,factual_proposition,reviewed
+EXT-VAL-V1-027,2,Los Controladores proporcionan funcionalidades adicionales sobre los objetos básicos.,factual_proposition,reviewed
+EXT-VAL-V1-028,1,Las Annotations permiten asignar información arbitraria a un recurso.,factual_proposition,reviewed
+EXT-VAL-V1-028,2,Asignar información mediante Annotations puede facilitar los flujos de trabajo.,causal_relation,reviewed
+EXT-VAL-V1-028,3,Asignar información mediante Annotations puede hacer más fácil que las herramientas administrativas inspeccionen el estado.,causal_relation,reviewed
+EXT-VAL-V1-029,1,Son más fáciles de construir que una máquina virtual.,comparative_relation,reviewed
+EXT-VAL-V1-029,2,No están acoplados a la infraestructura ni al sistema de archivos del anfitrión.,negation_or_absence,reviewed
+EXT-VAL-V1-029,3,"Debido a que no están acoplados a la infraestructura ni al sistema de archivos del anfitrión, pueden llevarse entre nubes y distribuciones de sistema operativo.",causal_relation,reviewed
+EXT-VAL-V1-030,1,Passing a list of column labels selects multiple columns.,factual_proposition,reviewed
+EXT-VAL-V1-030,2,Selecting multiple columns can be useful for getting a subset or rearranging columns.,factual_proposition,reviewed

@@ -1,0 +1,2 @@
+﻿replacement_id,source_claim_id,claim_text,format,source_domain,source_reference,target_bucket,selection_status,notes,hygiene_status,hygiene_notes
+EXT-REPL2-V1-001,EXT-CAND-V1-1371,1 0.400000,needs_review,data_science,data_science/pandas_groupby.txt,needs_review,needs_review,extraction_type=literal_text; normalized_sha256=6a6f0a7860a5b67e7abf7845060803d9d9f82ddce15c9ef02ef6ada2b7b008cc,needs_review,

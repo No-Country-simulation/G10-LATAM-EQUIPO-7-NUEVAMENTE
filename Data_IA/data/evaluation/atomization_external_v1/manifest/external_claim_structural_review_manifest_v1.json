@@ -1,0 +1,42 @@
+{
+  "artifact": "external_claim_structural_review_v1",
+  "status": "human_structural_review_pending",
+  "input_artifact": "external_claim_review_pool_final_v1",
+  "input_path": "data\\evaluation\\atomization_external_v1\\dataset\\external_claim_review_pool_final_v1.csv",
+  "output_path": "data\\evaluation\\atomization_external_v1\\dataset\\external_claim_structural_review_v1.csv",
+  "total_claims": 120,
+  "source_count": 15,
+  "domain_count": 5,
+  "claims_per_source": 8,
+  "claims_per_domain": 24,
+  "allowed_target_buckets": [
+    "atomic",
+    "compound",
+    "relational",
+    "non_propositional"
+  ],
+  "allowed_relation_subtypes": [
+    "temporal_relation",
+    "causal_relation",
+    "conditional_relation",
+    "comparative_relation",
+    "negation_or_absence",
+    "scope_or_quantifier"
+  ],
+  "initial_target_bucket": "needs_review",
+  "initial_review_status": "pending",
+  "review_instructions": {
+    "atomic": "One independently checkable proposition that should remain a single atom.",
+    "compound": "Two or more independently checkable propositions expressed in the same claim.",
+    "relational": "A proposition whose essential meaning depends on a relation such as temporal, causal, conditional, comparative, negation/absence, or scope/quantification.",
+    "non_propositional": "Text that does not express an independently checkable proposition, such as a heading, label, fragment, navigation text, isolated term, or instruction-like fragment without a complete assertion."
+  },
+  "human_review_required": true,
+  "ground_truth_status": "not_created",
+  "model_used": false,
+  "llm_used": false,
+  "claim_atomizer_v0_4_used": false,
+  "predictions_available_to_reviewer": false,
+  "production_impact": false,
+  "next_stage": "human bucket adjudication of all 120 claims"
+}

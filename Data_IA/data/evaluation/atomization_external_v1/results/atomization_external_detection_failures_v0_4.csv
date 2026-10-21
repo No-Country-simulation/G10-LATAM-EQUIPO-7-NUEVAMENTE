@@ -1,0 +1,7 @@
+external_case_id,source_domain,target_bucket,relation_subtype,gt_review_status,predicted_review_status,detection_result,gt_class,predicted_class,expected_atom_count,predicted_atom_count
+EXT-VAL-V1-005,backend,atomic,,valid_claim,non_propositional,FP,atomic,,1,0
+EXT-VAL-V1-045,backend,non_propositional,,non_propositional,valid_claim,FN,,,0,0
+EXT-VAL-V1-046,backend,non_propositional,,non_propositional,valid_claim,FN,,,0,0
+EXT-VAL-V1-049,cloud_devops,non_propositional,,non_propositional,valid_claim,FN,,,0,0
+EXT-VAL-V1-052,cloud_devops,non_propositional,,non_propositional,valid_claim,FN,,,0,0
+EXT-VAL-V1-060,frontend,non_propositional,,non_propositional,valid_claim,FN,,,0,0

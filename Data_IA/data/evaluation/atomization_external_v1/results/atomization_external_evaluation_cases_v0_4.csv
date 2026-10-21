@@ -1,0 +1,81 @@
+external_case_id,source_domain,target_bucket,relation_subtype,gt_review_status,predicted_review_status,detection_result,gt_class,predicted_class,expected_atom_count,predicted_atom_count,atom_delta,gt_type_sequence,predicted_type_sequence,class_match,count_match,type_sequence_match,exact_structure_match
+EXT-VAL-V1-001,ai,atomic,,valid_claim,valid_claim,TN,atomic,relational,1,2,1,factual_proposition,factual_proposition > conditional_relation,0,0,0,0
+EXT-VAL-V1-002,ai,atomic,,valid_claim,valid_claim,TN,atomic,atomic,1,1,0,factual_proposition,factual_proposition,1,1,1,1
+EXT-VAL-V1-003,ai,atomic,,valid_claim,valid_claim,TN,atomic,compound,1,2,1,factual_proposition,factual_proposition > factual_proposition,0,0,0,0
+EXT-VAL-V1-004,ai,atomic,,valid_claim,valid_claim,TN,atomic,atomic,1,1,0,factual_proposition,factual_proposition,1,1,1,1
+EXT-VAL-V1-005,backend,atomic,,valid_claim,non_propositional,FP,atomic,,1,0,-1,factual_proposition,,,,,
+EXT-VAL-V1-006,backend,atomic,,valid_claim,valid_claim,TN,atomic,compound,1,2,1,factual_proposition,factual_proposition > factual_proposition,0,0,0,0
+EXT-VAL-V1-007,backend,atomic,,valid_claim,valid_claim,TN,atomic,atomic,1,1,0,factual_proposition,factual_proposition,1,1,1,1
+EXT-VAL-V1-008,backend,atomic,,valid_claim,valid_claim,TN,atomic,atomic,1,1,0,factual_proposition,factual_proposition,1,1,1,1
+EXT-VAL-V1-009,cloud_devops,atomic,,valid_claim,valid_claim,TN,atomic,compound,1,2,1,factual_proposition,factual_proposition > factual_proposition,0,0,0,0
+EXT-VAL-V1-010,cloud_devops,atomic,,valid_claim,valid_claim,TN,atomic,atomic,1,1,0,factual_proposition,factual_proposition,1,1,1,1
+EXT-VAL-V1-011,cloud_devops,atomic,,valid_claim,valid_claim,TN,atomic,atomic,1,1,0,factual_proposition,factual_proposition,1,1,1,1
+EXT-VAL-V1-012,cloud_devops,atomic,,valid_claim,valid_claim,TN,atomic,atomic,1,1,0,factual_proposition,factual_proposition,1,1,1,1
+EXT-VAL-V1-013,data_science,atomic,,valid_claim,valid_claim,TN,atomic,atomic,1,1,0,factual_proposition,factual_proposition,1,1,1,1
+EXT-VAL-V1-014,data_science,atomic,,valid_claim,valid_claim,TN,atomic,compound,1,2,1,factual_proposition,factual_proposition > factual_proposition,0,0,0,0
+EXT-VAL-V1-015,data_science,atomic,,valid_claim,valid_claim,TN,atomic,atomic,1,1,0,factual_proposition,factual_proposition,1,1,1,1
+EXT-VAL-V1-016,data_science,atomic,,valid_claim,valid_claim,TN,atomic,relational,1,2,1,factual_proposition,factual_proposition > causal_relation,0,0,0,0
+EXT-VAL-V1-017,frontend,atomic,,valid_claim,valid_claim,TN,atomic,compound,1,2,1,factual_proposition,factual_proposition > factual_proposition,0,0,0,0
+EXT-VAL-V1-018,frontend,atomic,,valid_claim,valid_claim,TN,atomic,atomic,1,1,0,factual_proposition,factual_proposition,1,1,1,1
+EXT-VAL-V1-019,frontend,atomic,,valid_claim,valid_claim,TN,atomic,atomic,1,1,0,factual_proposition,factual_proposition,1,1,1,1
+EXT-VAL-V1-020,frontend,atomic,,valid_claim,valid_claim,TN,atomic,compound,1,2,1,factual_proposition,factual_proposition > factual_proposition,0,0,0,0
+EXT-VAL-V1-021,ai,compound,,valid_claim,valid_claim,TN,compound,compound,2,2,0,factual_proposition > factual_proposition,factual_proposition > factual_proposition,1,1,1,1
+EXT-VAL-V1-022,ai,compound,,valid_claim,valid_claim,TN,compound,atomic,2,1,-1,factual_proposition > factual_proposition,factual_proposition,0,0,0,0
+EXT-VAL-V1-023,ai,compound,,valid_claim,valid_claim,TN,compound,relational,2,2,0,negation_or_absence > factual_proposition,factual_proposition > factual_proposition,0,1,0,0
+EXT-VAL-V1-024,backend,compound,,valid_claim,valid_claim,TN,compound,compound,2,2,0,factual_proposition > factual_proposition,factual_proposition > factual_proposition,1,1,1,1
+EXT-VAL-V1-025,backend,compound,,valid_claim,valid_claim,TN,compound,compound,2,2,0,factual_proposition > factual_proposition,factual_proposition > factual_proposition,1,1,1,1
+EXT-VAL-V1-026,cloud_devops,compound,,valid_claim,valid_claim,TN,compound,compound,3,3,0,factual_proposition > factual_proposition > factual_proposition,factual_proposition > factual_proposition > factual_proposition,1,1,1,1
+EXT-VAL-V1-027,cloud_devops,compound,,valid_claim,valid_claim,TN,compound,compound,2,2,0,factual_proposition > factual_proposition,factual_proposition > factual_proposition,1,1,1,1
+EXT-VAL-V1-028,cloud_devops,compound,,valid_claim,valid_claim,TN,compound,compound,3,2,-1,factual_proposition > causal_relation > causal_relation,factual_proposition > factual_proposition,1,0,0,0
+EXT-VAL-V1-029,cloud_devops,compound,,valid_claim,valid_claim,TN,compound,relational,3,2,-1,comparative_relation > negation_or_absence > causal_relation,comparative_relation > causal_relation,0,0,0,0
+EXT-VAL-V1-030,data_science,compound,,valid_claim,valid_claim,TN,compound,compound,2,2,0,factual_proposition > factual_proposition,factual_proposition > factual_proposition,1,1,1,1
+EXT-VAL-V1-031,data_science,compound,,valid_claim,valid_claim,TN,compound,relational,2,2,0,factual_proposition > factual_proposition,factual_proposition > factual_proposition,0,1,1,0
+EXT-VAL-V1-032,data_science,compound,,valid_claim,valid_claim,TN,compound,compound,2,2,0,negation_or_absence > factual_proposition,negation_or_absence > factual_proposition,1,1,1,1
+EXT-VAL-V1-033,data_science,compound,,valid_claim,valid_claim,TN,compound,compound,2,2,0,factual_proposition > factual_proposition,factual_proposition > factual_proposition,1,1,1,1
+EXT-VAL-V1-034,frontend,compound,,valid_claim,valid_claim,TN,compound,compound,2,3,1,factual_proposition > factual_proposition,factual_proposition > factual_proposition > factual_proposition,1,0,0,0
+EXT-VAL-V1-035,frontend,compound,,valid_claim,valid_claim,TN,compound,compound,4,3,-1,factual_proposition > comparative_relation > factual_proposition > factual_proposition,factual_proposition > factual_proposition > factual_proposition,1,0,0,0
+EXT-VAL-V1-036,frontend,compound,,valid_claim,valid_claim,TN,compound,atomic,2,1,-1,factual_proposition > factual_proposition,factual_proposition,0,0,0,0
+EXT-VAL-V1-037,frontend,compound,,valid_claim,valid_claim,TN,compound,compound,2,2,0,comparative_relation > factual_proposition,factual_proposition > factual_proposition,1,1,0,0
+EXT-VAL-V1-038,frontend,compound,,valid_claim,valid_claim,TN,compound,compound,2,2,0,factual_proposition > factual_proposition,factual_proposition > factual_proposition,1,1,1,1
+EXT-VAL-V1-039,frontend,compound,,valid_claim,valid_claim,TN,compound,compound,4,3,-1,factual_proposition > factual_proposition > factual_proposition > factual_proposition,factual_proposition > factual_proposition > factual_proposition,1,0,0,0
+EXT-VAL-V1-040,frontend,compound,,valid_claim,valid_claim,TN,compound,compound,3,3,0,factual_proposition > causal_relation > negation_or_absence,factual_proposition > factual_proposition > negation_or_absence,1,1,0,0
+EXT-VAL-V1-041,ai,non_propositional,,non_propositional,non_propositional,TP,,,0,0,,,,,,,
+EXT-VAL-V1-042,ai,non_propositional,,non_propositional,non_propositional,TP,,,0,0,,,,,,,
+EXT-VAL-V1-043,ai,non_propositional,,non_propositional,non_propositional,TP,,,0,0,,,,,,,
+EXT-VAL-V1-044,ai,non_propositional,,non_propositional,non_propositional,TP,,,0,0,,,,,,,
+EXT-VAL-V1-045,backend,non_propositional,,non_propositional,valid_claim,FN,,,0,0,,,,,,,
+EXT-VAL-V1-046,backend,non_propositional,,non_propositional,valid_claim,FN,,,0,0,,,,,,,
+EXT-VAL-V1-047,backend,non_propositional,,non_propositional,non_propositional,TP,,,0,0,,,,,,,
+EXT-VAL-V1-048,backend,non_propositional,,non_propositional,non_propositional,TP,,,0,0,,,,,,,
+EXT-VAL-V1-049,cloud_devops,non_propositional,,non_propositional,valid_claim,FN,,,0,0,,,,,,,
+EXT-VAL-V1-050,cloud_devops,non_propositional,,non_propositional,non_propositional,TP,,,0,0,,,,,,,
+EXT-VAL-V1-051,cloud_devops,non_propositional,,non_propositional,non_propositional,TP,,,0,0,,,,,,,
+EXT-VAL-V1-052,cloud_devops,non_propositional,,non_propositional,valid_claim,FN,,,0,0,,,,,,,
+EXT-VAL-V1-053,data_science,non_propositional,,non_propositional,non_propositional,TP,,,0,0,,,,,,,
+EXT-VAL-V1-054,data_science,non_propositional,,non_propositional,non_propositional,TP,,,0,0,,,,,,,
+EXT-VAL-V1-055,data_science,non_propositional,,non_propositional,non_propositional,TP,,,0,0,,,,,,,
+EXT-VAL-V1-056,data_science,non_propositional,,non_propositional,non_propositional,TP,,,0,0,,,,,,,
+EXT-VAL-V1-057,frontend,non_propositional,,non_propositional,non_propositional,TP,,,0,0,,,,,,,
+EXT-VAL-V1-058,frontend,non_propositional,,non_propositional,non_propositional,TP,,,0,0,,,,,,,
+EXT-VAL-V1-059,frontend,non_propositional,,non_propositional,non_propositional,TP,,,0,0,,,,,,,
+EXT-VAL-V1-060,frontend,non_propositional,,non_propositional,valid_claim,FN,,,0,0,,,,,,,
+EXT-VAL-V1-061,ai,relational,conditional_relation,valid_claim,valid_claim,TN,relational,relational,1,2,1,conditional_relation,factual_proposition > conditional_relation,1,0,0,0
+EXT-VAL-V1-062,ai,relational,negation_or_absence,valid_claim,valid_claim,TN,relational,atomic,1,1,0,negation_or_absence,negation_or_absence,0,1,1,0
+EXT-VAL-V1-063,ai,relational,causal_relation,valid_claim,valid_claim,TN,relational,compound,1,3,2,causal_relation,factual_proposition > factual_proposition > factual_proposition,0,0,0,0
+EXT-VAL-V1-064,ai,relational,conditional_relation,valid_claim,valid_claim,TN,relational,relational,1,1,0,conditional_relation,conditional_relation,1,1,1,1
+EXT-VAL-V1-065,backend,relational,conditional_relation,valid_claim,valid_claim,TN,relational,relational,1,2,1,conditional_relation,factual_proposition > conditional_relation,1,0,0,0
+EXT-VAL-V1-066,backend,relational,negation_or_absence,valid_claim,valid_claim,TN,relational,relational,1,1,0,negation_or_absence,negation_or_absence,1,1,1,1
+EXT-VAL-V1-067,backend,relational,temporal_relation,valid_claim,valid_claim,TN,relational,compound,1,2,1,temporal_relation,temporal_relation > factual_proposition,0,0,0,0
+EXT-VAL-V1-068,backend,relational,conditional_relation,valid_claim,valid_claim,TN,relational,atomic,1,1,0,conditional_relation,factual_proposition,0,1,0,0
+EXT-VAL-V1-069,cloud_devops,relational,conditional_relation,valid_claim,valid_claim,TN,relational,compound,1,2,1,conditional_relation,factual_proposition > factual_proposition,0,0,0,0
+EXT-VAL-V1-070,cloud_devops,relational,temporal_relation,valid_claim,valid_claim,TN,relational,compound,1,2,1,temporal_relation,factual_proposition > factual_proposition,0,0,0,0
+EXT-VAL-V1-071,cloud_devops,relational,negation_or_absence,valid_claim,valid_claim,TN,relational,relational,1,1,0,negation_or_absence,negation_or_absence,1,1,1,1
+EXT-VAL-V1-072,cloud_devops,relational,causal_relation,valid_claim,valid_claim,TN,relational,relational,1,2,1,causal_relation,causal_relation > factual_proposition,1,0,0,0
+EXT-VAL-V1-073,data_science,relational,conditional_relation,valid_claim,valid_claim,TN,relational,relational,1,3,2,conditional_relation,factual_proposition > factual_proposition > conditional_relation,1,0,0,0
+EXT-VAL-V1-074,data_science,relational,temporal_relation,valid_claim,valid_claim,TN,relational,atomic,1,1,0,temporal_relation,factual_proposition,0,1,0,0
+EXT-VAL-V1-075,data_science,relational,causal_relation,valid_claim,valid_claim,TN,relational,relational,1,3,2,causal_relation,factual_proposition > factual_proposition > causal_relation,1,0,0,0
+EXT-VAL-V1-076,data_science,relational,conditional_relation,valid_claim,valid_claim,TN,relational,relational,1,1,0,conditional_relation,causal_relation,1,1,0,0
+EXT-VAL-V1-077,frontend,relational,conditional_relation,valid_claim,valid_claim,TN,relational,compound,1,3,2,conditional_relation,factual_proposition > factual_proposition > factual_proposition,0,0,0,0
+EXT-VAL-V1-078,frontend,relational,temporal_relation,valid_claim,valid_claim,TN,relational,relational,1,3,2,temporal_relation,factual_proposition > factual_proposition > conditional_relation,1,0,0,0
+EXT-VAL-V1-079,frontend,relational,comparative_relation,valid_claim,valid_claim,TN,relational,compound,1,2,1,comparative_relation,factual_proposition > factual_proposition,0,0,0,0
+EXT-VAL-V1-080,frontend,relational,comparative_relation,valid_claim,valid_claim,TN,relational,compound,1,3,2,comparative_relation,factual_proposition > factual_proposition > factual_proposition,0,0,0,0

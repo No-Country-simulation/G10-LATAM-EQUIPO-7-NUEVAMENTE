@@ -1,0 +1,38 @@
+external_case_id,source_domain,target_bucket,relation_subtype,gt_class,predicted_class,expected_atom_count,predicted_atom_count,atom_delta,atomization_direction,gt_type_sequence,predicted_type_sequence,class_match,count_match,type_sequence_match
+EXT-VAL-V1-001,ai,atomic,,atomic,relational,1,2,1,over_atomized,factual_proposition,factual_proposition > conditional_relation,0,0,0
+EXT-VAL-V1-003,ai,atomic,,atomic,compound,1,2,1,over_atomized,factual_proposition,factual_proposition > factual_proposition,0,0,0
+EXT-VAL-V1-005,backend,atomic,,atomic,,1,0,-1,under_atomized,factual_proposition,,,,
+EXT-VAL-V1-006,backend,atomic,,atomic,compound,1,2,1,over_atomized,factual_proposition,factual_proposition > factual_proposition,0,0,0
+EXT-VAL-V1-009,cloud_devops,atomic,,atomic,compound,1,2,1,over_atomized,factual_proposition,factual_proposition > factual_proposition,0,0,0
+EXT-VAL-V1-014,data_science,atomic,,atomic,compound,1,2,1,over_atomized,factual_proposition,factual_proposition > factual_proposition,0,0,0
+EXT-VAL-V1-016,data_science,atomic,,atomic,relational,1,2,1,over_atomized,factual_proposition,factual_proposition > causal_relation,0,0,0
+EXT-VAL-V1-017,frontend,atomic,,atomic,compound,1,2,1,over_atomized,factual_proposition,factual_proposition > factual_proposition,0,0,0
+EXT-VAL-V1-020,frontend,atomic,,atomic,compound,1,2,1,over_atomized,factual_proposition,factual_proposition > factual_proposition,0,0,0
+EXT-VAL-V1-022,ai,compound,,compound,atomic,2,1,-1,under_atomized,factual_proposition > factual_proposition,factual_proposition,0,0,0
+EXT-VAL-V1-023,ai,compound,,compound,relational,2,2,0,count_equal_structure_wrong,negation_or_absence > factual_proposition,factual_proposition > factual_proposition,0,1,0
+EXT-VAL-V1-028,cloud_devops,compound,,compound,compound,3,2,-1,under_atomized,factual_proposition > causal_relation > causal_relation,factual_proposition > factual_proposition,1,0,0
+EXT-VAL-V1-029,cloud_devops,compound,,compound,relational,3,2,-1,under_atomized,comparative_relation > negation_or_absence > causal_relation,comparative_relation > causal_relation,0,0,0
+EXT-VAL-V1-031,data_science,compound,,compound,relational,2,2,0,count_equal_structure_wrong,factual_proposition > factual_proposition,factual_proposition > factual_proposition,0,1,1
+EXT-VAL-V1-034,frontend,compound,,compound,compound,2,3,1,over_atomized,factual_proposition > factual_proposition,factual_proposition > factual_proposition > factual_proposition,1,0,0
+EXT-VAL-V1-035,frontend,compound,,compound,compound,4,3,-1,under_atomized,factual_proposition > comparative_relation > factual_proposition > factual_proposition,factual_proposition > factual_proposition > factual_proposition,1,0,0
+EXT-VAL-V1-036,frontend,compound,,compound,atomic,2,1,-1,under_atomized,factual_proposition > factual_proposition,factual_proposition,0,0,0
+EXT-VAL-V1-037,frontend,compound,,compound,compound,2,2,0,count_equal_structure_wrong,comparative_relation > factual_proposition,factual_proposition > factual_proposition,1,1,0
+EXT-VAL-V1-039,frontend,compound,,compound,compound,4,3,-1,under_atomized,factual_proposition > factual_proposition > factual_proposition > factual_proposition,factual_proposition > factual_proposition > factual_proposition,1,0,0
+EXT-VAL-V1-040,frontend,compound,,compound,compound,3,3,0,count_equal_structure_wrong,factual_proposition > causal_relation > negation_or_absence,factual_proposition > factual_proposition > negation_or_absence,1,1,0
+EXT-VAL-V1-061,ai,relational,conditional_relation,relational,relational,1,2,1,over_atomized,conditional_relation,factual_proposition > conditional_relation,1,0,0
+EXT-VAL-V1-062,ai,relational,negation_or_absence,relational,atomic,1,1,0,count_equal_structure_wrong,negation_or_absence,negation_or_absence,0,1,1
+EXT-VAL-V1-063,ai,relational,causal_relation,relational,compound,1,3,2,over_atomized,causal_relation,factual_proposition > factual_proposition > factual_proposition,0,0,0
+EXT-VAL-V1-065,backend,relational,conditional_relation,relational,relational,1,2,1,over_atomized,conditional_relation,factual_proposition > conditional_relation,1,0,0
+EXT-VAL-V1-067,backend,relational,temporal_relation,relational,compound,1,2,1,over_atomized,temporal_relation,temporal_relation > factual_proposition,0,0,0
+EXT-VAL-V1-068,backend,relational,conditional_relation,relational,atomic,1,1,0,count_equal_structure_wrong,conditional_relation,factual_proposition,0,1,0
+EXT-VAL-V1-069,cloud_devops,relational,conditional_relation,relational,compound,1,2,1,over_atomized,conditional_relation,factual_proposition > factual_proposition,0,0,0
+EXT-VAL-V1-070,cloud_devops,relational,temporal_relation,relational,compound,1,2,1,over_atomized,temporal_relation,factual_proposition > factual_proposition,0,0,0
+EXT-VAL-V1-072,cloud_devops,relational,causal_relation,relational,relational,1,2,1,over_atomized,causal_relation,causal_relation > factual_proposition,1,0,0
+EXT-VAL-V1-073,data_science,relational,conditional_relation,relational,relational,1,3,2,over_atomized,conditional_relation,factual_proposition > factual_proposition > conditional_relation,1,0,0
+EXT-VAL-V1-074,data_science,relational,temporal_relation,relational,atomic,1,1,0,count_equal_structure_wrong,temporal_relation,factual_proposition,0,1,0
+EXT-VAL-V1-075,data_science,relational,causal_relation,relational,relational,1,3,2,over_atomized,causal_relation,factual_proposition > factual_proposition > causal_relation,1,0,0
+EXT-VAL-V1-076,data_science,relational,conditional_relation,relational,relational,1,1,0,count_equal_structure_wrong,conditional_relation,causal_relation,1,1,0
+EXT-VAL-V1-077,frontend,relational,conditional_relation,relational,compound,1,3,2,over_atomized,conditional_relation,factual_proposition > factual_proposition > factual_proposition,0,0,0
+EXT-VAL-V1-078,frontend,relational,temporal_relation,relational,relational,1,3,2,over_atomized,temporal_relation,factual_proposition > factual_proposition > conditional_relation,1,0,0
+EXT-VAL-V1-079,frontend,relational,comparative_relation,relational,compound,1,2,1,over_atomized,comparative_relation,factual_proposition > factual_proposition,0,0,0
+EXT-VAL-V1-080,frontend,relational,comparative_relation,relational,compound,1,3,2,over_atomized,comparative_relation,factual_proposition > factual_proposition > factual_proposition,0,0,0

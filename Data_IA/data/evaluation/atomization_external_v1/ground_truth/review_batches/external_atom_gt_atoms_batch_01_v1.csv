@@ -1,0 +1,11 @@
+﻿external_case_id,atom_index,atom_text,atom_type,gt_review_status
+EXT-VAL-V1-001,1,El MCP remoto solo funciona con servidores HTTP transmitibles.,factual_proposition,reviewed
+EXT-VAL-V1-002,1,Puedes copiarla desde la página Claves de API.,factual_proposition,reviewed
+EXT-VAL-V1-003,1,Los resultados estructurados funcionan con Pydantic (Python) y Zod (JavaScript).,factual_proposition,reviewed
+EXT-VAL-V1-004,1,Puedes configurar los modelos de Gemini para que generen respuestas que se adhieran a un esquema JSON proporcionado.,factual_proposition,reviewed
+EXT-VAL-V1-005,1,Puedes configurar dónde está tu app en un archivo pyproject.toml.,factual_proposition,reviewed
+EXT-VAL-V1-006,1,Este decorador le dice a FastAPI que la función de abajo corresponde al path / con una operación GET.,factual_proposition,reviewed
+EXT-VAL-V1-007,1,"Puedes retornar un dict, list o valores singulares como str, int, etc.",factual_proposition,reviewed
+EXT-VAL-V1-008,1,Puedes declarar el tipo de un parámetro de path en la función usando anotaciones de tipos estándar de Python.,factual_proposition,reviewed
+EXT-VAL-V1-009,1,"En Kubernetes, un Deployment es un objeto que puede representar una aplicación ejecutándose en el clúster.",factual_proposition,reviewed
+EXT-VAL-V1-010,1,Esa plantilla describe los Pods que el controlador StatefulSet creará para satisfacer la especificación del StatefulSet.,factual_proposition,reviewed

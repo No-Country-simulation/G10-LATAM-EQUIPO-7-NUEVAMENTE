@@ -1,0 +1,48 @@
+{
+  "artifact": "external_claim_review_pool_v1",
+  "status": "review_pool_built_not_human_labeled",
+  "seed": 20261021,
+  "sampling_strategy": "deterministic stratified sampling by source_reference",
+  "candidates_per_source": 8,
+  "input_candidate_count": 2229,
+  "source_count": 15,
+  "review_pool_count": 120,
+  "domain_counts": {
+    "ai": 24,
+    "backend": 24,
+    "cloud_devops": 24,
+    "data_science": 24,
+    "frontend": 24
+  },
+  "source_counts": {
+    "ai/gemini_function_calling.txt": 8,
+    "ai/gemini_get_started.txt": 8,
+    "ai/gemini_structured_outputs.txt": 8,
+    "backend/fastapi_first_steps.txt": 8,
+    "backend/fastapi_path_params.txt": 8,
+    "backend/fastapi_request_body.txt": 8,
+    "cloud_devops/kubernetes_concepts.txt": 8,
+    "cloud_devops/kubernetes_objects.txt": 8,
+    "cloud_devops/kubernetes_what_is.txt": 8,
+    "data_science/pandas_10_minutes.txt": 8,
+    "data_science/pandas_groupby.txt": 8,
+    "data_science/sklearn_getting_started.txt": 8,
+    "frontend/mdn_events.txt": 8,
+    "frontend/mdn_html_forms.txt": 8,
+    "frontend/mdn_what_is_javascript.txt": 8
+  },
+  "human_review_required": [
+    "format",
+    "target_bucket",
+    "selection_status"
+  ],
+  "model_used": false,
+  "llm_used": false,
+  "claim_atomizer_v0_4_used": false,
+  "ground_truth_used": false,
+  "notes": [
+    "The raw extraction artifact is preserved unchanged.",
+    "No claim type or model prediction was used during sampling.",
+    "Human classification occurs only after this review pool is frozen."
+  ]
+}
