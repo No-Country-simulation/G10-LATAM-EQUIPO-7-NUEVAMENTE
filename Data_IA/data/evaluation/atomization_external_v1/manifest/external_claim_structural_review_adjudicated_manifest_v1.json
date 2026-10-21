@@ -1,0 +1,42 @@
+{
+  "artifact": "external_claim_structural_review_adjudicated_v1",
+  "status": "human_structural_review_complete",
+  "total_claims": 120,
+  "review_batches": 6,
+  "review_status": "complete",
+  "bucket_counts": {
+    "atomic": 31,
+    "compound": 14,
+    "relational": 23,
+    "non_propositional": 52
+  },
+  "relation_subtype_counts": {
+    "temporal_relation": 3,
+    "causal_relation": 5,
+    "conditional_relation": 11,
+    "comparative_relation": 2,
+    "negation_or_absence": 2,
+    "scope_or_quantifier": 0
+  },
+  "target_per_bucket": 20,
+  "bucket_deficits": {
+    "atomic": 0,
+    "compound": 6,
+    "relational": 0,
+    "non_propositional": 0
+  },
+  "bucket_surpluses": {
+    "atomic": 11,
+    "compound": 0,
+    "relational": 3,
+    "non_propositional": 32
+  },
+  "balanced_dataset_ready": false,
+  "model_used": false,
+  "llm_used": false,
+  "claim_atomizer_v0_4_used": false,
+  "predictions_available_to_reviewer": false,
+  "ground_truth_status": "structural_buckets_human_adjudicated",
+  "production_impact": false,
+  "next_stage": "expand human-reviewed candidate pool for structurally underrepresented buckets"
+}

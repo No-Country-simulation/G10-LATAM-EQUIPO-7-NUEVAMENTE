@@ -1,0 +1,31 @@
+{
+  "artifact": "external_claim_compound_expansion_pool_v3",
+  "status": "blind_human_review_pending",
+  "purpose": "Third blind expansion because exactly one additional human-adjudicated compound claim is still required for the balanced dataset.",
+  "seed": 20261021,
+  "total_candidates": 10,
+  "candidates_per_domain": 2,
+  "domain_counts": {
+    "ai": 2,
+    "backend": 2,
+    "cloud_devops": 2,
+    "data_science": 2,
+    "frontend": 2
+  },
+  "selection_strategy": "Deterministic domain-balanced sampling from unused raw external candidates.",
+  "previously_seen_ids_excluded": 179,
+  "compound_deficit_before_expansion": 1,
+  "selection_does_not_use_target_bucket": true,
+  "selection_does_not_use_claim_atomizer": true,
+  "selection_does_not_use_llm": true,
+  "model_used": false,
+  "llm_used": false,
+  "claim_atomizer_v0_4_used": false,
+  "predictions_available_to_reviewer": false,
+  "ground_truth_used_for_selection": false,
+  "production_impact": false,
+  "human_hygiene_review_required": true,
+  "human_structural_review_required": true,
+  "stop_condition": "At least 1 additional human-adjudicated compound claim is available.",
+  "next_stage": "human hygiene review followed by human structural bucket adjudication"
+}

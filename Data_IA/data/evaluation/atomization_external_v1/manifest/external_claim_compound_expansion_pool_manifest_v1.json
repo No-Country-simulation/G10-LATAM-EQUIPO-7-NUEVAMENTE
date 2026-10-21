@@ -1,0 +1,30 @@
+{
+  "artifact": "external_claim_compound_expansion_pool_v1",
+  "status": "blind_human_review_pending",
+  "purpose": "Expand the externally sourced human-reviewed candidate pool because compound claims are underrepresented in the first 120 adjudicated cases.",
+  "seed": 20261021,
+  "total_candidates": 30,
+  "candidates_per_domain": 6,
+  "domain_counts": {
+    "ai": 6,
+    "backend": 6,
+    "cloud_devops": 6,
+    "data_science": 6,
+    "frontend": 6
+  },
+  "selection_strategy": "Deterministic domain-balanced sampling from unused raw external candidates.",
+  "previously_seen_ids_excluded": 134,
+  "selection_does_not_use_target_bucket": true,
+  "selection_does_not_use_claim_atomizer": true,
+  "selection_does_not_use_llm": true,
+  "model_used": false,
+  "llm_used": false,
+  "claim_atomizer_v0_4_used": false,
+  "predictions_available_to_reviewer": false,
+  "ground_truth_used_for_selection": false,
+  "production_impact": false,
+  "human_hygiene_review_required": true,
+  "human_structural_review_required": true,
+  "stop_condition": "At least 6 additional human-adjudicated compound claims are available for the final balanced 80-case dataset.",
+  "next_stage": "human hygiene review followed by human structural bucket adjudication"
+}
