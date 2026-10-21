@@ -1,4 +1,5 @@
 from typing import Annotated
+
 from fastapi import APIRouter, BackgroundTasks, Depends, status
 
 from app.api.adaptation_execution import execute_background_generation
@@ -6,11 +7,22 @@ from app.api.dependencies import (
     get_adaptation_orchestration_service,
     get_format_generation_service,
 )
-from app.application.adaptation_orchestration_service import AdaptationOrchestrationService
-from app.application.format_generation_service import FormatGenerationService
+from app.application.adaptation_orchestration_service import (
+    AdaptationOrchestrationService,
+)
+from app.application.format_generation_service import (
+    DocumentNotReadyForGenerationError,
+    FormatGenerationDocumentNotFoundError,
+    FormatGenerationService,
+)
+from app.core.error_codes import ErrorCode
+from app.core.http_exceptions import APIHTTPException
+from app.ports.generated_format_repository_port import (
+    GeneratedFormatRepositoryError,
+)
 from app.schemas.format_generation import (
-    PublicFormatGenerationRequest,
     FormatGenerationResponse,
+    PublicFormatGenerationRequest,
 )
 
 router = APIRouter(
@@ -38,14 +50,33 @@ async def generate_formats_public(
         Depends(get_format_generation_service),
     ],
 ):
-    attempts = generation_service.prepare_generation(
-        document_id=document_id,
-        formats=tuple(request.formats),
-        profile=request.profile,
-        niche=request.niche,
-        detail_level=request.detail_level,
-        learning_objective=request.learning_objective,
-    )
+    try:
+        attempts = generation_service.prepare_generation(
+            document_id=document_id,
+            formats=tuple(request.formats),
+            profile=request.profile,
+            niche=request.niche,
+            detail_level=request.detail_level,
+            learning_objective=request.learning_objective,
+        )
+    except FormatGenerationDocumentNotFoundError as exc:
+        raise APIHTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            code=ErrorCode.DOCUMENT_NOT_FOUND,
+            detail=str(exc),
+        ) from exc
+    except DocumentNotReadyForGenerationError as exc:
+        raise APIHTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            code=ErrorCode.DOCUMENT_NOT_INDEXED,
+            detail=str(exc),
+        ) from exc
+    except GeneratedFormatRepositoryError as exc:
+        raise APIHTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            code=ErrorCode.FORMAT_REGISTRATION_FAILED,
+            detail="El documento fue indexado, pero no fue posible registrar la generación.",
+        ) from exc
 
     background_tasks.add_task(
         execute_background_generation,
