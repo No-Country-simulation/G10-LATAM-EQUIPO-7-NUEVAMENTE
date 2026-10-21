@@ -1,38 +1,66 @@
-# NuevaMente - Agentes: Agent V1 + RAG Core (Retrieval V2)
+Markdown
+# NuevaMente - Agentes: Orquestación con LangGraph y RAG Core = Arquitectura Multiagente
 
-Módulo central de ingestión, recuperación de conocimiento (RAG) y orquestación de agentes para el hackathon NuevaMente (G10-LATAM-EQUIPO-7). Integra FastAPI, bases de datos vectoriales (ChromaDB) y los modelos de la familia Gemini mediante el SDK oficial (`google-genai`).
+Módulo central de ingestión, recuperación de conocimiento (RAG) y orquestación de agentes para el hackathon NuevaMente (G10-LATAM-EQUIPO-7). Integra FastAPI, bases de datos vectoriales (ChromaDB), los modelos de la familia Gemini mediante el SDK oficial (`google-genai`) y flujos de estado con LangGraph.
 
-## Novedades: Sprint 3 (Retrieval V2 y Nuevos Formatos)
+## Novedades: Sprint 4 (LangGraph, Map-Reduce y Manejo de Errores)
 
-Durante esta fase, la arquitectura evolucionó para garantizar resultados precisos y mayor resiliencia E2E:
+La arquitectura evolucionó hacia un sistema de grafos de estado para garantizar concurrencia, resiliencia y corrección autónoma:
 
-* **Retrieval V2 (Búsqueda Híbrida + Reranking):** Implementación de búsqueda semántica (ChromaDB) combinada con búsqueda lexical (BM25), fusionadas mediante *Reciprocal Rank Fusion* (RRF) y reordenadas con un modelo Cross-Encoder.
-* **Contratos V2.0 (Metadata a nivel raíz):** Actualización del contrato de Data/IA y orquestación con Backend, extrayendo metadatos pedagógicos (`key_concepts`, `prerequisites`, `estimated_time_minutes`) en una llamada independiente para unificarlos a nivel raíz del JSON.
-* **Inyección Dinámica de Nicho (Contextualización Temática):** El parámetro `niche` del payload se inyecta directamente en la capa de extracción de metadatos, obligando al LLM a pivotar y adaptar los conceptos clave y prerrequisitos estrictamente al dominio solicitado por el usuario (ej. *Ciberseguridad, Finanzas, Tecnología*), evitando respuestas genéricas.
-* **Capacidad Atómica y Nuevos Formatos:** Generación paralela soportando `quiz`, `flashcards`, `tldr` y `video_script`. El sistema está protegido por bloques `try/except` con fallback seguro para metadatos.
-* **Modelo Ligero de Baja Latencia:** Migración a `gemini-3.5-flash-lite` para mitigar cuellos de botella (Errores 503) y maximizar la velocidad de respuesta.
+* **Arquitectura Map-Reduce con LangGraph:** Transición de cadenas secuenciales a un grafo global. Un nodo Investigador extrae contexto y hace un *fan-out* paralelo para generar formatos simultáneamente, reduciendo drásticamente el tiempo total de ejecución E2E.
+* **Subgrafo de Revisión Activo:** Cada formato tiene su propio ciclo de vida aislado (Atomicidad). El flujo incluye un enrutamiento condicional inteligente: si el Evaluador detecta falta de respaldo, el Revisor activa un nodo de **Nueva Evidencia** para hacer una segunda búsqueda en ChromaDB antes de re-escribir.
+* **Contratos HTTP Estrictos y Propagación de Errores:** Respeto estricto del contrato con Backend. Los errores se propagan sin enmascararse, devolviendo `404` (NO_CONTEXT), `429` (RESOURCE_EXHAUSTED) o `503` (PROVIDER_UNAVAILABLE) en fallos totales, y reservando `207 Multi-Status` solo para resultados parciales genuinos.
+* **Manejo de Estado Dual (`AgentState` y `FormatState`):** Memoria compartida donde las fallas de la API (ej. cuota) se aíslan y reportan instantáneamente, mientras que los fallos de salida del modelo activan reintentos automáticos configurables.
+
+## Novedades Previas: Sprint 3 (Retrieval V2)
+* **Búsqueda Híbrida + RRF:** Búsqueda semántica combinada con lexical (BM25) y Cross-Encoder.
+* **Inyección Dinámica de Nicho:** El parámetro `niche` adapta los conceptos clave y prerrequisitos estrictamente al dominio solicitado.
 
 ---
 
 ## Estructura del Módulo
 
     agentes/
-    ├── agent_v1.py            # Orquestador principal (Llamada atómica a Metadatos y Formatos)
-    ├── api.py                 # Endpoints FastAPI y Contratos Estructurales (Pydantic)
-    ├── requirements.txt
-    ├── rag/
-    │   ├── config.py          # Configuración centralizada (chunk_size, top_k, modelo)
-    │   ├── models.py          # Document, Chunk, SearchResult
-    │   ├── cleaner.py         # Limpieza conservadora (Filtros Regex para PDFs)
-    │   ├── extractor.py       # Extracción de formato .pdf/.md/.txt
-    │   ├── chunker.py         # Segmentación para documentos nuevos
-    │   ├── embeddings.py      # MultilingualEmbedding (sentence-transformers)
-    │   ├── vector_store.py    # VectorStore (ChromaDB + BM25 + CrossEncoder)
-    │   ├── retriever.py       # RetrieverService: Gestión de flujos y prefiltrado
-    │   └── contract.py        # Builders del contrato de evaluación v2.0
-    └── tests/
-        ├── test_rag.py        # Suite de pruebas base
-        └── test_retrieval_v2.py # Pruebas del motor híbrido con EphemeralClient
+    ├── rag/                           # RAG Core (Motor de Ingesta y Recuperación)
+    │   ├── chunker.py                 # Segmentación de documentos en fragmentos[cite: 11]
+    │   ├── chunks_loader.py           # Utilidad para carga estructurada de fragmentos[cite: 11]
+    │   ├── cleaner.py                 # Limpieza de texto y aplicación de filtros regex[cite: 11]
+    │   ├── config.py                  # Configuración centralizada (chunk_size, top_k, modelo)[cite: 11]
+    │   ├── contract.py                # Builders y tipificación del contrato de evaluación[cite: 11]
+    │   ├── embeddings.py              # Servicio de generación de embeddings (MultilingualEmbedding)[cite: 11]
+    │   ├── extractor.py               # Lógica de extracción de texto desde archivos (.pdf, .md, .txt)[cite: 11]
+    │   ├── models.py                  # Modelos de datos del RAG (Document, Chunk, SearchResult)[cite: 11]
+    │   ├── pipeline.py                # Flujos de ingesta (ej. ingest_file, ingest_ground_truth_v1)[cite: 11]
+    │   ├── retriever.py               # Motor de búsqueda (Retrieval híbrido y prefiltrado)[cite: 11]
+    │   └── vector_store.py            # Gestión e interfaz de la base de datos vectorial (ChromaDB)[cite: 11]
+    ├── tests/                         # Suite de pruebas automatizadas (pytest)
+    │   ├── conftest.py                # Fixtures globales y configuración de pytest
+    │   ├── test_agente.py             # Pruebas generales del agente
+    │   ├── test_api_metadata.py       # Extracción y fallback de metadatos pedagógicos
+    │   ├── test_api_revise.py         # Flujos de corrección y nueva evidencia
+    │   ├── test_error_propagation.py  # Suite de fallos HTTP y recuperación de estado
+    │   ├── test_evaluation_endpoints.py # Tests de los endpoints de evaluación Data/IA
+    │   ├── test_generation_formats.py # Generación atómica de quiz, flashcards, tldr y scripts
+    │   ├── test_graph.py              # Pruebas del orquestador Map-Reduce de LangGraph
+    │   ├── test_integration_niche.py  # Pruebas de inyección dinámica de dominios
+    │   ├── test_nodes.py              # Validación aislada de nodos
+    │   ├── test_rag.py                # Suite de pruebas base del RAG
+    │   ├── test_retrieval_v2.py       # Pruebas del motor híbrido y ChromaDB
+    │   └── test_state.py              # Pruebas de transición de AgentState y FormatState
+    ├── agent_v1.py                    # Orquestador base e integrador de Gemini
+    ├── api.py                         # Endpoints FastAPI y Contratos HTTP/Pydantic
+    ├── chunks_v1.csv                  # Datos de particiones para pruebas y evaluación
+    ├── Dockerfile                     # Configuración para despliegue en contenedores
+    ├── errors.py                      # Tipificación y mapeo de excepciones/códigos HTTP
+    ├── evaluator_contract.py          # Contratos de evaluación semántica V2 (Data/IA)
+    ├── generar_lote.py                # Script utilitario para procesamiento por lotes
+    ├── generated_schemas.py           # Esquemas Pydantic para los formatos (Flashcards, Quiz, etc.)
+    ├── generated_schemas_propuesta.py # Propuestas y borradores de esquemas
+    ├── graph.py                       # Grafos de LangGraph (Map-Reduce y Subgrafos de formato)
+    ├── ground_truth_v1.csv            # Dataset de referencia (Ground Truth) para métricas RAG
+    ├── nodes.py                       # Nodos individuales del grafo (Revisor, Redactor, etc.)
+    ├── README.md                      # Documentación técnica del módulo
+    └── requirements.txt               # Dependencias del entorno
 
 ---
 
@@ -40,89 +68,44 @@ Durante esta fase, la arquitectura evolucionó para garantizar resultados precis
 
 1. Crea un archivo `.env` en la **raíz principal del proyecto**:
     
+    ```env
     GEMINI_API_KEY="api_key_aqui"
     GEMINI_MODEL="gemini-3.5-flash-lite"
+    GRAPH_MAX_CONCURRENCY=3
+    ```
 
 2. Instala las dependencias aisladas del módulo:
     
+    ```bash
     python -m venv .venv
     source .venv/bin/activate   # Windows: .venv\Scripts\activate
     pip install -r agentes/requirements.txt
+    ```
 
 3. Levanta el servidor usando Uvicorn:
     
+    ```bash
     uvicorn agentes.api:app --reload --port 8001
-    
+    ```
     Accede a la interfaz interactiva (Swagger UI) en: http://127.0.0.1:8001/docs
-
----
-
-## Modos de Carga del Vector Store
-
-### 1. Corpus congelado de Ground Truth (Benchmark)
-Uso exclusivo para evaluación de métricas de Data/IA. Preserva exactamente `chunk_id`, texto y límites.
-
-    from agentes.rag.vector_store import VectorStore
-    from agentes.rag.embeddings import MultilingualEmbedding
-    from agentes.rag.pipeline import ingest_ground_truth_v1
-
-    vector_store = VectorStore(path="./chroma_db", collection_name="benchmark_v2", embedding_service=MultilingualEmbedding())
-    ingest_ground_truth_v1("./Data_IA/data/evaluation/chunks_v1.csv", vector_store)
-
-### 2. Documentos nuevos (API)
-Uso para contenido dinámico de la plataforma:
-
-    from agentes.rag.pipeline import ingest_file
-    ingest_file("manual.pdf", vector_store)
 
 ---
 
 ## Contratos de Datos y API v1
 
-### 1. Evaluación Data/IA (Contrato V2.0)
-El método `answer_for_evaluation()` permite evaluar Recall@K y Precision@K aplicando filtros de metadatos.
+### 1. Integración Backend (POST `/api/v1/generate`)
+Endpoint de generación orquestado por LangGraph. Genera `learning_metadata` a nivel raíz y la generación concurrente en `results`. Respeta los códigos `404`, `429`, `503` para fallos totales, y `207` para resultados mixtos.
 
-    response = agent.answer_for_evaluation(
-        case_id="CLD-ES-001-Q01",
-        query="¿Qué es Kubernetes?",
-        top_k=5,
-        metadata_filters={"document_id": "doc_123"}
-    )
+### 2. Revisión Continua (POST `/api/v1/revise`)
+Recibe feedback desde el evaluador de Data/IA e invoca el subgrafo. Si se detectan afirmaciones sin contexto, el grafo va a ChromaDB por nueva evidencia automáticamente.
 
-### 2. Integración Backend (POST /api/v1/generate)
-Endpoint de generación. Recibe un JSON con `document_id`, `niche` y los formatos solicitados. Retorna `learning_metadata` a nivel raíz y la generación en `results`.
-
-Ejemplo de respuesta exitosa (status: "success"):
-
-    {
-      "document_id": "doc_123",
-      "learning_metadata": {
-        "key_concepts": ["Concepto 1", "Concepto 2", "Concepto 3"],
-        "prerequisites": ["Conocimiento previo fundamental"],
-        "estimated_time_minutes": 15
-      },
-      "results": [
-        {
-          "format": "quiz",
-          "status": "success",
-          "content": { "title": "...", "instructions": "...", "questions": [...] },
-          "sources_used": [ { "rank": 1, "chunk_id": "...", "score": 4.12, "text": "..." } ],
-          "error_message": null
-        },
-        {
-          "format": "flashcards",
-          "status": "success",
-          "content": { "title": "...", "instructions": "...", "cards": [...] },
-          "sources_used": [ { "rank": 1, "chunk_id": "...", "score": 3.84, "text": "..." } ],
-          "error_message": null
-        }
-      ]
-    }
+### 3. Evaluación Data/IA (Contrato V2.0)
+Endpoints de evaluación (`/evaluate/retrieval` y `/evaluate/retrieval/batch`) para testear el performance del híbrido RAG.
 
 ---
 
 ## Ejecución de Pruebas Automatizadas (QA)
 
-El módulo cuenta con una suite completa de pruebas unitarias y de integración que validan el Vector Store, el filtrado real de metadatos, el reranking, la inyección de nichos y la integridad de los contratos Pydantic.
+El módulo cuenta con una suite que valida el comportamiento end-to-end del grafo, inyección de nichos y propagación correcta de los códigos HTTP ante caídas de red o cuota.
 
     python -m pytest agentes/tests/
