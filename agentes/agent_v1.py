@@ -4,13 +4,13 @@ import random
 import logging
 import json
 from pathlib import Path, PureWindowsPath
-from typing import Optional
+from typing import Optional, List
 
 from dotenv import load_dotenv
 from google import genai
 from google.genai import types
 from google.genai import errors as genai_errors
-from pydantic import ValidationError
+from pydantic import BaseModel, Field, ValidationError
 
 from .rag.retriever import RetrieverService
 from .errors import InvalidModelOutputError, build_error, classify_exception
@@ -51,12 +51,21 @@ ESQUEMAS_POR_FORMATO = {
     "video_script": VideoScriptContent,
 }
 
+# 1. Descripción semántica: Esquema interno para extraer short_description y document_title sin romper el Backend
+class InternalExtractionMetadata(BaseModel):
+    document_title: str = Field(description="Título generado semánticamente")
+    key_concepts: List[str] = Field(description="Lista de conceptos clave")
+    prerequisites: List[str] = Field(description="Prerrequisitos recomendados")
+    estimated_time_minutes: int = Field(description="Tiempo estimado")
+    short_description: str = Field(description="Descripción corta del documento")
+
 
 def _titulo_desde_resultados(resultados) -> Optional[str]:
     for res in resultados or []:
         meta = res.get("metadata", {}) if isinstance(res, dict) else getattr(res, "metadata", {})
         if isinstance(meta, dict):
-            for clave in ("source", "filename", "file_name", "title"):
+            # Priorizamos nombres de archivo sobre títulos genéricos
+            for clave in ("filename", "file_name", "source", "title"):
                 valor = meta.get(clave)
                 if valor:
                     return PureWindowsPath(str(valor)).name
@@ -182,7 +191,7 @@ class AgentV1:
         try:
             prompt_metadata = f"""
             Analiza el siguiente contexto enfocado estrictamente en el nicho temático: '{niche}'.
-            Extrae OBLIGATORIAMENTE los metadatos pedagógicos adaptados a este nicho utilizando estrictamente el esquema LearningMetadata:
+            Extrae OBLIGATORIAMENTE los metadatos pedagógicos adaptados a este nicho utilizando estrictamente el siguiente esquema:
             - document_title: Genera un título descriptivo y profesional que identifique claramente el tema principal (con ortografía, tildes y uso natural de mayúsculas). No uses el nombre del archivo.
             - key_concepts: Lista exacta de 3 a 5 conceptos técnicos o ideas principales específicos de {niche}.
             - prerequisites: Lista de 1 a 3 conocimientos previos recomendados.
@@ -193,21 +202,29 @@ class AgentV1:
             {contexto}
             """
 
-            parsed_content = _generate_and_parse(
+            # Utilizamos InternalExtractionMetadata para obtener document_title y short_description
+            parsed_internal = _generate_and_parse(
                 prompt=prompt_metadata,
-                schema=LearningMetadata,
+                schema=InternalExtractionMetadata,
                 temperature=0.1
             )
+            
+            # Formateamos el contenido de acuerdo al LearningMetadata original (sin document_title ni short_description)
+            parsed_content = {
+                "key_concepts": parsed_internal.get("key_concepts", []),
+                "prerequisites": parsed_internal.get("prerequisites", []),
+                "estimated_time_minutes": parsed_internal.get("estimated_time_minutes", 0),
+            }
 
-            descripcion = (parsed_content.pop("short_description", None) or "").strip()
+            descripcion = (parsed_internal.get("short_description", "")).strip()
             if not descripcion and parsed_content.get("key_concepts"):
                 conceptos = parsed_content["key_concepts"][:3]
                 descripcion = f"Documento enfocado en: {', '.join(conceptos)}."
             if not descripcion:
                 descripcion = "Documento analizado y estructurado pedagógicamente."
 
-            titulo_generado = parsed_content.get("document_title") or titulo or "Título no generado"
-            parsed_content["document_title"] = titulo_generado
+            # Erradicamos el "Título no generado". Si falla Gemini, usamos el titulo extraído de ChromaDB.
+            titulo_generado = parsed_internal.get("document_title") or titulo
 
             return {
                 "status": "success",
@@ -227,14 +244,13 @@ class AgentV1:
         return {
             "status": "failed",
             "content": {
-                "document_title": titulo or "Título no generado",
                 "key_concepts": ["Error al extraer conceptos"],
                 "prerequisites": ["No se pudieron determinar"],
                 "estimated_time_minutes": 0
             },
             "error_message": f"Error Gemini/Parse en metadatos: {str(e)}",
             "error": classify_exception(e),
-            "document_title": titulo,
+            "document_title": titulo, # Erradicado el "Título no generado"
             "document_description": None,
         }
 

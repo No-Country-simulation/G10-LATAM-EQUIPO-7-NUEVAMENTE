@@ -6,26 +6,15 @@ from agentes.api import app
 client = TestClient(app)
 
 SUCCESS_METADATA = {
-    "status": "success",
-    "content": {
-        "document_title": "Guía de Python",
-        "key_concepts": ["Listas", "Diccionarios", "Funciones"],
-        "prerequisites": ["Lógica básica"],
-        "estimated_time_minutes": 15
-    }
+    "key_concepts": ["Listas", "Diccionarios", "Funciones"],
+    "prerequisites": ["Lógica básica"],
+    "estimated_time_minutes": 15
 }
 
 FAILED_METADATA = {
-    "status": "failed",
-    "content": None,
-    "error_message": "Timeout del LLM",
-    "error": {
-        "code": "PROVIDER_TIMEOUT",
-        "message": "Timeout del LLM",
-        "retryable": True,
-        "http_status": 504,
-        "provider": "gemini"
-    }
+    "key_concepts": ["Error al extraer conceptos"],
+    "prerequisites": ["No se pudieron determinar"],
+    "estimated_time_minutes": 0
 }
 
 SUCCESS_QUIZ = {
@@ -46,10 +35,13 @@ SUCCESS_FLASHCARDS = {
 
 @patch("agentes.api.ejecutar_grafo")
 def test_generate_endpoint_root_metadata_success(mock_ejecutar):
-    """Verifica que learning_metadata viaje en la raíz usando LangGraph."""
+    """Verifica que learning_metadata viaje en la raíz y use claves reales de LangGraph."""
     mock_ejecutar.return_value = {
-        "metadata_result": SUCCESS_METADATA,
-        "format_results": [SUCCESS_QUIZ, SUCCESS_FLASHCARDS]
+        "learning_metadata_status": "success",
+        "learning_metadata": SUCCESS_METADATA,
+        "document_title": "Guía de Python",
+        "document_description": "Descripción semántica de la guía",
+        "final_results": [SUCCESS_QUIZ, SUCCESS_FLASHCARDS]
     }
     
     payload = {
@@ -63,16 +55,17 @@ def test_generate_endpoint_root_metadata_success(mock_ejecutar):
     response = client.post("/api/v1/generate", json=payload)
     assert response.status_code == 200
     data = response.json()
-    # CORRECCIÓN: Buscamos el título en la raíz, no dentro de learning_metadata
     assert data["document_title"] == "Guía de Python"
     assert len(data["results"]) == 2
 
 @patch("agentes.api.ejecutar_grafo")
 def test_generate_endpoint_metadata_fallback(mock_ejecutar):
-    """Verifica que si la extracción de metadatos falla, se devuelva 207 y el fallback."""
+    """Verifica que si la extracción de metadatos falla, se use el nombre original del archivo."""
     mock_ejecutar.return_value = {
-        "metadata_result": FAILED_METADATA,
-        "format_results": [SUCCESS_QUIZ]
+        "learning_metadata_status": "failed",
+        "learning_metadata": FAILED_METADATA,
+        "document_title": "manual_python.pdf", # Simulando que el fallback de agent_v1 rescató el archivo
+        "final_results": [SUCCESS_QUIZ]
     }
     
     payload = {
@@ -87,24 +80,22 @@ def test_generate_endpoint_metadata_fallback(mock_ejecutar):
     assert response.status_code == 207
     data = response.json()
     assert data["learning_metadata_status"] == "failed"
-    # CORRECCIÓN: Buscamos el título en la raíz
-    assert data["document_title"] == "Título no generado"
+    # Validamos que se devuelve el nombre original del archivo y no un ID genérico o un Título no generado
+    assert data["document_title"] == "manual_python.pdf"
 
 @patch("agentes.api.ejecutar_grafo")
 def test_niche_variation_affects_output(mock_ejecutar):
-    """Verifica que al cambiar el nicho, los metadatos reflejen el cambio (Simulado vía LangGraph)."""
+    """Verifica que los metadatos reflejen el cambio."""
     niche_metadata = {
-        "status": "success",
-        "content": {
-            "key_concepts": ["Apalancamiento", "Gestión de riesgo", "Margin call"],
-            "prerequisites": ["Matemáticas financieras básicas"],
-            "estimated_time_minutes": 20,
-            "document_title": "Finanzas Avanzadas"
-        }
+        "key_concepts": ["Apalancamiento", "Gestión de riesgo", "Margin call"],
+        "prerequisites": ["Matemáticas financieras básicas"],
+        "estimated_time_minutes": 20
     }
     mock_ejecutar.return_value = {
-        "metadata_result": niche_metadata,
-        "format_results": [SUCCESS_QUIZ]
+        "learning_metadata_status": "success",
+        "learning_metadata": niche_metadata,
+        "document_title": "Finanzas Avanzadas",
+        "final_results": [SUCCESS_QUIZ]
     }
     
     payload = {

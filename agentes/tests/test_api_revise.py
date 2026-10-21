@@ -1,6 +1,7 @@
 import pytest
 from fastapi.testclient import TestClient
 from agentes.api import app, _revision_cache
+from agentes.rag.models import SearchResult
 
 client = TestClient(app)
 
@@ -123,31 +124,48 @@ def test_revise_error_propagation(monkeypatch):
     assert r2.json()["sources_used"] == []
 
 def test_revise_includes_new_evidence_sources(monkeypatch):
-    """Prueba A de QA: Verifica conservación de fuentes viejas y nuevas aislando la respuesta de LangGraph."""
+    """Verifica que el Revisor usa Contrato V2 real y pasa la evidencia mixta al Generador."""
     
-    class MockGraph:
-        def invoke(self, state):
-            # ¡CORRECCIÓN! Extraemos usando la clave correcta que inyecta api.py en el state[cite: 8]
-            old_chunks = state.get("sources_used", [])
-            
-            # Simulamos que el grafo hizo el retrieval y las combinó exitosamente[cite: 8]
-            new_chunk = {
-                "chunk_id": "chunk_new_001",
-                "text": "Evidencia adicional recuperada.",
-                "score": 0.91,
-                "metadata": {"document_id": "doc_123"}
-            }
-            
-            return {
-                "outcome": {
-                    "status": "success",
-                    "content": {"title": "Quiz corregido"},
-                    "sources_used": old_chunks + [new_chunk],
-                    "error": None
-                }
-            }
-            
-    monkeypatch.setattr("agentes.api.compilar_subgrafo_formato", lambda x: MockGraph())
+    from agentes.api import agent
+    from agentes.rag.models import SearchResult
+    
+    retrieve_calls = []
+
+    def fake_retrieve(query, top_k=5, metadata_filters=None):
+        retrieve_calls.append({
+            "query": query,
+            "top_k": top_k,
+            "metadata_filters": metadata_filters
+        })
+        return [
+            SearchResult(
+                chunk_id="chunk_new_001",
+                text="Evidencia adicional recuperada.",
+                score=0.91,
+                metadata={"document_id": "doc_123", "source": "test.pdf"}
+            )
+        ]
+
+    monkeypatch.setattr(agent.retriever, "retrieve", fake_retrieve)
+
+    def fake_generate(**kwargs):
+        contexto = kwargs.get("contexto", "")
+        # Aserciones para confirmar que el contexto se mezcla
+        assert "Contexto original." in contexto
+        assert "Evidencia adicional recuperada." in contexto
+
+        sources = kwargs.get("sources_used", [])
+        serialized_sources = [
+            s.model_dump() if hasattr(s, "model_dump") else (s.__dict__ if hasattr(s, "__dict__") else s)
+            for s in sources
+        ]
+        return {
+            "status": "success",
+            "content": {"title": "Quiz corregido"},
+            "sources_used": serialized_sources
+        }
+
+    monkeypatch.setattr(agent, "generate_from_context", fake_generate)
     
     payload = payload_base("rev_new_evidence")
     payload["chunks_used"] = [
@@ -160,17 +178,46 @@ def test_revise_includes_new_evidence_sources(monkeypatch):
         }
     ]
     
-    response = client.post("/api/v1/revise", json=payload)
-    assert response.status_code == 200
-    body = response.json()
-    assert body["status"] == "success"
+    # Contrato oficial V2 inyectado (reemplaza la estructura vieja)
+    payload["evaluator_response"] = {
+        "document_id": "doc_123",
+        "format": "quiz",
+        "verdict": "requires_revision",
+        "heuristic_scores": {
+            "relevance": 4.0, "coherence": 4.0, "didactic_adaptation": 4.0, "content_support": 2.0
+        },
+        "semantic_evaluation": {
+            "status": "success",
+            "scores": {
+                "relevance": 4.0, "coherence": 4.0, "didactic_adaptation": 4.0, "content_support": 2.0
+            },
+            "observations": [
+                {
+                    "dimension": "content_support",
+                    "severity": "high",
+                    "message": "La afirmación requiere más respaldo contextual."
+                }
+            ],
+            "recommendations": [],
+            "unsupported_information": [],
+        },
+        "evaluator_version": "test-v2",
+        "rubric_version": "test-v2",
+    }
     
+    response = client.post("/api/v1/revise", json=payload)
+    
+    assert response.status_code == 200
+    assert len(retrieve_calls) == 1
+    
+    filtros = retrieve_calls[0].get("metadata_filters")
+    assert filtros.get("document_id") == "doc_123"
+
+    body = response.json()
     source_ids = {
         source.get("chunk_id")
         for source in body["sources_used"]
         if isinstance(source, dict) and "chunk_id" in source
     }
-    
-    # Validamos que el endpoint de la API propagó correctamente todo al frontend/backend[cite: 8]
-    assert "chunk_old_001" in source_ids, "El API perdió la fuente original al serializar."
-    assert "chunk_new_001" in source_ids, "El API NO propagó la nueva fuente inyectada por el grafo."
+    assert "chunk_old_001" in source_ids, "El grafo perdió la fuente original."
+    assert "chunk_new_001" in source_ids, "El grafo NO propagó la nueva fuente recuperada."

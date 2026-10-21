@@ -59,12 +59,10 @@ _revision_cache: Dict[str, Dict[str, Any]] = {}
 
 def _metadata_fallback() -> Dict[str, Any]:
     return {
-        "document_title": "Título no generado",
         "key_concepts": ["Error al extraer conceptos"],
         "prerequisites": ["No se pudieron determinar"],
         "estimated_time_minutes": 0
     }
-
 
 def _normalizar_feedback_revision(
     evaluacion: Dict[str, Any],
@@ -117,7 +115,6 @@ def _normalizar_feedback_revision(
         "rubric_version": None,
     }
 
-
 class GenerateRequest(BaseModel):
     document_id: str = Field(..., min_length=1)
     formats: List[str] = Field(default_factory=list)
@@ -127,7 +124,6 @@ class GenerateRequest(BaseModel):
     learning_objective: Optional[str] = None
     query: Optional[str] = Field(None)
 
-
 class ErrorDetail(BaseModel):
     code: str = Field(..., description="Causa normalizada.")
     message: str = Field(..., description="Detalle corto.")
@@ -135,7 +131,6 @@ class ErrorDetail(BaseModel):
     http_status: int = Field(..., description="Código HTTP.")
     upstream_status: Optional[int] = Field(None)
     provider: str = Field(..., description="gemini o internal.")
-
 
 class FormatResult(BaseModel):
     format: str
@@ -145,7 +140,6 @@ class FormatResult(BaseModel):
     error_message: Optional[str] = None
     error: Optional[ErrorDetail] = None
     execution_time_seconds: float
-
 
 class GenerateResponse(BaseModel):
     document_id: str
@@ -158,13 +152,11 @@ class GenerateResponse(BaseModel):
     learning_metadata_error: Optional[ErrorDetail] = None
     results: List[FormatResult]
 
-
 class GenerationContext(BaseModel):
     profile: str
     niche: str
     detail_level: str
     learning_objective: Optional[str] = None
-
 
 class ReviseRequest(BaseModel):
     revision_id: str
@@ -175,7 +167,6 @@ class ReviseRequest(BaseModel):
     previous_content: Dict[str, Any]
     chunks_used: List[Dict[str, Any]]
     evaluator_response: Dict[str, Any]
-
 
 class ReviseResponse(BaseModel):
     revision_id: str
@@ -189,7 +180,6 @@ class ReviseResponse(BaseModel):
     error: Optional[ErrorDetail] = None
     execution_time_seconds: float
 
-
 class IndexResponse(BaseModel):
     document_id: str
     status: Literal["indexed"]
@@ -197,12 +187,10 @@ class IndexResponse(BaseModel):
     chunks_indexed: int = Field(..., description="Cantidad de fragmentos.")
     short_description: str = Field(..., description="Descripción corta del documento.")
 
-
 class DeleteResponse(BaseModel):
     document_id: str
     status: Literal["deleted", "not_found"]
     chunks_deleted: int
-
 
 class HealthResponse(BaseModel):
     status: Literal["ok", "degraded"]
@@ -210,14 +198,12 @@ class HealthResponse(BaseModel):
     gemini_key_configured: bool
     vector_store_ok: bool
 
-
 class RetrievalEvalCase(BaseModel):
     model_config = ConfigDict(extra="forbid")
     case_id: str = Field(..., min_length=1, max_length=128)
     query: str = Field(..., min_length=1)
     top_k: int = Field(5, ge=1, le=50)
     metadata_filters: Optional[Dict[str, Any]] = None
-
 
 class RetrievedChunk(BaseModel):
     rank: int
@@ -227,11 +213,9 @@ class RetrievedChunk(BaseModel):
     text: str
     metadata: Dict[str, Any]
 
-
 class RetrievalError(BaseModel):
     code: str
     message: str
-
 
 class RetrievalEvalResult(BaseModel):
     contract_version: str
@@ -243,11 +227,9 @@ class RetrievalEvalResult(BaseModel):
     results: List[RetrievedChunk]
     error: Optional[RetrievalError] = None
 
-
 class RetrievalEvalBatchRequest(BaseModel):
     model_config = ConfigDict(extra="forbid")
     cases: List[RetrievalEvalCase] = Field(..., min_length=1, max_length=100)
-
 
 class RetrievalEvalBatchResponse(BaseModel):
     overall_status: Literal["success", "partial", "failed"]
@@ -256,7 +238,6 @@ class RetrievalEvalBatchResponse(BaseModel):
     failed: int
     execution_time_seconds: float
     results: List[RetrievalEvalResult]
-
 
 _DESCRIPCION_EVAL = {
     207: "Lote con casos exitosos y casos con status=error.",
@@ -280,7 +261,6 @@ RESPUESTAS_DOC = {
     codigo: {"model": GenerateResponse, "description": texto}
     for codigo, texto in _DESCRIPCION_HTTP.items()
 }
-
 
 @app.post("/api/v1/index", response_model=IndexResponse)
 async def index_document(document_id: str = Form(...), file: UploadFile = File(...)):
@@ -319,7 +299,6 @@ async def index_document(document_id: str = Form(...), file: UploadFile = File(.
     except Exception as e:
         logger.exception("Error interno al indexar")
         raise HTTPException(status_code=500, detail="Error interno al indexar el documento.")
-
 
 @app.post(
     "/api/v1/generate",
@@ -364,8 +343,9 @@ def generate_formats(payload: GenerateRequest):
                 if k not in learning_metadata:
                     learning_metadata[k] = v
 
-        # Extraer y remover document_title de learning_metadata para cumplir con extra="forbid"
+        # Extraer y remover document_title y document_description de learning_metadata para cumplir con extra="forbid"
         extracted_title = learning_metadata.pop("document_title", None)
+        extracted_description = learning_metadata.pop("document_description", None)
 
         meta_status = (
             final_state.get("learning_metadata_status") 
@@ -373,11 +353,13 @@ def generate_formats(payload: GenerateRequest):
             or ("success" if meta_raw and not meta_raw.get("error") else "failed")
         )
 
-        # Manejo estricto del título en la raíz según el estado de los metadatos
+        # Manejo estricto del título en la raíz según el estado de los metadatos y el fallback al nombre de archivo
         if meta_status != "success":
-            titulo_crudo = "Título no generado"
+            titulo_crudo = final_state.get("document_title") or payload.document_id
         else:
-            titulo_crudo = extracted_title or final_state.get("document_title") or "Guía de Python"
+            titulo_crudo = extracted_title or final_state.get("document_title") or payload.document_id
+            
+        descripcion_cruda = extracted_description or final_state.get("document_description")
         
         meta_error = final_state.get("learning_metadata_error") or (meta_raw.get("error") if isinstance(meta_raw, dict) else None)
 
@@ -442,7 +424,7 @@ def generate_formats(payload: GenerateRequest):
             "document_id": payload.document_id,
             "overall_status": overall_status,
             "document_title": titulo_crudo,
-            "document_description": final_state.get("document_description"),
+            "document_description": descripcion_cruda,
             "execution_time_seconds": round(time.perf_counter() - inicio, 3),
             "learning_metadata": learning_metadata,
             "learning_metadata_status": meta_status,
@@ -459,7 +441,6 @@ def generate_formats(payload: GenerateRequest):
     except Exception as e:
         logger.exception("Error inesperado en /generate con LangGraph")
         raise HTTPException(status_code=500, detail="Error interno del servidor en el motor de agentes.")
-
 
 @app.post(
     "/api/v1/revise",
@@ -513,7 +494,7 @@ def revise_format(payload: ReviseRequest):
             document_id=payload.document_id,
             formato=payload.format,
         )
-
+        
         initial_format_state = {
             "format": payload.format,
             "document_id": payload.document_id,
@@ -611,7 +592,6 @@ def revise_format(payload: ReviseRequest):
         http_code = error_detail.get("http_status", 500) if isinstance(error_detail, dict) else 500
         return _cache_and_return(http_code, respuesta_validada.model_dump(mode="json"))
 
-
 def _evaluar_caso(caso: RetrievalEvalCase) -> Dict[str, Any]:
     if not caso.case_id.strip():
         return build_error_response(
@@ -630,7 +610,6 @@ def _evaluar_caso(caso: RetrievalEvalCase) -> Dict[str, Any]:
             "RETRIEVAL_FAILED", f"{type(e).__name__}: {e}"
         )
 
-
 @app.post(
     "/api/v1/evaluate/retrieval",
     response_model=RetrievalEvalResult,
@@ -640,7 +619,6 @@ def _evaluar_caso(caso: RetrievalEvalCase) -> Dict[str, Any]:
 def evaluate_retrieval(caso: RetrievalEvalCase):
     payload = _evaluar_caso(caso)
     return JSONResponse(status_code=http_evaluacion_caso(payload), content=jsonable_encoder(payload))
-
 
 @app.post(
     "/api/v1/evaluate/retrieval/batch",
@@ -663,7 +641,6 @@ def evaluate_retrieval_batch_endpoint(lote: RetrievalEvalBatchRequest):
     }
     return JSONResponse(status_code=http_status, content=jsonable_encoder(cuerpo))
 
-
 @app.get("/api/v1/health", response_model=HealthResponse, summary="Estado del servicio")
 def health():
     vector_ok = True
@@ -679,7 +656,6 @@ def health():
         "gemini_key_configured": key_ok,
         "vector_store_ok": vector_ok,
     }
-
 
 @app.delete(
     "/api/v1/documents/{document_id}",

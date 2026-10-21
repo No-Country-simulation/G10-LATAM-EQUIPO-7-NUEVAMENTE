@@ -116,6 +116,7 @@ def crear_nodo_metadatos(agente: AgentV1) -> Callable[[AgentState], Dict[str, An
             "learning_metadata_status": r.get("status", "failed"),
             "learning_metadata_error": None if exito else r.get("error"),
             "document_description": r.get("document_description"),
+            "document_title": r.get("document_title"),
         }
 
     return nodo_metadatos
