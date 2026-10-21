@@ -172,3 +172,97 @@ def test_graph_conserves_filename_on_metadata_failure(monkeypatch):
     data = response.json()
     assert data["learning_metadata_status"] == "failed"
     assert data["document_title"] == "manual_python.pdf", "El grafo perdió el nombre del archivo durante el flujo."
+
+@patch("agentes.api.ejecutar_grafo")
+def test_generate_endpoint_404_no_context(mock_ejecutar):
+    """Verifica que si el RAG falla por NO_CONTEXT, retorne HTTP 404."""
+    mock_ejecutar.return_value = {
+        "learning_metadata_status": "no_results",
+        "learning_metadata_error": {"code": "NO_CONTEXT", "message": "Sin contexto", "retryable": False, "http_status": 404, "provider": "internal"},
+        "document_title": "doc.pdf",
+        "final_results": [{"format": "quiz", "status": "no_results", "error": {"code": "NO_CONTEXT", "message": "Sin contexto", "retryable": False, "http_status": 404, "provider": "internal"}}]
+    }
+    
+    payload = {
+        "document_id": "doc_test_123",
+        "formats": ["quiz"],
+        "profile": "estudiante",
+        "niche": "general",
+        "detail_level": "básico"
+    }
+    
+    response = client.post("/api/v1/generate", json=payload)
+    assert response.status_code == 404
+    assert response.json()["overall_status"] == "failed"
+
+@patch("agentes.api.ejecutar_grafo")
+def test_generate_endpoint_429_metadata_success_format_exhausted(mock_ejecutar):
+    """Verifica que si los metadatos tienen éxito, pero la generación falla por cuota, retorne HTTP 429 y no 207."""
+    mock_ejecutar.return_value = {
+        "learning_metadata_status": "success",
+        "learning_metadata": SUCCESS_METADATA,
+        "document_title": "Guía de Python",
+        "final_results": [{"format": "quiz", "status": "failed", "error": {"code": "RESOURCE_EXHAUSTED", "message": "Cuota excedida", "retryable": True, "http_status": 429, "provider": "gemini"}}]
+    }
+    
+    payload = {
+        "document_id": "doc_test_123",
+        "formats": ["quiz"],
+        "profile": "estudiante",
+        "niche": "general",
+        "detail_level": "básico"
+    }
+    
+    response = client.post("/api/v1/generate", json=payload)
+    assert response.status_code == 429
+    assert response.json()["overall_status"] == "failed"
+    assert response.json()["results"][0]["error"]["code"] == "RESOURCE_EXHAUSTED"
+
+@patch("agentes.api.ejecutar_grafo")
+def test_generate_endpoint_207_mixed_results(mock_ejecutar):
+    """Verifica el fallo parcial: un formato exitoso y uno fallido retornan 207."""
+    mock_ejecutar.return_value = {
+        "learning_metadata_status": "success",
+        "learning_metadata": SUCCESS_METADATA,
+        "document_title": "Guía de Python",
+        "final_results": [
+            SUCCESS_QUIZ,
+            {"format": "flashcards", "status": "failed", "error": {"code": "PROVIDER_UNAVAILABLE", "message": "Gemini caído", "retryable": True, "http_status": 503, "provider": "gemini"}}
+        ]
+    }
+    
+    payload = {
+        "document_id": "doc_test_123",
+        "formats": ["quiz", "flashcards"],
+        "profile": "estudiante",
+        "niche": "general",
+        "detail_level": "básico"
+    }
+    
+    response = client.post("/api/v1/generate", json=payload)
+    assert response.status_code == 207
+    data = response.json()
+    assert data["overall_status"] == "partial"
+    assert data["results"][0]["status"] == "success"
+    assert data["results"][1]["status"] == "failed"
+
+@patch("agentes.api.ejecutar_grafo")
+def test_generate_endpoint_503_provider_unavailable(mock_ejecutar):
+    """Verifica que si el proveedor falla, retorne HTTP 503."""
+    mock_ejecutar.return_value = {
+        "learning_metadata_status": "failed",
+        "learning_metadata_error": {"code": "PROVIDER_UNAVAILABLE", "message": "Gemini caído", "retryable": True, "http_status": 503, "provider": "gemini"},
+        "document_title": "doc.pdf",
+        "final_results": [{"format": "quiz", "status": "failed", "error": {"code": "PROVIDER_UNAVAILABLE", "message": "Gemini caído", "retryable": True, "http_status": 503, "provider": "gemini"}}]
+    }
+    
+    payload = {
+        "document_id": "doc_test_123",
+        "formats": ["quiz"],
+        "profile": "estudiante",
+        "niche": "general",
+        "detail_level": "básico"
+    }
+    
+    response = client.post("/api/v1/generate", json=payload)
+    assert response.status_code == 503

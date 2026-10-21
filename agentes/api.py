@@ -405,11 +405,15 @@ def generate_formats(payload: GenerateRequest):
 
         total_formats = len(payload.formats)
         
+        # Mapeo estricto del estado HTTP
         if exitosas == total_formats and meta_status == "success":
             http_status = 200
-        elif exitosas == 0 and meta_status != "success":
+        elif exitosas == 0:
+            # Mapeo de errores correcto independientemente de meta_status
             codigos_error = [err.get("code") for err in errores if isinstance(err, dict)]
-            if any(c == "RESOURCE_EXHAUSTED" for c in codigos_error):
+            if any(c == "NO_CONTEXT" for c in codigos_error):
+                http_status = 404
+            elif any(c == "RESOURCE_EXHAUSTED" for c in codigos_error):
                 http_status = 429
             elif any(c == "PROVIDER_UNAVAILABLE" for c in codigos_error):
                 http_status = 503
