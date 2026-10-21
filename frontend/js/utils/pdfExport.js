@@ -16,7 +16,7 @@ import { notifySuccess, notifyWarning, notifyError } from '../modules/notificati
 function safeNotifySuccess(title, msg) {
   try {
     if (typeof window !== 'undefined' && typeof document !== 'undefined') {
-      safeNotifySuccess(title, msg);
+      notifySuccess(title, msg);
     }
   } catch {}
 }
@@ -24,7 +24,7 @@ function safeNotifySuccess(title, msg) {
 function safeNotifyWarning(title, msg) {
   try {
     if (typeof window !== 'undefined' && typeof document !== 'undefined') {
-      safeNotifyWarning(title, msg);
+      notifyWarning(title, msg);
     }
   } catch {}
 }
@@ -32,7 +32,7 @@ function safeNotifyWarning(title, msg) {
 function safeNotifyError(title, msg) {
   try {
     if (typeof window !== 'undefined' && typeof document !== 'undefined') {
-      safeNotifyError(title, msg);
+      notifyError(title, msg);
     }
   } catch {}
 }
