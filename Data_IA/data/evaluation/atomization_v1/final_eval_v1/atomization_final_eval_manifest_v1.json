@@ -1,0 +1,31 @@
+{
+  "version": "atomization-final-eval-v1",
+  "source_ground_truth": "data\\evaluation\\calibration_v1\\results\\content_support_claim_ground_truth_v1.csv",
+  "development_dataset": "data\\evaluation\\atomization_v1\\atomization_dataset_v1.csv",
+  "validation_dataset": "data\\evaluation\\atomization_v1\\holdout_v1\\atomization_holdout_dataset_v1.csv",
+  "source_claim_count": 59,
+  "development_claim_count": 16,
+  "validation_claim_count": 20,
+  "final_eval_claim_count": 23,
+  "development_validation_overlap": 0,
+  "development_final_overlap": 0,
+  "validation_final_overlap": 0,
+  "complete_partition_verified": true,
+  "selection_policy": "all source claims remaining after development and validation exclusion",
+  "sampling_used": false,
+  "gemini_used_for_selection": false,
+  "model_results_used_for_selection": false,
+  "format_distribution": {
+    "quiz": 5,
+    "tldr": 17,
+    "video_script": 1
+  },
+  "human_support_distribution": {
+    "supported": 23
+  },
+  "annotation_priority_distribution": {
+    "low": 7,
+    "medium": 8,
+    "high": 8
+  }
+}

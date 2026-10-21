@@ -1,0 +1,27 @@
+dataset_id,atomization_class,atom_id,atom_order,atom_text,atom_type,expected_support,notes
+ATOM-V1-001,atomic,ATOM-V1-001-A01,1,Los agentes de IA pueden desplegar modelos en producción de forma autónoma sin supervisión humana.,factual_proposition,unsupported,El claim ya constituye una afirmación factual evaluable; los calificadores autónoma y sin supervisión humana se conservan.
+ATOM-V1-002,atomic,ATOM-V1-002-A01,1,El decorador cifra automáticamente todas las respuestas GET.,factual_proposition,unsupported,"Se conservan automáticamente y todas; la evidencia describe routing GET, no cifrado."
+ATOM-V1-003,atomic,ATOM-V1-003-A01,1,Usar etiquetas HTML mejora automáticamente el posicionamiento SEO de una página.,factual_proposition,unsupported,El claim ya es evaluable como una proposición; SEO no está respaldado.
+ATOM-V1-004,compound,ATOM-V1-004-A01,1,Los cuatro elementos mencionados son bloques fundamentales de JavaScript.,factual_proposition,supported,"Los chunks describen bucles, funciones, condicionales y eventos como bloques fundamentales."
+ATOM-V1-004,compound,ATOM-V1-004-A02,2,Los cuatro bloques no tienen una secuencia clara.,negation_or_absence,unsupported,La ausencia de una secuencia clara no está respaldada.
+ATOM-V1-005,relational,ATOM-V1-005-A01,1,El paradigma dirigido por eventos desacopla la ocurrencia notificable de la lógica reactiva que procesa dicha señal.,factual_proposition,unsupported,Se conserva como una única relación factual. No se introducen hechos derivados de chunks_used que no formen parte del source claim.
+ATOM-V1-006,atomic,ATOM-V1-006-A01,1,Kubernetes cifra automáticamente todo el tráfico del clúster por defecto.,factual_proposition,unsupported,"Se preservan automáticamente, todo y por defecto."
+ATOM-V1-007,relational,ATOM-V1-007-A01,1,La serie enseña conceptos básicos de la nube.,factual_proposition,supported,Proposición principal explícitamente respaldada.
+ATOM-V1-007,relational,ATOM-V1-007-A02,2,La enseñanza de conceptos básicos de la nube ocurre antes del evento o contexto referido.,temporal_relation,unsupported,Conserva el significado factual de 'Antes de eso'.
+ATOM-V1-008,relational,ATOM-V1-008-A01,1,La serie incluye ejercicios prácticos.,factual_proposition,supported,
+ATOM-V1-008,relational,ATOM-V1-008-A02,2,La serie presenta servicios de Azure.,factual_proposition,supported,
+ATOM-V1-008,relational,ATOM-V1-008-A03,3,Después se vuelve a los ejercicios y a los servicios de Azure.,temporal_relation,unsupported,La evidencia menciona ambos contenidos pero no establece la relación temporal de retorno.
+ATOM-V1-009,compound,ATOM-V1-009-A01,1,El módulo introduce los tipos de soluciones que la inteligencia artificial puede hacer posible.,factual_proposition,supported,
+ATOM-V1-009,compound,ATOM-V1-009-A02,2,El módulo considera prácticas de inteligencia artificial responsable.,factual_proposition,supported,
+ATOM-V1-010,atomic,ATOM-V1-010-A01,1,Crear solicitudes eficaces para LLM.,factual_proposition,supported,Claim ya mínimo para esta tarea.
+ATOM-V1-011,compound,ATOM-V1-011-A01,1,FastAPI es una clase.,factual_proposition,uncertain,chunks_used muestra la importación pero no declara explícitamente el tipo de símbolo FastAPI. Requiere adjudicación antes de congelar el GT.
+ATOM-V1-011,compound,ATOM-V1-011-A02,2,FastAPI se importa desde el paquete fastapi mediante 'from fastapi import FastAPI'.,factual_proposition,supported,Respaldado directamente por el código del chunk.
+ATOM-V1-012,compound,ATOM-V1-012-A01,1,El módulo enseña a almacenar y manipular datos en Python.,factual_proposition,supported,
+ATOM-V1-012,compound,ATOM-V1-012-A02,2,El módulo incluye el uso de variables.,factual_proposition,supported,
+ATOM-V1-012,compound,ATOM-V1-012-A03,3,El módulo incluye operaciones numéricas.,factual_proposition,supported,
+ATOM-V1-012,compound,ATOM-V1-012-A04,4,El módulo incluye conversión de tipos.,factual_proposition,supported,
+ATOM-V1-013,compound,ATOM-V1-013-A01,1,HTML es un lenguaje de marcado.,factual_proposition,supported,
+ATOM-V1-013,compound,ATOM-V1-013-A02,2,HTML indica a los navegadores web cómo estructurar las páginas que visitamos.,factual_proposition,supported,
+ATOM-V1-014,atomic,ATOM-V1-014-A01,1,"El contenido abarca funciones, eventos, bucles y condicionales.",factual_proposition,supported,La lista puede evaluarse como una unidad factual sin necesidad de generar cuatro átomos independientes.
+ATOM-V1-015,atomic,ATOM-V1-015-A01,1,El documento define Kubernetes como una plataforma portable y extensible de código abierto para administrar cargas de trabajo y servicios.,factual_proposition,supported,
+ATOM-V1-016,atomic,ATOM-V1-016-A01,1,La sección presenta opciones para comenzar con Azure.,factual_proposition,supported,"El chunk ofrece elegir cuenta, pago por uso o prueba gratuita."

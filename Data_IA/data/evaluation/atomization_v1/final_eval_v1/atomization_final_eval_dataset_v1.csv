@@ -1,0 +1,24 @@
+final_eval_id,calibration_id,source_claim_id,format,source_claim_text,human_support_label,annotation_priority,selection_reason
+FINAL-V1-001,CAL-V1-001,question_1_answer_claim_1,quiz,Los tipos de soluciones que la IA puede hacer posible y las prácticas de IA responsable,supported,low,all_remaining_untouched_claims
+FINAL-V1-002,CAL-V1-003,key_point_2_claim_1,tldr,Los LLM forman parte del módulo.,supported,medium,all_remaining_untouched_claims
+FINAL-V1-003,CAL-V1-003,summary_claim_1,tldr,El módulo espera considerar cómo crear solicitudes eficaces para los LLM.,supported,medium,all_remaining_untouched_claims
+FINAL-V1-004,CAL-V1-003,summary_claim_4,tldr,Crear solicitudes.,supported,low,all_remaining_untouched_claims
+FINAL-V1-005,CAL-V1-003,summary_claim_5,tldr,El objetivo aparece como una habilidad del módulo.,supported,medium,all_remaining_untouched_claims
+FINAL-V1-006,CAL-V1-004,scene_1_narration_claim_1,video_script,El módulo incluye conceptos básicos de agentes de IA y soluciones de inteligencia artificial agéntica.,supported,high,all_remaining_untouched_claims
+FINAL-V1-007,CAL-V1-006,conclusion_claim_1,tldr,@app.get('/') vincula una función con solicitudes GET dirigidas al path raíz.,supported,high,all_remaining_untouched_claims
+FINAL-V1-008,CAL-V1-006,key_point_1_claim_1,tldr,El path configurado es '/'.,supported,high,all_remaining_untouched_claims
+FINAL-V1-009,CAL-V1-006,summary_claim_1,tldr,El decorador @app.get('/') indica que la función situada debajo manejará solicitudes GET dirigidas al path raíz '/'.,supported,high,all_remaining_untouched_claims
+FINAL-V1-010,CAL-V1-009,conclusion_claim_1,tldr,Una habilidad central del módulo es almacenar y actualizar valores mediante variables.,supported,medium,all_remaining_untouched_claims
+FINAL-V1-011,CAL-V1-009,key_point_1_claim_1,tldr,Almacenar y actualizar valores mediante variables.,supported,low,all_remaining_untouched_claims
+FINAL-V1-012,CAL-V1-009,key_point_2_claim_1,tldr,Realizar operaciones aritméticas con números.,supported,low,all_remaining_untouched_claims
+FINAL-V1-013,CAL-V1-009,key_point_3_claim_1,tldr,Convertir entre tipos de datos mediante funciones integradas.,supported,low,all_remaining_untouched_claims
+FINAL-V1-014,CAL-V1-011,question_1_answer_claim_1,quiz,La agregación de datos.,supported,low,all_remaining_untouched_claims
+FINAL-V1-015,CAL-V1-011,question_1_explanation_claim_3,quiz,"Datos agregados, agregación; también agrupa y visualiza.",supported,medium,all_remaining_untouched_claims
+FINAL-V1-016,CAL-V1-014,question_1_answer_claim_1,quiz,Marcar partes del contenido para que aparezcan o actúen de cierta manera,supported,high,all_remaining_untouched_claims
+FINAL-V1-017,CAL-V1-016,key_point_1_claim_1,tldr,Una interacción de click sobre un botón puede actuar como disparador de una rutina de respuesta.,supported,high,all_remaining_untouched_claims
+FINAL-V1-018,CAL-V1-016,key_point_2_claim_1,tldr,La reacción asociada puede materializar información en un elemento de interfaz.,supported,high,all_remaining_untouched_claims
+FINAL-V1-019,CAL-V1-016,summary_claim_1,tldr,Los eventos constituyen ocurrencias observables del runtime cuya notificación habilita mecanismos reactivos de respuesta.,supported,high,all_remaining_untouched_claims
+FINAL-V1-020,CAL-V1-017,question_1_answer_claim_1,quiz,Una plataforma portable y extensible de código abierto para administrar cargas de trabajo y servicios,supported,low,all_remaining_untouched_claims
+FINAL-V1-021,CAL-V1-019,conclusion_claim_1,tldr,El foco aquí está en la preparación previa del estudiante antes de avanzar en la ruta.,supported,medium,all_remaining_untouched_claims
+FINAL-V1-022,CAL-V1-019,key_point_1_claim_1,tldr,Se mencionan conocimientos básicos de TI como requisito previo.,supported,medium,all_remaining_untouched_claims
+FINAL-V1-023,CAL-V1-019,summary_claim_1,tldr,La ruta indica como requisito previo contar con conocimientos básicos de términos y conceptos de TI.,supported,medium,all_remaining_untouched_claims

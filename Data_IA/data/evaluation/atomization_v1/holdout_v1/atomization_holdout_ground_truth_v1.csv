@@ -1,0 +1,27 @@
+holdout_id,review_status,atomization_class,atom_id,atom_order,atom_text,atom_type,review_notes
+HOLDOUT-V1-001,valid_claim,atomic,HOLDOUT-V1-001-A01,1,El objetivo es el objetivo de solicitudes para LLM que el módulo espera considerar.,factual_proposition,"Redacción ambigua, pero constituye una sola proposición. No se infiere significado adicional."
+HOLDOUT-V1-002,valid_claim,atomic,HOLDOUT-V1-002-A01,1,La respuesta es agregación porque agregación es el concepto preguntado.,causal_relation,La justificación causal forma una sola unidad factual evaluable.
+HOLDOUT-V1-003,valid_claim,atomic,HOLDOUT-V1-003-A01,1,El módulo la describe.,factual_proposition,Claim dependiente de contexto. Se conserva el pronombre original sin inventar su referente.
+HOLDOUT-V1-004,non_propositional,,,,,,Lista nominal sin predicado factual explícito.
+HOLDOUT-V1-005,valid_claim,compound,HOLDOUT-V1-005-A01,1,La aplicación encapsula una funcionalidad web concreta.,factual_proposition,
+HOLDOUT-V1-005,valid_claim,compound,HOLDOUT-V1-005-A02,2,El proyecto actúa como agregado configuracional capaz de contener múltiples aplicaciones.,factual_proposition,Dos predicados factuales independientes.
+HOLDOUT-V1-006,non_propositional,,,,,,Token/etiqueta nominal aislada: 'LLM'.
+HOLDOUT-V1-007,valid_claim,compound,HOLDOUT-V1-007-A01,1,"Al crear proyectos Django conviene evitar nombres que coincidan con componentes integrados de Python o Django, como django o test.",factual_proposition,
+HOLDOUT-V1-007,valid_claim,compound,HOLDOUT-V1-007-A02,2,Usar nombres que coincidan con componentes integrados de Python o Django puede producir conflictos.,causal_relation,La recomendación y su justificación causal pueden evaluarse por separado.
+HOLDOUT-V1-008,valid_claim,atomic,HOLDOUT-V1-008-A01,1,Esas cuatro estructuras aparecen en el módulo.,factual_proposition,El cuantificador 'cuatro' permanece dentro del mismo hecho.
+HOLDOUT-V1-009,non_propositional,,,,,,Sintagma nominal sin predicado: 'Agregación de datos'.
+HOLDOUT-V1-010,valid_claim,atomic,HOLDOUT-V1-010-A01,1,La operación HTTP utilizada es GET.,factual_proposition,
+HOLDOUT-V1-011,valid_claim,atomic,HOLDOUT-V1-011-A01,1,Sus elementos permiten marcar distintas partes del contenido para que aparezcan o actúen de una manera determinada.,factual_proposition,Aparecer/actuar comparten el mismo predicado funcional.
+HOLDOUT-V1-012,valid_claim,compound,HOLDOUT-V1-012-A01,1,Una representación conceptual previa del aprendizaje automático resulta instrumental.,factual_proposition,
+HOLDOUT-V1-012,valid_claim,compound,HOLDOUT-V1-012-A02,2,Poseer una representación conceptual previa del aprendizaje automático no constituye una condición normativa de acceso al itinerario formativo.,negation_or_absence,Utilidad y obligatoriedad son afirmaciones independientes.
+HOLDOUT-V1-013,valid_claim,atomic,HOLDOUT-V1-013-A01,1,Las etiquetas HTML pueden marcar diferentes partes del contenido para que aparezcan o actúen de cierta manera.,factual_proposition,
+HOLDOUT-V1-014,non_propositional,,,,,,Sintagma nominal aislado: 'Solicitudes'.
+HOLDOUT-V1-015,valid_claim,compound,HOLDOUT-V1-015-A01,1,La serie incluye ejercicios prácticos para implementar primeros servicios.,factual_proposition,
+HOLDOUT-V1-015,valid_claim,compound,HOLDOUT-V1-015-A02,2,La serie ofrece una visión general de servicios de Azure.,factual_proposition,Dos capacidades distintas de la serie.
+HOLDOUT-V1-016,non_propositional,,,,,,Fragmento introducido por 'Como' sin sujeto/predicado principal explícito.
+HOLDOUT-V1-017,valid_claim,atomic,HOLDOUT-V1-017-A01,1,La relación se entiende como una separación entre una unidad funcional reutilizable y el contenedor configuracional del sitio.,factual_proposition,La caracterización completa forma una única proposición.
+HOLDOUT-V1-018,non_propositional,,,,,,Lista de términos/frases sin predicado factual explícito.
+HOLDOUT-V1-019,valid_claim,compound,HOLDOUT-V1-019-A01,1,El módulo aborda la persistencia simbólica y la mutabilidad de valores mediante variables.,factual_proposition,
+HOLDOUT-V1-019,valid_claim,compound,HOLDOUT-V1-019-A02,2,El módulo aborda la operatoria aritmética.,factual_proposition,
+HOLDOUT-V1-019,valid_claim,compound,HOLDOUT-V1-019-A03,3,El módulo aborda la coerción explícita entre representaciones tipadas usando funciones integradas de Python.,factual_proposition,Tres contenidos técnicamente independientes.
+HOLDOUT-V1-020,non_propositional,,,,,,"Lista fragmentaria con marcador temporal, pero sin predicado factual suficiente para reconstruir una proposición sin inventar contexto."
