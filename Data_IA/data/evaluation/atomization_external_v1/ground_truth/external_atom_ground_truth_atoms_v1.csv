@@ -1,0 +1,89 @@
+﻿external_case_id,atom_index,atom_text,atom_type,gt_review_status,gt_batch
+EXT-VAL-V1-001,1,El MCP remoto solo funciona con servidores HTTP transmitibles.,factual_proposition,reviewed,1
+EXT-VAL-V1-002,1,Puedes copiarla desde la página Claves de API.,factual_proposition,reviewed,1
+EXT-VAL-V1-003,1,Los resultados estructurados funcionan con Pydantic (Python) y Zod (JavaScript).,factual_proposition,reviewed,1
+EXT-VAL-V1-004,1,Puedes configurar los modelos de Gemini para que generen respuestas que se adhieran a un esquema JSON proporcionado.,factual_proposition,reviewed,1
+EXT-VAL-V1-005,1,Puedes configurar dónde está tu app en un archivo pyproject.toml.,factual_proposition,reviewed,1
+EXT-VAL-V1-006,1,Este decorador le dice a FastAPI que la función de abajo corresponde al path / con una operación GET.,factual_proposition,reviewed,1
+EXT-VAL-V1-007,1,"Puedes retornar un dict, list o valores singulares como str, int, etc.",factual_proposition,reviewed,1
+EXT-VAL-V1-008,1,Puedes declarar el tipo de un parámetro de path en la función usando anotaciones de tipos estándar de Python.,factual_proposition,reviewed,1
+EXT-VAL-V1-009,1,"En Kubernetes, un Deployment es un objeto que puede representar una aplicación ejecutándose en el clúster.",factual_proposition,reviewed,1
+EXT-VAL-V1-010,1,Esa plantilla describe los Pods que el controlador StatefulSet creará para satisfacer la especificación del StatefulSet.,factual_proposition,reviewed,1
+EXT-VAL-V1-011,1,El Plano de Control de Kubernetes usa las mismas APIs que usan los desarrolladores y usuarios finales.,factual_proposition,reviewed,2
+EXT-VAL-V1-012,1,"Kubernetes funciona en Ubuntu, RHEL, CoreOS, un datacenter físico, Google Kubernetes Engine y otros entornos.",factual_proposition,reviewed,2
+EXT-VAL-V1-013,1,Operations in general exclude missing data.,factual_proposition,reviewed,2
+EXT-VAL-V1-014,1,"The result of an aggregation is, or at least is treated as, a scalar value for each column in a group.",factual_proposition,reviewed,2
+EXT-VAL-V1-015,1,pandas allows you to provide multiple lambdas.,factual_proposition,reviewed,2
+EXT-VAL-V1-016,1,Scikit-learn provides tools to automatically find the best parameter combinations via cross-validation.,factual_proposition,reviewed,2
+EXT-VAL-V1-017,1,Puedes ver el ejemplo completo funcionando en vivo.,factual_proposition,reviewed,2
+EXT-VAL-V1-018,1,La documentación sobre el evento connect de HTTP en Node.js ofrece un buen ejemplo.,factual_proposition,reviewed,2
+EXT-VAL-V1-019,1,El tipo text muestra un campo de texto básico que acepta cualquier valor.,factual_proposition,reviewed,2
+EXT-VAL-V1-020,1,Las API son conjuntos de bloques de código ya hechos que permiten a un desarrollador implementar programas que de otro modo serían difíciles o imposibles de implementar.,factual_proposition,reviewed,2
+EXT-VAL-V1-021,1,"En este ejemplo, se muestra cómo definir una función que genera un gráfico de barras a partir de datos estructurados.",factual_proposition,reviewed,3
+EXT-VAL-V1-021,2,El modelo puede usar herramientas externas para realizar cálculos o crear recursos visuales.,factual_proposition,reviewed,3
+EXT-VAL-V1-022,1,El bloque de texto de salida contiene una cadena JSON válida.,factual_proposition,reviewed,3
+EXT-VAL-V1-022,2,La cadena JSON del bloque de salida se ajusta exactamente al esquema solicitado.,factual_proposition,reviewed,3
+EXT-VAL-V1-023,1,Las restricciones minLength y maxLength no se aplican durante la decodificación restringida.,negation_or_absence,reviewed,3
+EXT-VAL-V1-023,2,El servidor ignora las restricciones minLength y maxLength.,factual_proposition,reviewed,3
+EXT-VAL-V1-024,1,Enviar un body con un request GET tiene un comportamiento indefinido en las especificaciones.,factual_proposition,reviewed,3
+EXT-VAL-V1-024,2,FastAPI soporta enviar un body con un request GET solo para casos de uso muy complejos o extremos.,factual_proposition,reviewed,3
+EXT-VAL-V1-025,1,FastAPI reconocerá cada uno de ellos.,factual_proposition,reviewed,3
+EXT-VAL-V1-025,2,FastAPI tomará los datos del lugar correcto.,factual_proposition,reviewed,3
+EXT-VAL-V1-026,1,El Master de Kubernetes es un conjunto de tres daemons.,factual_proposition,reviewed,3
+EXT-VAL-V1-026,2,Los tres daemons del Master de Kubernetes se ejecutan en un único nodo del clúster.,factual_proposition,reviewed,3
+EXT-VAL-V1-026,3,Ese nodo se denomina nodo master.,factual_proposition,reviewed,3
+EXT-VAL-V1-027,1,Los Controladores se basan en los objetos básicos.,factual_proposition,reviewed,3
+EXT-VAL-V1-027,2,Los Controladores proporcionan funcionalidades adicionales sobre los objetos básicos.,factual_proposition,reviewed,3
+EXT-VAL-V1-028,1,Las Annotations permiten asignar información arbitraria a un recurso.,factual_proposition,reviewed,3
+EXT-VAL-V1-028,2,Asignar información mediante Annotations puede facilitar los flujos de trabajo.,causal_relation,reviewed,3
+EXT-VAL-V1-028,3,Asignar información mediante Annotations puede hacer más fácil que las herramientas administrativas inspeccionen el estado.,causal_relation,reviewed,3
+EXT-VAL-V1-029,1,Son más fáciles de construir que una máquina virtual.,comparative_relation,reviewed,3
+EXT-VAL-V1-029,2,No están acoplados a la infraestructura ni al sistema de archivos del anfitrión.,negation_or_absence,reviewed,3
+EXT-VAL-V1-029,3,"Debido a que no están acoplados a la infraestructura ni al sistema de archivos del anfitrión, pueden llevarse entre nubes y distribuciones de sistema operativo.",causal_relation,reviewed,3
+EXT-VAL-V1-030,1,Passing a list of column labels selects multiple columns.,factual_proposition,reviewed,3
+EXT-VAL-V1-030,2,Selecting multiple columns can be useful for getting a subset or rearranging columns.,factual_proposition,reviewed,3
+EXT-VAL-V1-031,1,You can use the group_keys argument to control whether the grouped column or columns are included in the indices.,factual_proposition,reviewed,4
+EXT-VAL-V1-031,2,The group_keys argument defaults to True.,factual_proposition,reviewed,4
+EXT-VAL-V1-032,1,Transformer objects do not have a predict method.,negation_or_absence,reviewed,4
+EXT-VAL-V1-032,2,Transformer objects have a transform method that outputs a newly transformed sample matrix X.,factual_proposition,reviewed,4
+EXT-VAL-V1-033,1,The train_test_split helper splits a dataset into train and test sets.,factual_proposition,reviewed,4
+EXT-VAL-V1-033,2,"Scikit-learn provides other tools for model evaluation, particularly for cross-validation.",factual_proposition,reviewed,4
+EXT-VAL-V1-034,1,El ejemplo implementa una comprobación básica dentro de un manejador del evento submit para comprobar si los campos de texto están vacíos.,factual_proposition,reviewed,4
+EXT-VAL-V1-034,2,El evento submit se lanza en un formulario cuando el formulario se envía.,factual_proposition,reviewed,4
+EXT-VAL-V1-035,1,El modelo de eventos de Node.js se basa en detectores que escuchan eventos y emisores que los emiten.,factual_proposition,reviewed,4
+EXT-VAL-V1-035,2,El código de este modelo es bastante diferente del modelo de eventos descrito previamente.,comparative_relation,reviewed,4
+EXT-VAL-V1-035,3,La función on() se usa para registrar un detector de eventos.,factual_proposition,reviewed,4
+EXT-VAL-V1-035,4,La función once() registra un detector que se elimina después de ejecutarse una vez.,factual_proposition,reviewed,4
+EXT-VAL-V1-036,1,Algunas personas usan elementos <p> para separar los elementos de sus formularios.,factual_proposition,reviewed,4
+EXT-VAL-V1-036,2,"Otras personas usan elementos <div>, <section> o <li> para separar los elementos de sus formularios.",factual_proposition,reviewed,4
+EXT-VAL-V1-037,1,Los botones de opción y las casillas de verificación se implementan de forma muy parecida.,comparative_relation,reviewed,4
+EXT-VAL-V1-037,2,Los botones de opción y las casillas de verificación admiten el atributo checked para aparecer preseleccionados al cargar la página.,factual_proposition,reviewed,4
+EXT-VAL-V1-038,1,El atributo rows especifica cuántas filas de alto tendrá el área de texto de forma predeterminada.,factual_proposition,reviewed,4
+EXT-VAL-V1-038,2,El atributo cols especifica cuántas columnas de ancho tendrá el área de texto de forma predeterminada.,factual_proposition,reviewed,4
+EXT-VAL-V1-039,1,La API del DOM permite crear HTML.,factual_proposition,reviewed,4
+EXT-VAL-V1-039,2,La API del DOM permite eliminar HTML.,factual_proposition,reviewed,4
+EXT-VAL-V1-039,3,La API del DOM permite cambiar HTML.,factual_proposition,reviewed,4
+EXT-VAL-V1-039,4,La API del DOM permite aplicar dinámicamente nuevos estilos a una página.,factual_proposition,reviewed,4
+EXT-VAL-V1-040,1,Cada pestaña del navegador tiene su propio entorno de ejecución separado.,factual_proposition,reviewed,4
+EXT-VAL-V1-040,2,"Debido a que cada pestaña tiene un entorno de ejecución separado, en la mayoría de los casos el código de cada pestaña se ejecuta de forma completamente independiente.",causal_relation,reviewed,4
+EXT-VAL-V1-040,3,El código de una pestaña no puede afectar directamente al código de otra pestaña ni al código de otro sitio web.,negation_or_absence,reviewed,4
+EXT-VAL-V1-061,1,Llama a varias funciones a la vez cuando sean independientes.,conditional_relation,reviewed,7
+EXT-VAL-V1-062,1,No es necesario que el modelo genere texto antes de las llamadas a herramientas.,negation_or_absence,reviewed,7
+EXT-VAL-V1-063,1,"En este ejemplo, el uso de anyOf para esquemas condicionales y enum para la clasificación permite que la estructura de salida varíe según el contenido.",causal_relation,reviewed,7
+EXT-VAL-V1-064,1,Los esquemas muy grandes o con un nivel de anidamiento profundo pueden ser rechazados.,conditional_relation,reviewed,7
+EXT-VAL-V1-065,1,"Si no has iniciado sesión, se abrirá tu navegador para completar el proceso de autenticación.",conditional_relation,reviewed,7
+EXT-VAL-V1-066,1,No puedes redefinir una path operation.,negation_or_absence,reviewed,7
+EXT-VAL-V1-067,1,"Fue rigurosamente probado en la fase de diseño, antes de cualquier implementación, para garantizar que funcionaría con todos los editores.",temporal_relation,reviewed,7
+EXT-VAL-V1-068,1,"Si usas PyCharm como tu editor, puedes usar el Pydantic PyCharm Plugin.",conditional_relation,reviewed,7
+EXT-VAL-V1-069,1,"When you create an object in Kubernetes, you must provide the object spec that describes its desired state, as well as some basic information about the object, such as a name.",conditional_relation,reviewed,7
+EXT-VAL-V1-070,1,"Starting with Kubernetes v1.25, the API server offers server-side field validation that detects unrecognized or duplicate fields in an object.",temporal_relation,reviewed,7
+EXT-VAL-V1-071,1,No limita el tipo de aplicaciones que soporta.,negation_or_absence,reviewed,8
+EXT-VAL-V1-072,1,Generar una imagen de contenedor al momento de la compilación permite tener un entorno consistente desde desarrollo hasta producción.,causal_relation,reviewed,8
+EXT-VAL-V1-073,1,"If a string matches both a column name and an index level name, a ValueError will be raised.",conditional_relation,reviewed,8
+EXT-VAL-V1-074,1,The groupby operation in pandas drops the name field of the columns Index object after the operation.,temporal_relation,reviewed,8
+EXT-VAL-V1-075,1,"Using a pipeline helps prevent data leakage, meaning testing data being disclosed in training data.",causal_relation,reviewed,8
+EXT-VAL-V1-076,1,"If you apply a preprocessing step to the whole dataset without using a pipeline and then perform cross-validation, you break the fundamental assumption of independence between training and testing data.",conditional_relation,reviewed,8
+EXT-VAL-V1-077,1,"Cuando el usuario no ha enviado los datos correctamente, como desarrollador quieres evitar el envío al servidor y mostrar un mensaje de error que indique qué está mal y qué hay que hacer para corregirlo.",conditional_relation,reviewed,8
+EXT-VAL-V1-078,1,"Cuando los usuarios con discapacidad visual usan un lector de pantalla para leer e interactuar con una página web, el lector lee en voz alta el texto de la etiqueta asociada al llegar a cada control.",temporal_relation,reviewed,8
+EXT-VAL-V1-079,1,"El código del lado del servidor genera dinámicamente contenido nuevo en el servidor, por ejemplo extrayendo datos de una base de datos, mientras que JavaScript del lado del cliente genera dinámicamente contenido nuevo dentro del navegador, por ejemplo creando una tabla HTML, llenándola con datos solicitados al servidor y mostrándola en una página web.",comparative_relation,reviewed,8
+EXT-VAL-V1-080,1,"Mientras que CSS usa elementos <link> para aplicar hojas de estilo externas y elementos <style> para aplicar hojas de estilo internas al HTML, JavaScript necesita el elemento <script> en HTML.",comparative_relation,reviewed,8

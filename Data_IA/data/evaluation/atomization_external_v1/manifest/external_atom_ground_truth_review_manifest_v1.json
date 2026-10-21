@@ -1,0 +1,89 @@
+{
+  "artifact": "external_atom_ground_truth_review_v1",
+  "status": "blind_human_atom_ground_truth_pending",
+  "input_dataset": "data\\evaluation\\atomization_external_v1\\dataset\\external_claim_balanced_dataset_v1.csv",
+  "total_cases": 80,
+  "batch_size": 10,
+  "batch_count": 8,
+  "allowed_atom_types": [
+    "factual_proposition",
+    "temporal_relation",
+    "causal_relation",
+    "conditional_relation",
+    "comparative_relation",
+    "negation_or_absence",
+    "scope_or_quantifier"
+  ],
+  "ground_truth_rules": {
+    "non_propositional": "Expected atom count must be 0.",
+    "atomic": "Normally one independently checkable atom.",
+    "compound": "Two or more independently checkable atoms.",
+    "relational": "At least one atom whose essential meaning is relational; preserve the relation and its qualifiers.",
+    "preserve_meaning": "Atoms may be minimally rewritten for standalone clarity, but must not add facts not present in the source claim.",
+    "preserve_qualifiers": "Do not drop temporal, causal, conditional, comparative, negation, scope, or quantity qualifiers."
+  },
+  "batches": [
+    {
+      "batch": 1,
+      "start_case": "EXT-VAL-V1-001",
+      "end_case": "EXT-VAL-V1-010",
+      "rows": 10,
+      "path": "data\\evaluation\\atomization_external_v1\\ground_truth\\review_batches\\external_atom_gt_review_batch_01_v1.csv"
+    },
+    {
+      "batch": 2,
+      "start_case": "EXT-VAL-V1-011",
+      "end_case": "EXT-VAL-V1-020",
+      "rows": 10,
+      "path": "data\\evaluation\\atomization_external_v1\\ground_truth\\review_batches\\external_atom_gt_review_batch_02_v1.csv"
+    },
+    {
+      "batch": 3,
+      "start_case": "EXT-VAL-V1-021",
+      "end_case": "EXT-VAL-V1-030",
+      "rows": 10,
+      "path": "data\\evaluation\\atomization_external_v1\\ground_truth\\review_batches\\external_atom_gt_review_batch_03_v1.csv"
+    },
+    {
+      "batch": 4,
+      "start_case": "EXT-VAL-V1-031",
+      "end_case": "EXT-VAL-V1-040",
+      "rows": 10,
+      "path": "data\\evaluation\\atomization_external_v1\\ground_truth\\review_batches\\external_atom_gt_review_batch_04_v1.csv"
+    },
+    {
+      "batch": 5,
+      "start_case": "EXT-VAL-V1-041",
+      "end_case": "EXT-VAL-V1-050",
+      "rows": 10,
+      "path": "data\\evaluation\\atomization_external_v1\\ground_truth\\review_batches\\external_atom_gt_review_batch_05_v1.csv"
+    },
+    {
+      "batch": 6,
+      "start_case": "EXT-VAL-V1-051",
+      "end_case": "EXT-VAL-V1-060",
+      "rows": 10,
+      "path": "data\\evaluation\\atomization_external_v1\\ground_truth\\review_batches\\external_atom_gt_review_batch_06_v1.csv"
+    },
+    {
+      "batch": 7,
+      "start_case": "EXT-VAL-V1-061",
+      "end_case": "EXT-VAL-V1-070",
+      "rows": 10,
+      "path": "data\\evaluation\\atomization_external_v1\\ground_truth\\review_batches\\external_atom_gt_review_batch_07_v1.csv"
+    },
+    {
+      "batch": 8,
+      "start_case": "EXT-VAL-V1-071",
+      "end_case": "EXT-VAL-V1-080",
+      "rows": 10,
+      "path": "data\\evaluation\\atomization_external_v1\\ground_truth\\review_batches\\external_atom_gt_review_batch_08_v1.csv"
+    }
+  ],
+  "model_used": false,
+  "llm_used": false,
+  "claim_atomizer_v0_4_used": false,
+  "predictions_available_to_reviewer": false,
+  "production_impact": false,
+  "next_stage": "human atom decomposition and atom type adjudication for all 80 cases"
+}

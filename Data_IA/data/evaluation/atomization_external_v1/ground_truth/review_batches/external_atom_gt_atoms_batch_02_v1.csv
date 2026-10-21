@@ -1,0 +1,11 @@
+﻿external_case_id,atom_index,atom_text,atom_type,gt_review_status
+EXT-VAL-V1-011,1,El Plano de Control de Kubernetes usa las mismas APIs que usan los desarrolladores y usuarios finales.,factual_proposition,reviewed
+EXT-VAL-V1-012,1,"Kubernetes funciona en Ubuntu, RHEL, CoreOS, un datacenter físico, Google Kubernetes Engine y otros entornos.",factual_proposition,reviewed
+EXT-VAL-V1-013,1,Operations in general exclude missing data.,factual_proposition,reviewed
+EXT-VAL-V1-014,1,"The result of an aggregation is, or at least is treated as, a scalar value for each column in a group.",factual_proposition,reviewed
+EXT-VAL-V1-015,1,pandas allows you to provide multiple lambdas.,factual_proposition,reviewed
+EXT-VAL-V1-016,1,Scikit-learn provides tools to automatically find the best parameter combinations via cross-validation.,factual_proposition,reviewed
+EXT-VAL-V1-017,1,Puedes ver el ejemplo completo funcionando en vivo.,factual_proposition,reviewed
+EXT-VAL-V1-018,1,La documentación sobre el evento connect de HTTP en Node.js ofrece un buen ejemplo.,factual_proposition,reviewed
+EXT-VAL-V1-019,1,El tipo text muestra un campo de texto básico que acepta cualquier valor.,factual_proposition,reviewed
+EXT-VAL-V1-020,1,Las API son conjuntos de bloques de código ya hechos que permiten a un desarrollador implementar programas que de otro modo serían difíciles o imposibles de implementar.,factual_proposition,reviewed

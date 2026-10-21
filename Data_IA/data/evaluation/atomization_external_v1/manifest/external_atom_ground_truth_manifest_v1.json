@@ -1,0 +1,50 @@
+{
+  "artifact": "external_atom_ground_truth_v1",
+  "status": "frozen_candidate",
+  "source_dataset": "data\\evaluation\\atomization_external_v1\\dataset\\external_claim_balanced_dataset_v1.csv",
+  "case_ground_truth": "data\\evaluation\\atomization_external_v1\\ground_truth\\external_atom_ground_truth_cases_v1.csv",
+  "atom_ground_truth": "data\\evaluation\\atomization_external_v1\\ground_truth\\external_atom_ground_truth_atoms_v1.csv",
+  "total_cases": 80,
+  "total_atoms": 88,
+  "bucket_counts": {
+    "atomic": 20,
+    "compound": 20,
+    "relational": 20,
+    "non_propositional": 20
+  },
+  "atoms_by_bucket": {
+    "atomic": 20,
+    "compound": 48,
+    "relational": 20,
+    "non_propositional": 0
+  },
+  "atom_type_counts": {
+    "causal_relation": 7,
+    "comparative_relation": 5,
+    "conditional_relation": 8,
+    "factual_proposition": 57,
+    "negation_or_absence": 7,
+    "temporal_relation": 4
+  },
+  "relational_subtype_counts": {
+    "causal_relation": 3,
+    "comparative_relation": 2,
+    "conditional_relation": 8,
+    "negation_or_absence": 3,
+    "temporal_relation": 4
+  },
+  "review_status": "complete",
+  "human_ground_truth": true,
+  "model_used": false,
+  "llm_used": false,
+  "claim_atomizer_v0_4_used": false,
+  "predictions_available_to_reviewer": false,
+  "frozen_dataset_modified": false,
+  "production_impact": false,
+  "limitations": [
+    "Ground Truth was created with assistant-assisted human adjudication.",
+    "The selected relational set contains no scope_or_quantifier structural cases.",
+    "Atom text may normalize obvious extraction spacing errors but does not modify the frozen source claims."
+  ],
+  "next_stage": "freeze Ground Truth in Git before running Claim Atomizer v0.4 predictions"
+}
