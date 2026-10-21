@@ -1,0 +1,70 @@
+{
+  "candidate": "claim-atomizer-v0.4",
+  "test": "Test B - stability and provider reliability",
+  "methodology": {
+    "sample_selection": "deterministic stable-hash selection",
+    "sample_size": 16,
+    "cases_per_bucket": 4,
+    "repetitions_per_case": 3,
+    "planned_calls": 48,
+    "retries_performed": false,
+    "literal_atom_text_used_for_stability": false,
+    "stability_signature": [
+      "review_status",
+      "atomization_class",
+      "atom_count",
+      "atom_type_sequence"
+    ],
+    "candidate_modified": false,
+    "prompt_modified": false,
+    "ground_truth_modified": false,
+    "production_impact": false
+  },
+  "provider": {
+    "successful_calls": 47,
+    "failed_calls": 1,
+    "total_calls": 48,
+    "success_rate": 0.9792
+  },
+  "stability": {
+    "sample_cases": 16,
+    "all_three_successful_cases": 15,
+    "fully_stable_cases": 11,
+    "fully_stable_rate": 0.6875,
+    "cases_with_two_or_more_successes": 16,
+    "stable_among_successes_cases": 11,
+    "stability_among_successes_rate": 0.6875
+  },
+  "bucket_stability": {
+    "atomic": {
+      "cases": 4,
+      "all_three_successful": 3,
+      "fully_stable": 2,
+      "fully_stable_rate": 0.5
+    },
+    "compound": {
+      "cases": 4,
+      "all_three_successful": 4,
+      "fully_stable": 3,
+      "fully_stable_rate": 0.75
+    },
+    "relational": {
+      "cases": 4,
+      "all_three_successful": 4,
+      "fully_stable": 3,
+      "fully_stable_rate": 0.75
+    },
+    "non_propositional": {
+      "cases": 4,
+      "all_three_successful": 4,
+      "fully_stable": 3,
+      "fully_stable_rate": 0.75
+    }
+  },
+  "latency_success_only": {
+    "mean_ms": 1099.83,
+    "min_ms": 679,
+    "max_ms": 3904
+  },
+  "interpretation": "Test B characterizes repeatability and provider reliability only. No new arbitrary pass/fail threshold is introduced after observing results."
+}

@@ -1,0 +1,17 @@
+stability_case_order,external_case_id,source_claim_id,source_domain,source_reference,target_bucket,relation_subtype,claim_text_final
+1,EXT-VAL-V1-004,EXT-CAND-V1-0204,ai,ai/gemini_structured_outputs.txt,atomic,,Puedes configurar los modelos de Gemini para que generen respuestas que se adhieran a un esquema JSON proporcionado.
+2,EXT-VAL-V1-007,EXT-CAND-V1-0382,backend,backend/fastapi_first_steps.txt,atomic,,"Puedes retornar un dict, list, valores singulares como str, int, etc."
+3,EXT-VAL-V1-012,EXT-CAND-V1-0740,cloud_devops,cloud_devops/kubernetes_what_is.txt,atomic,,"Portabilidad entre nubes y distribuciones: Funciona en Ubuntu, RHEL, CoreOS, tu datacenter físico, Google Kubernetes Engine y todo lo demás"
+4,EXT-VAL-V1-020,EXT-CAND-V1-2086,frontend,frontend/mdn_what_is_javascript.txt,atomic,,Las API son conjuntos de bloques de código ya hechos que permiten a un desarrollador implementar programas que de otro modo serían difíciles o imposibles de implementar.
+5,EXT-VAL-V1-021,EXT-CAND-V1-0015,ai,ai/gemini_function_calling.txt,compound,,"En este ejemplo, se muestra cómo definir una función que genera un gráfico de barras a partir de datos estructurados, lo que demuestra cómo el modelo puede usar herramientas externas para realizar cálculos o crear recursos visuales:"
+6,EXT-VAL-V1-026,EXT-CAND-V1-0569,cloud_devops,cloud_devops/kubernetes_concepts.txt,compound,,"El Master de Kubernetes es un conjunto de tres daemons que se ejecutan en un único nodo del clúster, que se denomina nodo master."
+7,EXT-VAL-V1-030,EXT-CAND-V1-0787,data_science,data_science/pandas_10_minutes.txt,compound,,"Passing a list of column labels selects multiple columns, which can be useful for getting a subset/rearranging:"
+8,EXT-VAL-V1-033,EXT-CAND-V1-1646,data_science,data_science/sklearn_getting_started.txt,compound,,"We have just seen the train_test_split helper that splits a dataset into train and test sets, but scikit-learn provides many other tools for model evaluation, in particular for cross-validation."
+9,EXT-VAL-V1-061,EXT-CAND-V1-0047,ai,ai/gemini_function_calling.txt,relational,conditional_relation,Llama a varias funciones a la vez cuando sean independientes:
+10,EXT-VAL-V1-064,EXT-CAND-V1-0262,ai,ai/gemini_structured_outputs.txt,relational,conditional_relation,Complejidad del esquema: Es posible que se rechacen los esquemas muy grandes o con un nivel de anidamiento profundo.
+11,EXT-VAL-V1-065,EXT-CAND-V1-0324,backend,backend/fastapi_first_steps.txt,relational,conditional_relation,"Si no has iniciado sesión, se abrirá tu navegador para completar el proceso de autenticación."
+12,EXT-VAL-V1-071,EXT-CAND-V1-0701,cloud_devops,cloud_devops/kubernetes_what_is.txt,relational,negation_or_absence,No limita el tipo de aplicaciones que soporta.
+13,EXT-VAL-V1-043,EXT-CAND-V1-0187,ai,ai/gemini_get_started.txt,non_propositional,,"Funciones, herramientas, entrada multimodal y precios del agente predeterminado."
+14,EXT-VAL-V1-053,EXT-CAND-V1-0796,data_science,data_science/pandas_10_minutes.txt,non_propositional,,Selection by position
+15,EXT-VAL-V1-057,EXT-CAND-V1-1671,frontend,frontend/mdn_events.txt,non_propositional,,"Los atributos de manejador de eventos en línea, y por qué no deberías usarlos."
+16,EXT-VAL-V1-060,EXT-CAND-V1-1952,frontend,frontend/mdn_html_forms.txt,non_propositional,,"Sin embargo, al hacerlo, te complicas la vida a ti y a tus usuarios."
