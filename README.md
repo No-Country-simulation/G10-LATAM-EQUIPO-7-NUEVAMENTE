@@ -55,21 +55,44 @@ Cada módulo documenta por separado su arquitectura, contratos y operación. Est
 
 ## Arquitectura y flujo del producto
 
-```text
- Usuario
-   │
-   ▼
-Frontend ──HTTP──> BackendAPI ──> SQLite: metadata, estados, formatos y evaluaciones
-                       │   │
-                       │   ├────> OCI Object Storage: documento original y paquete educativo
-                       │   │
-                       │   ├────> Agentes ──> ChromaDB: chunks indexados por documento
-                       │   │         └──────> Gemini: generación estructurada
-                       │   │
-                       │   └────> Data/IA: evaluación de formatos generados
-                       │
-                       └── responde al Frontend; este consulta estados y resultados
+```mermaid
+flowchart TB
+
+    U[Usuario]
+    FE[Frontend<br/>Carga, consulta, regeneración]
+
+    BE[BackendAPI<br/>Orquestación global<br/>Persistencia<br/>Estados e historial]
+
+    subgraph AG[Agentes / LangGraph]
+        IR[Investigador RAG<br/>Recupera chunks]
+        RP[Redactor Pedagógico<br/>Genera y corrige contenido]
+        AR[Agente Revisor<br/>Aplica recomendaciones]
+    end
+
+    DI[Data/IA - Agente Evaluador<br/>Métricas, veredicto y recomendaciones]
+
+    DB[(SQLite<br/>documents<br/>generated_formats<br/>format_evaluations)]
+    OCI[(OCI Object Storage<br/>original.ext<br/>generated/content.json)]
+    VS[(Vector Store / ChromaDB<br/>chunks + embeddings)]
+    LLM[Gemini / LLM Provider]
+
+    U --> FE
+    FE <--> BE
+
+    BE <--> DB
+    BE <--> OCI
+
+    BE --> AG
+    AG --> BE
+
+    BE --> DI
+    DI --> BE
+
+    AG <--> VS
+    AG <--> LLM
 ```
+
+El diagrama incluye el rol previsto del Agente Revisor; la corrección automática aún no está activa de extremo a extremo (ver [Evaluación y revisión](#evaluación-y-revisión)).
 
 BackendAPI es el **orquestador central** y el único intermediario entre el Frontend y los servicios de procesamiento. Mantiene la metadata y los estados en SQLite; almacena el original y el paquete educativo vigente en OCI Object Storage; y coordina Agentes y Data/IA mediante sus adaptadores HTTP.
 

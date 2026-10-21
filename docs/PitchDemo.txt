@@ -1,0 +1,173 @@
+1. **0:00–0:35 · El problema**  
+   **[ACCIÓN: abrir la landing en 01 · El documento. No mover todavía.]**
+
+   > **“Documentar no es lo mismo que transmitir conocimiento.**  
+   > Las empresas y equipos tecnológicos producen manuales y documentación con muchísimo contenido valioso, pero un mismo documento no necesariamente funciona igual para todas las personas.  
+   > Un principiante, un desarrollador, un arquitecto o un perfil ejecutivo necesitan distintos niveles de lenguaje, profundidad y contexto, pero con una condición fundamental: mantener la fidelidad a la fuente.”
+
+   **[ACCIÓN: clic en 02 · La transformación.]**
+
+   > “Ahí nace NuevaMente: una plataforma que transforma documentación técnica en material de capacitación adaptado al perfil de quien necesita aprenderla.”
+
+---
+
+2. **0:35–1:00 · Qué transforma NuevaMente**  
+   **[ACCIÓN: permanecer en 02.]**
+
+   > “A partir de un documento en PDF, Markdown o texto plano, definimos el perfil, el contexto, el nivel de profundidad y, opcionalmente, un objetivo de aprendizaje.  
+   > NuevaMente genera cuatro formatos complementarios: resumen ejecutivo, flashcards, quiz y guion formativo para video. Además identifica conceptos clave, prerrequisitos y un tiempo estimado de estudio.” index
+
+   **[ACCIÓN: clic en 03 · El producto → “Abrir NuevaMente”.]**
+
+---
+
+3. **1:00–2:35 · Demo del producto real**  
+   **[ACCIÓN: en la portada del producto, entrar al catálogo.]**
+
+   > “Veámoslo funcionando. Esta es la biblioteca de NuevaMente, donde podemos consultar los documentos ya procesados, buscarlos y acceder nuevamente a sus capacitaciones.”
+
+   **[ACCIÓN: mostrar rápidamente biblioteca. Ir a Carga.]**
+
+   > “Para transformar un nuevo documento lo cargamos aquí y definimos su contexto pedagógico: destinatario, área temática y nivel de profundidad.”
+
+   **[ACCIÓN: mostrar un archivo preparado y los parámetros. No esperar durante el video a que termine todo el procesamiento; después abrir un documento ya generado.]**
+
+   > “Desde este momento BackendAPI coordina el proceso: conserva el documento, solicita su indexación, inicia la generación y mantiene los estados del producto.”
+
+   **[ACCIÓN: abrir el detalle de un documento ya procesado.]**
+
+   > “En el detalle encontramos información que orienta el aprendizaje, como conceptos clave, prerrequisitos y tiempo estimado.”
+
+   **[ACCIÓN: entrar al Centro de Estudio y pasar rápidamente por los cuatro formatos.]**
+
+   > “Sobre ese mismo documento podemos consultar un resumen para comprender lo esencial, flashcards para reforzar conceptos, un quiz para comprobar comprensión y un guion formativo con narración y sugerencias visuales.”
+
+   **[ACCIÓN: mostrar una evaluación de uno de los formatos.]**
+
+   > “Y el resultado no se limita al contenido generado. Podemos consultar también su evaluación de calidad y la evidencia que sustenta el proceso.”
+
+   **[ACCIÓN: mostrar brevemente regeneración y descarga del original.]**
+
+   > “También podemos regenerar un formato sin volver a cargar ni indexar el documento y conservar acceso al original.”
+
+   **[ACCIÓN: clic en “Presentación del proyecto” para regresar a la landing. Ir a 04 · Arquitectura.]**
+
+---
+
+4. **2:35–3:15 · Arquitectura general**  
+   **[ACCIÓN: mostrar 04 · Lo que ocurre detrás. Reproducir la animación del flujo.]**
+
+   > “Lo interesante ocurre detrás de la interfaz. NuevaMente está construido como un sistema de responsabilidades separadas.  
+   > El Frontend gestiona la experiencia. **BackendAPI es el orquestador global:** coordina, persiste y decide.  
+   > El sistema multiagente recupera evidencia, genera el contenido y participa en su corrección.  
+   > Y Data/IA funciona como evaluador independiente de la calidad pedagógica y de la fidelidad a la fuente.”
+
+   > “Todo está desplegado en una máquina virtual de Oracle Cloud mediante contenedores administrados con Docker Compose, con persistencia en SQLite, OCI Object Storage y ChromaDB.” index
+
+   **[ACCIÓN: clic en Investigador RAG ↗.]**
+
+---
+
+5. **3:15–3:55 · Deep dive Investigador RAG**  
+   **[ACCIÓN: mostrar la pantalla completa del Investigador.]**
+
+   > “El Investigador es una de las piezas que más cuidamos. NuevaMente no utiliza una única recuperación para producir todas sus salidas. Metadatos, quiz, flashcards, resumen y guion realizan búsquedas independientes, por lo que la evidencia puede variar según el objetivo.” rag
+
+   **[ACCIÓN: seguir visualmente las cajas de izquierda a derecha.]**
+
+   > “La recuperación es híbrida. Primero obtenemos candidatos mediante búsqueda semántica en ChromaDB y búsqueda léxica con BM25. Fusionamos ambos rankings mediante RRF, un Cross-Encoder vuelve a ordenar los candidatos por relevancia y finalmente seleccionamos las evidencias Top-K que recibe el modelo generativo.” rag
+
+   > “Así, un quiz no tiene por qué construirse exactamente con la misma evidencia que un resumen.”
+
+   **[ACCIÓN: volver a Arquitectura. Clic en Data/IA ↗.]**
+
+---
+
+6. **3:55–4:45 · Deep dive Data/IA**  
+   **[ACCIÓN: abrir Data/IA. Dejar inicialmente Relevancia seleccionada.]**
+
+   > “Ahora viene una segunda pregunta: **generar contenido no significa que el contenido sea bueno.**  
+   > Por eso Data/IA recibe el contenido generado, el contexto pedagógico y la evidencia utilizada.”
+
+   **[ACCIÓN: señalar o dejar animar heurística y semántica.]**
+
+   > “La evaluación utiliza dos señales. Una evaluación heurística aplica reglas verificables y reproducibles. En paralelo, un evaluador semántico basado en Gemini como LLM-as-a-Judge analiza el significado mediante una rúbrica.”
+
+   **[ACCIÓN: hacer clic brevemente en Relevancia y luego Respaldo documental.]**
+
+   > “Ambas valoran relevancia, coherencia, adaptación didáctica y respaldo documental desde perspectivas complementarias.  
+   > La valoración conjunta produce un veredicto y devuelve puntuaciones, observaciones, recomendaciones e información potencialmente no respaldada.” evaluator
+
+   **[ACCIÓN: volver a Arquitectura. Clic en “Validación offline ↗”.]**
+
+---
+
+7. **4:45–5:50 · Ground Truth, benchmark y ablaciones**  
+   **[ACCIÓN: abrir Validación offline en 01 · Arquitectura.]**
+
+   > “Además quisimos medir al propio sistema de recuperación. Para ello Data/IA mantiene una validación offline separada del flujo de los usuarios.”
+
+   > “Trabajamos con un corpus congelado, 50 consultas y un Ground Truth versionado que indica qué fragmentos deberían considerarse relevantes. Ejecutamos las distintas configuraciones sobre exactamente las mismas entradas y comparamos sus resultados.” offline
+
+   **[ACCIÓN: clic en 02 · Benchmark V1 vs V2.]**
+
+   > “El benchmark muestra una mejora en las cuatro métricas evaluadas. Por ejemplo, Recall@3 pasó de 0,573 a 0,933 y Recall@5 de 0,753 a 0,953. También mejoró la precisión.”
+
+   **[ACCIÓN: dejar visible un instante los tres indicadores inferiores.]**
+
+   > “Además resolvimos once casos críticos y las cincuenta ejecuciones del benchmark terminaron sin errores técnicos.”
+
+   **[ACCIÓN: clic en 03 · Ablaciones. Cambiar una variante, por ejemplo ‘Solo Vector’ o ‘Sin Cross-Encoder’.]**
+
+   > “Y no nos limitamos a comparar una versión anterior con una nueva. Mediante estudios de ablación podemos retirar o modificar piezas del pipeline y medir qué aporta cada una. Eso nos permitió seleccionar una configuración con filtro documental, recuperación vectorial, BM25, RRF y Cross-Encoder basándonos en resultados medibles y reproducibles.” offline
+
+   **[ACCIÓN: volver a Arquitectura. Clic en Agente Revisor ↗.]**
+
+---
+
+8. **5:50–6:35 · Deep dive Revisor y corrección**  
+   **[ACCIÓN: abrir Revisor con “Ajuste didáctico”.]**
+
+   > “Cuando Data/IA encuentra un problema, entra el Agente Revisor. Su función no es volver a evaluar, sino interpretar el feedback y decidir la ruta de corrección.”
+
+   **[ACCIÓN: mostrar Ajuste didáctico.]**
+
+   > “Si el problema es, por ejemplo, un ajuste didáctico, puede enviar el feedback directamente al Redactor utilizando la evidencia disponible.”
+
+   **[ACCIÓN: clic en “Falta de respaldo”.]**
+
+   > “Pero si detecta falta de respaldo o de contexto, solicita nueva evidencia al Investigador RAG antes de reescribir.”
+
+   **[ACCIÓN: dejar terminar la animación hasta ‘Versión corregida + fuentes’.]**
+
+   > “La versión corregida vuelve a Backend, se conserva de forma trazable y se envía nuevamente a evaluación. De esta forma la corrección no es una regeneración ciega: responde a hallazgos concretos.” reviewer
+
+   **[ACCIÓN: volver a Arquitectura y pasar a 05 · Equipo.]**
+
+---
+
+9. **6:35–6:55 · Equipo**  
+   **[ACCIÓN: mostrar la pantalla completa del equipo; no abrir tarjetas.]**
+
+   > “Detrás de esta solución hay ocho personas trabajando entre Frontend, Backend, Agentes, Data/IA, Infraestructura y QA.  
+   > Como Project Manager, mi reto fue coordinar esos frentes, sus dependencias y sus integraciones para convertir trabajos independientes en un solo producto.”
+
+   **[ACCIÓN: pasar a 06 · El valor.]**
+
+---
+
+10. **6:55–7:30 · Cierre**  
+    **[ACCIÓN: dejar visible la pantalla final.]**
+
+   > “NuevaMente no busca solamente generar cuatro formatos con inteligencia artificial.  
+   > Busca hacer el conocimiento técnico más accesible para diferentes perfiles, reducir el esfuerzo necesario para convertir documentación en capacitación y mantener ese contenido vinculado con su fuente mediante evidencia, evaluación y corrección.”
+   >
+   > “Construimos un flujo de extremo a extremo, desplegado, modular y medible, en el que la generación, la evaluación y la validación del retrieval tienen responsabilidades diferenciadas.”
+   >
+   > **“Documentar conserva conocimiento. NuevaMente ayuda a transmitirlo.”**
+
+### Tiempo objetivo
+
+Hablándolo sin correr, yo esperaría **aproximadamente 7:20–7:35**. Eso nos deja unos **25–40 segundos de seguridad** para transiciones o una pantalla que tarde un poco.
+
+Para la grabación, hay una decisión importante: **no grabaría esperando una generación completa en vivo**. Mostraría la carga real y los parámetros y luego pasaría a un documento previamente procesado. Así el video demuestra el flujo sin regalar uno o dos minutos a una pantalla de espera.
