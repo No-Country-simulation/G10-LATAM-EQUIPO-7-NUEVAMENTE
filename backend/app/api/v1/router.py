@@ -5,9 +5,9 @@ from fastapi import APIRouter
 from app.api.v1.endpoints import (
     documents,
     format_regeneration,
-    public_generation,
     format_revision_history,
     health,
+    public_generation,
 )
 
 api_router = APIRouter()

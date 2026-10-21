@@ -1,11 +1,16 @@
 """Schemas HTTP para generación pública de formatos educativos."""
 
 from typing import Literal
+
 from pydantic import Field, field_validator
 
 from app.domain.enums import GeneratedFormatType
 from app.domain.generated_format import GeneratedFormat
-from app.schemas.adaptation import AdaptationProfile, AdaptationNiche, NonEmptyString
+from app.schemas.adaptation import (
+    AdaptationNiche,
+    AdaptationProfile,
+    NonEmptyString,
+)
 from app.schemas.common import BaseSchema
 
 
