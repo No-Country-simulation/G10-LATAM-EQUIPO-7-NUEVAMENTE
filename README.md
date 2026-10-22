@@ -171,3 +171,31 @@ complementaria del equipo.
 - Los datos utilizados para evaluación son públicos o preparados específicamente para el hackathon.
 
 ---
+
+## Calibración y experimentación
+
+Además del servicio productivo y del benchmark de retrieval, Data/IA conserva
+experimentos reproducibles de calibración destinados a evaluar mejoras
+potenciales del evaluador.
+
+Estos experimentos no modifican automáticamente el flujo productivo.
+
+Entre ellos se incluyen:
+
+- calibración del Semantic Evaluator;
+- análisis de content support;
+- Claim Atomization v1;
+- validación externa de Claim Atomization v0.4.
+
+### Claim Atomization v0.4
+
+Estado final:
+
+- Experimental: sí
+- Integración productiva: no
+- Impacto sobre `/evaluate/v2`: ninguno
+- Impacto sobre `content_support`: ninguno
+- Decisión final: `STOP_V0_4_FOR_PRODUCTION_INTEGRATION`
+
+Reporte final:
+`docs/claim_atomization_v0_4_external_validation_final.md`
