@@ -110,8 +110,8 @@ def test_e2e_autonomous_differential_niche(doc_id_manager):
 @skip_if_no_key
 def test_api_generate_wiring(doc_id_manager):
     """
-    Wiring E2E de /generate: indexa un documento real, llama al endpoint sin formatos
-    extra y valida que learning_metadata sea real y no el fallback de error.
+    Wiring E2E de /generate: indexa un documento real, llama al endpoint con formato
+    válido ["tldr"] y valida que learning_metadata sea real y no el fallback de error.
     """
     doc_id = doc_id_manager
 
@@ -130,7 +130,7 @@ def test_api_generate_wiring(doc_id_manager):
 
     payload = {
         "document_id": doc_id,
-        "formats": [],
+        "formats": ["tldr"],
         "profile": "profesional",
         "niche": "general",
         "detail_level": "avanzado",
@@ -146,3 +146,19 @@ def test_api_generate_wiring(doc_id_manager):
     conceptos = data["learning_metadata"]["key_concepts"]
     assert len(conceptos) > 0, f"learning_metadata vacío: {data}"
     assert conceptos != ["Error al extraer conceptos"], f"/generate devolvió el fallback de error: {data}"
+
+
+def test_api_generate_empty_formats_returns_422():
+    """
+    Verifica que enviar una lista de formatos vacía devuelva un error HTTP 422
+    debido a la validación estricta de Pydantic (min_length=1).
+    """
+    payload = {
+        "document_id": "test_empty_formats",
+        "formats": [],
+        "profile": "profesional",
+        "niche": "general",
+        "detail_level": "avanzado"
+    }
+    response = client.post("/api/v1/generate", json=payload)
+    assert response.status_code == 422, f"Se esperaba un código 422 y se obtuvo {response.status_code}"
