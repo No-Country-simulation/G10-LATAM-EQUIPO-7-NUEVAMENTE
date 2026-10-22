@@ -102,7 +102,7 @@ def classify_exception(exc: BaseException) -> Dict:
         return build_error(causa, detalle, upstream_status=codigo)
 
     nombre = type(exc).__name__.lower()
-    if "timeout" in nombre:
+    if "timeout" in nombre or nombre in ["deadlineexceeded", "readtimeout", "timeouterror"]:
         return build_error("PROVIDER_TIMEOUT", detalle)
     if "connect" in nombre:
         return build_error("PROVIDER_UNAVAILABLE", detalle)
