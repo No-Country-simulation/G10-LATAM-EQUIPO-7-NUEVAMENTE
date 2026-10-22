@@ -1,5 +1,20 @@
 # NuevaMente — Sprint 4 Integration Decisions
 
+> **Documento histórico de decisiones de Sprint 4**
+>
+> Este archivo conserva acuerdos, decisiones y pendientes existentes durante
+> la implementación de Sprint 4.
+>
+> Varias tareas marcadas como pendientes en secciones posteriores fueron
+> implementadas posteriormente, entre ellas Evaluation V2, Semantic Evaluator,
+> integración con Gemini, fallback controlado y pruebas asociadas.
+>
+> No utilizar las listas históricas de pendientes como representación del
+> estado actual del módulo.
+>
+> Para conocer el estado final de Data/IA consulta
+> [`../README.md`](../README.md).
+
 **Estado:** Draft acordado para implementación  
 **Sprint:** 4  
 **Áreas involucradas:** Data/IA, Agentes, BackendAPI  

@@ -117,7 +117,7 @@ def _normalizar_feedback_revision(
 
 class GenerateRequest(BaseModel):
     document_id: str = Field(..., min_length=1)
-    formats: List[str] = Field(default_factory=list)
+    formats: List[str] = Field(..., min_length=1, description="La lista de formatos no puede estar vacía")
     profile: str = Field(..., min_length=1)
     niche: str = Field(..., min_length=1)
     detail_level: str = Field(..., min_length=1)
@@ -327,19 +327,20 @@ def generate_formats(payload: GenerateRequest):
         final_state = ejecutar_grafo(grafo, initial_state)
 
         # === SOPORTE ROBUSTO RETROCOMPATIBLE PARA MOCKS DE TESTS ===
-        meta_raw = final_state.get("learning_metadata") or final_state.get("metadata_result") or {}
+        meta_original = final_state.get("learning_metadata") or final_state.get("metadata_result") or {}
         
-        if hasattr(meta_raw, "model_dump"):
-            learning_metadata = meta_raw.model_dump()
-        elif hasattr(meta_raw, "dict"):
-            learning_metadata = meta_raw.dict()
-        elif isinstance(meta_raw, dict):
-            learning_metadata = dict(meta_raw)
+        if hasattr(meta_original, "model_dump"):
+            meta_dict = meta_original.model_dump()
+        elif hasattr(meta_original, "dict"):
+            meta_dict = meta_original.dict()
+        elif isinstance(meta_original, dict):
+            meta_dict = dict(meta_original)
         else:
-            learning_metadata = _metadata_fallback()
+            meta_dict = _metadata_fallback()
 
-        if "content" in meta_raw and isinstance(meta_raw["content"], dict):
-            for k, v in meta_raw["content"].items():
+        learning_metadata = meta_dict.copy()
+        if "content" in meta_dict and isinstance(meta_dict["content"], dict):
+            for k, v in meta_dict["content"].items():
                 if k not in learning_metadata:
                     learning_metadata[k] = v
 
@@ -349,8 +350,8 @@ def generate_formats(payload: GenerateRequest):
 
         meta_status = (
             final_state.get("learning_metadata_status") 
-            or (meta_raw.get("status") if isinstance(meta_raw, dict) else None)
-            or ("success" if meta_raw and not meta_raw.get("error") else "failed")
+            or meta_dict.get("status")
+            or ("success" if meta_dict and not meta_dict.get("error") else "failed")
         )
 
         # Manejo estricto del título en la raíz según el estado de los metadatos y el fallback al nombre de archivo
@@ -361,7 +362,7 @@ def generate_formats(payload: GenerateRequest):
             
         descripcion_cruda = extracted_description or final_state.get("document_description")
         
-        meta_error = final_state.get("learning_metadata_error") or (meta_raw.get("error") if isinstance(meta_raw, dict) else None)
+        meta_error = final_state.get("learning_metadata_error") or meta_dict.get("error")
 
         if meta_status != "success" and not meta_error:
             error_code = "NO_CONTEXT" if meta_status == "no_results" else "INTERNAL_ERROR"
@@ -402,27 +403,9 @@ def generate_formats(payload: GenerateRequest):
                 errores.append(normalized["error"])
                 
             respuestas_generadas.append(normalized)
-
-        total_formats = len(payload.formats)
         
-        # Mapeo estricto del estado HTTP
-        if exitosas == total_formats and meta_status == "success":
-            http_status = 200
-        elif exitosas == 0:
-            # Mapeo de errores correcto independientemente de meta_status
-            codigos_error = [err.get("code") for err in errores if isinstance(err, dict)]
-            if any(c == "NO_CONTEXT" for c in codigos_error):
-                http_status = 404
-            elif any(c == "RESOURCE_EXHAUSTED" for c in codigos_error):
-                http_status = 429
-            elif any(c == "PROVIDER_UNAVAILABLE" for c in codigos_error):
-                http_status = 503
-            else:
-                http_status = 500
-        else:
-            http_status = 207
-
-        overall_status, _ = evaluar_resultado_global(exitosas, errores)
+        # Delegamos la responsabilidad del HTTP y el estado global a errors.py (Única fuente de verdad)
+        overall_status, http_status = evaluar_resultado_global(exitosas, errores)
 
         cuerpo = {
             "document_id": payload.document_id,
@@ -681,3 +664,7 @@ def delete_document(document_id: str):
     except Exception as e:
         logger.exception("Error al borrar el documento %s", document_id)
         raise HTTPException(status_code=500, detail="Error interno al borrar el documento.")
+
+
+
+    

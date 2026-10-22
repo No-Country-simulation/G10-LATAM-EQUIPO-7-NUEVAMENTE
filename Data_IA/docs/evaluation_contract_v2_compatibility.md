@@ -9,6 +9,14 @@
 
 ---
 
+> **Nota de estado:** este documento conserva la revisión de compatibilidad
+> realizada antes de implementar Evaluation V2. No debe utilizarse como
+> descripción autoritativa del estado actual.
+>
+> Para conocer el contrato actualmente implementado consulta
+> [`../README.md`](../README.md) y
+> `data_ai/schemas/evaluation_v2.py`.
+
 # 1. Propósito
 
 Este documento analiza la compatibilidad entre:

@@ -1,6 +1,6 @@
 # NuevaMente — Evaluation Contract V2
 
-**Estado:** Draft  
+**Estado:** Documento histórico de diseño — implementación posterior disponible
 **Sprint:** 4  
 **Área responsable:** Data/IA  
 **Integración principal:** BackendAPI ↔ Data/IA  
@@ -8,6 +8,14 @@
 **Objetivo:** Definir el contrato funcional y técnico de evaluación para soportar el ciclo de generación, evaluación, corrección y reevaluación de contenido educativo.
 
 ---
+
+> **Nota de estado:** este documento conserva el diseño propuesto durante
+> Sprint 4. Parte de los elementos descritos posteriormente fueron
+> implementados y el contrato operativo puede haber evolucionado.
+>
+> Para conocer el comportamiento actual de Evaluation V2 consulta
+> [`../README.md`](../README.md) y los schemas implementados en
+> `data_ai/schemas/evaluation_v2.py`.
 
 ## 1. Propósito
 
