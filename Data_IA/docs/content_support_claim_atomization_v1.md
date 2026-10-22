@@ -769,3 +769,111 @@ El failure mode principal observado corresponde a frases infinitivas que el mode
 Por esta razón, la evidencia actual apoya continuar investigando Claim Atomization, pero todavía no justifica integrarlo como componente automático del pipeline productivo de evaluación.
 
 **Decisión final de Sprint 4:** mantener Claim Atomization `v0.4` como componente experimental y reproducible, sin impacto sobre los verdicts de producción.
+
+---
+
+## 24. Actualización posterior — External Validation v1
+
+Después del cierre de la evaluación interna descrita en este documento se
+ejecutó una validación externa independiente de `claim-atomizer-v0.4`.
+
+La nueva evaluación se diseñó para comprobar si el comportamiento observado
+en Final Eval v1 se mantenía fuera del corpus original utilizado durante el
+desarrollo y la calibración.
+
+### Benchmark externo
+
+El conjunto congelado contiene:
+
+```text
+80 casos
+```
+
+distribuidos deliberadamente como:
+
+| Clase | Casos |
+|---|---:|
+| atomic | 20 |
+| compound | 20 |
+| relational | 20 |
+| non_propositional | 20 |
+| Total | 80 |
+
+Los casos proceden de documentación técnica oficial de cinco dominios:
+
+- AI;
+- Backend;
+- Cloud / DevOps;
+- Data Science;
+- Frontend.
+
+La auditoría contra los 59 casos históricos obtuvo:
+
+```text
+Exact normalized overlap: 0
+```
+
+### Resultados externos
+
+Los principales resultados fueron:
+
+| Métrica | Resultado |
+|---|---:|
+| Exact structure accuracy | 0.3833 |
+| Count accuracy | 0.5167 |
+| Type-sequence accuracy | 0.4167 |
+| Non-propositional precision | 0.9375 |
+| Non-propositional recall | 0.7500 |
+| Structural coverage | 0.9833 |
+| Atom inflation | +0.2386 |
+
+También se ejecutó una prueba independiente de estabilidad:
+
+```text
+16 casos
+3 repeticiones por caso
+48 llamadas
+```
+
+Resultados:
+
+```text
+Successful calls: 47/48
+Fully stable cases: 11/16
+Fully stable rate: 0.6875
+```
+
+### Decisión final
+
+La validación externa no confirmó la generalización estructural observada en
+el Final Eval interno.
+
+La decisión final para `claim-atomizer-v0.4` fue:
+
+```text
+STOP_V0_4_FOR_PRODUCTION_INTEGRATION
+```
+
+Por tanto, las recomendaciones de continuar investigando v0.4 descritas
+anteriormente en este documento quedan sustituidas por el cierre experimental
+posterior.
+
+`claim-atomizer-v0.4` permanece disponible únicamente para:
+
+- investigación;
+- diagnóstico;
+- calibración;
+- evaluación offline;
+- análisis de fallos.
+
+No se utiliza para:
+
+- modificar `content_support`;
+- cambiar verdicts;
+- realizar gating productivo;
+- rechazar automáticamente contenido;
+- modificar `/evaluate/v2`.
+
+El reporte final y autoritativo de esta etapa es:
+
+[`claim_atomization_v0_4_external_validation_final.md`](claim_atomization_v0_4_external_validation_final.md).
