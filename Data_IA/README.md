@@ -25,14 +25,19 @@ describe en el [README de la raíz](../README.md).
 
 ## Alcance
 
-Data/IA mantiene dos recorridos relacionados, pero separados:
+Data/IA mantiene tres recorridos relacionados, pero separados:
 
 1. **Evaluación integrada de formatos:** recibe desde BackendAPI el formato
    generado, el contexto de generación y los chunks que sirvieron como
    evidencia. `POST /evaluate` mantiene la respuesta V1.1 y
    `POST /evaluate/v2` devuelve señales heurísticas y semánticas separadas.
+
 2. **Evaluación offline de retrieval:** valida respuestas de Agentes frente a
    un corpus y Ground Truth versionados; produce métricas y análisis de error.
+
+3. **Calibración y experimentación:** conserva datasets, protocolos y
+   resultados reproducibles utilizados para investigar mejoras potenciales
+   del evaluador sin incorporarlas automáticamente al pipeline productivo.
 
 Responsabilidades:
 
@@ -330,6 +335,70 @@ guías de implementación.
 
 Para regenerar el corpus se utiliza
 `scripts/build_controlled_format_corpus.py`.
+
+## Calibración y experimentación
+
+Data/IA conserva experimentos reproducibles utilizados para investigar y
+calibrar posibles mejoras del sistema de evaluación.
+
+Estos experimentos están separados del comportamiento productivo de
+`POST /evaluate/v2` y no modifican automáticamente el verdict.
+
+Entre los principales artefactos se encuentran:
+
+- calibración del Semantic Evaluator;
+- análisis de `content_support`;
+- extensiones controladas de calibración;
+- Claim Atomization v1;
+- validación externa de Claim Atomization v0.4.
+
+### Claim Atomization v0.4
+
+Claim Atomization estudió la posibilidad de dividir claims complejos en
+unidades semánticas evaluables de manera independiente.
+
+Después de las evaluaciones internas se realizó una validación externa
+congelada sobre 80 casos procedentes de documentación técnica oficial.
+
+El benchmark externo incluyó:
+
+- 20 casos `atomic`;
+- 20 casos `compound`;
+- 20 casos `relational`;
+- 20 casos `non_propositional`;
+- cinco dominios técnicos.
+
+Los principales resultados externos fueron:
+
+| Métrica | Resultado |
+|---|---:|
+| Exact structure accuracy | 0.3833 |
+| Count accuracy | 0.5167 |
+| Type-sequence accuracy | 0.4167 |
+| Non-propositional precision | 0.9375 |
+| Non-propositional recall | 0.7500 |
+| Fully stable rate | 0.6875 |
+
+La evidencia externa no confirmó una generalización estructural suficiente
+para integrar `claim-atomizer-v0.4` al flujo productivo.
+
+Decisión final:
+
+```text
+STOP_V0_4_FOR_PRODUCTION_INTEGRATION
+```
+
+Por tanto, Claim Atomization v0.4:
+
+- permanece experimental;
+- no modifica `/evaluate/v2`;
+- no modifica `content_support`;
+- no cambia el verdict;
+- no se integra al Semantic Evaluator productivo.
+
+El reporte final y autoritativo se encuentra en:
+
+[`docs/claim_atomization_v0_4_external_validation_final.md`](docs/claim_atomization_v0_4_external_validation_final.md).
 
 ## Mapa del módulo
 
