@@ -55,7 +55,7 @@
           <defs><marker id="arrowhead" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M0 0L10 5L0 10Z" fill="#f59e0b"/></marker></defs>
           <rect class="oci-boundary" x="2" y="2" width="1056" height="616" rx="24"/>
           <text class="infra-heading" x="26" y="34">OCI / MÁQUINA VIRTUAL</text>
-          <text class="infra-caption" x="1032" y="34" text-anchor="end">Docker Compose · Administración de contenedores</text>
+          <g class="docker-badge"><rect x="560" y="12" width="474" height="32" rx="8"/><text x="578" y="33">Docker Compose<tspan class="docker-detail" dx="14">Administración de contenedores</tspan></text></g>
           <path class="infra-divider" d="M26 52H1034"/>
           <g transform="translate(20 65)">
           <rect class="agent-boundary" id="agent-boundary" x="505" y="25" width="265" height="390" rx="20"/>
@@ -100,8 +100,12 @@
             <rect x="805" y="170" width="195" height="100" rx="12"/><text class="node-kicker" x="824" y="196">EVALUADOR INDEPENDIENTE</text><text class="node-title" x="824" y="224">Data/IA</text><text class="node-detail" x="824" y="244"><tspan x="824">Calidad pedagógica ·</tspan><tspan x="824" dy="14">fidelidad a la fuente</tspan></text><g class="explore-icon" aria-hidden="true"><circle cx="980" cy="220" r="11"/><text x="980" y="225">↗</text></g>
           </g>
           </g>
-          <text class="infra-caption" x="40" y="594">Persistencia · SQLite · OCI Object Storage · ChromaDB</text>
-          <text class="infra-caption" x="1020" y="594" text-anchor="end">Contenedor adicional · Landing / Nginx</text>
+          <text class="infra-caption" x="1020" y="548" text-anchor="end">Contenedor adicional · Landing / Nginx</text>
+          <g class="persistence-services" aria-label="Persistencia">
+            <g><rect x="26" y="560" width="326" height="46" rx="8"/><text class="storage-title" x="42" y="579">SQLite</text><text class="storage-detail" x="42" y="596">Información de negocio e historial</text></g>
+            <g><rect x="367" y="560" width="326" height="46" rx="8"/><text class="storage-title" x="383" y="579">OCI Object Storage</text><text class="storage-detail" x="383" y="596">Documentos y paquetes generados</text></g>
+            <g><rect x="708" y="560" width="326" height="46" rx="8"/><text class="storage-title" x="724" y="579">ChromaDB</text><text class="storage-detail" x="724" y="596">Información vectorial</text></g>
+          </g>
         </svg>
       </div>
       <div class="sequence-bar"><div class="sequence-caption" role="status" aria-live="polite"><span id="step-count">EL SISTEMA</span><p id="step-description">Reproduce el recorrido completo: generación, evaluación y un caso que requiere corrección.</p></div><div class="architecture-toolbar" hidden><div class="playback-panel" role="group" aria-label="Reproducción del proceso completo"><div class="sequence-controls"><button type="button" id="step-reset">↺ Reiniciar</button><button type="button" id="step-play">▷ Reproducir</button><button type="button" id="step-pause" disabled>Ⅱ Pausa</button></div><label class="evidence-option"><input type="checkbox" id="new-evidence" checked> Requiere nueva evidencia</label></div></div></div>
