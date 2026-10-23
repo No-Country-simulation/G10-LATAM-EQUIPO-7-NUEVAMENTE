@@ -118,11 +118,19 @@ Las dimensiones semánticas evaluadas son:
 Los scores heurísticos y semánticos no se ponderan ni combinan. Actualmente no
 existe un `final_score`, `combined_score` ni `weighted_score`.
 
-El `verdict` V2 se mapea actualmente desde el veredicto heurístico V1.1:
-`aprobado` → `approved`, `requiere_revision` → `requires_revision` y
-`rechazado` → `rejected`. Si el evaluator heurístico no produce una señal
-válida, el veredicto permanece `null`. Un resultado semántico exitoso no
-genera ni modifica por sí solo el veredicto.
+El `verdict` V2 se resuelve mediante Decision Layer v0.1 a partir de las
+señales heurística y semántica, manteniendo sus scores separados.
+
+La política actual es conservadora:
+
+- si el Semantic Evaluator falla o no está disponible, se conserva el
+  veredicto heurístico;
+- si solo existe una señal semántica válida, se deriva el veredicto desde
+  sus scores;
+- si ambas señales coinciden, se conserva el acuerdo;
+- si ambas señales discrepan, el resultado es `requires_revision`.
+
+La Decision Layer no calcula promedios ni ponderaciones entre scores.
 
 La forma principal de la respuesta V2 es:
 
@@ -257,10 +265,12 @@ Por ejemplo:
 Data/IA conserva el evaluator heurístico léxico V1.1 y añade en Evaluation V2
 un Semantic Evaluator independiente basado en LLM-as-a-Judge.
 
-Ambas señales permanecen separadas y todavía no se ponderan ni combinan.
+Ambas señales permanecen separadas y no se ponderan ni promedian.
 
-El evaluator heurístico continúa siendo la fuente del veredicto global; no hay
-una Decision Layer calibrada que combine ambas señales.
+Evaluation V2 utiliza Decision Layer v0.1 para resolver el `verdict` a partir
+de ambas señales. La capa conserva acuerdos entre evaluadores, utiliza el
+heurístico como fallback ante fallos del Semantic Evaluator y transforma los
+desacuerdos en `requires_revision`.
 
 La versión V1.1 normaliza mayúsculas y acentos y compara términos
 significativos con la evidencia.
@@ -555,8 +565,9 @@ un backlog priorizado:
 
 - V1.1 y V2 coexisten. V2 está publicado en `/evaluate/v2`, mientras
   `/evaluate` conserva el contrato V1.1.
-- V2 no tiene una Decision Layer calibrada: el `verdict` se deriva del
-  evaluator heurístico y las señales semánticas no se combinan con esos scores.
+- V2 utiliza Decision Layer v0.1 con una política conservadora basada en
+  acuerdo/desacuerdo entre señales; todavía no utiliza ponderaciones ni una
+  calibración estadística de scores combinados.
 - La evaluación semántica requiere configurar `DATA_IA_GEMINI_API_KEY` y
   `DATA_IA_GEMINI_MODEL`; sin ellas, V2 responde con estado semántico
   `unavailable`, pero mantiene la evaluación heurística.
