@@ -79,6 +79,7 @@ button, a { -webkit-tap-highlight-color: transparent; }
 .enhanced .scene[hidden] { display: none; }
 .scene-foot { display: flex; flex-wrap: wrap; justify-content: center; gap: 12px 26px; border-top: 1px solid var(--line); padding-top: 23px; margin-top: 20px; font-size: .78rem; color: var(--secondary); }
 .scene-foot strong { font-weight: 600; color: var(--gold-light); }
+#transformacion .scene-foot strong { flex-basis: 100%; text-align: center; }
 .scene-foot > span { color: var(--gold-bright); }
 .audience-map { position: relative; isolation: isolate; display: grid; grid-template-columns: 1fr 1.1fr 1fr; grid-template-rows: 1fr 1fr; align-items: center; justify-items: center; width: min(100%, 1000px); margin: 15px auto; height: clamp(270px, 33vh, 370px); }
 .audience-lines { position: absolute; inset: 0; width: 100%; height: 100%; z-index: -1; fill: none; stroke: rgba(245, 158, 11, 0.35); stroke-width: 1.4; }
@@ -213,6 +214,13 @@ dialog h2 { font-size: 1.8rem; margin: 25px 0; }
 .resource-list { display: grid; }
 .resource-list a { display: flex; justify-content: space-between; gap: 15px; border-top: 1px solid var(--line); padding: 17px 0; color: #e2e8f0; font-size: .88rem; transition: color .2s ease; }
 .resource-list a:hover { color: var(--gold-light); }
+#resource-image-dialog { width: min(1280px, 96vw); max-width: 96vw; max-height: 94dvh; padding: 0; }
+#resource-image-dialog[open] { display: flex; flex-direction: column; }
+#resource-image-dialog .dialog-heading { flex-shrink: 0; gap: 16px; padding: 12px 16px; border-bottom: 1px solid var(--line); }
+#resource-image-dialog h2 { margin: 0; font-size: clamp(.9rem, 2vw, 1.2rem); letter-spacing: normal; }
+#close-resource-image { flex-shrink: 0; }
+.resource-image-content { min-height: 0; overflow: auto; padding: 12px; text-align: center; }
+.resource-image-content img { display: block; max-width: 100%; height: auto; margin: auto; }
 .team-invitation { display: flex; justify-content: center; align-items: center; flex-wrap: wrap; gap: 10px 20px; margin-top: 10px; }
 .team-invitation small { margin: 0; }
 .team-button { padding: 7px 12px; font-size: .73rem; color: var(--gold-light); border-color: rgba(245, 158, 11, 0.5); }
