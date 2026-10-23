@@ -254,3 +254,102 @@ def test_evaluate_v2_uses_provider_factory(
         body["semantic_evaluation"]["scores"]
         is not None
     )
+
+def test_evaluate_v2_disagreement_requires_revision(
+    monkeypatch,
+):
+    from data_ai.api import app as app_module
+
+    class ApprovedSemanticProvider:
+        provider_name = "fake"
+        model_name = "fake-semantic-model"
+
+        def generate_structured(
+            self,
+            *,
+            system_prompt,
+            user_prompt,
+        ):
+            return {
+                "scores": {
+                    "relevance": 5.0,
+                    "coherence": 5.0,
+                    "didactic_adaptation": 5.0,
+                    "content_support": 5.0,
+                },
+                "observations": [],
+                "recommendations": [],
+                "unsupported_information": [],
+            }
+
+    monkeypatch.setattr(
+        app_module,
+        "build_semantic_provider",
+        lambda: ApprovedSemanticProvider(),
+    )
+
+    payload = {
+        "document_id": "doc_disagreement",
+        "format": "tldr",
+        "generated_content": {
+            "title": "Aprendizaje supervisado",
+            "summary": (
+                "El aprendizaje supervisado utiliza datos "
+                "etiquetados para entrenar modelos."
+            ),
+            "key_points": [
+                "Se utiliza para clasificación.",
+                "También puede utilizarse para regresión.",
+            ],
+            "conclusion": (
+                "El modelo aprende relaciones entre entradas "
+                "y resultados esperados."
+            ),
+        },
+        "generation_context": {
+            "profile": "student",
+            "niche": "Data Science",
+            "detail_level": "beginner",
+            "learning_objective": (
+                "Comprender el aprendizaje supervisado."
+            ),
+        },
+        "chunks_used": [
+            {
+                "chunk_id": "chunk_1",
+                "document_id": "doc_disagreement",
+                "rank": 1,
+                "score": 0.95,
+                "text": (
+                    "Supervised learning trains models using "
+                    "labeled examples."
+                ),
+            },
+            {
+                "chunk_id": "chunk_2",
+                "document_id": "doc_disagreement",
+                "rank": 2,
+                "score": 0.90,
+                "text": (
+                    "Common supervised learning tasks include "
+                    "classification and regression."
+                ),
+            },
+        ],
+    }
+
+    response = client.post(
+        "/evaluate/v2",
+        json=payload,
+    )
+
+    assert response.status_code == 200
+
+    body = response.json()
+
+    assert body["heuristic_scores"]["content_support"] <= 2.0
+    assert (
+        body["semantic_evaluation"]["scores"]["content_support"]
+        == 5.0
+    )
+    assert body["verdict"] == "requires_revision"
