@@ -133,7 +133,7 @@ def test_builder_maps_heuristic_result_to_v2():
         ),
         (
             "rechazado",
-            "rejected",
+            "requires_revision",
         ),
     ],
 )
@@ -222,7 +222,7 @@ def test_missing_heuristic_produces_no_verdict_when_semantic_fails():
     assert result.heuristic_scores is None
 
 
-def test_missing_heuristic_does_not_invent_verdict_from_semantic_scores():
+def test_missing_heuristic_uses_valid_semantic_verdict():
     result = build_evaluation_response_v2(
         document_id="doc_123",
         content_format="quiz",
@@ -230,14 +230,13 @@ def test_missing_heuristic_does_not_invent_verdict_from_semantic_scores():
         semantic_evaluation=_semantic_success(),
     )
 
-    assert result.verdict is None
+    assert result.verdict == "approved"
     assert result.heuristic_scores is None
 
     assert (
         result.semantic_evaluation.status
         == "success"
     )
-
 
 def test_builder_uses_current_versions_by_default():
     result = build_evaluation_response_v2(
