@@ -1,134 +1,116 @@
-## 0:00–0:35 — Problema  
+## 0:00–0:40 · Problema
 **Responsable: Project Manager**
 
-> **“Documentar no es lo mismo que transmitir conocimiento.**
->
-> Las empresas y equipos tecnológicos producen manuales y documentación con muchísimo contenido valioso, pero un mismo documento no necesariamente funciona igual para todas las personas.
->
-> Un principiante, un desarrollador, un arquitecto o un perfil ejecutivo necesitan distintos niveles de lenguaje, profundidad y contexto, pero con una condición fundamental: mantener la fidelidad a la fuente.”
-
+Imaginemos el siguiente escenario: una empresa implementa o actualiza un manual técnico. El conocimiento ya existe, pero convertir ese documento en material de capacitación para un principiante, un desarrollador, un arquitecto y un perfil ejecutivo puede requerir semanas de trabajo especializado.
+Y aparece un segundo problema: simplificar y adaptar esa información sin perder precisión ni alejarse de la fuente original. 
+Ese es el reto que buscamos resolver con NuevaMente, porque documentar no es lo mismo que transmitir conocimiento.
 ---
-
-## 0:35–1:00 — Solución  
+## 0:40–1:10 · Solución
 **Responsable: Project Manager**
 
-> “Ahí nace NuevaMente: una plataforma que transforma documentación técnica en material de capacitación adaptado al perfil de quien necesita aprenderla.
->
-> A partir de un documento en PDF, Markdown o texto plano, definimos el perfil, el contexto, el nivel de profundidad y, opcionalmente, un objetivo de aprendizaje.
->
-> NuevaMente genera cuatro formatos complementarios: resumen ejecutivo, flashcards, quiz y guion formativo para video. Además identifica conceptos clave, prerrequisitos y un tiempo estimado de estudio.”
+NuevaMente convierte documentación técnica en capacitación adaptada y verificable. Recibe un documento, entiende para quién debemos explicarlo, recupera la evidencia pertinente, transforma esa evidencia en material pedagógico y evalúa la calidad del resultado antes de darlo por bueno.
+Nuestro foco no es simplemente generar contenido con inteligencia artificial, sino transformar conocimiento técnico para diferentes audiencias manteniendo siempre fidelidad con la fuente.
 
+Veámoslo funcionando.
 ---
 
-## 1:00–2:35 — Demo del producto  
+## 1:10–2:40 · Producto
 **Responsable: Frontend**
 
-> “Veámoslo funcionando.
->
-> Esta es la biblioteca de NuevaMente, donde podemos consultar los documentos ya procesados, buscarlos y acceder nuevamente a sus capacitaciones.
->
-> Para transformar un nuevo documento lo cargamos y definimos su contexto pedagógico: destinatario, área temática, nivel de profundidad y, si lo necesitamos, un objetivo de aprendizaje.
->
-> Desde este momento BackendAPI coordina el proceso: conserva el documento, solicita su indexación, inicia la generación y mantiene los estados del producto.
->
-> Una vez procesado, el documento incorpora información que orienta el aprendizaje, como conceptos clave, prerrequisitos y tiempo estimado de estudio.
->
-> Sobre ese mismo documento podemos consultar un resumen para comprender lo esencial, flashcards para reforzar conceptos, un quiz para comprobar comprensión y un guion formativo con narración y sugerencias visuales.
->
-> Además, cada formato cuenta con información de evaluación de calidad y podemos generar nuevas versiones sin volver a cargar ni indexar el documento, manteniendo siempre disponible el archivo original.”
+Accedemos al catalogo de capacitaciones donde encontramos la biblioteca de NuevaMente. Aquí podemos consultar los documentos procesados, buscarlos, filtrarlos y acceder nuevamente a sus contenidos, en una vista gráfica o en forma de lista.
+
+Para transformar un nuevo documento cargamos un PDF, Markdown o texto plano y definimos su contexto pedagógico: perfil del destinatario, área de uso y nivel de profundidad. NuevaMente procesa el documento, lo almacena en OCI Object Storage y lo indexa. Desde la biblioteca podemos abrirlo y encontrar conceptos clave, conocimientos previos necesarios y un tiempo estimado de estudio.
+
+Sobre ese mismo conocimiento generamos cuatro formatos complementarios: resumen ejecutivo, flashcards, un guion formativo con narración y sugerencias visuales, y un quiz de evaluacion de conocimientos con justificación de respuestas.
+
+Pero los formatos no son el núcleo del producto; son distintas formas de utilizar un mismo motor de adaptación pedagógica. También podemos regenerar un formato o todos sin volver a cargar ni indexar el documento, conservar internamente las versiones anteriores y descargar tanto los contenidos como el archivo original. Y cada formato muestra su evaluación: veredicto, puntuaciones, observaciones, recomendaciones y, cuando corresponde, información que necesita mayor respaldo documental.
 
 ---
 
-## 2:35–3:15 — Arquitectura general  
+## 2:40–3:20 · Arquitectura
 **Responsable: Agentes**
 
-> “Lo interesante ocurre detrás de la interfaz.
->
-> NuevaMente está construido como un sistema de responsabilidades separadas.
->
-> El Frontend gestiona la experiencia del usuario. BackendAPI funciona como orquestador global: coordina, persiste y decide. El sistema multiagente recupera evidencia, genera el contenido y participa en su corrección. Y Data/IA funciona como evaluador independiente de la calidad pedagógica y de la fidelidad a la fuente.
->
-> Todo el sistema se encuentra desplegado sobre Oracle Cloud mediante contenedores administrados con Docker Compose, con persistencia en SQLite, OCI Object Storage y ChromaDB.”
+Ahora bien, por la interfaz puede parecer sencillo. Lo importante es qué hacemos detrás para que no sea simplemente otro sistema que envía un PDF a un modelo de lenguaje. NuevaMente separa responsabilidades: el Frontend gestiona la experiencia; BackendAPI orquesta documentos, estados, persistencia y servicios; Agentes recupera evidencia, genera y corrige; y Data/IA evalúa de forma independiente.
 
 ---
 
-## 3:15–3:55 — Investigador RAG  
+## 3:20–4:15 · Investigador RAG
 **Responsable: Agentes**
 
-> “El Investigador es una de las piezas centrales del sistema.
->
-> NuevaMente no utiliza una única recuperación para producir todas sus salidas. Metadatos, quiz, flashcards, resumen y guion realizan búsquedas independientes, por lo que la evidencia puede variar según el objetivo.
->
-> La recuperación es híbrida. Primero obtenemos candidatos mediante búsqueda semántica en ChromaDB y búsqueda léxica con BM25. Fusionamos ambos rankings mediante Reciprocal Rank Fusion, un Cross-Encoder vuelve a ordenar los candidatos por relevancia y finalmente seleccionamos las evidencias Top-K que recibe el modelo generativo.
->
-> Así, un quiz no tiene por qué construirse exactamente con la misma evidencia que un resumen.”
+Una de las piezas centrales es nuestro Investigador RAG. NuevaMente no reutiliza un único conjunto de fragmentos para todas las salidas. Cada formato realiza recuperaciones independientes. 
+
+Para encontrarla combinamos búsqueda semántica en ChromaDB, que encuentra relaciones por significado, y búsqueda léxica con BM25, útil para conservar términos técnicos específicos. Fusionamos ambos rankings mediante Reciprocal Rank Fusion; un Cross-Encoder reordena los candidatos por relevancia y finalmente seleccionamos las evidencias Top-K que recibe el modelo generativo.
+
+El beneficio obtenido es que recuperamos la información que cada formato requiere. 
 
 ---
 
-## 3:55–4:45 — Evaluación de calidad  
+## 4:15–5:05 · Evaluación de calidad
 **Responsable: Data/IA**
 
-> “Pero recuperar evidencia y generar contenido todavía no garantiza que el resultado sea bueno.
->
-> Por eso Data/IA recibe el contenido generado, el contexto pedagógico y la evidencia utilizada.
->
-> La evaluación utiliza dos señales complementarias. Una evaluación heurística aplica reglas verificables y reproducibles. En paralelo, un evaluador semántico basado en Gemini como LLM-as-a-Judge analiza el significado mediante una rúbrica.
->
-> Ambas valoran relevancia, coherencia, adaptación didáctica y respaldo documental desde perspectivas diferentes.
->
-> La valoración conjunta produce un veredicto y devuelve puntuaciones, observaciones, recomendaciones e información potencialmente no respaldada, que posteriormente puede utilizarse para orientar una corrección.”
+Desde Data IA sabemos que encontrar buena evidencia tampoco garantiza un buen contenido. Generar no significa validar. Por eso Data/IA evalúa cada resultado en cuatro dimensiones: relevancia, coherencia, adaptación didáctica y respaldo documental.
+
+Lo hace con dos señales complementarias. La primera es heurística y aplica reglas verificables y reproducibles. La segunda es semántica y utiliza el LLM de Gemini como segundo juez para interpretar el contenido mediante una rúbrica. Así evaluamos una misma pieza desde dos perspectivas y obtenemos puntuaciones, observaciones, recomendaciones e información que puede necesitar mejor respaldo documental.
 
 ---
-
-## 4:45–5:50 — Ground Truth, benchmark y ablaciones  
+## 5:05–6:15 · Ground Truth, benchmark y ablaciones
 **Responsable: Data/IA**
 
-> “Además quisimos medir al propio sistema de recuperación.
->
-> Para ello Data/IA mantiene una validación offline, completamente separada del flujo de cada usuario.
->
-> Trabajamos con un corpus congelado, cincuenta consultas y un Ground Truth versionado que establece qué fragmentos deberían considerarse relevantes. Esto nos permite ejecutar diferentes configuraciones del retrieval sobre exactamente las mismas entradas y comparar sus resultados.
->
-> En nuestro benchmark, Retrieval V2 mejoró las cuatro métricas evaluadas. Por ejemplo, Recall@3 pasó de 0,573 a 0,933 y Recall@5 de 0,753 a 0,953. También observamos mejoras en precisión, resolvimos once casos críticos y las cincuenta ejecuciones finalizaron sin errores técnicos.
->
-> Además realizamos estudios de ablación: retiramos o modificamos componentes del pipeline y volvemos a medir. Así podemos entender qué aporta cada pieza y seleccionar una configuración basada en resultados reproducibles, no solamente en intuición.”
+También necesitábamos saber si el sistema de recuperación encontraba realmente la evidencia correcta. Para medirlo construimos una evaluación offline con un corpus congelado de 121 fragmentos, 50 consultas y un Ground Truth versionado que establece qué fragmentos deberían ser relevantes.
 
+Esto nos permite comparar distintas configuraciones bajo las mismas condiciones.
+
+En el benchmark, Retrieval V2 mejoró las cuatro métricas evaluadas. Recall@3 pasó de 0,57 a 0,93 y Recall@5 de 0,75 a 0,95. Además, resolvimos 11 casos críticos y las 50 ejecuciones finalizaron sin errores técnicos.
+
+También realizamos estudios de ablación: retiramos o modificamos componentes y repetimos las mismas consultas para observar cómo cambia el resultado.
+
+Así medimos qué aporta la búsqueda vectorial, BM25, el Cross-Encoder o la estrategia de fusión.
+
+Nuestra configuración no fue elegida porque parecía funcionar: fue comparada contra una referencia conocida y medida con métricas reproducibles.
 ---
 
-## 5:50–6:35 — Agente Revisor y corrección  
+## 6:15–7:00 · Agente Revisor
 **Responsable: Agentes**
 
-> “Cuando la evaluación encuentra un problema entra el Agente Revisor.
->
-> Su función no es volver a evaluar el contenido, sino interpretar los hallazgos y decidir qué ruta necesita la corrección.
->
-> Si se trata, por ejemplo, de un ajuste didáctico, puede enviar el feedback directamente al Redactor utilizando la evidencia disponible.
->
-> Pero si identifica falta de respaldo o de contexto, solicita nueva evidencia al Investigador RAG antes de realizar la reescritura.
->
-> La nueva versión conserva sus fuentes, regresa a Backend y vuelve a ser evaluada.
->
-> De esta manera, la corrección no consiste simplemente en pedirle nuevamente al modelo que genere contenido: responde a hallazgos concretos y mantiene la trazabilidad del proceso.”
+Cuando Data/IA encuentra un problema entra el Agente Revisor. Su función es interpretar los hallazgos y decidir cómo corregir el contenido.
+
+Si el problema es didáctico, por ejemplo un lenguaje demasiado complejo, puede reutilizar la evidencia existente y enviar instrucciones al Redactor Pedagógico. Si falta respaldo o contexto, puede solicitar nueva evidencia al Investigador RAG antes de reescribir.
+
+La versión corregida conserva sus fuentes, vuelve al Backend y puede evaluarse nuevamente. Así evitamos una regeneración ciega: no le decimos al modelo “inténtalo otra vez” sino que la corrección responde a un problema concreto.
 
 ---
 
-## 6:35–6:55 — Equipo  
-**Responsable: Project Manager**
+## 7:00–7:30 · Viabilidad
+**Responsable: Agentes / Backend**
 
-> “Detrás de NuevaMente hay ocho personas trabajando entre Frontend, Backend, Agentes, Data/IA, Infraestructura y QA.
->
-> Como Project Manager, mi reto fue coordinar esos frentes, sus dependencias y sus integraciones para convertir trabajos independientes en un solo producto.”
+Toda esta arquitectura está desplegada sobre Oracle Cloud Infrastructure en servicios contenedorizados con Docker Compose.
+
+SQLite conserva la información de negocio y el historial, OCI Object Storage mantiene documentos y paquetes generados, y ChromaDB almacena la información vectorial.
+
+Además, los servicios están desacoplados mediante contratos.
+
+No construimos solamente una demostración de inteligencia artificial: construimos un producto integrado y desplegable.
 
 ---
 
-## 6:55–7:30 — Impacto y cierre  
+## 7:30–7:55 · Equipo
 **Responsable: Project Manager**
 
-> “El valor de NuevaMente no está solamente en generar cuatro formatos con inteligencia artificial.
->
-> Está en hacer el conocimiento técnico más accesible para diferentes perfiles, reducir el esfuerzo necesario para convertir documentación en capacitación y mantener ese contenido vinculado con su fuente mediante evidencia, evaluación y corrección.
->
-> Construimos un flujo de extremo a extremo, desplegado, modular y medible, en el que generación, evaluación y validación del retrieval tienen responsabilidades diferenciadas.
->
-> **Documentar conserva conocimiento. NuevaMente ayuda a transmitirlo.**”
+Detrás de NuevaMente hay ocho profesionales trabajando entre Frontend, Backend, Agentes, Data/IA, Infraestructura y QA.
 
+Nuestro reto fue coordinar esos frentes, dependencias e integraciones para que especialidades diferentes terminaran funcionando como un solo producto, trabajando por sprints, con revisión entre pares, pruebas e integración progresiva.
+
+---
+
+## 7:55–8:50 · Cierre
+**Responsable: Project Manager**
+
+Hoy muchas organizaciones ya tienen el conocimiento que necesitan para capacitar a sus equipos. Está en sus manuales, procedimientos y documentación técnica.
+
+El problema es convertirlo en algo que diferentes personas realmente puedan aprender.
+
+NuevaMente reduce el esfuerzo de transformar documentación en capacitación, adapta ese conocimiento a distintos perfiles y mantiene la confianza en que el resultado continúa conectado con la fuente original.
+
+Si tienen un documento técnico y diferentes personas que necesitan aprender de él, los invitamos a probar NuevaMente y ver cómo ese conocimiento puede recuperarse, adaptarse, evaluarse y convertirse en capacitación.
+
+**Porque documentar conserva conocimiento. NuevaMente ayuda a transmitirlo.**

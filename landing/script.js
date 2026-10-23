@@ -279,7 +279,7 @@ playButton.addEventListener('click', () => {
   playbackTimer = window.setInterval(() => {
     stepIndex = Math.min(stepIndex + 1, getSteps().length - 1);
     renderStep();
-  }, 1500);
+  }, 1800);
 });
 nodes.forEach((node) => {
   function inspectNode() {
@@ -304,11 +304,29 @@ document.addEventListener('visibilitychange', () => {
 reducedMotion.addEventListener('change', () => { stopPlayback(); stopEntranceAnimations(); });
 
 const openResources = document.querySelector('#open-resources');
+const resourceImageDialog = document.querySelector('#resource-image-dialog');
+const resourceImage = document.querySelector('#resource-image');
 if (typeof resourcesDialog.showModal === 'function') {
   openResources.hidden = false;
   openResources.addEventListener('click', () => { stopPlayback(); resourcesDialog.showModal(); });
   document.querySelector('#close-resources').addEventListener('click', () => resourcesDialog.close());
   resourcesDialog.addEventListener('click', (event) => { if (event.target === resourcesDialog) resourcesDialog.close(); });
+  resourcesDialog.querySelectorAll('a[href$=".png"]').forEach((link) => {
+    link.setAttribute('aria-haspopup', 'dialog');
+    link.addEventListener('click', (event) => {
+      if (event.ctrlKey || event.metaKey || event.shiftKey || event.altKey) return;
+      event.preventDefault();
+      const title = link.firstChild.textContent.trim();
+      document.querySelector('#resource-image-title').textContent = title;
+      resourceImage.alt = title;
+      resourceImage.src = link.href;
+      resourceImageDialog.showModal();
+    });
+  });
+  document.querySelector('#close-resource-image').addEventListener('click', () => resourceImageDialog.close());
+  resourceImageDialog.addEventListener('click', (event) => {
+    if (event.target === resourceImageDialog) resourceImageDialog.close();
+  });
 }
 const fullscreenButton = document.querySelector('.fullscreen');
 if (document.fullscreenEnabled) {
