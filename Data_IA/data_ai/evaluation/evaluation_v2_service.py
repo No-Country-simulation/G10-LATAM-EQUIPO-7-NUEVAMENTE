@@ -17,7 +17,8 @@ Flujo:
           v
     EvaluationResponseV2
 
-Este módulo todavía NO está conectado al endpoint público /evaluate.
+Este módulo implementa la orquestación utilizada por el endpoint
+público /evaluate/v2.
 """
 
 from __future__ import annotations
@@ -92,8 +93,9 @@ def evaluate_content_v2(
 
     Notes
     -----
-    Mientras no exista una Decision Layer calibrada, el verdict global
-    continúa derivándose exclusivamente de la evaluación heurística.
+    El verdict global se resuelve mediante Decision Layer v0.1 a partir
+    de las señales heurística y semántica. Si el componente semántico
+    falla o no está disponible, se conserva el verdict heurístico.
     """
 
     heuristic_result = evaluar_contenido(
