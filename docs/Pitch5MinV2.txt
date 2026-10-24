@@ -1,0 +1,67 @@
+## 0:00–0:30 · Problema
+
+Imaginemos el siguiente escenario: una empresa implementa o actualiza un manual técnico. El conocimiento ya existe, pero convertir ese documento en material de capacitación para un principiante, un desarrollador, un arquitecto y un perfil ejecutivo puede requerir semanas de trabajo especializado.
+Y aparece otro reto: adaptar esa información sin perder precisión ni alejarse de la fuente original. Ese es el problema que buscamos resolver con NuevaMente, porque documentar no es lo mismo que transmitir conocimiento.
+
+---
+
+## 0:30–0:50 · Solución
+
+NuevaMente convierte documentación técnica en capacitación adaptada y verificable. Recibe un documento, entiende para quién debemos explicarlo, transforma ese conocimiento en material pedagógico y evalúa la calidad del resultado. Nuestro foco no es simplemente generar contenido con inteligencia artificial, sino transformar conocimiento técnico para diferentes audiencias manteniendo fidelidad a la fuente. Veámoslo funcionando.
+
+---
+
+## 0:50–2:40 · Producto y funcionalidades
+
+Accedemos al catálogo de capacitaciones, donde encontramos la biblioteca de NuevaMente.
+
+Aquí podemos consultar los documentos que ya han sido procesados, buscarlos y filtrarlos. Además, podemos alternar entre una vista gráfica y una vista en forma de lista.
+
+Para crear una nueva capacitación cargamos un documento en PDF, Markdown o texto plano y definimos su contexto pedagógico: el perfil del destinatario, el área de uso y el nivel de profundidad.
+
+NuevaMente procesa e indexa el documento y, una vez finalizado, podemos volver a encontrarlo dentro de nuestra biblioteca.
+
+Al abrirlo obtenemos primero información general para orientar el aprendizaje: conceptos clave, conocimientos previos necesarios y un tiempo estimado de estudio.
+
+A partir del mismo documento podemos trabajar con cuatro formatos complementarios.
+
+Tenemos un resumen ejecutivo para comprender las ideas principales; flashcards para reforzar conceptos; un guion formativo con narración y sugerencias visuales; y un quiz para evaluar conocimientos, incluyendo la justificación de las respuestas.
+
+También podemos regenerar únicamente el formato que necesitemos o regenerarlos todos, sin volver a cargar ni procesar el documento. Las versiones anteriores se conservan internamente y podemos descargar tanto el contenido generado como el documento original.
+
+Y hay una funcionalidad especialmente importante: la ventana de evaluación. Desde cada formato podemos consultar su veredicto, las puntuaciones obtenidas, observaciones, recomendaciones y, cuando corresponde, información que necesita mayor respaldo documental. Así, la experiencia no termina cuando la inteligencia artificial genera algo. El usuario también puede conocer cómo fue evaluado ese resultado.
+
+---
+
+## 2:40–3:40 · Qué ocurre detrás
+
+Toda esa experiencia está soportada por una arquitectura con responsabilidades separadas. El Frontend concentra la experiencia del usuario y BackendAPI funciona como orquestador global, coordinando los diferentes servicios. El sistema multiagente incorpora un Investigador RAG, un Redactor Pedagógico y un Agente Revisor, que participa cuando un resultado necesita corrección.
+
+Por otra parte, integramos un agente evaluador que combina una evaluación heurística con una evaluación semántica para medir la calidad pedagógica y la fidelidad a la fuente, y generar un veredicto acompañado de hallazgos y recomendaciones. La idea central es sencilla: **generación y evaluación son responsabilidades diferentes**.
+
+Además, la evidencia recuperada es específica para cada objetivo, de manera que distintos formatos pueden trabajar con la información que realmente necesitan.Y cuando existe un problema, el Revisor puede orientar una corrección utilizando la evidencia disponible o solicitar nueva evidencia antes de reescribir.
+
+---
+
+## 3:40–4:05 · Validación y viabilidad
+
+Además, validamos el sistema de recuperación mediante Ground Truth, benchmark y estudios de ablación, comparando configuraciones bajo condiciones controladas y reproducibles. Toda la solución está desplegada sobre Oracle Cloud Infrastructure y organizada en servicios mediante Docker compose.
+
+
+
+---
+
+## 4:05–4:20 · Equipo
+
+Detrás de NuevaMente hay ocho profesionales trabajando entre Frontend, Backend, Agentes, Data/IA, Infraestructura y QA.
+Logramos que distintos frentes terminaran funcionando como un solo producto, trabajando por sprints, con revisión entre pares, pruebas continuas e integración mediante Github.
+
+---
+
+## 4:20–4:45 · Cierre
+
+NuevaMente reduce el esfuerzo necesario para transformar documentación en capacitación, adapta ese conocimiento a distintos perfiles y mantiene la confianza en que el resultado continúa conectado con la fuente original.
+
+Los invitamos a probar NuevaMente desde la URL oficial del producto. Desde allí también pueden acceder a nuestra presentación interactiva, recorrer la arquitectura y profundizar en el sistema, sus resultados de validación y otros recursos técnicos del proyecto.
+
+**Porque documentar conserva conocimiento. NuevaMente ayuda a transmitirlo.**
